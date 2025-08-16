@@ -1,0 +1,48 @@
+# Redis for Development Environment
+# Simple, non-persistent setup for local development
+
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: artificer-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 128mb 
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - artificer-dev
+
+  # Redis UI for debugging
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    container_name: artificer-redis-ui-dev
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - artificer-dev
+
+volumes:
+  redis_dev_data:
+    driver: local
+
+networks:
+  artificer-dev:
+    driver: bridge
