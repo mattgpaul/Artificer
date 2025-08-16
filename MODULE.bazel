@@ -3,16 +3,23 @@ module(
     version = "0.1.0",
 )
 
-# Python support
+# Exact dependency pinning - never use version ranges
 bazel_dep(name = "rules_python", version = "0.40.0")
-
-# Rust support  
 bazel_dep(name = "rules_rust", version = "0.46.0")
 
-# Python toolchain registration
+# Rust crate universe for dependency management
+crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+crates.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//services/telemetry-collector:Cargo.lock", 
+    manifests = ["//services/telemetry-collector:Cargo.toml"],
+)
+use_repo(crates, "crates")
+
+# Python toolchain with specific version
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(python_version = "3.12")
 
-# Rust toolchain registration
+# Rust toolchain with specific edition
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(edition = "2021")

@@ -1,0 +1,52 @@
+name: Version Consistency Check
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Need previous commit for change detection
+    
+    - name: Run version consistency check
+      run: |
+        echo "🔍 Running version consistency checks..."
+        ./scripts/version-check.sh
+    
+    - name: Check for version bump requirements
+      run: |
+        echo "📋 Checking if version bumps are needed..."
+        
+        # Check if any Rust source files changed
+        if git diff --name-only HEAD~1 | grep -E '\.(rs)$' | grep -v test; then
+          echo "📝 Rust source files changed - verify version numbers are appropriate"
+          echo "Changed files:"
+          git diff --name-only HEAD~1 | grep -E '\.(rs)$' | grep -v test
+          
+          # Check for schema changes specifically
+          if git diff HEAD~1 | grep -E '(pub struct|pub enum)'; then
+            echo "⚠️  Struct/enum definitions changed - consider schema version bump"
+            echo "Check .cursor/rules/versioning-guide.mdc for guidance"
+          fi
+        fi
+    
+    - name: Validate dependency pinning
+      run: |
+        echo "📌 Validating exact dependency pinning..."
+        
+        # Check all Cargo.toml files for version ranges
+        if find services/ -name "Cargo.toml" -exec grep -l 'version = "[^=]' {} \; | head -1; then
+          echo "❌ Found version ranges in dependencies"
+          echo "All dependencies must use exact pinning: version = \"=1.2.3\""
+          exit 1
+        else
+          echo "✅ All dependencies use exact version pinning"
+        fi
