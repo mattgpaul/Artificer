@@ -1,0 +1,18 @@
+module(
+    name = "artificer",
+    version = "0.1.0",
+)
+
+# Python support
+bazel_dep(name = "rules_python", version = "0.40.0")
+
+# Rust support  
+bazel_dep(name = "rules_rust", version = "0.46.0")
+
+# Python toolchain registration
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.12")
+
+# Rust toolchain registration
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(edition = "2021")
