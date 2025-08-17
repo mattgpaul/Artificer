@@ -1,2 +1,8 @@
 // main.cpp - Entry point for telemetry collector
-// YOUR TASK: Implement the main function to test your TelemetryMessage and CpuMetrics classes
+#include "models/telemetry_message.hpp"
+#include "models/cpu/cpu_metrics.hpp"
+#include <iostream>
+
+int main() {
+    return 0;
+}
