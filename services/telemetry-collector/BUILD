@@ -1,33 +1,34 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
-rust_library(
+# Industry standard: Clean C++ library with modern standards
+cc_library(
     name = "telemetry_collector_lib",
-    srcs = glob(["src/**/*.rs"], exclude = ["src/main.rs"]),
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:async-trait",
-        "@crates//:chrono", 
-        "@crates//:config",
-        "@crates//:redis",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:sysinfo",
-        "@crates//:thiserror",
-        "@crates//:tokio",
-        "@crates//:tracing",
-        "@crates//:tracing-subscriber",
-        "@crates//:uuid",
-    ],
+    srcs = glob([
+        "src/**/*.cpp",
+    ], exclude = ["src/main.cpp"]),
+    hdrs = glob([
+        "src/**/*.hpp",
+    ]),
+    # Start with no external dependencies - add only when needed
+    includes = ["src"],  # Clean include paths
     visibility = ["//visibility:public"],
+    copts = [
+        "-std=c++20",        # Modern C++ features
+        "-Wall",             # Enable warnings
+        "-Wextra",           # Extra warnings  
+        "-Werror",           # Treat warnings as errors (industry standard)
+    ],
 )
 
-rust_binary(
+# Main executable binary
+cc_binary(
     name = "telemetry-collector",
-    srcs = ["src/main.rs"],
+    srcs = ["src/main.cpp"],
     deps = [":telemetry_collector_lib"],
-)
-
-rust_test(
-    name = "telemetry_collector_test",
-    crate = ":telemetry_collector_lib",
+    copts = [
+        "-std=c++20",
+        "-Wall",
+        "-Wextra", 
+        "-Werror",
+    ],
 )
