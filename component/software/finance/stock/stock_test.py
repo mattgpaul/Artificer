@@ -50,8 +50,18 @@ class TestStockInstance:
         assert stock_instance.ticker == "AAPL"
         assert stock_instance.logger is not None
 
-class TestRequestHandler:
-    pass
+class TestGetData:
+    @pytest.mark.skip(reason="Not implemented")
+    def test_client_request(self, stock_instance, stock_data, mocker):
+        pass
+
+    @pytest.mark.skip(reason="Not implemented")
+    def test_client_request_with_period(self, stock_instance):
+        pass
+
+    def test_client_request_with_period_lt_timescale(self, stock_instance):
+        with pytest.raises(ValueError):
+            stock_instance._get_data(Timescale.YEAR, Timescale.DAY)
 
 class TestGetClose:
     def test_get_close(self, stock_instance, mock_get_data):
@@ -83,6 +93,9 @@ class TestGetVolume:
         assert stock_instance.get_volume(Timescale.MINUTE) == 1000000
         assert type(stock_instance.get_volume(Timescale.YEAR)) == int
 
-# class TestGetHistoricalData:
-#     def test_get_historical_data(self, stock_instance, historical_data):
-        
+class TestGetHistoricalData:
+    def test_get_historical_data(self, stock_instance, historical_data, mocker):
+        mocker.patch.object(Stock, "_get_data", return_value=historical_data)
+        assert stock_instance.get_historical_data(Timescale.DAY, Timescale.MONTH) == historical_data
+        assert stock_instance.get_historical_data(Timescale.MINUTE, Timescale.DAY) == historical_data
+        assert type(stock_instance.get_historical_data(Timescale.YEAR, Timescale.YEAR5)) == dict

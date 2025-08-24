@@ -8,19 +8,18 @@ class Stock(FinancialInstrument):
 
         self.logger.info(f"Initializing stock {self.ticker}")
 
-    def _get_data(self, timescale: Timescale) -> dict:
+    def _get_data(self, timescale: Timescale, period: Timescale = None) -> dict:
         # TODO: Implement this
         # This will likely be an API call to the schwab_api client
         # For now, we'll just return a mock dictionary
 
-        self.logger.info(f"Getting data for {self.ticker} at {timescale}")
-        return {
-            "open": 150.75,
-            "close": 152.25,
-            "high": 153.00,
-            "low": 149.50,
-            "volume": 1000000,
-        }
+        self.logger.info(f"Getting data for {self.ticker} at {timescale, period if period else timescale}")
+        if timescale > period:
+            raise ValueError(f"Timescale {timescale} is greater than period {period}")
+        if timescale == period:
+            return self._get_data(timescale)
+        else:
+            return self._get_data(timescale, period)
 
     def get_name(self) -> str:
         pass
@@ -44,3 +43,7 @@ class Stock(FinancialInstrument):
     def get_volume(self, timescale: Timescale) -> int:
         self.logger.debug(f"Getting volume for {self.ticker} at {timescale}")
         return self._get_data(timescale)["volume"]
+
+    def get_historical_data(self, timescale: Timescale, period: Timescale) -> dict:
+        self.logger.debug(f"Getting historical data for {self.ticker} at {timescale} for {period}")
+        return self._get_data(timescale, period)
