@@ -12,6 +12,8 @@ class Stock(FinancialInstrument):
         # TODO: Implement this
         # This will likely be an API call to the schwab_api client
         # For now, we'll just return a mock dictionary
+
+        self.logger.info(f"Getting data for {self.ticker} at {timescale}")
         return {
             "open": 150.75,
             "close": 152.25,
@@ -24,17 +26,17 @@ class Stock(FinancialInstrument):
         pass
 
     def get_open(self, timescale: Timescale) -> float:
-        self.logger.info(f"Getting open for {self.ticker} at {timescale}")
+        self.logger.debug(f"Getting open for {self.ticker} at {timescale}")
         return self._get_data(timescale)["open"]
 
     def get_close(self, timescale: Timescale) -> float:
-        self.logger.info(f"Getting close for {self.ticker} at {timescale}")
+        self.logger.debug(f"Getting close for {self.ticker} at {timescale}")
         return self._get_data(timescale)["close"]
 
     def get_high(self, timescale: Timescale) -> float:
-        self.logger.info(f"Getting high for {self.ticker} at {timescale}")
+        self.logger.debug(f"Getting high for {self.ticker} at {timescale}")
         return self._get_data(timescale)["high"]
 
     def get_low(self, timescale: Timescale) -> float:
-        self.logger.info(f"Getting low for {self.ticker} at {timescale}")
+        self.logger.debug(f"Getting low for {self.ticker} at {timescale}")
         return self._get_data(timescale)["low"]
