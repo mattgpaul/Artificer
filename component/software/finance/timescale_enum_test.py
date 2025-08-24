@@ -16,3 +16,23 @@ class TestTimescaleEnum:
     def test_timescale_enum_invalid_timescale(self):
         with pytest.raises(ValueError):
             Timescale("100y")
+
+    def test_timescale_enum_order(self):
+        assert Timescale.MINUTE < Timescale.MINUTE5
+        assert Timescale.MINUTE5 < Timescale.MINUTE15
+        assert Timescale.MINUTE15 < Timescale.MINUTE30
+        assert Timescale.MINUTE30 < Timescale.HOUR
+        assert Timescale.HOUR < Timescale.HOUR2
+        assert Timescale.HOUR2 < Timescale.HOUR4
+        assert Timescale.HOUR4 < Timescale.HOUR8
+        assert Timescale.HOUR8 < Timescale.DAY
+        assert Timescale.DAY < Timescale.WEEK
+        assert Timescale.WEEK < Timescale.MONTH
+        assert Timescale.MONTH < Timescale.MONTH3
+        assert Timescale.MONTH3 < Timescale.MONTH6
+        assert Timescale.MONTH6 < Timescale.YEAR
+        assert Timescale.YEAR < Timescale.YEAR5
+        assert Timescale.YEAR5 < Timescale.YEAR10
+        assert Timescale.YEAR10 < Timescale.YEAR20
+        assert Timescale.YEAR20 < Timescale.YEAR30
+
