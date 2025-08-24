@@ -40,3 +40,7 @@ class Stock(FinancialInstrument):
     def get_low(self, timescale: Timescale) -> float:
         self.logger.debug(f"Getting low for {self.ticker} at {timescale}")
         return self._get_data(timescale)["low"]
+
+    def get_volume(self, timescale: Timescale) -> int:
+        self.logger.debug(f"Getting volume for {self.ticker} at {timescale}")
+        return self._get_data(timescale)["volume"]
