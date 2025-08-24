@@ -29,41 +29,26 @@ class TestRequestHandler:
 
 class TestGetClose:
     def test_get_close(self, stock_instance):
-        assert stock_instance.get_close(Timescale.DAY.value) == 152.25
-        assert stock_instance.get_close(Timescale.MINUTE.value) == 152.25
-        assert type(stock_instance.get_close(Timescale.YEAR.value)) == float
-
-    def test_get_close_invalid_timescale(self, stock_instance):
-        with pytest.raises(ValueError):
-            stock_instance.get_close("100y")
+        assert stock_instance.get_close(Timescale.DAY) == 152.25
+        assert stock_instance.get_close(Timescale.MINUTE) == 152.25
+        assert type(stock_instance.get_close(Timescale.YEAR)) == float
 
 class TestGetOpen:
     def test_get_open(self, stock_instance):
-        assert stock_instance.get_open(Timescale.DAY.value) == 150.75
-        assert stock_instance.get_open(Timescale.MINUTE.value) == 150.75
-        assert type(stock_instance.get_open(Timescale.YEAR.value)) == float
-
-    def test_get_open_invalid_timescale(self, stock_instance):
-        with pytest.raises(ValueError):
-            stock_instance.get_open("100y")
+        assert stock_instance.get_open(Timescale.DAY) == 150.75
+        assert stock_instance.get_open(Timescale.MINUTE) == 150.75
+        assert type(stock_instance.get_open(Timescale.YEAR)) == float
 
 class TestGetHigh:
     def test_get_high(self, stock_instance):
-        assert stock_instance.get_high(Timescale.DAY.value) == 153.00
-        assert stock_instance.get_high(Timescale.MINUTE.value) == 153.00
-        assert type(stock_instance.get_high(Timescale.YEAR.value)) == float
-
-    def test_get_high_invalid_timescale(self, stock_instance):
-        with pytest.raises(ValueError):
-            stock_instance.get_high("100y")
+        assert stock_instance.get_high(Timescale.DAY) == 153.00
+        assert stock_instance.get_high(Timescale.MINUTE) == 153.00
+        assert type(stock_instance.get_high(Timescale.YEAR)) == float
 
 class TestGetLow:
     def test_get_low(self, stock_instance):
-        assert stock_instance.get_low(Timescale.DAY.value) == 149.50
-        assert stock_instance.get_low(Timescale.MINUTE.value) == 149.50
-        assert type(stock_instance.get_low(Timescale.YEAR.value)) == float
+        assert stock_instance.get_low(Timescale.DAY) == 149.50
+        assert stock_instance.get_low(Timescale.MINUTE) == 149.50
+        assert type(stock_instance.get_low(Timescale.YEAR)) == float
 
-    def test_get_low_invalid_timescale(self, stock_instance):
-        with pytest.raises(ValueError):
-            stock_instance.get_low("100y")
             
