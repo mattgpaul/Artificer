@@ -1,0 +1,15 @@
+# Explicitly specify GCC toolchain
+build --action_env=CC=/usr/bin/gcc
+build --action_env=CXX=/usr/bin/g++
+
+# Use modern C++ standard
+build --cxxopt=-std=c++20
+
+# Optimization and debugging flags
+build --copt=-O2
+build --copt=-g
+
+# Enhanced warnings for better code quality
+build --cxxopt=-Wall
+build --cxxopt=-Wextra
+build --cxxopt=-Wpedantic
