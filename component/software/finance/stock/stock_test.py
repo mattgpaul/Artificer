@@ -1,105 +1,69 @@
 import pytest
-import pandas as pd
 from component.software.finance.stock.stock import Stock
+from component.software.finance.timescale_enum import Timescale
 
+@pytest.fixture(scope="session")
+def stock_instance():
+    return Stock(ticker="AAPL")
 
-@pytest.fixture
-def mock_yfinance_ticker(mocker):
-    """Fixture that mocks yfinance Ticker and returns the mock"""
-    mock_yf_instance = mocker.MagicMock()
-    mock_ticker = mocker.patch('component.software.finance.stock.stock.yf.Ticker')
-    mock_ticker.return_value = mock_yf_instance
-    return mock_ticker, mock_yf_instance
+@pytest.fixture(scope="session")
+def stock_data():
+    # TODO: Mock the data
+    # Assume a simple dictionary structure for now
+    return {
+            "open": 150.75,
+            "close": 152.25,
+            "high": 153.00,
+            "low": 149.50,
+            "volume": 1000000,
+        }
 
+class TestStockInstance:
+    def test_instance_creation(self, stock_instance):
+        assert type(stock_instance) is Stock
+        assert stock_instance.ticker == "AAPL"
+        assert stock_instance.logger is not None
 
-@pytest.fixture
-def sample_ticker():
-    """Fixture that provides a sample ticker symbol for testing"""
-    return "AAPL"
+class TestRequestHandler:
+    pass
 
+class TestGetClose:
+    def test_get_close(self, stock_instance):
+        assert stock_instance.get_close(Timescale.DAY.value) == 152.25
+        assert stock_instance.get_close(Timescale.MINUTE.value) == 152.25
+        assert type(stock_instance.get_close(Timescale.YEAR.value)) == float
 
-@pytest.fixture
-def sample_stock_data():
-    """Fixture that provides sample stock data for testing"""
-    return pd.DataFrame({
-        'Open': [150.0],
-        'High': [152.0],
-        'Low': [148.0],
-        'Close': [151.0],
-        'Volume': [1000000],
-    })
+    def test_get_close_invalid_timescale(self, stock_instance):
+        with pytest.raises(ValueError):
+            stock_instance.get_close("100y")
 
+class TestGetOpen:
+    def test_get_open(self, stock_instance):
+        assert stock_instance.get_open(Timescale.DAY.value) == 150.75
+        assert stock_instance.get_open(Timescale.MINUTE.value) == 150.75
+        assert type(stock_instance.get_open(Timescale.YEAR.value)) == float
 
-@pytest.fixture  
-def stock_instance(mock_yfinance_ticker, sample_ticker, sample_stock_data):
-    """Fixture that creates a Stock instance with mocked yfinance"""
-    mock_ticker, mock_yf_instance = mock_yfinance_ticker
-    
-    # Configure the mock to return sample data when history() is called
-    mock_yf_instance.history.return_value = sample_stock_data
-    
-    stock = Stock(sample_ticker)
-    return stock, mock_ticker, mock_yf_instance
+    def test_get_open_invalid_timescale(self, stock_instance):
+        with pytest.raises(ValueError):
+            stock_instance.get_open("100y")
 
+class TestGetHigh:
+    def test_get_high(self, stock_instance):
+        assert stock_instance.get_high(Timescale.DAY.value) == 153.00
+        assert stock_instance.get_high(Timescale.MINUTE.value) == 153.00
+        assert type(stock_instance.get_high(Timescale.YEAR.value)) == float
 
-class TestStockInitialization:
-    """Test the initialization of the Stock class"""
+    def test_get_high_invalid_timescale(self, stock_instance):
+        with pytest.raises(ValueError):
+            stock_instance.get_high("100y")
 
-    def test_initialize_with_valid_ticker(self, stock_instance, sample_ticker):
-        """Test that Stock initializes correctly with a valid ticker symbol"""
-        stock, mock_ticker, mock_yf_instance = stock_instance
-        
-        assert stock.ticker == sample_ticker
-        assert stock.data == mock_yf_instance
-        assert stock.logger is not None
-        assert hasattr(stock, 'logger')
+class TestGetLow:
+    def test_get_low(self, stock_instance):
+        assert stock_instance.get_low(Timescale.DAY.value) == 149.50
+        assert stock_instance.get_low(Timescale.MINUTE.value) == 149.50
+        assert type(stock_instance.get_low(Timescale.YEAR.value)) == float
 
-    @pytest.mark.xfail(reason="Class exception not implemented")
-    def test_exception_with_invalid_ticker(self, mocker):
-        """
-        Test that initializing Stock with an invalid ticker like '1234' raises an exception
-        when attempting to retrieve its name.
-        """
-        mock_ticker = mocker.patch('component.software.finance.stock.stock.yf.Ticker')
-        mock_yf_instance = mocker.MagicMock()
-        mock_yf_instance.info = {}
-        mock_ticker.return_value = mock_yf_instance
-
-        stock = Stock("1234")
-        with pytest.raises(Exception):
-            stock.get_name()
-
-class TestStockDataRetrieval:
-    """Test the data retrieval of the Stock class"""
-
-    def test_get_open(self):
-        pass
-
-    def test_get_close(self, stock_instance, sample_stock_data):
-        stock, mock_ticker, mock_yf_instance = stock_instance
-        result = stock.get_close("1d")
-        print(f"Result: {result}")
-        print(f"Sample data: {sample_stock_data}")
-        assert result == sample_stock_data["Close"].values[0]
-        assert type(result) == float
-
-    def test_get_high(self):
-        pass
-
-    def test_get_low(self):
-        pass
-
-    def test_get_name(self):
-        pass
-
-    def test_exception_with_invalid_timescale(self):
-        pass
-
-    def test_exception_with_invalid_ticker(self):
-        pass
-
-    def test_different_timescales(self):
-        pass
-
-    def test_yfinance_integration_mock(self):
-        pass
+    def test_get_low_invalid_timescale(self, stock_instance):
+        with pytest.raises(ValueError):
+            stock_instance.get_low("100y")
+            
