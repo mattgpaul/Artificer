@@ -3,9 +3,7 @@ py_library(
     name = "stock",
     srcs = ["stock.py"],
     deps = [
-        "//component/software/finance:financial_instrument", 
-        requirement("yfinance"),
-        requirement("pandas"),
+        "//component/software/finance:finance", 
     ],
     visibility = ["//component:__subpackages__"],
 )
@@ -13,17 +11,12 @@ py_library(
 # py_binary()
 
 load("//:pytest_test.bzl", "pytest_test")
-
 pytest_test(
     name = "stock_test",
     srcs = ["stock_test.py"],
     deps = [
-        ":stock",
-        requirement("pytest"),
-        requirement("pytest-mock"),
-        requirement("pytest-cov"), 
-        requirement("pytest-bazel"),
-        requirement("pandas"),
+        "//component/software/finance/stock:stock",
+        "//component/software/finance:finance",
     ],
 )
 
