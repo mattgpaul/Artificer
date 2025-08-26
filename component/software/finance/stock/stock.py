@@ -24,27 +24,27 @@ class StockHistoricalData(StockData):
     
     @property
     def open(self) -> pd.Series:
-        return self.data["open"]
+        return self.data["Open"]
     
     @property
     def high(self) -> pd.Series:
-        return self.data["high"]
+        return self.data["High"]
     
     @property
     def low(self) -> pd.Series:
-        return self.data["low"]
+        return self.data["Low"]
     
     @property
     def close(self) -> pd.Series:
-        return self.data["close"]
+        return self.data["Close"]
     
     @property
     def volume(self) -> pd.Series:
-        return self.data["volume"]
+        return self.data["Volume"]
     
     @property
     def timestamp(self) -> pd.Series:
-        return self.data["timestamp"]
+        return self.data["Date"]  #TODO: Convert to timestamp
 
 class Stock(FinancialInstrument):
     def __init__(self, ticker: str, *args, **kwargs):
@@ -66,5 +66,5 @@ class Stock(FinancialInstrument):
         return StockHistoricalData(
             ticker=self.ticker,
             name= "FooBar Inc.",  #TODO: Get name from API, this is hardcoded for now
-            data=data,
+            data=data, #TODO: Revert the extra ticker column 
             frequency=frequency)
