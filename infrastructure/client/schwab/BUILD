@@ -11,4 +11,8 @@ py_library(
         requirement("yfinance"),
         requirement("pandas"),
     ],
+    visibility = [
+        "//infrastructure/client:__subpackages__",
+        "//component/software/finance:__subpackages__",
+        ],
 )
