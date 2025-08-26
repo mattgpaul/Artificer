@@ -10,4 +10,4 @@ class SchwabClient(Client):
         self.logger = get_logger(self.__class__.__name__)
 
     def get_historical_data(self, ticker: str, frequency: Timescale = Timescale.DAY, period: Timescale = Timescale.YEAR) -> pd.DataFrame:
-        return yf.download(ticker, period=period, interval=frequency)
+        return yf.download(ticker, period=period.value, interval=frequency.value)

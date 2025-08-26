@@ -5,3 +5,8 @@ compile_pip_requirements(
     requirements_in = "requirements.in",
     requirements_txt = "requirements.txt",
 )
+
+# Export pytest configuration for all tests
+exports_files([
+    "pytest.ini",
+])
