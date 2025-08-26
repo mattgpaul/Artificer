@@ -7,7 +7,10 @@ py_library(
     deps = [
         "//infrastructure/logging:logger",
     ],
-    visibility = ["//component:__subpackages__"],
+    visibility = [
+        "//component/software/finance:__subpackages__",
+        "//infrastructure/client/schwab:__pkg__",
+    ],
 )
 
 load("//:pytest_test.bzl", "pytest_test")
