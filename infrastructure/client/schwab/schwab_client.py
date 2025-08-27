@@ -10,4 +10,10 @@ class SchwabClient(Client):
         self.logger = get_logger(self.__class__.__name__)
 
     def get_historical_data(self, ticker: str, frequency: Timescale = Timescale.DAY, period: Timescale = Timescale.YEAR) -> pd.DataFrame:
-        return yf.download(ticker, period=period.value, interval=frequency.value)
+        data = yf.download(ticker, period=period.value, interval=frequency.value)
+        
+        # Handle MultiIndex columns (yfinance sometimes returns ticker as column level)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.droplevel(1)  # Remove ticker level, keep OHLCV level
+        
+        return data

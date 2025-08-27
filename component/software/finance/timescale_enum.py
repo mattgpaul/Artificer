@@ -10,7 +10,7 @@ class Timescale(Enum):
     HOUR4 = "4h"
     HOUR8 = "8h"
     DAY = "1d"
-    WEEK = "1w"
+    WEEK = "1wk"
     MONTH = "1mo"
     MONTH3 = "3mo"
     MONTH6 = "6mo"
@@ -26,7 +26,7 @@ class Timescale(Enum):
         hierarchy = [
             "1m", "5m", "15m", "30m",
             "1h", "2h", "4h", "8h", 
-            "1d", "1w", "1mo", "3mo", "6mo",
+            "1d", "1wk", "1mo", "3mo", "6mo",
             "1y", "5y", "10y", "20y", "30y"
         ]
         return hierarchy.index(self.value)
