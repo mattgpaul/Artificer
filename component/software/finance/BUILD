@@ -10,6 +10,7 @@ py_library(
     visibility = [
         "//component/software/finance:__subpackages__",
         "//infrastructure/client/schwab:__pkg__",
+        "//system/trader/strategy:__pkg__",
     ],
 )
 

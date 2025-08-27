@@ -7,6 +7,10 @@ py_library(
         "//infrastructure/client/schwab:schwab_client",
         requirement("pandas"),
     ],
+    visibility = [
+        "//component/software/finance:__subpackages__",
+        "//system/trader/strategy:__pkg__",
+    ],
 )
 
 # py_binary()
