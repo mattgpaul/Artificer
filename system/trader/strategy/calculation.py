@@ -15,45 +15,27 @@ def atr(data: pd.Series, period: int) -> pd.Series:
     tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
     return tr.rolling(window=period).mean()
 
-def near_support(data: pd.Series, distance: int, height_pct: float = 0.5, prominence=None, buffer: float = 0.02, min_lookback: int = 50) -> pd.Series:
+def valleys(data: pd.Series, distance: int = 10, threshold: float = 0.01) -> pd.Series:
     """
-    Forward-looking support detection - no look-ahead bias
+    Find valleys (local minima) in a time series using find_peaks on inverted data.
     
     Args:
-        data: Price series
-        distance: Minimum distance between valleys
-        height_pct: Percentage below median for height threshold
-        prominence: Minimum prominence for valleys
-        buffer: Price tolerance for "near" support
-
-        min_lookback: Minimum periods of history needed
+        data: Time series data to analyze
+        distance: Minimum distance between valleys (in data points, default: 10)
+        threshold: Minimum vertical distance to neighboring samples (relative depth requirement, default: 0.01)
     
     Returns:
-        Boolean series - True where current price is near confirmed historical support
+        Boolean Series indicating valley locations
     """
-    result = pd.Series(False, index=data.index)
+    # Invert the data to find valleys as peaks
+    inverted_data = -data
     
-    for i in range(min_lookback, len(data)):
-        current_price = data.iloc[i]
-        historical_data = data.iloc[:i]
-        
-        median_price = historical_data.median()
-        height_threshold = median_price * (1 - height_pct)
-        
-        valleys, _ = find_peaks(-historical_data.values, distance=distance, 
-                               height=-height_threshold, prominence=prominence)
-        
-        if len(valleys) == 0:
-            continue
-            
-        confirmed_support = []
-        for valley_idx in valleys:
-            valley_price = historical_data.iloc[valley_idx]
-            confirmed_support.append(valley_price)
-        
-        if confirmed_support:
-            support_array = np.array(confirmed_support)
-            price_diffs = np.abs(current_price - support_array) / support_array
-            result.iloc[i] = np.any(price_diffs <= buffer)
+    # Find peaks in the inverted data (which are valleys in original data)
+    valley_indices, _ = find_peaks(inverted_data, distance=distance, threshold=threshold)
     
-    return result
+    # Create boolean series marking valley locations
+    valley_mask = pd.Series(False, index=data.index)
+    if len(valley_indices) > 0:
+        valley_mask.iloc[valley_indices] = True
+    
+    return valley_mask
