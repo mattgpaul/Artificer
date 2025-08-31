@@ -3,9 +3,7 @@ import json
 import dotenv
 import requests
 import base64
-import webbrowser
 from datetime import datetime, timedelta
-from pathlib import Path
 from infrastructure.client.client import Client
 from infrastructure.logging.logger import get_logger
 
@@ -16,7 +14,9 @@ class SchwabClient(Client):
         self.secret = os.getenv("SCHWAB_SECRET")
         self.app_name = os.getenv("SCHWAB_APP_NAME")
         self.logger = get_logger(self.__class__.__name__)
-        self.token_file = "infrastructure/client/schwab/schwab_tokens.json"
+        # Use absolute path to actual source directory
+        workspace_root = "/home/matthew/Artificer"  # TODO: make this dynamic later
+        self.token_file = os.path.join(workspace_root, "infrastructure/client/schwab/schwab_tokens.json")
 
     def get_initial_tokens(self) -> dict:
         """One-time OAuth2 setup to get initial tokens"""
@@ -50,14 +50,11 @@ class SchwabClient(Client):
         response = requests.post("https://api.schwabapi.com/v1/oauth/token", headers=headers, data=payload)
         return response.json()
 
-    def refresh_token(self) -> None:
-        pass
-
     def save_token(self, tokens: dict) -> None:
         """Save tokens to schwab directory"""
-        # Add expiration timestamp
+        now = datetime.now()
         expires_in = tokens.get('expires_in', 1800)
-        expires_at = datetime.now() + timedelta(seconds=expires_in)
+        expires_at = now + timedelta(seconds=expires_in)
         
         token_data = {
             'access_token': tokens.get('access_token'),
@@ -65,25 +62,60 @@ class SchwabClient(Client):
             'token_type': tokens.get('token_type', 'Bearer'),
             'expires_in': expires_in,
             'expires_at': expires_at.isoformat(),
-            'created_at': datetime.now().isoformat()
+            'created_at': now.isoformat()
         }
         
         with open(self.token_file, 'w') as f:
             json.dump(token_data, f, indent=2)
         
         self.logger.info(f"Tokens saved to {self.token_file}")
-        print(f"Tokens saved to {self.token_file}")
 
     def load_token(self) -> str:
-        # include check if token is expired
-        pass
-
-
-if __name__ == "__main__":
-    print("Testing Schwab OAuth2 authentication...")
-    client = SchwabClient()
-    try:
-        pass
+        """Get valid access token, refreshing if necessary"""
+        try:
+            with open(self.token_file, 'r') as f:
+                tokens = json.load(f)
+        except FileNotFoundError:
+            raise Exception("No tokens found - run initial authentication first")
         
-    except Exception as e:
-        print(f"ERROR: {e}")
+        # Check if token is expired
+        expires_at = datetime.fromisoformat(tokens['expires_at'])
+        if datetime.now() >= expires_at:
+            self.logger.info("Access token expired, refreshing...")
+            tokens = self.refresh_token()
+        
+        return tokens['access_token']
+
+    def refresh_token(self) -> dict:
+        """Refresh expired access token using stored refresh token"""
+        self.logger.info("Starting token refresh")
+        
+        # Load stored refresh token
+        try:
+            with open(self.token_file, 'r') as f:
+                refresh_token = json.load(f)['refresh_token']
+        except (FileNotFoundError, KeyError):
+            self.logger.error("No refresh token found")
+            raise Exception("No refresh token found - run initial authentication first")
+        
+        # Build request
+        credentials = f"{self.api_key}:{self.secret}"
+        headers = {
+            "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
+        
+        self.logger.info("Sending token refresh request")
+        response = requests.post("https://api.schwabapi.com/v1/oauth/token", headers=headers, data=payload)
+        
+        if response.status_code == 200:
+            new_tokens = response.json()
+            new_tokens['refresh_token'] = refresh_token  # Keep original refresh token
+            self.save_token(new_tokens) 
+            self.logger.info("Token refresh successful")
+            return new_tokens
+        else:
+            self.logger.error(f"Token refresh failed: {response.status_code}")
+            raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
+
