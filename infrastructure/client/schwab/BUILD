@@ -1,9 +1,11 @@
 load("@pip//:requirements.bzl", "requirement")
 
 py_library(
-    name = "schwab_client",
+    name = "schwab",
     srcs = [
         "schwab_client.py",
+        "market_handler.py", 
+        "account_handler.py",  # when you build it
     ],
     deps = [
         "//infrastructure/client:client",
@@ -19,9 +21,15 @@ py_library(
 )
 
 py_binary(
-    name = "schwab_client_main",
-    srcs = ["schwab_client.py"],
-    deps = [":schwab_client"],
-    main = "schwab_client.py",
+    name = "test_market_handler",
+    srcs = ["market_handler.py"],
+    deps = [":schwab"],
+    main = "market_handler.py",
 )
 
+py_binary(
+    name = "test_account_handler",
+    srcs = ["account_handler.py"],
+    deps = [":schwab"],
+    main = "account_handler.py",
+)

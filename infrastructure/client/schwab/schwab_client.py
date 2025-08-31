@@ -13,6 +13,7 @@ class SchwabClient(Client):
         self.api_key = os.getenv("SCHWAB_API_KEY")
         self.secret = os.getenv("SCHWAB_SECRET")
         self.app_name = os.getenv("SCHWAB_APP_NAME")
+        self.base_url = "https://api.schwabapi.com"
         self.logger = get_logger(self.__class__.__name__)
         # Use absolute path to actual source directory
         workspace_root = "/home/matthew/Artificer"  # TODO: make this dynamic later
@@ -21,7 +22,7 @@ class SchwabClient(Client):
     def get_initial_tokens(self) -> dict:
         """One-time OAuth2 setup to get initial tokens"""
         # Step 1: Show auth URL
-        auth_url = f"https://api.schwabapi.com/v1/oauth/authorize?client_id={self.api_key}&redirect_uri=https://127.0.0.1"
+        auth_url = f"{self.base_url}/v1/oauth/authorize?client_id={self.api_key}&redirect_uri=https://127.0.0.1"
         self.logger.info("Click to authenticate:")
         self.logger.info(auth_url)
         
@@ -47,7 +48,7 @@ class SchwabClient(Client):
             "redirect_uri": "https://127.0.0.1",
         }
         
-        response = requests.post("https://api.schwabapi.com/v1/oauth/token", headers=headers, data=payload)
+        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
         return response.json()
 
     def save_token(self, tokens: dict) -> None:
@@ -107,7 +108,7 @@ class SchwabClient(Client):
         payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
         
         self.logger.info("Sending token refresh request")
-        response = requests.post("https://api.schwabapi.com/v1/oauth/token", headers=headers, data=payload)
+        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
         
         if response.status_code == 200:
             new_tokens = response.json()
