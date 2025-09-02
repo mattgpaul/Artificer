@@ -1,4 +1,5 @@
 import requests
+from infrastructure.client.schwab.services.timescale_enum import FrequencyType, PeriodType
 from infrastructure.client.schwab.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
 
@@ -7,6 +8,15 @@ class MarketHandler(SchwabClient):
         super().__init__()
         self.market_url = f"{self.base_url}/marketdata/v1"
         self.logger = get_logger(self.__class__.__name__)
+
+    def _construct_headers(self):
+        token = self.load_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept" : "application/json",
+        }
+        return headers
+        
 
     def _send_request(self, url: str, headers: dict, params: dict) -> dict:
         self.logger.info(f"Sending request to {url}")
@@ -26,7 +36,6 @@ class MarketHandler(SchwabClient):
             quote = data.get('quote', {})
             fundamental = data.get('fundamental', {})
             
-            # Direct key access - very fast O(1) lookups
             extracted[symbol] = {
                 'price': quote.get('lastPrice'),
                 'bid': quote.get('bidPrice'),
@@ -42,19 +51,37 @@ class MarketHandler(SchwabClient):
 
     def get_quotes(self, tickers: list[str]) -> dict:
         self.logger.info(f"Getting quotes for {tickers}")
-        token = self.load_token()
+        headers = self._construct_headers()
         url = self.market_url + "/quotes"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept" : "application/json",
-        }
         params = {"symbols": tickers}
         response = self._send_request(url, headers, params)
         extracted_data = self._extract_quote_data(response)
         return extracted_data
 
-    def get_price_history(self, ticker: str, period: str) -> dict:
-        pass
+    def get_price_history(
+        self,
+        ticker: str,
+        period_type: PeriodType,
+        period: int,
+        frequency_type: FrequencyType,
+        frequency: int,
+        extended_hours: bool = False,
+    ) -> dict:
+        self.logger.info(f"Getting price history for {ticker}")
+        period_type.validate_combination(period, frequency_type, frequency)
+        headers = self._construct_headers()
+        url = self.market_url + "/pricehistory"
+        params = {
+            "symbol": ticker,
+            "periodType": period_type.value,
+            "period": period,
+            "frequencyType": frequency_type.value,
+            "frequency": frequency,
+            "needExtendedHoursData": extended_hours,
+        }
+        response = self._send_request(url, headers, params)
+        return response
+
 
     def get_option_chains(self, ticker: str) -> dict:
         pass
@@ -67,5 +94,13 @@ if __name__ == "__main__":
     try:
         quotes = handler.get_quotes(["AAPL", "MSFT"])
         print(quotes)
+        historical = handler.get_price_history(
+            ticker="NVDA",
+            period_type=PeriodType.DAY,
+            period=1,
+            frequency_type=FrequencyType.MINUTE,
+            frequency=1,
+        )
+        print(historical)
     except Exception as e:
         print(f"Error: {e}")

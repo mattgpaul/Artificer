@@ -4,8 +4,9 @@ py_library(
     name = "schwab",
     srcs = [
         "schwab_client.py",
-        "market_handler.py", 
-        "account_handler.py",  # when you build it
+        "services/market_handler.py",
+        "services/account_handler.py",
+        "services/timescale_enum.py",
     ],
     deps = [
         "//infrastructure/client:client",
@@ -22,14 +23,15 @@ py_library(
 
 py_binary(
     name = "test_market_handler",
-    srcs = ["market_handler.py"],
+    srcs = ["services/market_handler.py"],
     deps = [":schwab"],
-    main = "market_handler.py",
+    main = "services/market_handler.py",
 )
 
 py_binary(
     name = "test_account_handler",
-    srcs = ["account_handler.py"],
+    srcs = ["services/account_handler.py"],
     deps = [":schwab"],
-    main = "account_handler.py",
+    main = "services/account_handler.py",
 )
+

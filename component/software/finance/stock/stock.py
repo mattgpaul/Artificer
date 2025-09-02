@@ -15,6 +15,9 @@ class StockData:
 @dataclass
 class StockLastData(StockData):
     last: float
+    bid: float
+    ask: float
+    volume: float
     timestamp: datetime
 
 @dataclass
@@ -57,14 +60,5 @@ class Stock(FinancialInstrument):
     def get_last(self) -> StockLastData:
         pass
 
-    def get_historical(
-        self,
-        frequency: Timescale = Timescale.DAY,
-        period: Timescale = Timescale.YEAR
-    ) -> StockHistoricalData:
-        data = self.client.get_historical_data(self.ticker, frequency, period)
-        return StockHistoricalData(
-            ticker=self.ticker,
-            name= "FooBar Inc.",  #TODO: Get name from API, this is hardcoded for now
-            data=data, #TODO: Revert the extra ticker column 
-            frequency=frequency)
+    def get_historical():
+        pass
