@@ -1,5 +1,4 @@
 ### Data ###
-yfinance>=0.2.65
 pandas>=2.2.3
 scipy>=1.13.0
 numpy>=1.26.4
@@ -17,3 +16,4 @@ python-dotenv>=1.0.0
 
 ### Client ###
 requests>=2.31.0
+redis>=4.3.4
