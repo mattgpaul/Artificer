@@ -1,12 +1,24 @@
+load("@pip//:requirements.bzl", "requirement")
+
 py_library(
-    name = "client",
-    srcs = [
-        "client.py",
-    ],
+    name = "redis_client",
+    srcs = ["redis_client.py"],
     deps = [
+        "//infrastructure:client",
         "//infrastructure/logging:logger",
+        requirement("redis"),
     ],
-    visibility = [
-        "//infrastructure/client:__subpackages__",
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "schwab_client",
+    srcs = ["schwab_client.py"],
+    deps = [
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        requirement("requests"),
+        requirement("python-dotenv"),
     ],
+    visibility = ["//visibility:public"],
 )

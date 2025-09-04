@@ -4,7 +4,7 @@ import dotenv
 import requests
 import base64
 from datetime import datetime, timedelta
-from infrastructure.client.client import Client
+from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
 
 class SchwabClient(Client): 
@@ -17,7 +17,8 @@ class SchwabClient(Client):
         self.logger = get_logger(self.__class__.__name__)
         # Use absolute path to actual source directory
         workspace_root = "/home/matthew/Artificer"  # TODO: make this dynamic later
-        self.token_file = os.path.join(workspace_root, "infrastructure/client/schwab/schwab_tokens.json")
+        #TODO: put this in the redis db
+        self.token_file = os.path.join(workspace_root, "infrastructure/clients/schwab/schwab_tokens.json")
 
     def get_initial_tokens(self) -> dict:
         """One-time OAuth2 setup to get initial tokens"""

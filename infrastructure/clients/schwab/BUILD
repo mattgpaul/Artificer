@@ -1,37 +1,23 @@
 load("@pip//:requirements.bzl", "requirement")
 
 py_library(
-    name = "schwab",
+    name = "schwab_services",
     srcs = [
-        "schwab_client.py",
-        "services/market_handler.py",
-        "services/account_handler.py",
-        "services/timescale_enum.py",
+        "market_handler.py",
+        "account_handler.py",
+        "timescale_enum.py",
     ],
     deps = [
-        "//infrastructure/client:client",
+        "//infrastructure/clients:schwab_client",
         "//infrastructure/logging:logger",
         requirement("requests"),
-        requirement("python-dotenv"),
     ],
-    visibility = [
-        "//infrastructure/client:__subpackages__",
-        "//component/software/finance:__subpackages__",
-        "//system:__subpackages__",
-    ],
+    visibility = ["//infrastructure/clients/schwab:__pkg__"],
 )
 
 py_binary(
     name = "test_market_handler",
-    srcs = ["services/market_handler.py"],
-    deps = [":schwab"],
-    main = "services/market_handler.py",
+    srcs = ["market_handler.py"],
+    deps = [":schwab_services"],
+    main = "market_handler.py",
 )
-
-py_binary(
-    name = "test_account_handler",
-    srcs = ["services/account_handler.py"],
-    deps = [":schwab"],
-    main = "services/account_handler.py",
-)
-

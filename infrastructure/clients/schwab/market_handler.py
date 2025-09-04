@@ -1,6 +1,6 @@
 import requests
-from infrastructure.client.schwab.services.timescale_enum import FrequencyType, PeriodType
-from infrastructure.client.schwab.schwab_client import SchwabClient
+from infrastructure.clients.schwab.timescale_enum import FrequencyType, PeriodType
+from infrastructure.clients.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
 
 class MarketHandler(SchwabClient):
