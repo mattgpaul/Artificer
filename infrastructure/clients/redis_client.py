@@ -34,8 +34,7 @@ class BaseRedisClient(Client):
                 port=self.port,
                 db=self.db,
                 max_connections=10,
-                socket_timeout=30,
-                connection_timeout=30
+                socket_timeout=30
             )
             self.client = redis.Redis(connection_pool=self.pool)
             self.logger.info(f"Redis connection pool created for namespace {self.namespace}")
