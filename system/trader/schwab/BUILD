@@ -12,7 +12,10 @@ py_library(
         "//infrastructure/logging:logger",
         requirement("requests"),
     ],
-    visibility = ["//infrastructure/clients/schwab:__pkg__"],
+    visibility = [
+        "//system/trader:__subpackages__",
+        "//visibility:public",
+    ],
 )
 
 py_binary(
