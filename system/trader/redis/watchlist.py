@@ -12,9 +12,10 @@ class WatchlistBroker(BaseRedisClient):
 
     def set_watchlist(self, tickers: list[str], strategy: str = "all") -> bool:
         #TODO: Not sure if "all" is the way to go. It will work for now
-        success = self.sadd(key=strategy, members=tickers)
+        success = self.sadd(strategy, *tickers)
         return success
 
     def get_watchlist(self, strategy: str = "all") -> set:
         dataset = self.smembers(key=strategy)
+        self.logger.info(f"Current watchlist: {dataset}")
         return dataset

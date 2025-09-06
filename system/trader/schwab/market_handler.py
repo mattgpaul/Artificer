@@ -98,10 +98,10 @@ class MarketHandler(SchwabClient):
     def get_price_history(
         self,
         ticker: str,
-        period_type: PeriodType,
-        period: int,
-        frequency_type: FrequencyType,
-        frequency: int,
+        period_type: PeriodType = PeriodType.YEAR,
+        period: int = 1,
+        frequency_type: FrequencyType = FrequencyType.DAILY,
+        frequency: int = 1,
         extended_hours: bool = False,
     ) -> dict:
         self.logger.info(f"Getting price history for {ticker}")
@@ -123,21 +123,24 @@ class MarketHandler(SchwabClient):
     def get_option_chains(self, ticker: str) -> dict:
         pass
 
-    def get_market_hours(self, ticker: str) -> dict:
-        pass
+    def get_market_hours(self, markets: list[str] = ["equity"]) -> dict:
+        self.logger.info(f"Getting market hours for: {markets}")
+        headers = self._construct_headers()
+        url = self.market_url + "/markets"
+        params = {"markets": markets}
+        response = self._send_request(url, headers, params)
+        self.logger.debug(f"Response: {response}")
+        equity_info = response["equity"]["equity"]
+        market_hours = {}
+        market_hours["open"] = equity_info["isOpen"]
+        if market_hours["open"]:
+            self.logger.debug("Equity markets are open")
+            regular_session = equity_info["sessionHours"]["regularMarket"][0]
+            market_hours["start"] = regular_session["start"]
+            market_hours["end"] = regular_session["end"]
+        
+        # redis needs this as a type other than bool
+        market_hours["open"] = int(market_hours["open"])
+        return market_hours
 
-if __name__ == "__main__":
-    handler = MarketHandler()
-    try:
-        quotes = handler.get_quotes(["AAPL", "MSFT"])
-        print(quotes)
-        historical = handler.get_price_history(
-            ticker="NVDA",
-            period_type=PeriodType.DAY,
-            period=1,
-            frequency_type=FrequencyType.MINUTE,
-            frequency=1,
-        )
-        print(historical)
-    except Exception as e:
-        print(f"Error: {e}")
+
