@@ -52,8 +52,9 @@ class SchwabClient(Client):
         response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
         return response.json()
 
-    def save_token(self, tokens: dict) -> None:
+    def _save_token(self, tokens: dict) -> None:
         """Save tokens to schwab directory"""
+        #TODO: change this to default to this directory
         now = datetime.now()
         expires_in = tokens.get('expires_in', 1800)
         expires_at = now + timedelta(seconds=expires_in)
@@ -72,7 +73,7 @@ class SchwabClient(Client):
         
         self.logger.info(f"Tokens saved to {self.token_file}")
 
-    def load_token(self) -> str:
+    def _load_token(self) -> str:
         """Get valid access token, refreshing if necessary"""
         try:
             self.logger.debug(f"token filepath {self.token_file}")
@@ -85,11 +86,11 @@ class SchwabClient(Client):
         expires_at = datetime.fromisoformat(tokens['expires_at'])
         if datetime.now() >= expires_at:
             self.logger.info("Access token expired, refreshing...")
-            tokens = self.refresh_token()
+            tokens = self._refresh_token()
         
         return tokens['access_token']
 
-    def refresh_token(self) -> dict:
+    def _refresh_token(self) -> dict:
         """Refresh expired access token using stored refresh token"""
         self.logger.info("Starting token refresh")
         
@@ -115,7 +116,7 @@ class SchwabClient(Client):
         if response.status_code == 200:
             new_tokens = response.json()
             new_tokens['refresh_token'] = refresh_token  # Keep original refresh token
-            self.save_token(new_tokens) 
+            self._save_token(new_tokens) 
             self.logger.info("Token refresh successful")
             return new_tokens
         else:
