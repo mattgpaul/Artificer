@@ -22,3 +22,16 @@ class LiveMarketBroker(BaseRedisClient):
         quote = self.hgetall(ticker)
         self.logger.debug(f"Returned quote: {quote}")
         return StockQuote(**quote)
+
+    def set_market_hours(self, market_hours: dict):
+        success = self.hmset(key="hours", mapping=market_hours)
+        self.logger.debug(f"Set {market_hours} to {self.namespace}:'hours'")
+        return success
+
+    def get_market_hours(self):
+        self.logger.debug("Getting equity market hours")
+        hours = self.hgetall("hours")
+        # convert open back to boolean
+        # TODO: might need to convert start/end to datetime. pydantic may be helpful
+        hours["open"] = bool(hours["open"])
+        return hours
