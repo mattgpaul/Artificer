@@ -1,13 +1,12 @@
+load("@pip//:requirements.bzl", "requirement")
+
 py_library(
-    name = "finance",
-    srcs = [
-        "financial_instrument.py",
-        "timescale_enum.py",
-    ],
+    name = "stock",
+    srcs = ["stock.py"],
     deps = [
-        "//infrastructure/logging:logger",
+        requirement("pydantic"),
     ],
-    visibility = ["//component:__subpackages__"],
+    visibility = ["//visibility:public"],
 )
 
 load("//:pytest_test.bzl", "pytest_test")

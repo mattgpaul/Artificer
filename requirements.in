@@ -1,6 +1,9 @@
 ### Data ###
-yfinance>=0.2.65
 pandas>=2.2.3
+scipy>=1.13.0
+numpy>=1.26.4
+matplotlib>=3.7.0
+pydantic>=2.11.7
 
 ### Testing ###
 pytest>=7.0.0
@@ -8,3 +11,10 @@ pytest-mock>=3.10.0
 pytest-cov>=4.0.0
 pytest-asyncio>=0.21.0  # Optional, for future async testing
 pytest-bazel  # Official Bazel + pytest integration
+
+### Environment ###
+python-dotenv>=1.0.0
+
+### Client ###
+requests>=2.31.0
+redis>=4.3.4
