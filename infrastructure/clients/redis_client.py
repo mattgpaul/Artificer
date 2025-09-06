@@ -579,3 +579,29 @@ class BaseRedisClient(Client):
         except Exception as e:
             self.logger.error(f"Error flushing database: {e}")
             return False
+
+    def pipeline_execute(self, operations: list) -> bool:
+        """
+        Execute multiple operations in a pipeline.
+        
+        Arguments:
+            operations: List of tuples (method_name, key, *args)
+            
+        Returns:
+            True if all operations succeeded
+        """
+        try:
+            pipeline = self.client.pipeline()
+            
+            for operation in operations:
+                method_name, key, *args = operation
+                namespaced_key = self._build_key(key)
+                getattr(pipeline, method_name)(namespaced_key, *args)
+            
+            results = pipeline.execute()
+            success = all(results)
+            self.logger.debug(f"Pipeline executed {len(operations)} operations -> {success}")
+            return success
+        except Exception as e:
+            self.logger.error(f"Error in pipeline execution: {e}")
+            return False

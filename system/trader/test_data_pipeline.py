@@ -8,7 +8,6 @@ tickers = ['MSFT','AAPL','NVDA','AMD']
 
 quotes = schwab.get_quotes(tickers)
 
-for ticker in tickers:
-    redis.set_quote(ticker, quotes[ticker])
+redis.set_quotes(quotes)
 
-data = redis.get_quote('MSFT')
+data = redis.get_quotes('MSFT')
