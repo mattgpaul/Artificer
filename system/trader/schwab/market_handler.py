@@ -43,7 +43,6 @@ class MarketHandler(SchwabClient):
                 'volume': quote.get('totalVolume'),
                 'change': quote.get('netChange'),
                 'change_pct': quote.get('netPercentChange'),
-                'pe_ratio': fundamental.get('peRatio'),
                 'timestamp': quote.get('tradeTime'),
             }
         

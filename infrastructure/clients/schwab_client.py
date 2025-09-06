@@ -75,6 +75,7 @@ class SchwabClient(Client):
     def load_token(self) -> str:
         """Get valid access token, refreshing if necessary"""
         try:
+            self.logger.debug(f"token filepath {self.token_file}")
             with open(self.token_file, 'r') as f:
                 tokens = json.load(f)
         except FileNotFoundError:

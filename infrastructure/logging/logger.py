@@ -6,7 +6,7 @@ class ColoredFormatter(logging.Formatter):
 
     # ANSI color codes
     COLORS = {
-        'DEBUG': '\033[36m',    # Cyan
+        'DEBUG': '\033[90m',    # Grey
         'INFO': '\033[32m',     # Green  
         'WARNING': '\033[33m',  # Yellow
         'ERROR': '\033[31m',    # Red
@@ -26,6 +26,7 @@ class ColoredFormatter(logging.Formatter):
 
 def _setup_global_logging():
     """Automatically configure logging when this module loads"""
+    import os
     root_logger = logging.getLogger()
     
     # Only setup once
@@ -37,11 +38,27 @@ def _setup_global_logging():
         )
         handler.setFormatter(formatter)
         root_logger.addHandler(handler)
-        root_logger.setLevel(logging.INFO)
+        
+        # Set log level from environment variable or default to INFO
+        log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+        level = getattr(logging, log_level, logging.INFO)
+        root_logger.setLevel(level)
+        
+        # Also set level on all existing loggers
+        for name in logging.root.manager.loggerDict:
+            logging.getLogger(name).setLevel(level)
 
 # This runs automatically when anyone imports this module
 _setup_global_logging()
 
 def get_logger(name: str) -> logging.Logger:
     """Get a colored logger - setup is automatic"""
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    
+    # Set log level from environment variable each time
+    import os
+    log_level = os.getenv('LOG_LEVEL', 'INFO').upper() 
+    level = getattr(logging, log_level, logging.INFO)
+    logger.setLevel(level)
+    
+    return logger

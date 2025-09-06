@@ -212,4 +212,4 @@ bazel*
 
 # Environment files
 *.env
-infrastructure/client/schwab/schwab_tokens.json
+*schwab_tokens.json

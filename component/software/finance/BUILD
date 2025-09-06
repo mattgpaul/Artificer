@@ -1,24 +1,10 @@
-py_library(
-    name = "finance",
-    srcs = [
-        "financial_instrument.py",
-        "timescale_enum.py",
-    ],
-    deps = [
-        "//infrastructure/logging:logger",
-    ],
-    visibility = [
-        "//component/software/finance:__subpackages__",
-        "//infrastructure/client/schwab:__pkg__",
-        "//system/trader/strategy:__pkg__",
-    ],
-)
+load("@pip//:requirements.bzl", "requirement")
 
-load("//:pytest_test.bzl", "pytest_test")
-pytest_test(
-    name = "finance_test",
-    srcs = ["timescale_enum_test.py"],
+py_library(
+    name = "stock",
+    srcs = ["stock.py"],
     deps = [
-        "//component/software/finance:finance",
+        requirement("pydantic"),
     ],
+    visibility = ["//visibility:public"],
 )

@@ -1,4 +1,3 @@
-import os
 import redis
 import json
 from typing import Optional, Dict, Any
