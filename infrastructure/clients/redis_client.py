@@ -36,7 +36,7 @@ class BaseRedisClient(Client):
                 socket_timeout=30
             )
             self.client = redis.Redis(connection_pool=self.pool)
-            self.logger.info(f"Redis connection pool created for namespace {self.namespace}")
+            self.logger.info(f"Redis connection pool created for namespace: {self.namespace}")
         except Exception as e:
             self.logger.error(f"Failed to create Redis connection pool {e}")
             raise

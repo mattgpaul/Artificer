@@ -20,7 +20,7 @@ class AccountBroker(BaseRedisClient):
         return token
 
     def set_access_token(self, token, ttl: int = 30) -> bool:
-        success = self.set(self, key="access-token", value=token, ttl=ttl*60)
+        success = self.set(key="access-token", value=token, ttl=ttl*60)
         return success
         
     def get_access_token(self) -> str:

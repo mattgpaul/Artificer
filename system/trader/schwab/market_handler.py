@@ -68,12 +68,11 @@ class MarketHandler(SchwabClient):
         return response.json()
 
     def _extract_quote_data(self, response: dict) -> dict:
-        self.logger.info(f"Extracting quote data")
+        self.logger.debug(f"Extracting quote data")
         extracted = {}
         
         for symbol, data in response.items():
             quote = data.get('quote', {})
-            fundamental = data.get('fundamental', {})
             
             extracted[symbol] = {
                 'price': quote.get('lastPrice'),
