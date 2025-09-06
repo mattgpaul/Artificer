@@ -98,10 +98,10 @@ class MarketHandler(SchwabClient):
     def get_price_history(
         self,
         ticker: str,
-        period_type: PeriodType,
-        period: int,
-        frequency_type: FrequencyType,
-        frequency: int,
+        period_type: PeriodType = PeriodType.YEAR,
+        period: int = 1,
+        frequency_type: FrequencyType = FrequencyType.DAILY,
+        frequency: int = 1,
         extended_hours: bool = False,
     ) -> dict:
         self.logger.info(f"Getting price history for {ticker}")
