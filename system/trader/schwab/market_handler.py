@@ -1,5 +1,7 @@
 import requests
+import base64
 from system.trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.trader.redis.account import AccountBroker
 from infrastructure.clients.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
 
@@ -8,9 +10,46 @@ class MarketHandler(SchwabClient):
         super().__init__()
         self.market_url = f"{self.base_url}/marketdata/v1"
         self.logger = get_logger(self.__class__.__name__)
+        self.account = AccountBroker()
+
+    def _load_token(self) -> str:
+        token = self.account.get_access_token()
+        if token is None:
+            self.logger.info("Access token expired")
+            self._refresh_token()
+            token = self.account.get_access_token()
+        
+        return token
+
+    def _refresh_token(self) -> dict:
+        """Refresh expired access token using stored refresh token"""
+        self.logger.info("Starting token refresh")
+        
+        # Load stored refresh token
+        refresh_token = self.account.get_refresh_token()
+        
+        # Build request
+        credentials = f"{self.api_key}:{self.secret}"
+        headers = {
+            "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+        payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
+        
+        self.logger.info("Sending token refresh request")
+        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
+        
+        if response.status_code == 200:
+            new_tokens = response.json()
+            self.account.set_refresh_token(new_tokens["refresh_token"])
+            self.account.set_access_token(new_tokens["access_token"])
+            self.logger.info("Token refresh successful")
+        else:
+            self.logger.error(f"Token refresh failed: {response.status_code}")
+            raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
 
     def _construct_headers(self):
-        token = self.load_token()
+        token = self._load_token()
         headers = {
             "Authorization": f"Bearer {token}",
             "Accept" : "application/json",
@@ -29,12 +68,11 @@ class MarketHandler(SchwabClient):
         return response.json()
 
     def _extract_quote_data(self, response: dict) -> dict:
-        self.logger.info(f"Extracting quote data")
+        self.logger.debug(f"Extracting quote data")
         extracted = {}
         
         for symbol, data in response.items():
             quote = data.get('quote', {})
-            fundamental = data.get('fundamental', {})
             
             extracted[symbol] = {
                 'price': quote.get('lastPrice'),
