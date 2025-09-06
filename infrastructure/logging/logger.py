@@ -15,8 +15,15 @@ class ColoredFormatter(logging.Formatter):
     }
 
     def format(self, record):
-        # Get the original formatted message
-        message = super().format(record)
+        # Use different timestamp formats based on log level
+        if record.levelname == 'DEBUG':
+            # Debug gets milliseconds
+            import datetime
+            timestamp = datetime.datetime.fromtimestamp(record.created).strftime('%H:%M:%S.%f')[:-3]
+            message = f"{timestamp} - {record.name} - {record.levelname} - {record.getMessage()}"
+        else:
+            # All other levels use standard format without milliseconds
+            message = super().format(record)
         
         # Add color based on log level
         color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
