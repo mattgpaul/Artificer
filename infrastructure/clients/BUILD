@@ -22,3 +22,13 @@ py_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+py_binary(
+    name = "authenticate",
+    srcs = ["schwab_client.py"],
+    main = "schwab_client.py",
+    deps = [
+        ":schwab_client",
+    ],
+    visibility = ["//visibility:public"],
+)

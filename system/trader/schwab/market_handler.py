@@ -1,5 +1,6 @@
 import requests
 import base64
+from datetime import datetime
 from system.trader.schwab.timescale_enum import FrequencyType, PeriodType
 from system.trader.redis.account import AccountBroker
 from infrastructure.clients.schwab_client import SchwabClient
@@ -123,24 +124,35 @@ class MarketHandler(SchwabClient):
     def get_option_chains(self, ticker: str) -> dict:
         pass
 
-    def get_market_hours(self, markets: list[str] = ["equity"]) -> dict:
-        self.logger.info(f"Getting market hours for: {markets}")
+    def get_market_hours(self, date: datetime, markets: list[str] = ["equity"]) -> dict:
+        self.logger.info(f"Getting {markets} hours for: {date}")
         headers = self._construct_headers()
         url = self.market_url + "/markets"
-        params = {"markets": markets}
+        params = {
+            "markets": markets,
+            "date": date.strftime("%Y-%m-%d")
+        }
         response = self._send_request(url, headers, params)
         self.logger.debug(f"Response: {response}")
-        equity_info = response["equity"]["equity"]
+        
+        if "EQ" in response["equity"].keys():
+            equity_info = response["equity"]["EQ"]
+        else:
+            equity_info = response["equity"]["equity"]
         market_hours = {}
-        market_hours["open"] = equity_info["isOpen"]
-        if market_hours["open"]:
+        market_hours["date"] = date.strftime("%Y-%m-%d")
+        if equity_info["isOpen"]:
+            #TODO: This needs to be able to handle after hours sessions
             self.logger.debug("Equity markets are open")
             regular_session = equity_info["sessionHours"]["regularMarket"][0]
             market_hours["start"] = regular_session["start"]
             market_hours["end"] = regular_session["end"]
-        
-        # redis needs this as a type other than bool
-        market_hours["open"] = int(market_hours["open"])
+        else:
+            # market is closed, and the schwab API doesnt give you this info
+            # Set start time to 9:30am Eastern for the given date (assume US/Eastern timezone)
+            #TODO: account for daylight savings
+            market_hours["start"] = date.replace(hour=9, minute=30, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S-04:00")
+            market_hours["end"] = date.replace(hour=16, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S-04:00")
         return market_hours
 
 
