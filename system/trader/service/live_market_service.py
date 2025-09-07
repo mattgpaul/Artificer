@@ -12,9 +12,10 @@ from system.trader.redis.live_market import LiveMarketBroker
 from system.trader.test_data_pipeline import today
 
 class LiveMarketService:
-    def __init__(self):
+    def __init__(self, sleep_override=None):
         self.logger = get_logger(self.__class__.__name__)
         self.running = True
+        self.sleep_override = sleep_override
         self._setup_signal_handlers()
         self._setup_clients()
 
@@ -43,6 +44,11 @@ class LiveMarketService:
 
     def _get_sleep_interval(self) -> int:
         self.logger.info("Getting sleep interval")
+        # Check if there is an override
+        if self.sleep_override is not None:
+            self.logger.debug(f"Using sleep override: {self.sleep_override} seconds")
+            return self.sleep_override
+
         todays_hours = self.market_broker.get_market_hours()
         if "start" not in todays_hours.keys():
             self.logger.info("Market not open today")
@@ -93,7 +99,7 @@ class LiveMarketService:
 
                 # Adjust ttl for sleep interval
                 self.market_broker.ttl = sleep_interval
-                
+
                 # Execute data pipeline
                 try:
                     self._execute_pipeline()
@@ -112,7 +118,44 @@ class LiveMarketService:
         pass
 
 def main():
-    pass
+    parser = argparse.ArgumentParser(description="Live Market Data Service")
+    parser.add_argument(
+        'command', 
+        choices=['run', 'health'],
+        help="Command to execute"
+    )
+    parser.add_argument(
+        '--log-level', default='INFO',
+        choices=['DEBUG','INFO','WARNING','ERROR'],
+        help='Set logging level'
+    )
+    parser.add_argument(
+        '--sleep-interval', type=int, default=None,
+        help="Override sleep interval in seconds"
+    )
+
+    args = parser.parse_args()
+
+    try:
+        service = LiveMarketService(sleep_override=args.sleep_interval)
+
+        if args.command == 'run':
+            service.logger.info("Starting live market service...")
+            if args.sleep_interval:
+                service.logger.info(f"Using fixed sleep interval: {args.sleep_interval}")
+            service.run()
+            return 0
+        elif args.command == 'health':
+            if service.health_check():
+                service.logger.info("Not yet implemented")
+                return 0
+
+    except KeyboardInterrupt:
+        print("Service interrupted by user")
+        return 0
+    except Exception as e:
+        print(f"Service failed to start: {e}")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
