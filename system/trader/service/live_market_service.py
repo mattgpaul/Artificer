@@ -27,7 +27,7 @@ class LiveMarketService:
     def _setup_clients(self):
         try:
             self.logger.info("Setting up clients")
-            self.market_handler = MarketHandler()
+            self.api_handler = MarketHandler()
             self.market_broker = LiveMarketBroker()
             self.watchlist_broker = WatchlistBroker()
         except Exception as e:
@@ -35,7 +35,18 @@ class LiveMarketService:
             raise
 
     def _get_sleep_interval(self) -> int:
-        pass
+        self.logger.info("Getting sleep interval")
+        # get current market hours
+        today = datetime.now()
+        market_hours = self.market_broker.get_market_hours()
+
+        # check cache miss
+        if not market_hours:
+            hours = self.api_handler.get_market_hours(today)
+            self.market_broker.set_market_hours(hours)
+            market_hours = self.market_broker.get_market_hours()
+
+        # check if now 
 
     def _execute_pipeline(self) -> bool:
         pass
