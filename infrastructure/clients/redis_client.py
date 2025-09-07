@@ -105,14 +105,15 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting hash field '{key}.{field}': {e}")
             return None
 
-    def hset(self, key: str, field: str, value: str) -> bool:
+    def hset(self, key: str, field: str, value: str, ttl: Optional[int] = None) -> bool:
         """
-        Set a field value in a Redis hash.
+        Set a field value in a Redis hash with optional TTL.
         
         Arguments:
             key: The hash key (will be namespaced automatically)
             field: The field name within the hash
             value: The value to store
+            ttl: Time to live in seconds (optional)
             
         Returns:
             True if successful, False if error occurs
@@ -120,7 +121,12 @@ class BaseRedisClient(Client):
         try:
             namespaced_key = self._build_key(key)
             result = self.client.hset(namespaced_key, field, value)
-            self.logger.debug(f"HSET {namespaced_key} {field} = {value} -> {result}")
+            
+            # Set TTL if provided
+            if ttl is not None:
+                self.client.expire(namespaced_key, ttl)
+                
+            self.logger.debug(f"HSET {namespaced_key} {field} = {value} (ttl: {ttl}) -> {result}")
             return bool(result)
         except Exception as e:
             self.logger.error(f"Error setting hash field '{key}.{field}': {e}")
@@ -146,13 +152,14 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting all hash fields '{key}': {e}")
             return {}
 
-    def hmset(self, key: str, mapping: Dict[str, Any]) -> bool:
+    def hmset(self, key: str, mapping: Dict[str, Any], ttl: Optional[int] = None) -> bool:
         """
-        Set multiple field-value pairs in a Redis hash.
+        Set multiple field-value pairs in a Redis hash with optional TTL.
         
         Arguments:
             key: The hash key (will be namespaced automatically)
             mapping: Dictionary of field-value pairs to set
+            ttl: Time to live in seconds (optional)
             
         Returns:
             True if successful, False if error occurs
@@ -160,7 +167,12 @@ class BaseRedisClient(Client):
         try:
             namespaced_key = self._build_key(key)
             result = self.client.hmset(namespaced_key, mapping)
-            self.logger.debug(f"HMSET {namespaced_key} -> {len(mapping)} fields set")
+            
+            # Set TTL if provided
+            if ttl is not None:
+                self.client.expire(namespaced_key, ttl)
+                
+            self.logger.debug(f"HMSET {namespaced_key} -> {len(mapping)} fields set (ttl: {ttl})")
             return bool(result)
         except Exception as e:
             self.logger.error(f"Error setting hash fields '{key}': {e}")
@@ -245,13 +257,14 @@ class BaseRedisClient(Client):
             self.logger.error(f"Redis ping failed: {e}")
             return False
 
-    def sadd(self, key: str, *members: str) -> int:
+    def sadd(self, key: str, *members: str, ttl: Optional[int] = None) -> int:
         """
-        Add one or more members to a Redis set.
+        Add one or more members to a Redis set with optional TTL.
         
         Arguments:
             key: The set key (will be namespaced automatically)
             members: One or more values to add to the set
+            ttl: Time to live in seconds (optional)
             
         Returns:
             Number of members that were added (excludes duplicates)
@@ -259,7 +272,12 @@ class BaseRedisClient(Client):
         try:
             namespaced_key = self._build_key(key)
             result = self.client.sadd(namespaced_key, *members)
-            self.logger.debug(f"SADD {namespaced_key} {members} -> {result} added")
+            
+            # Set TTL if provided
+            if ttl is not None:
+                self.client.expire(namespaced_key, ttl)
+                
+            self.logger.debug(f"SADD {namespaced_key} {members} -> {result} added (ttl: {ttl})")
             return result
         except Exception as e:
             self.logger.error(f"Error adding to set '{key}': {e}")
@@ -344,13 +362,14 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting set cardinality '{key}': {e}")
             return 0
 
-    def lpush(self, key: str, *values: str) -> int:
+    def lpush(self, key: str, *values: str, ttl: Optional[int] = None) -> int:
         """
-        Push one or more values to the left (front) of a Redis list.
+        Push one or more values to the left (front) of a Redis list with optional TTL.
         
         Arguments:
             key: The list key (will be namespaced automatically)
             values: One or more values to push to the front
+            ttl: Time to live in seconds (optional)
             
         Returns:
             Length of the list after the push operations
@@ -358,19 +377,25 @@ class BaseRedisClient(Client):
         try:
             namespaced_key = self._build_key(key)
             result = self.client.lpush(namespaced_key, *values)
-            self.logger.debug(f"LPUSH {namespaced_key} {values} -> list length: {result}")
+            
+            # Set TTL if provided
+            if ttl is not None:
+                self.client.expire(namespaced_key, ttl)
+                
+            self.logger.debug(f"LPUSH {namespaced_key} {values} -> list length: {result} (ttl: {ttl})")
             return result
         except Exception as e:
             self.logger.error(f"Error pushing to front of list '{key}': {e}")
             return 0
 
-    def rpush(self, key: str, *values: str) -> int:
+    def rpush(self, key: str, *values: str, ttl: Optional[int] = None) -> int:
         """
-        Push one or more values to the right (back) of a Redis list.
+        Push one or more values to the right (back) of a Redis list with optional TTL.
         
         Arguments:
             key: The list key (will be namespaced automatically)
             values: One or more values to push to the back
+            ttl: Time to live in seconds (optional)
             
         Returns:
             Length of the list after the push operations
@@ -378,7 +403,12 @@ class BaseRedisClient(Client):
         try:
             namespaced_key = self._build_key(key)
             result = self.client.rpush(namespaced_key, *values)
-            self.logger.debug(f"RPUSH {namespaced_key} {values} -> list length: {result}")
+            
+            # Set TTL if provided
+            if ttl is not None:
+                self.client.expire(namespaced_key, ttl)
+                
+            self.logger.debug(f"RPUSH {namespaced_key} {values} -> list length: {result} (ttl: {ttl})")
             return result
         except Exception as e:
             self.logger.error(f"Error pushing to back of list '{key}': {e}")
