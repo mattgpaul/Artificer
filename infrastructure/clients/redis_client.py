@@ -152,6 +152,7 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting all hash fields '{key}': {e}")
             return {}
 
+
     def hmset(self, key: str, mapping: Dict[str, Any], ttl: Optional[int] = None) -> bool:
         """
         Set multiple field-value pairs in a Redis hash with optional TTL.

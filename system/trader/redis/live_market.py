@@ -1,3 +1,4 @@
+
 from component.software.finance.schema import StockQuote, MarketHours
 from infrastructure.logging.logger import get_logger
 from infrastructure.clients.redis_client import BaseRedisClient
