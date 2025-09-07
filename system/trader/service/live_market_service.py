@@ -9,7 +9,6 @@ from infrastructure.logging.logger import get_logger
 from system.trader.redis.watchlist import WatchlistBroker
 from system.trader.schwab.market_handler import MarketHandler
 from system.trader.redis.live_market import LiveMarketBroker
-from system.trader.test_data_pipeline import today
 
 class LiveMarketService:
     def __init__(self, sleep_override=None):
@@ -27,6 +26,33 @@ class LiveMarketService:
         self.logger.info(f"Received signal {signum}, sutting down gracefully...")
         self.running = False
 
+    def _sleep_with_interrupt_check(self, target_interval: float):
+        """Sleep to maintain precise interval timing, accounting for work duration"""
+        if not hasattr(self, '_last_cycle_time'):
+            self._last_cycle_time = time.time()
+        
+        # Calculate when the next cycle should start
+        next_cycle_time = self._last_cycle_time + target_interval
+        current_time = time.time()
+        
+        # Calculate remaining sleep time
+        sleep_duration = next_cycle_time - current_time
+        
+        if sleep_duration > 0:
+            # Use the precise sleep logic we discussed earlier
+            check_interval = 0.1
+            start_sleep = time.time()
+            
+            while self.running and (time.time() - start_sleep) < sleep_duration:
+                remaining = sleep_duration - (time.time() - start_sleep)
+                time.sleep(min(check_interval, max(0, remaining)))
+        
+        # Update for next cycle
+        self._last_cycle_time = next_cycle_time
+        
+        if not self.running:
+            self.logger.info("Shutdown signal received during sleep")
+
     def _setup_clients(self):
         try:
             self.logger.info("Setting up clients")
@@ -39,7 +65,7 @@ class LiveMarketService:
 
     def _set_market_hours(self) -> None:
         today = datetime.now().date()
-        self.logger.info(f"Setting market hours for: {today.strftime("%Y-%m-%d")}")
+        self.logger.info(f"Setting market hours for: {today.strftime('%Y-%m-%d')}")
         self.market_broker.set_market_hours(self.api_handler.get_market_hours(today))
 
     def _get_sleep_interval(self) -> int:
@@ -53,6 +79,7 @@ class LiveMarketService:
         if "start" not in todays_hours.keys():
             self.logger.info("Market not open today")
             sleep_interval = 60*60  # 1 hour intervals outside market hours
+            return sleep_interval
         todays_hours = MarketHours(**todays_hours)
         now = datetime.now()
         
@@ -106,7 +133,7 @@ class LiveMarketService:
                 except Exception as e:
                     self.logger.error(f"Pipeline execution failed: {e}")
 
-                time.sleep(sleep_interval)
+                self._sleep_with_interrupt_check(sleep_interval)
 
             except Exception as e:
                 self.logger.error(f"Unexpected error in main loop: {e}")
