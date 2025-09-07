@@ -1,9 +1,9 @@
 import sys
 import signal
-import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from component.software.finance.schema import MarketHours
 from infrastructure.logging.logger import get_logger
 from system.trader.redis.watchlist import WatchlistBroker
 from system.trader.schwab.market_handler import MarketHandler
@@ -34,6 +34,25 @@ class LiveMarketService:
             self.logger.error(f"Failed to initialize clients: {e}")
             raise
 
+    def _set_market_hours(self):
+        today = datetime.now().date()
+        self.logger.info(f"Setting market hours for: {today.strftime("%Y-%m-%d")}")
+        self.market_broker.set_market_hours(self.api_handler.get_market_hours(today))
+
+        # Get the next open day for trading
+        next_day = today + timedelta(days=1)
+        next_hours = self.api_handler.get_market_hours(next_day)
+
+        # I do not think the market is closed longer than 7 days
+        loops = 0
+        while "start" not in next_hours.keys():
+            next_day += timedelta(days=1)
+            next_hours = self.api_handler.get_market_hours(next_day)
+            loops += 1
+
+        self.logger.info(f"Setting next trading day hours for: {next_day.strftime("%Y-%m-%d")}")
+        self.market_broker.set_market_hours(next_hours, current_day=False)
+
     def _get_sleep_interval(self) -> int:
         self.logger.info("Getting sleep interval")
         # get current market hours
@@ -46,10 +65,15 @@ class LiveMarketService:
             self.market_broker.set_market_hours(hours)
             market_hours = self.market_broker.get_market_hours()
 
+        # check if market is open today
+
         # check if now is premarket
-        if now < market_hours
+        if now < market_hours.start:
+            sleep_interval = 60*5  # Every 5 minutes
 
         # check if now is aftermarket
+        elif now > market_hours.end:
+            sleep_interval = 
 
     def _execute_pipeline(self) -> bool:
         pass

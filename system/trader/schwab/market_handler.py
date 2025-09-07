@@ -147,12 +147,6 @@ class MarketHandler(SchwabClient):
             regular_session = equity_info["sessionHours"]["regularMarket"][0]
             market_hours["start"] = regular_session["start"]
             market_hours["end"] = regular_session["end"]
-        else:
-            # market is closed, and the schwab API doesnt give you this info
-            # Set start time to 9:30am Eastern for the given date (assume US/Eastern timezone)
-            #TODO: account for daylight savings
-            market_hours["start"] = date.replace(hour=9, minute=30, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S-04:00")
-            market_hours["end"] = date.replace(hour=16, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S-04:00")
         return market_hours
 
 
