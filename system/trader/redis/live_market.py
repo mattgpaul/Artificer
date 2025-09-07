@@ -22,17 +22,27 @@ class LiveMarketBroker(BaseRedisClient):
         self.logger.debug(f"Set {len(quotes_dict)} quotes via pipeline -> {success}")
         return success
 
-    def get_quotes(self, ticker: str) -> StockQuote:
-        quote = self.hgetall(ticker)
-        self.logger.debug(f"Returned quote: {quote}")
-        return StockQuote(**quote)
+    def get_quotes(self, tickers: list[str]) -> dict[str, StockQuote]:
+        quotes = {}
+        for ticker in tickers:
+            quote_data = self.hgetall(ticker)
+            if not quote_data:
+                self.logger.warning(f"Cache miss: get_quotes {ticker}")
+                quotes[ticker] = None
+            else:
+                quotes[ticker] = StockQuote(**quote_data)
+        self.logger.debug(f"Returned quotes: {quotes}")
+        return quotes
 
     def set_market_hours(self, market_hours: dict):
-        success = self.hmset(key="hours", mapping=market_hours, ttl=3600*24)
+        success = self.hmset(key="hours", mapping=market_hours, ttl=1)
         self.logger.debug(f"Set {market_hours} to {self.namespace}:'hours'")
         return success
 
     def get_market_hours(self):
-        self.logger.debug("Getting equity market hours")
         hours = self.hgetall("hours")
+        self.logger.debug(f"Returned hours: {hours}")
+        if not hours:
+            self.logger.warning("Cache miss: market_hours")
+            return hours
         return MarketHours(**hours)
