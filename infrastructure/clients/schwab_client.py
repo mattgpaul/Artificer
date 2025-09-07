@@ -123,3 +123,8 @@ class SchwabClient(Client):
             self.logger.error(f"Token refresh failed: {response.status_code}")
             raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
 
+if __name__ == "__main__":
+    client = SchwabClient()
+    response = client.get_initial_tokens()
+    print(response)
+    client._save_token(response)
