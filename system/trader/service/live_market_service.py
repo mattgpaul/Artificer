@@ -37,16 +37,19 @@ class LiveMarketService:
     def _get_sleep_interval(self) -> int:
         self.logger.info("Getting sleep interval")
         # get current market hours
-        today = datetime.now()
+        now = datetime.now()
         market_hours = self.market_broker.get_market_hours()
 
         # check cache miss
         if not market_hours:
-            hours = self.api_handler.get_market_hours(today)
+            hours = self.api_handler.get_market_hours(now)
             self.market_broker.set_market_hours(hours)
             market_hours = self.market_broker.get_market_hours()
 
-        # check if now 
+        # check if now is premarket
+        if now < market_hours
+
+        # check if now is aftermarket
 
     def _execute_pipeline(self) -> bool:
         pass
