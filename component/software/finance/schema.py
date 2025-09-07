@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 
 class StockQuote(BaseModel):
@@ -16,3 +17,8 @@ class StockHistorical(BaseModel):
     close: float
     volume: int
     timestamp: int
+
+class MarketHours(BaseModel):
+    date: datetime
+    start: datetime
+    end: datetime

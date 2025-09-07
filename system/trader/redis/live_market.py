@@ -1,4 +1,4 @@
-from component.software.finance.stock import StockQuote
+from component.software.finance.schema import StockQuote, MarketHours
 from infrastructure.logging.logger import get_logger
 from infrastructure.clients.redis_client import BaseRedisClient
 
@@ -35,7 +35,4 @@ class LiveMarketBroker(BaseRedisClient):
     def get_market_hours(self):
         self.logger.debug("Getting equity market hours")
         hours = self.hgetall("hours")
-        # convert open back to boolean
-        # TODO: might need to convert start/end to datetime. pydantic may be helpful
-        hours["open"] = bool(hours["open"])
-        return hours
+        return MarketHours(**hours)
