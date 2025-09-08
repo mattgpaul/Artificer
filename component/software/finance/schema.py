@@ -10,14 +10,6 @@ class StockQuote(BaseModel):
     change_pct: float
     timestamp: int
 
-class StockHistorical(BaseModel):
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
-    timestamp: int
-
 class MarketHours(BaseModel):
     date: datetime
     start: datetime
