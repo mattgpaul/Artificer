@@ -1,15 +1,17 @@
 load("@pip//:requirements.bzl", "requirement")
 
 py_library(
-    name = "live_market_service_lib",
+    name = "market_service_lib",
     srcs = [
         "live_market_service.py",
+        "historical_market_service.py",
     ],
     deps = [
         "//system/trader/schwab:schwab_services",
         "//system/trader/redis:redis_services",
         "//component/software/finance:schema",
         "//infrastructure/logging:logger",
+        requirement("pandas"),
         requirement("pydantic"),
     ],
     visibility = [
@@ -18,9 +20,17 @@ py_library(
 )
 
 py_binary(
-    name = "live_market_service_bin",
+    name = "live_market_service",
     srcs = ["live_market_service.py"],
-    deps = [":live_market_service_lib"],
+    deps = [":market_service_lib"],
     main = "live_market_service.py",
+    visibility = ["//system/trader:__pkg__"],
+)
+
+py_binary(
+    name = "historical_market_service",
+    srcs = ["historical_market_service.py"],
+    main = "historical_market_service.py",
+    deps = [":market_service_lib"],
     visibility = ["//system/trader:__pkg__"],
 )
