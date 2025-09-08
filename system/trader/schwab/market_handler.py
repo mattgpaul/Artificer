@@ -118,7 +118,7 @@ class MarketHandler(SchwabClient):
             "needExtendedHoursData": extended_hours,
         }
         response = self._send_request(url, headers, params)
-        return response
+        return response['candles']
 
 
     def get_option_chains(self, ticker: str) -> dict:

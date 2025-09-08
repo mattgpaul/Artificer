@@ -1,6 +1,6 @@
 import redis
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union, List
 from abc import abstractmethod
 from infrastructure.logging.logger import get_logger
 from infrastructure.client import Client
@@ -199,7 +199,7 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error deleting hash fields '{key}.{fields}': {e}")
             return 0
         
-    def get_json(self, key: str) -> Optional[Dict[str, Any]]:
+    def get_json(self, key: str) -> Optional[Union[Dict[str, Any], List[Any]]]:
         """
         Get JSON object from Redis and automatically parse it.
         
@@ -223,7 +223,7 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting JSON key '{key}': {e}")
             return None
 
-    def set_json(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:
+    def set_json(self, key: str, value: Union[Dict[str, Any], List[Any]], ttl: Optional[int] = None) -> bool:
         """
         Set JSON object in Redis (automatically converts to string).
         
