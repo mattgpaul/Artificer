@@ -2,7 +2,7 @@ import sys
 import signal
 import argparse
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from component.software.finance.schema import MarketHours
 from infrastructure.logging.logger import get_logger
@@ -64,7 +64,7 @@ class LiveMarketService:
             raise
 
     def _set_market_hours(self) -> None:
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
         self.logger.info(f"Setting market hours for: {today.strftime('%Y-%m-%d')}")
         self.market_broker.set_market_hours(self.api_handler.get_market_hours(today))
 
@@ -81,7 +81,7 @@ class LiveMarketService:
             sleep_interval = 60*60  # 1 hour intervals outside market hours
             return sleep_interval
         todays_hours = MarketHours(**todays_hours)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         
         # Timings based on fitting into nyquist criterion
         if now < todays_hours.start - timedelta(minutes=5) and now > todays_hours.start - timedelta(hours=2):
@@ -108,17 +108,17 @@ class LiveMarketService:
 
         # Set initial market hours
         self._set_market_hours()
-        today = datetime.now().date()
+        today = datetime.now(timezone.utc).date()
 
         while self.running:
             try:
                 # Check if we are in a new day
-                now = datetime.now().date()
+                now = datetime.now(timezone.utc).date()
                 if now > today:
                     self.logger.info("New day detected, refreshing market hours")
                     time.sleep(1)
                     self._set_market_hours()
-                    today = datetime.now().date()
+                    today = datetime.now(timezone.utc).date()
                 
                 # Get sleep interval based on market hours
                 sleep_interval = self._get_sleep_interval()
