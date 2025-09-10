@@ -1,14 +1,42 @@
 import sys
-import signal
 import argparse
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
-from system.trader.service.market_base import MarketBase
+from component.software.finance.schema import MarketHours
+from system.trader.service.market_base import MarketBase, MarketHoursType
 
 class LiveMarketService(MarketBase):
     def __init__(self, sleep_override=None):
         super().__init__(sleep_override)
+
+    def _get_sleep_interval(self) -> int:
+        self.logger.info("Getting sleep interval")
+        # Check if there is an override
+        if self.sleep_override is not None:
+            self.logger.debug(f"Using sleep override: {self.sleep_override} seconds")
+            return self.sleep_override
+
+        todays_hours = self.market_broker.get_market_hours()
+        market_open = self._check_market_open(todays_hours)
+        if not market_open:
+            sleep_interval = 60*60  # 1 hour intervals outside market hours
+            return sleep_interval
+        todays_hours = MarketHours(**todays_hours)
+        self.logger.debug(f"Todays hours: {todays_hours}")
+        current_market = self._check_market_hours(todays_hours)
+        
+        if current_market == MarketHoursType.PREMARKET:
+            sleep_interval = 60*5  # 5min intervals
+            self.logger.info("5min intervals")
+        elif current_market == MarketHoursType.STANDARD:
+            sleep_interval = 1  # 1 second intervals
+            self.logger.info("1s intervals")
+        else:
+            sleep_interval = 60*60  # 1 hour intervals
+            self.logger.info("1hr intervals")
+
+        return sleep_interval
 
     def _execute_pipeline(self) -> bool:
         tickers = self.watchlist_broker.get_watchlist()
@@ -51,7 +79,7 @@ class LiveMarketService(MarketBase):
 
             except Exception as e:
                 self.logger.error(f"Unexpected error in main loop: {e}")
-                time.sleep(60)
+                self._sleep_with_interrupt_check(60)
 
         self.logger.info("LiveMarketService shutdown complete")
 
