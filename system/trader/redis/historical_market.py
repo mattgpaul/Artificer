@@ -11,6 +11,7 @@ class HistoricalMarketBroker(BaseRedisClient):
     def _get_namespace(self) -> str:
         return "historical"
 
+    #TODO: This needs to be able to handle period and frequency designation
     def set_historical(self, ticker: str, data: list[dict]) -> bool:
         """Store historical candles data using base class JSON method."""
         success = self.set_json(key=ticker, value=data, ttl=self.ttl)
@@ -26,3 +27,16 @@ class HistoricalMarketBroker(BaseRedisClient):
             self.logger.warning(f"Cache miss: get_historical for {ticker}")
             return []
         return data
+
+    #TODO: This is duplicated across 2 redis services. Find a way to consolidate
+    def set_market_hours(self, market_hours: dict) -> bool:
+        success = self.hmset(key="hours", mapping=market_hours, ttl=43200)
+        self.logger.debug(f"Set {market_hours} to {self.namespace}:'hours'")
+        return success
+
+    def get_market_hours(self) -> dict[str, str]:
+        hours = self.hgetall("hours")
+        self.logger.debug(f"Returned hours: {hours}")
+        if not hours:
+            self.logger.warning("Cache miss: market_hours")
+        return hours

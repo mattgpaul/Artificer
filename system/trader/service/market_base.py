@@ -1,5 +1,6 @@
 import signal
 import time
+import argparse
 from enum import Enum
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
@@ -8,7 +9,6 @@ from component.software.finance.schema import MarketHours
 from infrastructure.logging.logger import get_logger
 from system.trader.redis.watchlist import WatchlistBroker
 from system.trader.schwab.market_handler import MarketHandler
-from system.trader.redis.live_market import LiveMarketBroker
 
 class MarketHoursType(Enum):
     PREMARKET = "premarket"
@@ -22,6 +22,11 @@ class MarketBase(ABC):
         self.sleep_override = sleep_override
         self._setup_signal_handlers()
         self._setup_clients()
+
+    @property
+    @abstractmethod
+    def market_broker(self):
+        pass
 
     def _setup_signal_handlers(self):
         signal.signal(signal.SIGTERM, self._shutdown_handler)
@@ -62,7 +67,6 @@ class MarketBase(ABC):
         try:
             self.logger.info("Setting up clients")
             self.api_handler = MarketHandler()
-            self.market_broker = LiveMarketBroker()
             self.watchlist_broker = WatchlistBroker()
         except Exception as e:
             self.logger.error(f"Failed to initialize clients: {e}")
@@ -127,9 +131,11 @@ class MarketBase(ABC):
                 # Execute data pipeline
                 try:
                     self._execute_pipeline()
+                    self.logger.info("Pipeline execution complete")
                 except Exception as e:
                     self.logger.error(f"Pipeline execution failed: {e}")
-
+                    
+                self.logger.info(f"Sleeping for {sleep_interval} seconds")
                 self._sleep_with_interrupt_check(sleep_interval)
 
             except Exception as e:
@@ -137,3 +143,47 @@ class MarketBase(ABC):
                 self._sleep_with_interrupt_check(60)
 
         self.logger.info(f"{self.__class__.__name__} shutdown complete")
+
+    @classmethod
+    def main(cls, description: str = None):
+        """Generic main method for all market services"""
+        parser = argparse.ArgumentParser(
+            description=description or f"{cls.__name__} Service"
+        )
+        parser.add_argument(
+            'command', 
+            choices=['run', 'health'],
+            help="Command to execute"
+        )
+        parser.add_argument(
+            '--log-level', default='INFO',
+            choices=['DEBUG','INFO','WARNING','ERROR'],
+            help='Set logging level'
+        )
+        parser.add_argument(
+            '--sleep-interval', type=int, default=None,
+            help="Override sleep interval in seconds"
+        )
+
+        args = parser.parse_args()
+
+        try:
+            service = cls(sleep_override=args.sleep_interval)
+
+            if args.command == 'run':
+                service.logger.info(f"Starting {cls.__name__.lower()}...")
+                if args.sleep_interval:
+                    service.logger.info(f"Using fixed sleep interval: {args.sleep_interval}")
+                service.run()
+                return 0
+            elif args.command == 'health':
+                if service.health_check():
+                    service.logger.info("Health check passed")
+                    return 0
+
+        except KeyboardInterrupt:
+            print("Service interrupted by user")
+            return 0
+        except Exception as e:
+            print(f"Service failed to start: {e}")
+            return 1

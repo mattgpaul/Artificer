@@ -20,7 +20,7 @@ class ColoredFormatter(logging.Formatter):
             # Debug gets milliseconds
             import datetime
             timestamp = datetime.datetime.fromtimestamp(record.created).strftime('%H:%M:%S.%f')[:-3]
-            message = f"{timestamp} - {record.name} - {record.levelname} - {record.getMessage()}"
+            message = f"{timestamp} - {record.levelname} - {record.name} - {record.getMessage()}"
         else:
             # All other levels use standard format without milliseconds
             message = super().format(record)
@@ -40,7 +40,7 @@ def _setup_global_logging():
     if not root_logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
         formatter = ColoredFormatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            '%(asctime)s - %(levelname)s - %(name)s - %(message)s',
             datefmt='%H:%M:%S'
         )
         handler.setFormatter(formatter)
