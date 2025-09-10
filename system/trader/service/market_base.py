@@ -1,5 +1,6 @@
 import signal
 import time
+from enum import Enum
 from datetime import datetime, timedelta, timezone
 
 from component.software.finance.schema import MarketHours
@@ -7,6 +8,11 @@ from infrastructure.logging.logger import get_logger
 from system.trader.redis.watchlist import WatchlistBroker
 from system.trader.schwab.market_handler import MarketHandler
 from system.trader.redis.live_market import LiveMarketBroker
+
+class MarketHoursType(Enum):
+    PREMARKET = "premarket"
+    STANDARD = "standard"
+    EXTENDED = "extended"
 
 class MarketBase:
     def __init__(self, sleep_override=None):
@@ -66,30 +72,21 @@ class MarketBase:
         self.logger.info(f"Setting market hours for: {today.strftime('%Y-%m-%d')}")
         self.market_broker.set_market_hours(self.api_handler.get_market_hours(today))
 
-    def _get_sleep_interval(self) -> int:
-        self.logger.info("Getting sleep interval")
-        # Check if there is an override
-        if self.sleep_override is not None:
-            self.logger.debug(f"Using sleep override: {self.sleep_override} seconds")
-            return self.sleep_override
-
-        todays_hours = self.market_broker.get_market_hours()
+    def _check_market_open(self, todays_hours: dict[str, str]) -> bool:
         if "start" not in todays_hours.keys():
             self.logger.info("Market not open today")
-            sleep_interval = 60*60  # 1 hour intervals outside market hours
-            return sleep_interval
-        todays_hours = MarketHours(**todays_hours)
-        now = datetime.now(timezone.utc)
-        
-        # Timings based on fitting into nyquist criterion
-        if now < todays_hours.start - timedelta(minutes=5) and now > todays_hours.start - timedelta(hours=2):
-            self.logger.info("Pre-market hours")
-            sleep_interval = 60*5  # 5min intervals
-        elif now > todays_hours.start - timedelta(minutes=5) and now < todays_hours.end:
-            self.logger.info("Standard Market hours")
-            sleep_interval = 1  # 1 second intervals
+            return False
         else:
-            self.logger.info("Outside Market hours")
-            sleep_interval = 60*60  # 1 hour intervals
+            self.logger.info("Markets are open")
+            return True, todays_hours
 
-        return sleep_interval
+    def _check_market_hours(self, hours: MarketHours) -> MarketHoursType:
+        now = datetime.now(timezone.utc)
+        if now < hours.start - timedelta(minutes=5) and now > hours.start - timedelta(hours=2):
+            market_hours = MarketHoursType.PREMARKET
+        elif now > hours.start - timedelta(minutes=5) and now < hours.end:
+            market_hours = MarketHoursType.STANDARD
+        else:
+            market_hours = MarketHoursType.EXTENDED
+        self.logger.info(f"Market hours: {market_hours}")
+        return market_hours
