@@ -1,6 +1,7 @@
 import signal
 import time
 from enum import Enum
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 
 from component.software.finance.schema import MarketHours
@@ -14,7 +15,7 @@ class MarketHoursType(Enum):
     STANDARD = "standard"
     EXTENDED = "extended"
 
-class MarketBase:
+class MarketBase(ABC):
     def __init__(self, sleep_override=None):
         self.logger = get_logger(self.__class__.__name__)
         self.running = True
@@ -90,3 +91,49 @@ class MarketBase:
             market_hours = MarketHoursType.EXTENDED
         self.logger.info(f"Market hours: {market_hours}")
         return market_hours
+
+    @abstractmethod
+    def _get_sleep_interval(self) -> int:
+        pass
+
+    @abstractmethod
+    def _execute_pipeline(self) -> bool:
+        pass
+
+    def run(self):
+        self.logger.info(f"Starting {self.__class__.__name__}")
+
+        # Set initial market hours
+        self._set_market_hours()
+        today = datetime.now(timezone.utc).date()
+
+        while self.running:
+            try:
+                # Check if we are in a new day
+                now = datetime.now(timezone.utc).date()
+                if now > today:
+                    self.logger.info("New day detected, refreshing market hours")
+                    time.sleep(1)
+                    self._set_market_hours()
+                    today = datetime.now(timezone.utc).date()
+                
+                # Get sleep interval based on market hours
+                sleep_interval = self._get_sleep_interval()
+                self.logger.debug(f"Sleep interval set for: {sleep_interval}")
+
+                # Adjust ttl for sleep interval
+                self.market_broker.ttl = sleep_interval
+
+                # Execute data pipeline
+                try:
+                    self._execute_pipeline()
+                except Exception as e:
+                    self.logger.error(f"Pipeline execution failed: {e}")
+
+                self._sleep_with_interrupt_check(sleep_interval)
+
+            except Exception as e:
+                self.logger.error(f"Unexpected error in main loop: {e}")
+                self._sleep_with_interrupt_check(60)
+
+        self.logger.info(f"{self.__class__.__name__} shutdown complete")
