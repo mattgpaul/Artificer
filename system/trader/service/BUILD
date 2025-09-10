@@ -5,6 +5,7 @@ py_library(
     srcs = [
         "live_market_service.py",
         "historical_market_service.py",
+        "market_base.py",
     ],
     deps = [
         "//system/trader/schwab:schwab_services",
