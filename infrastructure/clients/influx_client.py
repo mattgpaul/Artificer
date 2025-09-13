@@ -12,26 +12,27 @@ class BaseInfluxDBClient(Client):
         self.logger = get_logger(self.__class__.__name__)
         dotenv.load_dotenv(dotenv.find_dotenv("artificer.env"))
         self.token = os.getenv("INFLUXDB_TOKEN")
-        self.header = os.getenv("INFLUXDB_API_HEADER")
 
         self.host = "localhost"
         self.port = 8181
         self.url = f"http://{self.host}:{self.port}"
 
         self.database = database
+        self.client = self._create_client()
 
     def _create_client(self):
         self.logger.info("Setting up influx client")
-        self.client = InfluxDBClient3(
+        client = InfluxDBClient3(
             token=self.token,
             host=self.url,
             database=self.database,
         )
+        return client
 
     def write_point(self) -> bool:
         pass
 
-    def write_points(self) -> bool:
+    def write_batch(self) -> bool:
         pass
 
     def query_data(self):
@@ -48,12 +49,6 @@ class BaseInfluxDBClient(Client):
 
     def close(self):
         pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
 
 if __name__ == "__main__":
     influx = BaseInfluxDBClient()
