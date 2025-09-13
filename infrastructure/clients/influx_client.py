@@ -3,7 +3,7 @@ import os
 import dotenv
 from datetime import datetime, timezone
 
-from influxdb_client_3 import InfluxDBClient3, Point
+from influxdb_client_3 import InfluxDBClient3, Point, WriteOptions, InfluxDBError, write_client_options
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
@@ -24,7 +24,29 @@ class BatchWriteConfig:
             raise ValueError("batch_size must be positive")
         if self.max_retries < 0:
             raise ValueError("max_retries cannot be negative")
-        # Add other validations
+
+    def _to_write_options(self):
+        """Convert to format expected by InfluxDB client"""
+        return WriteOptions(
+            batch_size=self.batch_size,
+            flush_interval=self.flush_interval,
+            jitter_interval=self.jitter_interval,
+            retry_interval=self.retry_interval,
+            max_retries=self.max_retries,
+            max_retry_delay=self.max_retry_delay,
+            exponential_base=self.exponential_base
+        )
+
+class BatchingCallback(object):
+
+    def success(self, conf, data: str):
+        print(f"Written batch: {conf}")
+
+    def error(self, conf, data: str, exception: InfluxDBError):
+        print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
+
+    def retry(self, conf, data: str, exception: InfluxDBError):
+        print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
 class BaseInfluxDBClient(Client):
@@ -32,13 +54,20 @@ class BaseInfluxDBClient(Client):
         self.logger = get_logger(self.__class__.__name__)
         dotenv.load_dotenv(dotenv.find_dotenv("artificer.env"))
         self.token = os.getenv("INFLUXDB_TOKEN")
-
         self.host = "localhost"
         self.port = 8181
         self.url = f"http://{self.host}:{self.port}"
-
         self.database = database
         self.client = self._create_client()
+        self.write_config = self._get_write_config()
+        self.__write_options = self.write_config._to_write_options()
+        self._callback = BatchingCallback()
+        self._wco = write_client_options(
+            success_callback=self._callback.success,
+            error_callback=self._callback.error,
+            retry_callback=self._callback.retry,
+            write_options=self.__write_options
+        )
 
     def _create_client(self):
         self.logger.info("Setting up influx client")
@@ -49,10 +78,14 @@ class BaseInfluxDBClient(Client):
         )
         return client
 
+    def _get_write_config(self) -> BatchWriteConfig:
+        return BatchWriteConfig()
+
     def write_point(self) -> bool:
         pass
 
-    def write_batch(self, batch_write_options: dict[str, int]) -> bool:
+    def write_batch(self) -> bool:
+        self.logger.info(f"writing batch to: {self.database}")
         pass
 
     def query_data(self):
@@ -71,7 +104,8 @@ class BaseInfluxDBClient(Client):
         pass
 
 if __name__ == "__main__":
-    influx = BaseInfluxDBClient()
+    influx = BaseInfluxDBClient(database="test")
     influx._create_client()
     print(f"created client: {influx.client}")
+    print(f"batch write config: {influx.write_config}")
     
