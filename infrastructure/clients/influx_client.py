@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+import pandas as pd
 import os
 import dotenv
 from datetime import datetime, timezone
+from typing import Any
 
 from influxdb_client_3 import InfluxDBClient3, Point, WriteOptions, InfluxDBError, write_client_options
 
@@ -81,15 +83,47 @@ class BaseInfluxDBClient(Client):
     def _get_write_config(self) -> BatchWriteConfig:
         return BatchWriteConfig()
 
-    def write_point(self) -> bool:
-        pass
+    def write_point(
+        self,
+        data: Any,
+        name: str,
+        tags: list[str]
+    ) -> bool:
+        self.logger.info(f"Writing data point to {name}")
+        point = Point("measurement").tag(*tags).field(name, data)
+        try:
+            self.client.write(point)
+        except Exception as e:
+            self.logger.error(f"Failed to write point to database: {e}")
 
-    def write_batch(self) -> bool:
+    def write_batch(
+        self,
+        data: pd.DataFrame,
+        name: str,
+        tags: list[str],
+    ) -> bool:
         self.logger.info(f"writing batch to: {self.database}")
-        pass
+        try:
+            self.client.write(data, data_frame_measurement_name=name, data_frame_gat_colums=tags)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error writing batch to database: {e}")
+            return False
 
-    def query_data(self):
-        pass
+    # Assume pandas only for now
+    def query_data(
+        self,
+        query: str,
+        language: str = "sql",
+        mode: str = "pandas",
+    ) -> pd.DataFrame:
+        self.logger.info(f"Querying data from: {self.database}")
+        try:
+            data = self.client.query(query, language, mode)
+            return data
+        except Exception as e:
+            self.logger.error(f"Failed to query database: {e}")
+            return None
 
     def delete_data(self) -> bool:
         pass
