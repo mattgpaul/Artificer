@@ -54,3 +54,23 @@ py_binary(
     ],
     visibility = ["//visibility:public"]
 )
+
+py_test(
+    name = "influx_client_test",
+    srcs = ["influx_client_test.py"],  # Note: I see you have this file now
+    deps = [
+        ":influx_client",
+        requirement("pytest"),
+        requirement("pytest-mock"),
+        requirement("pytest-cov"),
+    ],
+    data = ["//:pytest.ini"],
+    args = [
+        "$(location influx_client_test.py)",
+        "-v",
+        "-m", "unit", 
+        "--cov=infrastructure.clients.influx_client",
+    ],
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
