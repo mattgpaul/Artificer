@@ -1,4 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
+load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "redis_client",
@@ -29,6 +30,7 @@ py_library(
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
+        requirement("pandas"),
         requirement("python-dotenv"),
         requirement("influxdb3-python"),
     ],
@@ -55,21 +57,12 @@ py_binary(
     visibility = ["//visibility:public"]
 )
 
-py_test(
+pytest_test(
     name = "influx_client_test",
-    srcs = ["influx_client_test.py"],  # Note: I see you have this file now
+    srcs = ["influx_client_test.py"],
+    coverage_path = "infrastructure.clients.influx_client",
     deps = [
         ":influx_client",
-        requirement("pytest"),
-        requirement("pytest-mock"),
-        requirement("pytest-cov"),
-    ],
-    data = ["//:pytest.ini"],
-    args = [
-        "$(location influx_client_test.py)",
-        "-v",
-        "-m", "unit", 
-        "--cov=infrastructure.clients.influx_client",
     ],
     python_version = "PY3",
     visibility = ["//visibility:public"],

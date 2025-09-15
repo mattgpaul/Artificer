@@ -10,7 +10,7 @@ py_library(
     deps = [
         "//system/trader/schwab:schwab_services",
         "//system/trader/redis:redis_services",
-        "//component/software/finance:schema",
+        "//system/trader:schema",
         "//infrastructure/logging:logger",
         requirement("pandas"),
         requirement("pydantic"),

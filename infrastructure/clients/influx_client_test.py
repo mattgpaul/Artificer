@@ -95,7 +95,7 @@ class TestBatchingCallback:
         callback = BatchingCallback()
         test_conf = {"test": "config"}
         test_data = "sample data"
-        test_exception = InfluxDBError("Test error")
+        test_exception = InfluxDBError(message="Test error")
         
         callback.error(test_conf, test_data, test_exception)
         
@@ -109,7 +109,7 @@ class TestBatchingCallback:
         callback = BatchingCallback()
         test_conf = {"test": "config"}
         test_data = "sample data"
-        test_exception = InfluxDBError("Retry error")
+        test_exception = InfluxDBError(message="Retry error")
         
         callback.retry(test_conf, test_data, test_exception)
         
@@ -174,7 +174,7 @@ class TestBaseInfluxDBClient:
         client = BaseInfluxDBClient("test_db")
         mock_client = mock_dependencies['client']
         
-        result = client.write_point("test_data", "test_name", ["tag1", "tag2"])
+        result = client.write_point("test_data", "test_name", {"env": "prod", "service": "api"})
         
         mock_client.write.assert_called_once()
         mock_dependencies['logger_instance'].info.assert_called_with(
@@ -187,7 +187,7 @@ class TestBaseInfluxDBClient:
         mock_client = mock_dependencies['client']
         mock_client.write.side_effect = Exception("Write failed")
         
-        client.write_point("test_data", "test_name", ["tag1"])
+        client.write_point("test_data", "test_name", {"env": "test", "host": "server1"})
         
         mock_dependencies['logger_instance'].error.assert_called_with(
             "Failed to write point to database: Write failed"

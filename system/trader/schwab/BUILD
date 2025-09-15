@@ -10,7 +10,7 @@ py_library(
     deps = [
         "//infrastructure/clients:schwab_client",
         "//infrastructure/logging:logger",
-        "//component/software/finance:schema"
+        "//system/trader:schema"
     ],
     visibility = [
         "//system/trader:__subpackages__",
