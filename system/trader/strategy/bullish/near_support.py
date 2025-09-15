@@ -2,14 +2,12 @@ import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
 from system.trader.strategy.strategy import Strategy
-from component.software.finance.stock import Stock
 from infrastructure.logging.logger import get_logger
 
 
 class NearSupport(Strategy):
-    def __init__(self, stock: Stock) -> None:
-        super().__init__(stock)
-        self.stock = stock
+    def __init__(self) -> None:
+        super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         self.position = 0
         

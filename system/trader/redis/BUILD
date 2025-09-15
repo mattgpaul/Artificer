@@ -11,7 +11,7 @@ py_library(
     deps = [
         "//infrastructure/logging:logger",
         "//infrastructure/clients:redis_client",
-        "//component/software/finance:schema",
+        "//system/trader:schema",
     ],
     visibility = [
         "//system/trader:__subpackages__",

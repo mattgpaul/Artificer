@@ -87,10 +87,17 @@ class BaseInfluxDBClient(Client):
         self,
         data: Any,
         name: str,
-        tags: list[str]
+        tags: dict[str, str] = None
     ) -> bool:
         self.logger.info(f"Writing data point to {name}")
-        point = Point("measurement").tag(*tags).field(name, data)
+        point = Point("measurement")
+        
+        # Add tags if provided - following InfluxDB documentation pattern
+        if tags:
+            for key, value in tags.items():
+                point = point.tag(key, value)
+                
+        point = point.field(name, data)
         try:
             self.client.write(point)
         except Exception as e:
