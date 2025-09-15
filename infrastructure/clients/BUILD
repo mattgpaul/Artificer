@@ -63,6 +63,7 @@ pytest_test(
     coverage_path = "infrastructure.clients.influx_client",
     deps = [
         ":influx_client",
+        requirement("requests"),
     ],
     python_version = "PY3",
     visibility = ["//visibility:public"],

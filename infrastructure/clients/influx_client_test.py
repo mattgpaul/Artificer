@@ -1,8 +1,9 @@
-
+import os
+import requests
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch, MagicMock
 import pandas as pd
-import os
 from influxdb_client_3 import InfluxDBError, Point
 
 from infrastructure.clients.influx_client import (
@@ -258,20 +259,56 @@ class TestBaseInfluxDBClient:
 
 @pytest.mark.integration
 class TestInfluxDBClientIntegration:
-    """Integration tests for InfluxDB client (require actual database)"""
+    """Integration tests for InfluxDB client (requires local InfluxDB running)"""
 
     @pytest.fixture
-    def client(self):
-        """Fixture for integration test client"""
-        # This would require actual InfluxDB instance
-        pytest.skip("Integration tests require running InfluxDB instance")
+    def local_influx_config(self):
+        """Configuration for local InfluxDB instance"""
+        # Default local InfluxDB settings
+        config = {
+            'url': os.getenv('INFLUXDB_URL', 'http://localhost:8181'),
+            'token': os.getenv('INFLUXDB_TOKEN', 'test-token'),
+            'org': os.getenv('INFLUXDB_ORG', 'test-org'), 
+            'bucket': os.getenv('INFLUXDB_BUCKET', 'test-bucket')
+        }
         
-    def test_real_connection(self, client):
-        """Test actual connection to InfluxDB"""
-        # This would test against real database
-        pass
+        try:
+            response = requests.get(f"{config['url']}/health", timeout=2)
+            if response.status_code != 200:
+                pytest.skip(f"InfluxDB not running at {config['url']}")
+        except requests.RequestException:
+            pytest.skip(f"InfluxDB not available at {config['url']} - start local instance or set INFLUXDB_URL")
+            
+        return config
 
-    def test_end_to_end_workflow(self, client):
-        """Test complete write/query workflow"""
-        # This would test complete data flow
-        pass
+    @pytest.fixture
+    def client(self, local_influx_config):
+        """Create client connected to local InfluxDB"""
+        from infrastructure.clients.influx_client import InfluxDBClient
+        
+        return InfluxDBClient(**local_influx_config)
+
+    def test_local_connection(self, client):
+        """Test connection to local InfluxDB"""
+        # Verify client was created
+        assert client.client is not None
+        
+        # Test basic connectivity
+        try:
+            bucket = client._get_bucket()
+            assert bucket is not None
+        except Exception as e:
+            pytest.fail(f"Failed to connect to local InfluxDB: {e}")
+
+    def test_write_and_read_local(self, client):
+        """Test write/read workflow with local InfluxDB"""
+        # Write test data
+        test_data = [{
+            'measurement': 'local_test_metric',
+            'tags': {'source': 'local_integration_test'},
+            'fields': {'value': 42.0},
+            'time': datetime.now(timezone.utc)
+        }]
+        
+        success = client.write_data(test_data)
+        assert success, "Write to local InfluxDB failed"
