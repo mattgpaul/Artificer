@@ -55,7 +55,7 @@ class BaseInfluxDBClient(Client):
     def __init__(self, database: str):
         self.logger = get_logger(self.__class__.__name__)
         dotenv.load_dotenv(dotenv.find_dotenv("artificer.env"))
-        self.token = os.getenv("INFLUXDB_TOKEN")
+        self.token = os.getenv("INFLUXDB3_AUTH_TOKEN")
         self.host = "localhost"
         self.port = 8181
         self.url = f"http://{self.host}:{self.port}"
@@ -85,12 +85,13 @@ class BaseInfluxDBClient(Client):
 
     def write_point(
         self,
+        measurement: str,
         data: Any,
         name: str,
         tags: dict[str, str] = None
     ) -> bool:
         self.logger.info(f"Writing data point to {name}")
-        point = Point("measurement")
+        point = Point(measurement)
         
         # Add tags if provided - following InfluxDB documentation pattern
         if tags:
@@ -149,4 +150,15 @@ if __name__ == "__main__":
     influx._create_client()
     print(f"created client: {influx.client}")
     print(f"batch write config: {influx.write_config}")
+    try:
+        influx.write_point("test_measurement", 5, "test_name", {"test_key":"test_value"})
+        success = True
+    except Exception as e:
+        print(f"Write failed: {e}")
+        success = False
+    
+    # Verify data was written by querying back
+    query = "SELECT * FROM test_measurement ORDER BY time DESC LIMIT 10"
+    result = influx.query_data(query)
+    print(result)
     

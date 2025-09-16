@@ -65,6 +65,9 @@ pytest_test(
         ":influx_client",
         requirement("requests"),
     ],
+    data = [
+        "//:artificer.env",
+    ],
     python_version = "PY3",
     visibility = ["//visibility:public"],
 )

@@ -127,7 +127,7 @@ class TestBaseInfluxDBClient:
     @pytest.fixture
     def mock_env_vars(self):
         """Fixture to mock environment variables"""
-        with patch.dict(os.environ, {'INFLUXDB_TOKEN': 'test_token'}):
+        with patch.dict(os.environ, {'INFLUXDB3_AUTH_TOKEN': 'test_token'}):
             yield
 
     @pytest.fixture
@@ -175,7 +175,7 @@ class TestBaseInfluxDBClient:
         client = BaseInfluxDBClient("test_db")
         mock_client = mock_dependencies['client']
         
-        result = client.write_point("test_data", "test_name", {"env": "prod", "service": "api"})
+        result = client.write_point("measurement", "test_data", "test_name", {"env": "prod", "service": "api"})
         
         mock_client.write.assert_called_once()
         mock_dependencies['logger_instance'].info.assert_called_with(
@@ -188,7 +188,7 @@ class TestBaseInfluxDBClient:
         mock_client = mock_dependencies['client']
         mock_client.write.side_effect = Exception("Write failed")
         
-        client.write_point("test_data", "test_name", {"env": "test", "host": "server1"})
+        client.write_point("measurement", "test_data", "test_name", {"env": "test", "host": "server1"})
         
         mock_dependencies['logger_instance'].error.assert_called_with(
             "Failed to write point to database: Write failed"
@@ -262,53 +262,31 @@ class TestInfluxDBClientIntegration:
     """Integration tests for InfluxDB client (requires local InfluxDB running)"""
 
     @pytest.fixture
-    def local_influx_config(self):
-        """Configuration for local InfluxDB instance"""
-        # Default local InfluxDB settings
-        config = {
-            'url': os.getenv('INFLUXDB_URL', 'http://localhost:8181'),
-            'token': os.getenv('INFLUXDB_TOKEN', 'test-token'),
-            'org': os.getenv('INFLUXDB_ORG', 'test-org'), 
-            'bucket': os.getenv('INFLUXDB_BUCKET', 'test-bucket')
-        }
-        
-        try:
-            response = requests.get(f"{config['url']}/health", timeout=2)
-            if response.status_code != 200:
-                pytest.skip(f"InfluxDB not running at {config['url']}")
-        except requests.RequestException:
-            pytest.skip(f"InfluxDB not available at {config['url']} - start local instance or set INFLUXDB_URL")
-            
-        return config
+    def influx_client(self, database: str = "test-db"):
+        """Create client connected to local InfluxDB"""        
+        return BaseInfluxDBClient(database)
 
-    @pytest.fixture
-    def client(self, local_influx_config):
-        """Create client connected to local InfluxDB"""
-        from infrastructure.clients.influx_client import InfluxDBClient
+    def test_write_point_method(self, influx_client):
+        """Test writing data using the write_point wrapper method"""
+        # Write test data using your wrapper method
+        influx_client.write_point(
+            measurement="home",
+            data=25.3,
+            name="temp",
+            tags={"room": "Kitchen", "sensor": "thermometer"}
+        )
         
-        return InfluxDBClient(**local_influx_config)
-
-    def test_local_connection(self, client):
-        """Test connection to local InfluxDB"""
-        # Verify client was created
-        assert client.client is not None
+        influx_client.write_point(
+            measurement="home", 
+            data=20.2,
+            name="humidity",
+            tags={"room": "Kitchen", "sensor": "hygrometer"}
+        )
         
-        # Test basic connectivity
-        try:
-            bucket = client._get_bucket()
-            assert bucket is not None
-        except Exception as e:
-            pytest.fail(f"Failed to connect to local InfluxDB: {e}")
-
-    def test_write_and_read_local(self, client):
-        """Test write/read workflow with local InfluxDB"""
-        # Write test data
-        test_data = [{
-            'measurement': 'local_test_metric',
-            'tags': {'source': 'local_integration_test'},
-            'fields': {'value': 42.0},
-            'time': datetime.now(timezone.utc)
-        }]
+        # Verify data was written by querying back using your wrapper method
+        query = "SELECT * FROM home ORDER BY time DESC LIMIT 10"
+        result = influx_client.query_data(query)
         
-        success = client.write_data(test_data)
-        assert success, "Write to local InfluxDB failed"
+        assert result is not None, "Query should return data"
+        assert len(result) >= 2, "Should have at least 2 records"
+        print(f"Successfully wrote and retrieved {len(result)} records")
