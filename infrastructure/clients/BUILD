@@ -69,5 +69,9 @@ pytest_test(
         "//:artificer.env",
     ],
     python_version = "PY3",
+    tags = [
+        "infrastructure", 
+        "algo-trader",
+    ],
     visibility = ["//visibility:public"],
 )
