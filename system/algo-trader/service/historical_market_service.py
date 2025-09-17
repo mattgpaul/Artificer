@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 from enum import Enum
 import sys
 
-from system.trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 from component.software.finance.schema import MarketHours
-from system.trader.redis.historical_market import HistoricalMarketBroker
-from system.trader.service.market_base import MarketBase, MarketHoursType
+from system.algo_trader.redis.historical_market import HistoricalMarketBroker
+from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 
 class IntradayInterval(Enum):
     MIN1 = 1

@@ -7,7 +7,7 @@ py_library(
         requirement("pydantic"),
     ],
     visibility = [
-        "//system/trader:__subpackages__",  # Available to trader subpackages
+        "//system/algo-trader:__subpackages__",  # Available to algo-trader subpackages
         "//system:__pkg__",  # Available to system package (for project aggregation)
     ],
 )

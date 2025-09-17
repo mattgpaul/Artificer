@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
-from system.trader.strategy.strategy import Strategy
+from system.algo_trader.strategy.strategy import Strategy
 from infrastructure.logging.logger import get_logger
 
 
