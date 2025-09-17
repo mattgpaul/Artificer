@@ -11,7 +11,7 @@ py_library(
     deps = [
         "//infrastructure/logging:logger",
         "//infrastructure/clients:redis_client",
-        "//system/algo-trader:schema",
+        "//system/algo-trader/utils:schema",
     ],
     visibility = [
         "//system/algo-trader:__subpackages__",

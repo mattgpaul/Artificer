@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
-from system.algo_trader.strategy.strategy import Strategy
+from system.algo_trader.strategy.base_strategy import BaseStrategy
 from infrastructure.logging.logger import get_logger
 
 
-class NearSupport(Strategy):
+class NearSupport(BaseStrategy):
     def __init__(self) -> None:
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)

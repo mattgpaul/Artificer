@@ -10,7 +10,7 @@ py_library(
     deps = [
         "//system/algo-trader/schwab:schwab_services",
         "//system/algo-trader/redis:redis_services",
-        "//system/algo-trader:schema",
+        "//system/algo-trader/utils:schema",
         "//infrastructure/logging:logger",
         requirement("pandas"),
         requirement("pydantic"),

@@ -1,13 +1,17 @@
-load("@pip//:requirements.bzl", "requirement")
-
+# Project aggregation target - collects all algo-trader components
 py_library(
-    name = "schema",
-    srcs = ["schema.py"],
+    name = "all",
     deps = [
-        requirement("pydantic"),
+        "//system/algo-trader/utils:schema",
+        "//system/algo-trader/strategy:base_strategy",
+        "//system/algo-trader/strategy:calculation",
+        "//system/algo-trader/redis:redis_services", 
+        "//system/algo-trader/schwab:schwab_services",
+        "//system/algo-trader/service:historical_market_service",
+        "//system/algo-trader/service:live_market_service",
+        "//system/algo-trader/service:market_service_lib",
     ],
     visibility = [
-        "//system/algo-trader:__subpackages__",  # Available to algo-trader subpackages
-        "//system:__pkg__",  # Available to system package (for project aggregation)
+        "//system:__pkg__",  # Available to system package
     ],
 )

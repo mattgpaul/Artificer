@@ -10,7 +10,7 @@ py_library(
     deps = [
         "//infrastructure/clients:schwab_client",
         "//infrastructure/logging:logger",
-        "//system/algo-trader:schema"
+        "//system/algo-trader/utils:schema"
     ],
     visibility = [
         "//system/algo-trader:__subpackages__",
