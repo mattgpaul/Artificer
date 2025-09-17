@@ -1,6 +1,6 @@
 # Project aggregation target - collects all algo-trader components
 py_library(
-    name = "all",
+    name = "algo-trader",
     deps = [
         "//system/algo-trader/utils:schema",
         "//system/algo-trader/strategy:base_strategy",
