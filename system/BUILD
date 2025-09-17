@@ -1,14 +1,22 @@
 # system/BUILD
 
-py_library(
+# Project configuration for merge gate system  
+PROJECT_CONFIG = {
+    "algo-trader": {
+        "develop_branch": "algo-trader", 
+        "project_target": "//system/algo-trader:all",
+        "integration_test_timeout": "300s",
+    }
+    # Future projects:
+    # "analytics": {
+    #     "develop_branch": "analytics-dev", 
+    #     "project_target": "//system/analytics:all",
+    # }
+}
+
+# Alias for convenience - points to the project's own aggregation target
+alias(
     name = "algo-trader",
-    deps = [
-        "//system/algo-trader:schema",
-        "//system/algo-trader/redis:redis_services", 
-        "//system/algo-trader/schwab:schwab_services",
-        "//system/algo-trader/service:historical_market_service",
-        "//system/algo-trader/service:live_market_service",
-        "//system/algo-trader/service:market_service_lib",
-    ],
+    actual = "//system/algo-trader:all",
     visibility = ["//visibility:private"],
 )
