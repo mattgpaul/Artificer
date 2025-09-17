@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from system.trader.strategy.calculation import valleys
+from system.algo_trader.strategy.calculation import valleys
 
 
 class TestCalculationIntegration:

@@ -8,15 +8,16 @@ py_library(
         "market_base.py",
     ],
     deps = [
-        "//system/trader/schwab:schwab_services",
-        "//system/trader/redis:redis_services",
-        "//system/trader:schema",
+        "//system/algo-trader/schwab:schwab_services",
+        "//system/algo-trader/redis:redis_services",
+        "//system/algo-trader:schema",
         "//infrastructure/logging:logger",
         requirement("pandas"),
         requirement("pydantic"),
     ],
     visibility = [
-        "//system/trader:__subpackages__",
+        "//system/algo-trader:__subpackages__",
+        "//system:__pkg__",  # Allow system package access
     ],
 )
 
@@ -25,7 +26,10 @@ py_binary(
     srcs = ["live_market_service.py"],
     deps = [":market_service_lib"],
     main = "live_market_service.py",
-    visibility = ["//system/trader:__pkg__"],
+    visibility = [
+        "//system/algo-trader:__pkg__",
+        "//system:__pkg__",  # Allow system package access
+    ],
 )
 
 py_binary(
@@ -33,5 +37,8 @@ py_binary(
     srcs = ["historical_market_service.py"],
     main = "historical_market_service.py",
     deps = [":market_service_lib"],
-    visibility = ["//system/trader:__pkg__"],
+    visibility = [
+        "//system/algo-trader:__pkg__",
+        "//system:__pkg__",  # Allow system package access
+    ],
 )

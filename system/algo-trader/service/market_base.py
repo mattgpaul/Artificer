@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 
 from component.software.finance.schema import MarketHours
 from infrastructure.logging.logger import get_logger
-from system.trader.redis.watchlist import WatchlistBroker
-from system.trader.schwab.market_handler import MarketHandler
+from system.algo_trader.redis.watchlist import WatchlistBroker
+from system.algo_trader.schwab.market_handler import MarketHandler
 
 class MarketHoursType(Enum):
     PREMARKET = "premarket"

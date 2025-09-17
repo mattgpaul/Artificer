@@ -2,8 +2,8 @@ import sys
 import argparse
 
 from component.software.finance.schema import MarketHours
-from system.trader.redis.live_market import LiveMarketBroker
-from system.trader.service.market_base import MarketBase, MarketHoursType
+from system.algo_trader.redis.live_market import LiveMarketBroker
+from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 
 class LiveMarketService(MarketBase):
     def __init__(self, sleep_override=None):
