@@ -127,29 +127,37 @@ class TestBaseInfluxDBClient:
     @pytest.fixture
     def mock_env_vars(self):
         """Fixture to mock environment variables"""
-        with patch.dict(os.environ, {'INFLUXDB3_AUTH_TOKEN': 'test_token'}):
+        with patch.dict(os.environ, {
+            'INFLUXDB3_AUTH_TOKEN': 'test_token',
+            'INFLUXDB3_HTTP_BIND_ADDR': 'http://test-url:test-port'
+        }):
             yield
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies"""
         with patch('infrastructure.clients.influx_client.get_logger') as mock_logger, \
-             patch('infrastructure.clients.influx_client.dotenv.load_dotenv'), \
-             patch('infrastructure.clients.influx_client.dotenv.find_dotenv'), \
              patch('infrastructure.clients.influx_client.InfluxDBClient3') as mock_client_class, \
-             patch('infrastructure.clients.influx_client.write_client_options') as mock_wco:
+             patch('infrastructure.clients.influx_client.write_client_options') as mock_wco, \
+             patch('infrastructure.clients.influx_client.BaseInfluxDBClient.ping') as mock_ping, \
+             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server') as mock_start_server:
             
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
             
+            mock_ping.return_value = True
+            mock_start_server.return_value = True
+            
             yield {
                 'logger': mock_logger,
                 'logger_instance': mock_logger_instance,
                 'client_class': mock_client_class,
                 'client': mock_client,
-                'wco': mock_wco
+                'wco': mock_wco,
+                'ping': mock_ping,
+                'start_server': mock_start_server
             }
 
     def test_initialization(self, mock_dependencies):
@@ -159,14 +167,12 @@ class TestBaseInfluxDBClient:
         client = BaseInfluxDBClient(database)
         
         assert client.database == database
-        assert client.host == "localhost"
-        assert client.port == 8181
-        assert client.url == "http://localhost:8181"
+        assert client.url == "http://test-url:test-port"
         assert client.token == "test_token"
         
         mock_dependencies['client_class'].assert_called_once_with(
             token="test_token",
-            host="http://localhost:8181",
+            host="http://test-url:test-port",
             database=database
         )
 
@@ -256,15 +262,52 @@ class TestBaseInfluxDBClient:
         assert isinstance(config, BatchWriteConfig)
         assert config.batch_size == 100
 
+    def test_ping_success(self, mock_env_vars):
+        """Test successful ping to InfluxDB server"""
+        with patch('infrastructure.clients.influx_client.get_logger'), \
+             patch('infrastructure.clients.influx_client.InfluxDBClient3'), \
+             patch('infrastructure.clients.influx_client.write_client_options'), \
+             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server'), \
+             patch('infrastructure.clients.influx_client.requests.get') as mock_get:
+            
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_get.return_value = mock_response
+            
+            client = BaseInfluxDBClient("test_db")
+            result = client.ping()
+            
+            assert result is True
+            mock_get.assert_called_once_with(
+                "http://test-url:test-port/health",
+                headers={"Authorization": "Bearer test_token"}
+            )
+
+    def test_ping_failure(self, mock_env_vars):
+        """Test ping failure when server is not responding"""
+        with patch('infrastructure.clients.influx_client.get_logger'), \
+             patch('infrastructure.clients.influx_client.InfluxDBClient3'), \
+             patch('infrastructure.clients.influx_client.write_client_options'), \
+             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server'), \
+             patch('infrastructure.clients.influx_client.requests.get') as mock_get:
+            
+            mock_get.side_effect = Exception("Connection failed")
+            
+            client = BaseInfluxDBClient("test_db")
+            result = client.ping()
+            
+            assert result is False
+
 
 @pytest.mark.integration
 class TestInfluxDBClientIntegration:
     """Integration tests for InfluxDB client (requires local InfluxDB running)"""
 
-    @pytest.fixture
-    def influx_client(self, database: str = "test-db"):
+    @pytest.fixture(scope="session")
+    def influx_client(self):
         """Create client connected to local InfluxDB"""        
-        return BaseInfluxDBClient(database)
+        client = BaseInfluxDBClient(database="test")
+        return client
 
     def test_write_point_method(self, influx_client):
         """Test writing data using the write_point wrapper method"""
