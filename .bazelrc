@@ -18,6 +18,9 @@ test:integration --action_env=SCHWAB_API_KEY
 test:integration --action_env=SCHWAB_SECRET
 test:integration --action_env=INFLUXDB3_AUTH_TOKEN
 test:integration --action_env=INFLUXDB3_HTTP_BIND_ADDR
+test:integration --action_env=INFLUXDB3_NODE_IDENTIFIER_PREFIX
+test:integration --action_env=INFLUXDB3_OBJECT_STORE
+test:integration --test_arg="-m integration"
 
 ##### CPP Stuff #####
 # Explicitly specify GCC toolchain
