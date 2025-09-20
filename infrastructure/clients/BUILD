@@ -19,7 +19,6 @@ py_library(
         "//infrastructure:client",
         "//infrastructure/logging:logger",
         requirement("requests"),
-        requirement("python-dotenv"),
     ],
     visibility = ["//visibility:public"],
 )
@@ -30,8 +29,8 @@ py_library(
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
+        requirement("requests"),
         requirement("pandas"),
-        requirement("python-dotenv"),
         requirement("influxdb3-python"),
     ],
     visibility = ["//visibility:public"],
@@ -58,16 +57,17 @@ py_binary(
 )
 
 pytest_test(
-    name = "influx_client_test",
+    name = "influx_client_test", 
     srcs = ["influx_client_test.py"],
     coverage_path = "infrastructure.clients.influx_client",
     deps = [
         ":influx_client",
         requirement("requests"),
     ],
-    data = [
-        "//:artificer.env",
-    ],
+    env = {
+        "INFLUXDB3_AUTH_TOKEN": "test_token",
+        "INFLUXDB3_HTTP_BIND_ADDR": "http://test-url:test-port",
+    },
     python_version = "PY3",
     tags = [
         "infrastructure", 
