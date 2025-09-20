@@ -85,9 +85,9 @@ class BaseInfluxDBClient(Client):
             self.logger.info("Starting InfluxDB server")
             subprocess.Popen([
                 "influxdb3", "serve",
-                "--node-id", os.getenv("INFLUXDB3_NODE_IDENTIFIER_PREFIX"),
-                "--object-store", os.getenv("INFLUXDB3_OBJECT_STORE"),
-                "--http-bind-addr", os.getenv("INFLUXDB3_HTTP_BIND_ADDR"),
+                "--node-id", os.getenv("INFLUXDB3_NODE_IDENTIFIER_PREFIX", "node0"),
+                "--object-store", os.getenv("INFLUXDB3_OBJECT_STORE", "file"),
+                "--http-bind-addr", os.getenv("INFLUXDB3_HTTP_BIND_ADDR", "http://localhost:8181"),
                 "--data-dir", "~/.influxdb3/data",
             ])
 

@@ -64,10 +64,6 @@ pytest_test(
         ":influx_client",
         requirement("requests"),
     ],
-    env = {
-        "INFLUXDB3_AUTH_TOKEN": "test_token",
-        "INFLUXDB3_HTTP_BIND_ADDR": "http://test-url:test-port",
-    },
     python_version = "PY3",
     tags = [
         "infrastructure", 
