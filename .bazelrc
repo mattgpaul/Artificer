@@ -1,26 +1,12 @@
-##### GlobalEnvironment Variables #####
+##### Environment Variables #####
 run --action_env=LOG_LEVEL=INFO
+test --test_env=LOG_LEVEL=DEBUG
 
-# For run commands
-run --action_env=SCHWAB_API_KEY
-run --action_env=SCHWAB_SECRET
-run --action_env=INFLUXDB3_AUTH_TOKEN
-run --action_env=INFLUXDB3_HTTP_BIND_ADDR
-
-# For test commands  
-test --action_env=SCHWAB_API_KEY=fake_test_key
-test --action_env=SCHWAB_SECRET=fake_test_secret
-test --action_env=INFLUXDB3_AUTH_TOKEN=fake_test_token
-test --action_env=INFLUXDB3_HTTP_BIND_ADDR=http://test-url:test-port
-
-# Integration test configuration (real credentials from environment)
-test:integration --action_env=SCHWAB_API_KEY
-test:integration --action_env=SCHWAB_SECRET
-test:integration --action_env=INFLUXDB3_AUTH_TOKEN
-test:integration --action_env=INFLUXDB3_HTTP_BIND_ADDR
-test:integration --action_env=INFLUXDB3_NODE_IDENTIFIER_PREFIX
-test:integration --action_env=INFLUXDB3_OBJECT_STORE
+# Integration test configuration
 test:integration --test_arg="-m integration"
+
+# End-to-end test configuration
+test:e2e --test_arg="-m e2e"
 
 ##### CPP Stuff #####
 # Explicitly specify GCC toolchain
