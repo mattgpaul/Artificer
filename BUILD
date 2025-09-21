@@ -9,5 +9,4 @@ compile_pip_requirements(
 # Export pytest configuration for all tests
 exports_files([
     "pytest.ini",
-    "artificer.env",
 ])

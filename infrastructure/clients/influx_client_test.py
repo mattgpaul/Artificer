@@ -129,7 +129,7 @@ class TestBaseInfluxDBClient:
         """Fixture to mock environment variables"""
         with patch.dict(os.environ, {
             'INFLUXDB3_AUTH_TOKEN': 'test_token',
-            'INFLUXDB3_HTTP_BIND_ADDR': 'http://test-url:test-port'
+            'INFLUXDB3_HTTP_BIND_ADDR': 'test-url:test-port'  # No http:// prefix - let the class add it
         }):
             yield
 

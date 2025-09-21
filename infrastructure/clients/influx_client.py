@@ -59,7 +59,8 @@ class BaseInfluxDBClient(Client):
         
         # Read configuration from environment variables
         self.token = os.getenv("INFLUXDB3_AUTH_TOKEN")
-        self.url = os.getenv("INFLUXDB3_HTTP_BIND_ADDR")
+        self.url = f"http://{os.getenv('INFLUXDB3_HTTP_BIND_ADDR')}"
+        self.logger.debug(f"InfluxDB URL: {self.url}")
         self.database = database
         self.write_config = self._get_write_config()
         self.__write_options = self.write_config._to_write_options()
@@ -83,15 +84,18 @@ class BaseInfluxDBClient(Client):
         if not active:
             self.logger.warning("InfluxDB server is not active")
             self.logger.info("Starting InfluxDB server")
-            subprocess.Popen([
+            process = subprocess.Popen([
                 "influxdb3", "serve",
-                "--node-id", os.getenv("INFLUXDB3_NODE_IDENTIFIER_PREFIX", "node0"),
-                "--object-store", os.getenv("INFLUXDB3_OBJECT_STORE", "file"),
-                "--http-bind-addr", os.getenv("INFLUXDB3_HTTP_BIND_ADDR", "http://localhost:8181"),
-                "--data-dir", "~/.influxdb3/data",
-            ])
+                "--node-id", os.getenv("INFLUXDB3_NODE_IDENTIFIER_PREFIX"),
+                "--object-store", os.getenv("INFLUXDB3_OBJECT_STORE"),
+                "--http-bind", os.getenv("INFLUXDB3_HTTP_BIND_ADDR"),
+                "--data-dir", os.path.expanduser("~/.influxdb3/data"),
+            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate(timeout=1) if process.poll() is not None else (b'', b'')
+            self.logger.debug(f"influxdb3 serve stdout: {stdout.decode(errors='ignore')}")
+            self.logger.debug(f"influxdb3 serve stderr: {stderr.decode(errors='ignore')}")
 
-            for attempt in range(10):  # Try for ~10 seconds
+            for attempt in range(5):  # Try for ~5 seconds
                 time.sleep(1)
                 if self.ping():
                     self.logger.info(f"Server is running at {self.url}")
