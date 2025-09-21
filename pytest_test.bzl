@@ -12,7 +12,7 @@ def pytest_test(name, srcs, coverage_path=None, **kwargs):
                       If None, will attempt to infer from the target location.
     """
     user_deps = kwargs.pop("deps", [])
-    data = kwargs.pop("data", []) + ["//:pytest.ini"]
+    data = kwargs.pop("data", [])
     env = kwargs.pop("env", {})
     user_args = kwargs.pop("args", [])
     

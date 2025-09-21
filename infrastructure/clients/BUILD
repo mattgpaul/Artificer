@@ -56,8 +56,9 @@ py_binary(
     visibility = ["//visibility:public"]
 )
 
+# Unit tests - run the 3 unit test classes
 pytest_test(
-    name = "influx_client_test", 
+    name = "influx_client_unit_test", 
     srcs = ["influx_client_test.py"],
     coverage_path = "infrastructure.clients.influx_client",
     deps = [
@@ -68,6 +69,29 @@ pytest_test(
     tags = [
         "infrastructure", 
         "algo-trader",
+        "unit_test",
     ],
+    args = ["-k", "TestInfluxDBClientUnit"],
+    size = "small",
+    visibility = ["//visibility:public"],
+)
+
+# Integration tests - run only the integration test class
+pytest_test(
+    name = "influx_client_integration_test", 
+    srcs = ["influx_client_test.py"],
+    coverage_path = "infrastructure.clients.influx_client",
+    deps = [
+        ":influx_client",
+        requirement("requests"),
+    ],
+    python_version = "PY3",
+    tags = [
+        "infrastructure", 
+        "algo-trader",
+        "integration_test",
+    ],
+    args = ["-k", "TestInfluxDBClientIntegration"],
+    size = "medium",
     visibility = ["//visibility:public"],
 )
