@@ -12,117 +12,8 @@ from infrastructure.clients.influx_client import (
     BaseInfluxDBClient
 )
 
-
-@pytest.mark.unit
-class TestBatchWriteConfig:
-    """Unit tests for BatchWriteConfig dataclass"""
-
-    def test_default_initialization(self):
-        """Test BatchWriteConfig initializes with default values"""
-        config = BatchWriteConfig()
-        assert config.batch_size == 100
-        assert config.flush_interval == 10_000
-        assert config.jitter_interval == 2_000
-        assert config.retry_interval == 5_000
-        assert config.max_retries == 5
-        assert config.max_retry_delay == 30_000
-        assert config.exponential_base == 2
-
-    def test_custom_initialization(self):
-        """Test BatchWriteConfig with custom values"""
-        config = BatchWriteConfig(
-            batch_size=50,
-            max_retries=3,
-            flush_interval=5_000
-        )
-        assert config.batch_size == 50
-        assert config.max_retries == 3
-        assert config.flush_interval == 5_000
-
-    def test_validation_positive_batch_size(self):
-        """Test validation fails for non-positive batch_size"""
-        with pytest.raises(ValueError, match="batch_size must be positive"):
-            BatchWriteConfig(batch_size=0)
-        
-        with pytest.raises(ValueError, match="batch_size must be positive"):
-            BatchWriteConfig(batch_size=-1)
-
-    def test_validation_negative_max_retries(self):
-        """Test validation fails for negative max_retries"""
-        with pytest.raises(ValueError, match="max_retries cannot be negative"):
-            BatchWriteConfig(max_retries=-1)
-
-    def test_validation_zero_max_retries_allowed(self):
-        """Test zero max_retries is allowed"""
-        config = BatchWriteConfig(max_retries=0)
-        assert config.max_retries == 0
-
-    @patch('infrastructure.clients.influx_client.WriteOptions')
-    def test_to_write_options_conversion(self, mock_write_options):
-        """Test conversion to WriteOptions format"""
-        config = BatchWriteConfig(batch_size=200, max_retries=10)
-        
-        config._to_write_options()
-        
-        mock_write_options.assert_called_once_with(
-            batch_size=200,
-            flush_interval=10_000,
-            jitter_interval=2_000,
-            retry_interval=5_000,
-            max_retries=10,
-            max_retry_delay=30_000,
-            exponential_base=2
-        )
-
-
-@pytest.mark.unit
-class TestBatchingCallback:
-    """Unit tests for BatchingCallback class"""
-
-    def test_success_callback(self, capsys):
-        """Test success callback prints expected message"""
-        callback = BatchingCallback()
-        test_conf = {"test": "config"}
-        test_data = "sample data"
-        
-        callback.success(test_conf, test_data)
-        
-        captured = capsys.readouterr()
-        assert "Written batch:" in captured.out
-        assert str(test_conf) in captured.out
-
-    def test_error_callback(self, capsys):
-        """Test error callback prints expected message"""
-        callback = BatchingCallback()
-        test_conf = {"test": "config"}
-        test_data = "sample data"
-        test_exception = InfluxDBError(message="Test error")
-        
-        callback.error(test_conf, test_data, test_exception)
-        
-        captured = capsys.readouterr()
-        assert "Cannot write batch:" in captured.out
-        assert str(test_conf) in captured.out
-        assert "sample data" in captured.out
-
-    def test_retry_callback(self, capsys):
-        """Test retry callback prints expected message"""
-        callback = BatchingCallback()
-        test_conf = {"test": "config"}
-        test_data = "sample data"
-        test_exception = InfluxDBError(message="Retry error")
-        
-        callback.retry(test_conf, test_data, test_exception)
-        
-        captured = capsys.readouterr()
-        assert "Retryable error occurs for batch:" in captured.out
-        assert str(test_conf) in captured.out
-        assert "sample data" in captured.out
-
-
-@pytest.mark.unit
-class TestBaseInfluxDBClient:
-    """Unit tests for BaseInfluxDBClient class"""
+class TestInfluxDBClientUnit:
+    """Consolidated unit tests for InfluxDB client components"""
 
     @pytest.fixture
     def mock_env_vars(self):
@@ -160,6 +51,106 @@ class TestBaseInfluxDBClient:
                 'start_server': mock_start_server
             }
 
+    # BatchWriteConfig tests
+    def test_batch_write_config_default_initialization(self):
+        """Test BatchWriteConfig initializes with default values"""
+        config = BatchWriteConfig()
+        assert config.batch_size == 100
+        assert config.flush_interval == 10_000
+        assert config.jitter_interval == 2_000
+        assert config.retry_interval == 5_000
+        assert config.max_retries == 5
+        assert config.max_retry_delay == 30_000
+        assert config.exponential_base == 2
+
+    def test_batch_write_config_custom_initialization(self):
+        """Test BatchWriteConfig with custom values"""
+        config = BatchWriteConfig(
+            batch_size=50,
+            max_retries=3,
+            flush_interval=5_000
+        )
+        assert config.batch_size == 50
+        assert config.max_retries == 3
+        assert config.flush_interval == 5_000
+
+    def test_batch_write_config_validation_positive_batch_size(self):
+        """Test validation fails for non-positive batch_size"""
+        with pytest.raises(ValueError, match="batch_size must be positive"):
+            BatchWriteConfig(batch_size=0)
+        
+        with pytest.raises(ValueError, match="batch_size must be positive"):
+            BatchWriteConfig(batch_size=-1)
+
+    def test_batch_write_config_validation_negative_max_retries(self):
+        """Test validation fails for negative max_retries"""
+        with pytest.raises(ValueError, match="max_retries cannot be negative"):
+            BatchWriteConfig(max_retries=-1)
+
+    def test_batch_write_config_validation_zero_max_retries_allowed(self):
+        """Test zero max_retries is allowed"""
+        config = BatchWriteConfig(max_retries=0)
+        assert config.max_retries == 0
+
+    @patch('infrastructure.clients.influx_client.WriteOptions')
+    def test_batch_write_config_to_write_options_conversion(self, mock_write_options):
+        """Test conversion to WriteOptions format"""
+        config = BatchWriteConfig(batch_size=200, max_retries=10)
+        
+        config._to_write_options()
+        
+        mock_write_options.assert_called_once_with(
+            batch_size=200,
+            flush_interval=10_000,
+            jitter_interval=2_000,
+            retry_interval=5_000,
+            max_retries=10,
+            max_retry_delay=30_000,
+            exponential_base=2
+        )
+
+    # BatchingCallback tests
+    def test_batching_callback_success(self, capsys):
+        """Test success callback prints expected message"""
+        callback = BatchingCallback()
+        test_conf = {"test": "config"}
+        test_data = "sample data"
+        
+        callback.success(test_conf, test_data)
+        
+        captured = capsys.readouterr()
+        assert "Written batch:" in captured.out
+        assert str(test_conf) in captured.out
+
+    def test_batching_callback_error(self, capsys):
+        """Test error callback prints expected message"""
+        callback = BatchingCallback()
+        test_conf = {"test": "config"}
+        test_data = "sample data"
+        test_exception = InfluxDBError(message="Test error")
+        
+        callback.error(test_conf, test_data, test_exception)
+        
+        captured = capsys.readouterr()
+        assert "Cannot write batch:" in captured.out
+        assert str(test_conf) in captured.out
+        assert "sample data" in captured.out
+
+    def test_batching_callback_retry(self, capsys):
+        """Test retry callback prints expected message"""
+        callback = BatchingCallback()
+        test_conf = {"test": "config"}
+        test_data = "sample data"
+        test_exception = InfluxDBError(message="Retry error")
+        
+        callback.retry(test_conf, test_data, test_exception)
+        
+        captured = capsys.readouterr()
+        assert "Retryable error occurs for batch:" in captured.out
+        assert str(test_conf) in captured.out
+        assert "sample data" in captured.out
+
+    # BaseInfluxDBClient tests
     def test_initialization(self, mock_dependencies):
         """Test BaseInfluxDBClient initialization"""
         database = "test_db"
@@ -298,8 +289,6 @@ class TestBaseInfluxDBClient:
             
             assert result is False
 
-
-@pytest.mark.integration
 class TestInfluxDBClientIntegration:
     """Integration tests for InfluxDB client (requires local InfluxDB running)"""
 
