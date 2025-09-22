@@ -10,10 +10,10 @@ py_library(
     deps = [
         "//infrastructure/clients:schwab_client",
         "//infrastructure/logging:logger",
-        "//system/algo-trader/utils:schema"
+        "//system/algo_trader/utils:schema"
     ],
     visibility = [
-        "//system/algo-trader:__subpackages__",
+        "//system/algo_trader:__subpackages__",
         "//system:__pkg__",  # Allow system package access
     ],
 )

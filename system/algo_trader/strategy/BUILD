@@ -5,7 +5,7 @@ py_library(
         "//infrastructure/logging:logger",
     ],
     visibility = [
-        "//system/algo-trader:__subpackages__",  # Available to algo-trader subpackages
+        "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
     ],
 )
 
@@ -16,6 +16,6 @@ py_library(
         # Add any dependencies needed for calculation.py
     ],
     visibility = [
-        "//system/algo-trader:__subpackages__",  # Available to algo-trader subpackages
+        "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
     ],
 )
