@@ -68,7 +68,6 @@ pytest_test(
     python_version = "PY3",
     tags = [
         "infrastructure", 
-        "algo-trader",
         "unit",
     ],
     args = ["-k", "TestInfluxDBClientUnit"],
@@ -88,7 +87,6 @@ pytest_test(
     python_version = "PY3",
     tags = [
         "infrastructure", 
-        "algo-trader",
         "integration",
     ],
     args = ["-k", "TestInfluxDBClientIntegration"],

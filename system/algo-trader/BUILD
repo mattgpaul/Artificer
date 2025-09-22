@@ -14,12 +14,3 @@ py_library(
         "//system:__pkg__",  # Available to system package
     ],
 )
-
-# Integration tests for algo-trader use tag filtering (cleanest, zero-maintenance solution)
-# 
-# Commands for your local-first workflow:
-#   Unit tests:        bazel test //... --test_tag_filters=algo-trader --test_arg="-m" --test_arg="unit"  
-#   Integration tests: bazel test //... --test_tag_filters=algo-trader --test_arg="-m" --test_arg="integration"
-#   E2E tests:         bazel test //... --test_tag_filters=algo-trader --test_arg="-m" --test_arg="e2e"
-#
-# Discover tests:      bazel query "attr('tags', 'algo-trader', kind(py_test, //...))"
