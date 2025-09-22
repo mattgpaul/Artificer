@@ -2,9 +2,9 @@
 
 # # Project configuration for merge gate system  
 # PROJECT_CONFIG = {
-#     "algo-trader": {
-#         "develop_branch": "algo-trader", 
-#         "project_target": "//system/algo-trader:all",
+#     "algo_trader": {
+#         "develop_branch": "algo_trader", 
+#         "project_target": "//system/algo_trader:all",
 #         "integration_test_timeout": "300s",
 #     }
 #     # Future projects:
@@ -16,7 +16,7 @@
 
 # # Alias for convenience - points to the project's own aggregation target
 # alias(
-#     name = "algo-trader",
-#     actual = "//system/algo-trader:all",
+#     name = "algo_trader",
+#     actual = "//system/algo_trader:all",
 #     visibility = ["//visibility:private"],
 # )
