@@ -6,7 +6,7 @@ from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 from component.software.finance.schema import MarketHours
 from system.algo_trader.redis.historical_market import HistoricalMarketBroker
 from system.algo_trader.service.market_base import MarketBase, MarketHoursType
-
+from system.algo_trader.influx.historical_influx_handler import HistoricalInfluxHandler
 class IntradayInterval(Enum):
     MIN1 = 1
     MIN5 = 5
@@ -17,6 +17,7 @@ class IntradayInterval(Enum):
 class HistoricalMarketService(MarketBase):
     def __init__(self, sleep_override=None):
         self._market_broker = HistoricalMarketBroker()
+        self._influx_handler = HistoricalInfluxHandler()
         super().__init__(sleep_override)
         if sleep_override is not None:
             self.logger.warning("HistoricalMarketService does not use sleep_override")
