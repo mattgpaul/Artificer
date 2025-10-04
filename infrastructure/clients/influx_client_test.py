@@ -155,17 +155,17 @@ class TestInfluxDBClientUnit:
         """Test BaseInfluxDBClient initialization"""
         database = "test_db"
         
-        client = BaseInfluxDBClient(database)
+        client = BaseInfluxDBClient("test_db")
         
         assert client.database == database
         assert client.url == "http://test-url:test-port"
         assert client.token == "test_token"
         
-        mock_dependencies['client_class'].assert_called_once_with(
-            token="test_token",
-            host="http://test-url:test-port",
-            database=database
-        )
+        call_args = mock_dependencies['client_class'].call_args
+        assert call_args.kwargs['token'] == "test_token"
+        assert call_args.kwargs['host'] == "http://test-url:test-port"
+        assert call_args.kwargs['database'] == database
+        assert 'write_client_options' in call_args.kwargs
 
     def test_write_point_success(self, mock_dependencies):
         """Test successful write_point operation"""
@@ -203,7 +203,7 @@ class TestInfluxDBClientUnit:
         mock_client.write.assert_called_once_with(
             test_df, 
             data_frame_measurement_name="test_measurement",
-            data_frame_gat_colums=["tag1"]
+            data_frame_tag_columns=["tag1"]
         )
 
     def test_write_batch_failure(self, mock_dependencies):

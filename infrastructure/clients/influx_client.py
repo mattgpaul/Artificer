@@ -134,6 +134,7 @@ class BaseInfluxDBClient(Client):
             token=self.token,
             host=self.url,
             database=self.database,
+            write_client_options=self._wco,
         )
         self._start_server()
         return client
@@ -170,7 +171,7 @@ class BaseInfluxDBClient(Client):
     ) -> bool:
         self.logger.info(f"writing batch to: {self.database}")
         try:
-            self.client.write(data, data_frame_measurement_name=name, data_frame_gat_colums=tags)
+            self.client.write(data, data_frame_measurement_name=name, data_frame_tag_columns=tags)
             return True
         except Exception as e:
             self.logger.error(f"Error writing batch to database: {e}")
