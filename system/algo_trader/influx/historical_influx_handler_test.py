@@ -1,19 +1,38 @@
-import os
+import time
 import pytest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 from system.algo_trader.influx.historical_influx_handler import HistoricalInfluxHandler
+from infrastructure.clients.influx_client import BatchWriteConfig
 
 class TestHistoricalInfluxHandler:
     """Integration tests for HistoricalInfluxHandler (requires local InfluxDB running)"""
 
     @pytest.fixture(scope="session")
     def influx_client(self):
-        """Create client connected to local InfluxDB"""
-        client = HistoricalInfluxHandler( database="historical_market_test")
-        return client
+        """Create client connected to local InfluxDB with test-optimized batch settings"""
+        # Create test-optimized batch configuration
+        test_config = BatchWriteConfig(
+            batch_size=50,  
+            flush_interval=2_000,  
+            jitter_interval=2_000,
+            retry_interval=5_000,
+            max_retries=5,
+            max_retry_delay=30_000,
+            exponential_base=2
+        )
+        
+        # Pass config during instantiation
+        client = HistoricalInfluxHandler(
+            database="historical_market_test", 
+            write_config=test_config
+        )
+        
+        yield client
+        
+        # No cleanup needed - write method now handles completion
 
     @pytest.fixture(scope="session")
     def tickers(self):
@@ -87,6 +106,7 @@ class TestHistoricalInfluxHandler:
                 ticker=ticker_data["symbol"],
                 table="stock",
             )
+            time.sleep(2)
             assert success
 
         for ticker_data in test_data_daily:
@@ -95,5 +115,16 @@ class TestHistoricalInfluxHandler:
                 ticker=ticker_data["symbol"],
                 table="stock",
             )
+            time.sleep(2)
             assert success
+
+    def test_query_data(self, influx_client, tickers, test_data_intraday, test_data_daily):
+        # Test query tag columns, no time range
+        query = '''SHOW COLUMNS FROM stock'''
+        df = influx_client.query(query=query)
+        influx_client.logger.debug(f"{df}")
+        # stock should have these columns, based on our write
+        for col in ["open", "high", "low", "close", "volume", "ticker"]:
+            influx_client.logger.debug(f"{df['column_name']}")
+            assert col in df["column_name"].tolist()
     

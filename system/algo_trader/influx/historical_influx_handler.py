@@ -7,8 +7,8 @@ from infrastructure.clients.influx_client import BaseInfluxDBClient
 from infrastructure.logging.logger import get_logger
 
 class HistoricalInfluxHandler(BaseInfluxDBClient):
-    def __init__(self, database: str = "historical_market_data"):
-        super().__init__(database=database)
+    def __init__(self, database: str = "historical_market_data", write_config=None):
+        super().__init__(database=database, write_config=write_config)
         self.logger = get_logger(self.__class__.__name__)
 
     def _format_stock_data(self, data: dict, ticker: str) -> pd.DataFrame:
@@ -28,17 +28,26 @@ class HistoricalInfluxHandler(BaseInfluxDBClient):
         df['ticker'] = ticker
         
         try:
-            self.client.write(
+            callback = self.client.write(
                 df, 
                 data_frame_measurement_name=table,
                 data_frame_tag_columns=["ticker"]
             )
+            self.logger.debug(f"{callback}")
+            
             return True
         except Exception as e:
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
         
 
-    def query(self):
-        pass
+    def query(self, query: str):
+        self.logger.info("Getting data")
+        try:
+            df = self.client.query(query=query, language="sql", mode="pandas")
+        except Exception as e:
+            self.logger.error(f"Failed to retrieve query: {e}")
+            df = False
+
+        return df
     
