@@ -1,9 +1,10 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 
 compile_pip_requirements(
-    name = "reqs",
+    name = "reqs", 
     requirements_in = "requirements.in",
     requirements_txt = "requirements.txt",
+    tags = ["unit"],
 )
 
 # Export pytest configuration for all tests

@@ -13,8 +13,8 @@ pytest-asyncio>=0.21.0  # Optional, for future async testing
 pytest-bazel  # Official Bazel + pytest integration
 
 ### Environment ###
-python-dotenv>=1.0.0
 
 ### Client ###
 requests>=2.31.0
 redis>=4.3.4
+influxdb3-python>=0.15.0

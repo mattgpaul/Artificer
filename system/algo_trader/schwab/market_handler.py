@@ -1,7 +1,8 @@
 import requests
 import base64
-from system.trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.trader.redis.account import AccountBroker
+from datetime import datetime
+from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.redis.account import AccountBroker
 from infrastructure.clients.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
 
@@ -68,12 +69,11 @@ class MarketHandler(SchwabClient):
         return response.json()
 
     def _extract_quote_data(self, response: dict) -> dict:
-        self.logger.info(f"Extracting quote data")
+        self.logger.debug(f"Extracting quote data")
         extracted = {}
         
         for symbol, data in response.items():
             quote = data.get('quote', {})
-            fundamental = data.get('fundamental', {})
             
             extracted[symbol] = {
                 'price': quote.get('lastPrice'),
@@ -99,10 +99,10 @@ class MarketHandler(SchwabClient):
     def get_price_history(
         self,
         ticker: str,
-        period_type: PeriodType,
-        period: int,
-        frequency_type: FrequencyType,
-        frequency: int,
+        period_type: PeriodType = PeriodType.YEAR,
+        period: int = 1,
+        frequency_type: FrequencyType = FrequencyType.DAILY,
+        frequency: int = 1,
         extended_hours: bool = False,
     ) -> dict:
         self.logger.info(f"Getting price history for {ticker}")
@@ -124,21 +124,29 @@ class MarketHandler(SchwabClient):
     def get_option_chains(self, ticker: str) -> dict:
         pass
 
-    def get_market_hours(self, ticker: str) -> dict:
-        pass
+    def get_market_hours(self, date: datetime, markets: list[str] = ["equity"]) -> dict:
+        self.logger.info(f"Getting {markets} hours for: {date}")
+        headers = self._construct_headers()
+        url = self.market_url + "/markets"
+        params = {
+            "markets": markets,
+            "date": date.strftime("%Y-%m-%d")
+        }
+        response = self._send_request(url, headers, params)
+        self.logger.debug(f"Response: {response}")
+        
+        if "EQ" in response["equity"].keys():
+            equity_info = response["equity"]["EQ"]
+        else:
+            equity_info = response["equity"]["equity"]
+        market_hours = {}
+        market_hours["date"] = date.strftime("%Y-%m-%d")
+        if equity_info["isOpen"]:
+            #TODO: This needs to be able to handle after hours sessions
+            self.logger.debug("Equity markets are open")
+            regular_session = equity_info["sessionHours"]["regularMarket"][0]
+            market_hours["start"] = regular_session["start"]
+            market_hours["end"] = regular_session["end"]
+        return market_hours
 
-if __name__ == "__main__":
-    handler = MarketHandler()
-    try:
-        quotes = handler.get_quotes(["AAPL", "MSFT"])
-        print(quotes)
-        historical = handler.get_price_history(
-            ticker="NVDA",
-            period_type=PeriodType.DAY,
-            period=1,
-            frequency_type=FrequencyType.MINUTE,
-            frequency=1,
-        )
-        print(historical)
-    except Exception as e:
-        print(f"Error: {e}")
+

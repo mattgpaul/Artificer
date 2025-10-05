@@ -9,8 +9,8 @@ class FrequencyType(Enum):
     def is_valid_frequency(self, frequency: int) -> bool:
         """Check if frequency value is valid for this frequency type"""
         valid_frequencies = {
-            FrequencyType.MINUTE: frozenset([1, 5, 10, 15, 30]),  # example values
-            FrequencyType.DAILY: frozenset([1]),  # what should this be?
+            FrequencyType.MINUTE: frozenset([1, 5, 10, 15, 30]),
+            FrequencyType.DAILY: frozenset([1]),
             FrequencyType.WEEKLY: frozenset([1]),
             FrequencyType.MONTHLY: frozenset([1])
         }

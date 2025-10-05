@@ -1,3 +1,16 @@
+##### Environment Variables #####
+run --action_env=LOG_LEVEL=INFO
+test --test_env=LOG_LEVEL=DEBUG
+
+# Test type configurations (works for all languages)
+test:unit --test_tag_filters=unit
+test:integration --test_tag_filters=integration
+test:e2e --test_tag_filters=e2e
+
+# Default: run unit tests only
+test --test_tag_filters=unit
+
+##### CPP Stuff #####
 # Explicitly specify GCC toolchain
 build --action_env=CC=/usr/bin/gcc
 build --action_env=CXX=/usr/bin/g++

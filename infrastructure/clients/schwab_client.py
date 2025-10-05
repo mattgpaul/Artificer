@@ -1,6 +1,5 @@
 import os
 import json
-import dotenv
 import requests
 import base64
 from datetime import datetime, timedelta
@@ -9,9 +8,11 @@ from infrastructure.logging.logger import get_logger
 
 class SchwabClient(Client): 
     def __init__(self):
-        dotenv.load_dotenv(dotenv.find_dotenv("artificer.env"))
+        self.logger = get_logger(self.__class__.__name__)
+        
+        # Read configuration from environment variables
         self.api_key = os.getenv("SCHWAB_API_KEY")
-        self.secret = os.getenv("SCHWAB_SECRET")
+        self.secret = os.getenv("SCHWAB_SECRET") 
         self.app_name = os.getenv("SCHWAB_APP_NAME")
         self.base_url = "https://api.schwabapi.com"
         self.logger = get_logger(self.__class__.__name__)
@@ -123,3 +124,8 @@ class SchwabClient(Client):
             self.logger.error(f"Token refresh failed: {response.status_code}")
             raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
 
+if __name__ == "__main__":
+    client = SchwabClient()
+    response = client.get_initial_tokens()
+    print(response)
+    client._save_token(response)
