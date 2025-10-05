@@ -84,17 +84,16 @@ class BaseInfluxDBClient(Client):
         if not active:
             self.logger.warning("InfluxDB server is not active")
             self.logger.info("Starting InfluxDB server")
-            process = subprocess.Popen([
+            # Start process in background - no stdout/stderr pipes, no communicate()
+            subprocess.Popen([
                 "influxdb3", "serve",
                 "--node-id", os.getenv("INFLUXDB3_NODE_IDENTIFIER_PREFIX"),
                 "--object-store", os.getenv("INFLUXDB3_OBJECT_STORE"),
                 "--http-bind", os.getenv("INFLUXDB3_HTTP_BIND_ADDR"),
                 "--data-dir", os.path.expanduser("~/.influxdb3/data"),
-            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate(timeout=1) if process.poll() is not None else (b'', b'')
-            self.logger.debug(f"influxdb3 serve stdout: {stdout.decode(errors='ignore')}")
-            self.logger.debug(f"influxdb3 serve stderr: {stderr.decode(errors='ignore')}")
-
+            ])
+            
+            # Wait for server to become ready using ping (no process communication needed)
             for attempt in range(5):  # Try for ~5 seconds
                 time.sleep(1)
                 if self.ping():
@@ -139,68 +138,51 @@ class BaseInfluxDBClient(Client):
         self._start_server()
         return client
 
-    def _get_write_config(self) -> BatchWriteConfig:
-        return BatchWriteConfig()
-
-    def write_point(
-        self,
-        measurement: str,
-        data: Any,
-        name: str,
-        tags: dict[str, str] = None
-    ) -> bool:
-        self.logger.info(f"Writing data point to {name}")
-        point = Point(measurement)
-        
-        # Add tags if provided - following InfluxDB documentation pattern
-        if tags:
-            for key, value in tags.items():
-                point = point.tag(key, value)
-                
-        point = point.field(name, data)
+    def _check_database(self):
+        """
+        Check if database exists using REST API
+        """
         try:
-            self.client.write(point)
-        except Exception as e:
-            self.logger.error(f"Failed to write point to database: {e}")
+            # Use SHOW DATABASES to check if our database exists
+            response = requests.get(
+                f"{self.url}/api/v3/query_influxql",
+                headers=self._headers,
+                params={
+                    "db": "_internal",  # Use _internal database for the query
+                    "q": "SHOW DATABASES"
+                }
+            )
 
-    def write_batch(
-        self,
-        data: pd.DataFrame,
-        name: str,
-        tags: list[str],
-    ) -> bool:
-        self.logger.info(f"writing batch to: {self.database}")
-        try:
-            self.client.write(data, data_frame_measurement_name=name, data_frame_tag_columns=tags)
-            return True
+            if response.status_code == 200:
+                # Parse the response to check if our database exists
+                try:
+                    data = response.json()
+                    database_names = [item.get("iox::database") for item in data if item.get("iox::database") == self.database]
+                    return len(database_names) > 0
+                except (ValueError, KeyError):
+                    # If we can't parse the response, assume database doesn't exist
+                    return False
+            else:
+                # Any non-200 response means database doesn't exist or other error
+                return False
         except Exception as e:
-            self.logger.error(f"Error writing batch to database: {e}")
+            self.logger.debug(f"Database check failed: {e}")
             return False
 
-    # Assume pandas only for now
-    def query_data(
-        self,
-        query: str,
-        language: str = "sql",
-        mode: str = "pandas",
-    ) -> pd.DataFrame:
-        self.logger.info(f"Querying data from: {self.database}")
-        try:
-            data = self.client.query(query, language, mode)
-            return data
-        except Exception as e:
-            self.logger.error(f"Failed to query database: {e}")
-            return None
-
-    def delete_data(self) -> bool:
-        pass
+    def _get_write_config(self) -> BatchWriteConfig:
+        return BatchWriteConfig()
 
     def ping(self) -> bool:
         try:
             response = requests.get(f"{self.url}/health", headers=self._headers)
             if response.status_code == 200:
-                ping_data = response.json()
-                self.logger.debug(f"InfluxDB ping successful: {ping_data.get('version', 'unknown version')}")
+                # Handle both JSON and plain text responses
+                try:
+                    ping_data = response.json()
+                    self.logger.debug(f"InfluxDB ping successful: {ping_data.get('version', 'unknown version')}")
+                except ValueError:
+                    # If not JSON, just log the text response
+                    self.logger.debug(f"InfluxDB ping successful: {response.text.strip()}")
                 return True
             else:
                 self.logger.debug(f"InfluxDB ping failed with status: {response.status_code}")

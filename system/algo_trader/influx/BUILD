@@ -15,25 +15,7 @@ py_library(
 )
 
 pytest_test(
-    name = "historical_influx_handler_test_unit",
-    srcs = ["historical_influx_handler_test.py"],
-    deps = [
-        ":historical_influx_handler",
-    ],
-    python_version = "PY3",
-    tags = [
-        "algo_trader", 
-        "unit",
-    ],
-    args = ["-k", "TestHistoricalInfluxHandlerUnit"],
-    size = "small",
-    visibility = [
-        "//system/algo_trader:__subpackages__",
-    ],
-)
-
-pytest_test(
-    name = "historical_influx_handler_test_integration",
+    name = "historical_influx_handler_test",
     srcs = ["historical_influx_handler_test.py"],
     deps = [
         ":historical_influx_handler",
@@ -43,7 +25,7 @@ pytest_test(
         "algo_trader", 
         "integration",
     ],
-    args = ["-k", "TestHistoricalInfluxHandlerIntegration"],
+    args = ["-k", "TestHistoricalInfluxHandler"],
     size = "medium",
     visibility = [
         "//system/algo_trader:__subpackages__",
