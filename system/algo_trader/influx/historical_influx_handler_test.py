@@ -15,8 +15,8 @@ class TestHistoricalInfluxHandler:
         """Create client connected to local InfluxDB with test-optimized batch settings"""
         # Create test-optimized batch configuration
         test_config = BatchWriteConfig(
-            batch_size=50,  
-            flush_interval=2_000,  
+            batch_size=10,  
+            flush_interval=500,  
             jitter_interval=2_000,
             retry_interval=5_000,
             max_retries=5,
@@ -106,7 +106,7 @@ class TestHistoricalInfluxHandler:
                 ticker=ticker_data["symbol"],
                 table="stock",
             )
-            time.sleep(2)
+            time.sleep(1)
             assert success
 
         for ticker_data in test_data_daily:
@@ -115,16 +115,59 @@ class TestHistoricalInfluxHandler:
                 ticker=ticker_data["symbol"],
                 table="stock",
             )
-            time.sleep(2)
+            time.sleep(1)
             assert success
 
-    def test_query_data(self, influx_client, tickers, test_data_intraday, test_data_daily):
+    def test_query_data(self, influx_client):
         # Test query tag columns, no time range
         query = '''SHOW COLUMNS FROM stock'''
         df = influx_client.query(query=query)
-        influx_client.logger.debug(f"{df}")
         # stock should have these columns, based on our write
         for col in ["open", "high", "low", "close", "volume", "ticker"]:
             influx_client.logger.debug(f"{df['column_name']}")
             assert col in df["column_name"].tolist()
+
+    def test_query_ticker(self, influx_client, tickers):
+        for symbol in tickers:
+            query = f""" 
+            SELECT * FROM stock WHERE ticker = '{symbol}'
+            """
+            df = influx_client.query(query)
+            influx_client.logger.debug(f"{df.shape}")
+            assert df.shape == (6, 7)
+
+    def test_query_time_range(self, influx_client, tickers, test_data_intraday, test_data_daily):
+        # Use dynamic time range based on the test data timestamps
+        # Get the earliest and latest timestamps from the test data
+        all_times = []
+        
+        # Collect all timestamps from intraday data
+        for ticker_data in test_data_intraday:
+            for candle in ticker_data["candles"]:
+                all_times.append(candle["datetime"])
+        
+        # Collect all timestamps from daily data  
+        for ticker_data in test_data_daily:
+            for candle in ticker_data["candles"]:
+                all_times.append(candle["datetime"])
+        
+        # Convert to pandas timestamps and find range (timezone-naive to match InfluxDB)
+        timestamps = [pd.Timestamp(dt, unit='ms') for dt in all_times]  # No timezone
+        start_time = min(timestamps) - pd.Timedelta(minutes=1)  # Add small buffer
+        end_time = max(timestamps) + pd.Timedelta(minutes=1)    # Add small buffer
+
+        for symbol in tickers:
+            query = (
+                f"SELECT * FROM stock WHERE ticker = '{symbol}' "
+                f"AND time >= '{start_time}' AND time <= '{end_time}'"
+            )
+            df = influx_client.query(query)
+            influx_client.logger.debug(f"Queried {symbol} rows: {df.shape[0]}")
+            # All returned times should be within the range
+            influx_client.logger.debug(f"{df['time']}")
+            assert not df.empty
+            
+            # Both sides are now timezone-naive, so direct comparison works
+            assert df['time'].min() >= start_time
+            assert df['time'].max() <= end_time
     
