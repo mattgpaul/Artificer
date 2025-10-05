@@ -4,11 +4,11 @@ from unittest.mock import patch, MagicMock
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
-from system.algo_trader.influx.historical_influx_handler import HistoricalInfluxHandler
+from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from infrastructure.clients.influx_client import BatchWriteConfig
 
-class TestHistoricalInfluxHandler:
-    """Integration tests for HistoricalInfluxHandler (requires local InfluxDB running)"""
+class TestMarketDataInflux:
+    """Integration tests for MarketDataInflux (requires local InfluxDB running)"""
 
     @pytest.fixture(scope="session")
     def influx_client(self):
@@ -25,7 +25,7 @@ class TestHistoricalInfluxHandler:
         )
         
         # Pass config during instantiation
-        client = HistoricalInfluxHandler(
+        client = MarketDataInflux(
             database="historical_market_test", 
             write_config=test_config
         )

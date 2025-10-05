@@ -3,10 +3,9 @@ from enum import Enum
 import sys
 
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from component.software.finance.schema import MarketHours
-from system.algo_trader.redis.historical_market import HistoricalMarketBroker
+from system.algo_trader.utils.schema import MarketHours
 from system.algo_trader.service.market_base import MarketBase, MarketHoursType
-from system.algo_trader.influx.historical_influx_handler import HistoricalInfluxHandler
+from system.algo_trader.influx.market_data_influx import MarketDataInflux
 class IntradayInterval(Enum):
     MIN1 = 1
     MIN5 = 5
@@ -16,16 +15,11 @@ class IntradayInterval(Enum):
 
 class HistoricalMarketService(MarketBase):
     def __init__(self, sleep_override=None):
-        self._market_broker = HistoricalMarketBroker()
-        self._influx_handler = HistoricalInfluxHandler()
+        self.influx_handler = MarketDataInflux(database="market_data")
         super().__init__(sleep_override)
         if sleep_override is not None:
             self.logger.warning("HistoricalMarketService does not use sleep_override")
             self.sleep_override = None
-
-    @property
-    def market_broker(self):
-        return self._market_broker
 
     def _check_intraday_interval(self) -> IntradayInterval:
         self.logger.debug("Checking intraday interval")
@@ -114,7 +108,11 @@ class HistoricalMarketService(MarketBase):
                     frequency_type=FrequencyType.MINUTE,
                     frequency=freq
                 )
-                success = self.market_broker.set_historical(ticker=ticker, data=data)
+                success = self.influx_handler.write(
+                    data=data, 
+                    ticker=ticker, 
+                    table="stock",
+                    )
                 self.logger.debug(f"Set historical data for {ticker}:{freq}min frequency: {success}")
 
 if __name__ == "__main__":
