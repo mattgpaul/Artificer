@@ -6,7 +6,7 @@ from infrastructure.clients.influx_client import BaseInfluxDBClient
 
 from infrastructure.logging.logger import get_logger
 
-class HistoricalInfluxHandler(BaseInfluxDBClient):
+class MarketDataInflux(BaseInfluxDBClient):
     def __init__(self, database: str = "historical_market_data", write_config=None):
         super().__init__(database=database, write_config=write_config)
         self.logger = get_logger(self.__class__.__name__)

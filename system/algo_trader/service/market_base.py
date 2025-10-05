@@ -5,7 +5,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 
-from component.software.finance.schema import MarketHours
+from system.algo_trader.utils.schema import MarketHours
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.watchlist import WatchlistBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
