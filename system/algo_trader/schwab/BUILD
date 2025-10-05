@@ -10,17 +10,17 @@ py_library(
     deps = [
         "//infrastructure/clients:schwab_client",
         "//infrastructure/logging:logger",
-        requirement("requests"),
+        "//system/algo_trader/utils:schema"
     ],
     visibility = [
-        "//system/trader:__subpackages__",
-        "//visibility:public",
+        "//system/algo_trader:__subpackages__",
+        "//system:__pkg__",  # Allow system package access
     ],
 )
 
-py_binary(
-    name = "test_market_handler",
-    srcs = ["market_handler.py"],
-    deps = [":schwab_services"],
-    main = "market_handler.py",
-)
+# py_binary(
+#     name = "test_market_handler",
+#     srcs = ["market_handler.py"],
+#     deps = [":schwab_services"],
+#     main = "market_handler.py",
+# )
