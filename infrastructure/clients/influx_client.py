@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from abc import abstractmethod
 import requests
 import time
 import subprocess
@@ -201,6 +202,14 @@ class BaseInfluxDBClient(Client):
             return False
 
     def close(self):
+        pass
+
+    @abstractmethod
+    def write(self):
+        pass
+
+    @abstractmethod
+    def query(self):
         pass
 
 if __name__ == "__main__":
