@@ -3,11 +3,22 @@ from datetime import datetime, timedelta
 from typing import Optional, Union, List
 
 from infrastructure.clients.influx_client import BaseInfluxDBClient
+from infrastructure.clients.influx_client import BatchWriteConfig
 
 from infrastructure.logging.logger import get_logger
 
+market_write_config = BatchWriteConfig(
+    batch_size=10000,  
+    flush_interval=10_00,  
+    jitter_interval=2_000,
+    retry_interval=15_000,
+    max_retries=5,
+    max_retry_delay=30_000,
+    exponential_base=2
+)
+
 class MarketDataInflux(BaseInfluxDBClient):
-    def __init__(self, database: str = "historical_market_data", write_config=None):
+    def __init__(self, database: str = "historical_market_data", write_config=market_write_config):
         super().__init__(database=database, write_config=write_config)
         self.logger = get_logger(self.__class__.__name__)
 
