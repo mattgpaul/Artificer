@@ -40,3 +40,12 @@ class HistoricalMarketBroker(BaseRedisClient):
         if not hours:
             self.logger.warning("Cache miss: market_hours")
         return hours
+
+    def set_tickers(self, tickers: list) -> bool:
+        success = self.sadd("tickers", *tickers, ttl=self.ttl)
+        return success
+
+    def get_tickers(self) -> set:
+        dataset = self.smembers(key="tickers")
+        return dataset
+

@@ -7,6 +7,7 @@ from system.algo_trader.utils.schema import MarketHours
 from system.algo_trader.redis.historical_market import HistoricalMarketBroker
 from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from infrastructure.clients.influx_client import BatchWriteConfig
 class IntradayInterval(Enum):
     MIN1 = 1
     MIN5 = 5

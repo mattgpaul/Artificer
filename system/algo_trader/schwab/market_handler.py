@@ -59,7 +59,7 @@ class MarketHandler(SchwabClient):
         
 
     def _send_request(self, url: str, headers: dict, params: dict) -> dict:
-        self.logger.info(f"Sending request to {url}")
+        self.logger.debug(f"Sending request to {url}")
         try:
             response = requests.get(url, headers=headers, params=params)
             self.logger.debug(f"Response status code: {response.status_code}")

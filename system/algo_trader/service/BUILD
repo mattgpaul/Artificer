@@ -6,6 +6,7 @@ py_library(
         "live_market_service.py",
         "historical_market_service.py",
         "market_base.py",
+        "populate_stock.py",
     ],
     deps = [
         "//system/algo_trader/schwab:schwab_services",
@@ -38,6 +39,24 @@ py_binary(
     srcs = ["historical_market_service.py"],
     main = "historical_market_service.py",
     deps = [":market_service_lib"],
+    visibility = [
+        "//system/algo_trader:__pkg__",
+        "//system:__pkg__",  # Allow system package access
+    ],
+)
+
+py_binary(
+    name = "populate_stock",
+    srcs = ["populate_stock.py"],
+    main = "populate_stock.py",
+    deps = [
+        "//system/algo_trader/schwab:schwab_services",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/influx:influx_services",
+        "//infrastructure/clients:influx_client",
+        "//infrastructure/logging:logger",
+        requirement("pandas"),
+    ],
     visibility = [
         "//system/algo_trader:__pkg__",
         "//system:__pkg__",  # Allow system package access
