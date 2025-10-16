@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+---
+# Algo Trader - Implementation Context
+
+## Overview
+This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
+
+## Current Status
+- **Phase:** Phase 1 (Schwab API Market Data)
+- **Version:** v0.0.0
+- **Started:** October 2024
+- **Key Milestone:** Initial attempt
+
+## Phase 1: Schwab API Authentication and Market Data
+
+**Goal:** Perform a manual authentication and token refresh with the schwab api, and verify market data can be pulled.
+
+**Core Flow:**
+- System activates
+- Client attempts to pull market historical data from a ticker using the schwab API
+- Failed attempt should prompt a refresh token. OATH2 manual authentication may be required
+- refresh token stored in Redis
+- API token stored in `algo_trader.env`
+- Historical market data printed to the console for `ticker` using periods and frequencies defined in the schwab API documentation
+- Unit tests and integration tests are built for all code creations and updates
+
+## Known Issues / TODOs
+
