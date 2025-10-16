@@ -1,0 +1,37 @@
+# Artificer Repository - AI Assistant Rules
+
+## Context Engineering Document
+Before working on any task in this repository, ALWAYS read and follow the guidelines in:
+`/home/matthew/Artificer/docs/artificer.md`
+
+This file contains critical information about:
+- Project structure and code placement rules (component/infrastructure/system)
+- Language selection criteria (Python vs C++ vs databases: Redis/InfluxDB/MySQL)
+- Testing strategy (unit/integration/e2e for both Python and C++)
+- Development guidelines and quality standards
+- Git workflow and versioning strategy (aspirational, documented for future implementation)
+- Scripts directory usage
+- What belongs (and doesn't belong) in this repository
+
+## Key Principles
+1. **Code Placement:** Component < Infrastructure < System (strict dependency hierarchy)
+2. **Language Defaults:** Python first, C++ only when performance is critical
+3. **Testing:** All new code requires tests with appropriate markers (unit/integration/e2e)
+4. **Minimal Output:** 1-2 status prints maximum
+5. **Documentation:** Clear docstrings required, each system needs README.md
+
+## Code Quality Expectations
+- When writing new code, prioritize industry best practices over existing patterns
+- If existing code doesn't follow best practices, improve upon it rather than copy it
+- Point out anti-patterns in existing code when building similar functionality
+- Ask "should I match the existing pattern or use best practices?" when uncertain
+
+## When Starting Work
+1. Read `docs/artificer.md` first
+2. Identify if changes belong in component/infrastructure/system
+3. Choose appropriate language based on performance requirements
+4. Add tests with proper markers and tags
+5. Follow existing patterns in similar code
+
+If anything in the context doc is unclear or seems outdated, ask for clarification.
+
