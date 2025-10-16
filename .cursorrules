@@ -20,6 +20,12 @@ This file contains critical information about:
 4. **Minimal Output:** 1-2 status prints maximum
 5. **Documentation:** Clear docstrings required, each system needs README.md
 
+## Code Quality Expectations
+- When writing new code, prioritize industry best practices over existing patterns
+- If existing code doesn't follow best practices, improve upon it rather than copy it
+- Point out anti-patterns in existing code when building similar functionality
+- Ask "should I match the existing pattern or use best practices?" when uncertain
+
 ## When Starting Work
 1. Read `docs/artificer.md` first
 2. Identify if changes belong in component/infrastructure/system

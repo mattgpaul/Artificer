@@ -88,6 +88,45 @@ Classified as the various projects created within the repo
 - All code requires docstrings, and should follow a common format and linting pattern
 - Each `/system` must have a README.md associated with it
 
+## Code Evolution
+This repository is a learning environment. Existing code may not represent best practices.
+
+When implementing new features:
+- Use industry-standard best practices
+- Don't blindly copy existing patterns
+- Improve upon existing code rather than replicate it
+- Point out opportunities to refactor existing code
+- Reference existing code for structure (BUILD files, Bazel setup) but not necessarily for implementation patterns
+- When uncertain, ask "should I match the existing pattern or use best practices?"
+
+## Environment Configuration
+Environment variables are managed at two levels:
+
+### Root Configuration
+- File: `/artificer.env` at repository root
+- Purpose: Shared infrastructure credentials (Redis, InfluxDB, MySQL)
+- Contains: Database URLs, shared API keys, infrastructure tokens
+
+### System-Specific Configuration
+- File: `/system/<project>/<project>.env` (e.g., `/system/algo_trader/algo_trader.env`)
+- Purpose: Project-specific secrets and configurations
+- Contains: Project-specific API keys, feature flags, system-specific settings
+- Naming convention: Must match the system directory name
+
+### Loading Order
+```bash
+# Terminal setup for working on a specific system
+source artificer.env                          # Load shared infrastructure
+source system/algo_trader/algo_trader.env     # Load project-specific vars (can override)
+bazel run //system/algo_trader:main
+```
+
+**Rationale:**
+- Different systems may need different API keys or configurations
+- Isolates secrets per project for better security
+- Makes each system more portable and self-contained
+- System .env can override root .env values when needed
+
 ## Test Guidelines
 - New modules should have tests
 - Use mocking where appropriate
@@ -265,3 +304,14 @@ The `/scripts` directory is for development tooling and necessary workarounds
 - Typical use cases: git hooks, CI/CD helpers, build workarounds
 - If you're creating a script, first consider if it belongs in `/infrastructure` instead
 - Scripts are usually an indicator of a necessary workaround, not core functionality
+
+## Code Style Standards
+- Python: docstrings required (Google style preferred)
+- C++: docstrings required (Doxygen style)
+- Linting: (TBD - will be standardized once patterns emerge)
+- Output: Maximum 1-2 status prints per operation
+
+## Bazel Patterns
+- Every directory needs a BUILD file (even if empty for visibility)
+- Visibility: public only for systems, otherwise specify explicitly
+- Custom rules: pytest_test (in /pytest_test.bzl)
