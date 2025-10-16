@@ -7,11 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 1 (Schwab API Market Data) - COMPLETED
-- **Version:** v0.1.0
+- **Phase:** Phase 1.1 (Code Cleanup) - COMPLETED
+- **Version:** v0.1.1
 - **Started:** October 2024
-- **Completed:** January 2025
-- **Key Milestone:** Schwab API authentication and market data retrieval working
+- **Last Updated:** January 2025
+- **Key Milestone:** Improved code organization with industry-standard client pattern
 
 ## Phase 1: Schwab API Authentication and Market Data
 
@@ -26,7 +26,7 @@ This project aims to collect information about companies in the US capital marke
 - Historical market data printed to the console for `ticker` using periods and frequencies defined in the schwab API documentation
 - Unit tests and integration tests are built for all code creations and updates
 
-## Phase 1 Learnings
+### Phase 1 Learnings
 
 ### Token Management
 - **Access tokens** expire in ~30 minutes and are used for API calls
@@ -59,5 +59,20 @@ This project aims to collect information about companies in the US capital marke
 - No dependency on `artificer.env` for system-specific credentials
 - Schwab API credentials are system-specific, not shared infrastructure
 
-## Known Issues / TODOs
+
+
+### Phase 1.1 - COMPLETED
+**Goal:** Cleanup from Phase 1 to better match industry standard
+
+**Completed:**
+- Consolidated all external service wrappers into `clients/` directory
+- Renamed `SchwabHandler` to `AlgoTraderSchwabClient` for consistency
+- Updated all BUILD files to reference new structure
+- No `__init__.py` files (Bazel handles package structure)
+
+**Deliverables**
+[✓] - `redis` and `schwab` files organized in `clients/` directory following industry standard
+[✓] - All unit and integration tests passing
+[✓] - main.py functionality preserved, imports updated
+[✓] - Consistent client naming pattern: `AlgoTraderRedisClient`, `AlgoTraderSchwabClient`
 

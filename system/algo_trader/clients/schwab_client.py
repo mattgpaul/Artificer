@@ -2,12 +2,12 @@ import requests
 from typing import Optional, Dict, Any
 from infrastructure.clients.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.redis_client import AlgoTraderRedisClient
+from system.algo_trader.clients.redis_client import AlgoTraderRedisClient
 
 
-class SchwabHandler:
+class AlgoTraderSchwabClient:
     """
-    System-level handler for Schwab API interactions.
+    System-level client for Schwab API interactions.
     
     Manages authentication, token refresh, and market data retrieval
     for the algo_trader system. Uses Redis for token storage.
@@ -15,7 +15,7 @@ class SchwabHandler:
     
     def __init__(self, redis_client: AlgoTraderRedisClient):
         """
-        Initialize Schwab handler.
+        Initialize Schwab client.
         
         Arguments:
             redis_client: Redis client instance for token storage

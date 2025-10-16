@@ -1,7 +1,7 @@
 """Unit tests for AlgoTraderRedisClient."""
 import pytest
 from unittest.mock import MagicMock, patch
-from system.algo_trader.redis_client import AlgoTraderRedisClient
+from system.algo_trader.clients.redis_client import AlgoTraderRedisClient
 
 
 @pytest.mark.unit

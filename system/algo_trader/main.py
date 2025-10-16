@@ -7,8 +7,8 @@ market data retrieval using Redis for token storage.
 import sys
 import json
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.redis_client import AlgoTraderRedisClient
-from system.algo_trader.schwab_handler import SchwabHandler
+from system.algo_trader.clients.redis_client import AlgoTraderRedisClient
+from system.algo_trader.clients.schwab_client import AlgoTraderSchwabClient
 
 
 def format_price_history(data: dict, ticker: str) -> str:
@@ -70,7 +70,7 @@ def main():
     
     # Initialize clients
     redis_client = AlgoTraderRedisClient()
-    schwab_handler = SchwabHandler(redis_client)
+    schwab_client = AlgoTraderSchwabClient(redis_client)
     
     # Test Redis connection
     if not redis_client.ping():
@@ -84,14 +84,14 @@ def main():
     
     if not refresh_token:
         logger.info("No refresh token found, initiating authentication flow")
-        success = schwab_handler.authenticate()
+        success = schwab_client.authenticate()
         if not success:
             logger.error("Authentication failed")
             return 1
     
     # Attempt to get price history
     logger.info(f"Fetching price history for {ticker}")
-    price_data = schwab_handler.get_price_history(
+    price_data = schwab_client.get_price_history(
         symbol=ticker,
         period_type=period_type,
         period=period,
