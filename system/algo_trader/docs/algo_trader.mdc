@@ -26,5 +26,38 @@ This project aims to collect information about companies in the US capital marke
 - Historical market data printed to the console for `ticker` using periods and frequencies defined in the schwab API documentation
 - Unit tests and integration tests are built for all code creations and updates
 
+## Phase 1 Learnings
+
+### Token Management
+- **Access tokens** expire in ~30 minutes and are used for API calls
+- **Refresh tokens** last ~1 month and are used to obtain new access tokens
+- **OAuth2 authentication** only required once per month when refresh token expires
+- Both tokens stored in Redis with appropriate TTL (access token) or persistent (refresh token)
+- Automatic token refresh implemented via `_get_valid_token()` method
+
+### Infrastructure vs System Separation
+- Infrastructure `SchwabClient` should be **stateless** and not manage token storage
+- Infrastructure should provide discrete OAuth methods: `get_authorization_url()`, `get_tokens_from_code()`, `refresh_access_token()`
+- System-level code (`SchwabHandler`) orchestrates the flow and manages storage via Redis
+- Environment variables loaded at system level, not hardcoded in infrastructure
+
+### First-Run Authentication Flow
+- First run requires **manual OAuth2** with user interaction (visit URL, paste callback)
+- This is expected behavior and not a bug - OAuth2 requires human authorization
+- Subsequent runs use stored refresh token automatically
+- Interactive `input()` during first run is acceptable and necessary
+
+### Testing Strategy
+- Unit tests mock all external dependencies (Redis, API calls, user input)
+- Integration tests verify Redis connectivity and token storage
+- **Manual verification required** to confirm end-to-end Schwab API functionality
+- Run the main entry point to verify Phase deliverables actually work
+
+### Environment Variables
+- `.env` files are user-managed and should never be created/edited by agent
+- System reads from environment variables using `os.getenv()`
+- No dependency on `artificer.env` for system-specific credentials
+- Schwab API credentials are system-specific, not shared infrastructure
+
 ## Known Issues / TODOs
 

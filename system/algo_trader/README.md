@@ -47,11 +47,33 @@ Run the Phase 1 demo:
 bazel run //system/algo_trader:main
 ```
 
-This will:
-1. Check for existing authentication tokens in Redis
-2. Prompt for OAuth2 authentication if no refresh token exists
-3. Retrieve historical market data for a sample ticker (AAPL)
-4. Display the price history in the console
+#### First Run (OAuth2 Authentication Required)
+
+On the **first run**, you will need to complete OAuth2 authentication:
+
+1. The system will display a Schwab authorization URL
+2. Visit the URL in your browser and authorize the application
+3. After authorization, Schwab redirects to `https://127.0.0.1?code=...`
+4. Copy the **full redirect URL** from your browser
+5. Paste it when prompted: `Redirect URL:`
+6. Tokens will be stored in Redis
+
+**Note:** This interactive authentication is only required:
+- On first run (no tokens in Redis)
+- Once per month when the refresh token expires (~7 days for Schwab)
+
+#### Subsequent Runs (Automatic)
+
+After initial authentication, the system will:
+1. Check Redis for existing access token
+2. Use token if valid, or automatically refresh if expired
+3. Retrieve historical market data for AAPL
+4. Display formatted price history in the console
+
+**Token Management:**
+- **Access token**: Expires in ~30 minutes, automatically refreshed
+- **Refresh token**: Lasts ~7 days, used to get new access tokens
+- Both stored in Redis (access token with TTL, refresh token persistent)
 
 ### Testing
 
