@@ -315,3 +315,7 @@ The `/scripts` directory is for development tooling and necessary workarounds
 - Every directory needs a BUILD file (even if empty for visibility)
 - Visibility: public only for systems, otherwise specify explicitly
 - Custom rules: pytest_test (in /pytest_test.bzl)
+- **No `__init__.py` files needed**: Bazel's `py_library` rules handle Python package structure through BUILD files
+  - PYTHONPATH is set up automatically based on BUILD declarations
+  - Imports work via `from infrastructure.module import Class` without `__init__.py`
+  - Versioning is handled through git tags (e.g., `system/algo_trader/v0.1.0`)
