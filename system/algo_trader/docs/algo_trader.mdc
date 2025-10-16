@@ -7,10 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 1 (Schwab API Market Data)
-- **Version:** v0.0.0
+- **Phase:** Phase 1 (Schwab API Market Data) - COMPLETED
+- **Version:** v0.1.0
 - **Started:** October 2024
-- **Key Milestone:** Initial attempt
+- **Completed:** January 2025
+- **Key Milestone:** Schwab API authentication and market data retrieval working
 
 ## Phase 1: Schwab API Authentication and Market Data
 

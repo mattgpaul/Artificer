@@ -5,7 +5,7 @@ An algorithmic trading system for US capital markets that collects company infor
 ## Current Status
 
 **Phase:** Phase 1 - Schwab API Authentication and Market Data  
-**Version:** v0.0.0
+**Version:** v0.1.0
 
 ## Phase 1: Schwab API Authentication and Market Data
 
