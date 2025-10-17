@@ -11,14 +11,16 @@ from system.algo_trader.clients.influxdb_client import AlgoTraderInfluxDBClient
 class TestAlgoTraderInfluxDBClientUnit:
     """Unit tests for AlgoTraderInfluxDBClient."""
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_initialization(self, mock_getenv, mock_influx_client):
+    def test_initialization(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test client initialization with mocked environment."""
         mock_getenv.side_effect = lambda key, default=None: {
             'INFLUXDB3_HTTP_BIND_ADDR': 'test:8181',
             'INFLUXDB3_AUTH_TOKEN': 'test_token'
         }.get(key, default)
+        mock_ensure_server.return_value = None
         
         client = AlgoTraderInfluxDBClient()
         
@@ -27,13 +29,15 @@ class TestAlgoTraderInfluxDBClientUnit:
         assert client.token == "test_token"
         mock_influx_client.assert_called_once()
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_write_candle_data_success(self, mock_getenv, mock_influx_client):
+    def test_write_candle_data_success(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test writing candle data successfully."""
         mock_getenv.return_value = "test_value"
         mock_client_instance = MagicMock()
         mock_influx_client.return_value = mock_client_instance
+        mock_ensure_server.return_value = None
         
         client = AlgoTraderInfluxDBClient()
         
@@ -68,11 +72,13 @@ class TestAlgoTraderInfluxDBClientUnit:
         assert result is True
         assert mock_client_instance.write.called
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_write_candle_data_empty(self, mock_getenv, mock_influx_client):
+    def test_write_candle_data_empty(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test writing empty candle data."""
         mock_getenv.return_value = "test_value"
+        mock_ensure_server.return_value = None
         
         client = AlgoTraderInfluxDBClient()
         
@@ -87,13 +93,15 @@ class TestAlgoTraderInfluxDBClientUnit:
         
         assert result is False
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_write_candle_data_missing_timestamp(self, mock_getenv, mock_influx_client):
+    def test_write_candle_data_missing_timestamp(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test writing candle data with missing timestamp."""
         mock_getenv.return_value = "test_value"
         mock_client_instance = MagicMock()
         mock_influx_client.return_value = mock_client_instance
+        mock_ensure_server.return_value = None
         
         client = AlgoTraderInfluxDBClient()
         
@@ -119,13 +127,15 @@ class TestAlgoTraderInfluxDBClientUnit:
         
         assert result is False
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_query_candles_with_filters(self, mock_getenv, mock_influx_client):
+    def test_query_candles_with_filters(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test querying candles with various filters."""
         mock_getenv.return_value = "test_value"
         mock_client_instance = MagicMock()
         mock_influx_client.return_value = mock_client_instance
+        mock_ensure_server.return_value = None
         
         # Mock query result
         mock_result = MagicMock()
@@ -144,13 +154,15 @@ class TestAlgoTraderInfluxDBClientUnit:
         assert result is not None
         assert mock_client_instance.query.called
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_get_available_tickers_success(self, mock_getenv, mock_influx_client):
+    def test_get_available_tickers_success(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test getting available tickers."""
         mock_getenv.return_value = "test_value"
         mock_client_instance = MagicMock()
         mock_influx_client.return_value = mock_client_instance
+        mock_ensure_server.return_value = None
         
         # Mock query result with ticker data
         mock_result = MagicMock()
@@ -165,13 +177,15 @@ class TestAlgoTraderInfluxDBClientUnit:
         assert len(tickers) == 3
         assert 'AAPL' in tickers
     
+    @patch('infrastructure.clients.influxdb_client.BaseInfluxDBClient._ensure_server_running')
     @patch('infrastructure.clients.influxdb_client.InfluxDBClient3')
     @patch('infrastructure.clients.influxdb_client.os.getenv')
-    def test_close_connection(self, mock_getenv, mock_influx_client):
+    def test_close_connection(self, mock_getenv, mock_influx_client, mock_ensure_server):
         """Test closing InfluxDB connection."""
         mock_getenv.return_value = "test_value"
         mock_client_instance = MagicMock()
         mock_influx_client.return_value = mock_client_instance
+        mock_ensure_server.return_value = None
         
         client = AlgoTraderInfluxDBClient()
         client.close()

@@ -80,6 +80,7 @@ pytest_test(
     coverage_path = "system.algo_trader.clients.influxdb_client",
     deps = [
         ":influxdb_client",
+        requirement("requests"),
     ],
 )
 
@@ -91,6 +92,7 @@ pytest_test(
     coverage_path = "system.algo_trader.clients.influxdb_client",
     deps = [
         ":influxdb_client",
+        requirement("requests"),
     ],
 )
 

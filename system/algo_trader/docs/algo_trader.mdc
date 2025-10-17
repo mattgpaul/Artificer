@@ -185,3 +185,25 @@ Implemented persistent token storage with automatic OAuth2 re-authentication whe
 3. After ~7 days: Refresh token expires → OAuth2 prompt → new tokens saved
 4. System restart: Refresh token persists in file, access token expires → automatic refresh
 
+### Phase 2.2: Logging and Merge Conflicts - COMPLETED
+**Goal:** Adjust logging schema and resolve merge conflicts with `main`
+
+**Objectives:**
+- Adjust logging such that it resembles: `<timestamp> | <log level> | <class logger> | <information>`
+- Logging output should remain "vertically in line" with each other up until `<class logger>`
+- Logging color for `INFO` should only affect `<log level>`, not the entire string output
+- There are merge conflicts with `main` that need to be resolved. The feature branch should be favored in this case.
+
+**Deliverables:**
+[✓] - Logging output adjusted to use pipe separators with proper alignment
+[✓] - Merge conflicts resolved (no conflicts found with main)
+[✓] - All tests pass
+
+**Implementation Details:**
+- Updated `ColoredFormatter` in `infrastructure/logging/logger.py` to:
+  - Format output as: `YYYY-MM-DD HH:MM:SS | LOG_LEVEL | logger_name | message`
+  - Apply ANSI color codes only to log level (8 character padding for alignment)
+  - Keep timestamp, logger name, and message uncolored
+- Fixed unit tests in `system/algo_trader/clients/influxdb_client_test.py` to properly mock `_ensure_server_running()`
+- Fixed missing `requests` dependency in BUILD file for influxdb client tests
+- All unit tests passing: redis_client, schwab_client, influxdb_client
