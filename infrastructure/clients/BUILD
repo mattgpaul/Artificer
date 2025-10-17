@@ -30,6 +30,8 @@ py_library(
         "//infrastructure:client",
         "//infrastructure/logging:logger",
         requirement("influxdb3-python"),
+        requirement("pandas"),
+        requirement("requests"),
     ],
     visibility = ["//visibility:public"],
 )

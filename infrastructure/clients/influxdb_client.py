@@ -237,7 +237,7 @@ class BaseInfluxDBClient(Client):
         """
         try:
             self.logger.debug(f"Executing query: {sql[:100]}...")
-            result = self.client.query(query=sql)
+            result = self.client.query(query=sql, mode="pandas")
             self.logger.debug(f"Query executed successfully, returned {len(result)} rows")
             return result
         except Exception as e:

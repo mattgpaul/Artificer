@@ -7,11 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 2.2 (Logging and Merge Conflicts) - COMPLETED
-- **Version:** v0.2.2
+- **Phase:** Phase 3 (SEC Ticker List) - COMPLETED
+- **Version:** v0.3.0
 - **Started:** October 2024
 - **Last Updated:** October 2025
-- **Key Milestone:** Improved logging format with pipe separators and proper color isolation
+- **Key Milestone:** SEC ticker list integration with InfluxDB for market data filtering
 
 ## Phase 1: Schwab API Authentication and Market Data
 
@@ -207,3 +207,67 @@ Implemented persistent token storage with automatic OAuth2 re-authentication whe
 - Fixed unit tests in `system/algo_trader/clients/influxdb_client_test.py` to properly mock `_ensure_server_running()`
 - Fixed missing `requests` dependency in BUILD file for influxdb client tests
 - All unit tests passing: redis_client, schwab_client, influxdb_client
+
+
+## Phase 3: SEC Ticker List - COMPLETED
+**Goal:** Obtain a list of all active tickers in the US markets from the `sec.gov` website, and store that information in InfluxDB
+
+**Objectives:**
+- System activates
+- A request is made for all active tickers listed at `https://www.sec.gov/files/company_tickers.json`
+- The json data is parsed to obtain the ticker symbols
+- A list of these tickers is pushed to the `historical-market-data` database
+- These tickers should be usable as `tags` or something similar in order to filter market data within `historical-market-data`
+
+**Deliverables:**
+[✓] - A new directory called `/datasources/` is created
+[✓] - A new file for sec data is created, called `sec.py`
+[✓] - The file pulls ticker data from the url listed, and creates a list of active tickers
+[✓] - The list of active tickers is stored in InfluxDB
+[✓] - Current data in `historical-market-data` can use the symbols in that list to query data
+
+### Phase 3 Implementation Details
+
+#### SEC Data Source
+- **SECDataSource** (`system/algo_trader/datasources/sec.py`): Fetches and manages ticker data from SEC
+  - `fetch_tickers()`: Retrieves active tickers from SEC API with proper User-Agent headers
+  - `get_ticker_symbols()`: Returns list of ticker symbols only, with caching
+  - `store_tickers_in_influxdb()`: Stores ticker metadata in InfluxDB for filtering
+  - `get_ticker_count()`: Returns number of cached tickers
+  - **SEC Compliance**: SEC requires User-Agent header with contact information
+    - Set `SEC_USER_AGENT` environment variable to "YourName your@email.com"
+    - Example: `export SEC_USER_AGENT="AlgoTrader contact@example.com"`
+    - Without proper User-Agent, SEC API returns 403 Forbidden error
+
+#### Data Organization
+- **Measurement**: `ticker_metadata` (separate from market_data)
+- **Tags** (indexed, for filtering):
+  - `ticker`: Stock symbol (AAPL, MSFT, etc.)
+- **Fields**:
+  - `cik`: SEC CIK number as string
+  - `title`: Company name/title
+- **Timestamp**: Current UTC time when tickers are stored
+
+#### Filtering Capability
+Ticker metadata can be used to:
+- Verify ticker existence before fetching market data
+- Query company information (CIK, name) for any ticker
+- Cross-reference market_data with SEC's official ticker list
+- Filter queries using ticker tags in both measurements
+
+#### Testing
+- **Unit Tests**: Mock SEC API responses and InfluxDB operations
+  - Test initialization, fetching, parsing, storage, error handling
+  - Run with: `bazel test --config=unit //system/algo_trader/datasources:sec_test_unit`
+- **Integration Tests**: Test against real SEC API and InfluxDB
+  - Fetch real ticker data, verify storage, test filtering
+  - Run with: `bazel test --config=integration //system/algo_trader/datasources:sec_test_integration`
+
+#### Main Entry Point Updates
+- `main.py` now demonstrates Phase 3 flow:
+  1. Fetch ticker list from SEC (typically 10,000+ tickers)
+  2. Store ticker metadata in InfluxDB
+  3. Verify storage by querying sample tickers (AAPL, MSFT, GOOGL)
+  4. Fetch market data (Phase 2 functionality)
+  5. Demonstrate filtering by showing ticker metadata exists for market data tickers
+
