@@ -7,11 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 1.1 (Code Cleanup) - COMPLETED
-- **Version:** v0.1.1
+- **Phase:** Phase 2 (InfluxDB Integration) - COMPLETED
+- **Version:** v0.2.0
 - **Started:** October 2024
 - **Last Updated:** January 2025
-- **Key Milestone:** Improved code organization with industry-standard client pattern
+- **Key Milestone:** Historical market data storage in InfluxDB with batch write support
 
 ## Phase 1: Schwab API Authentication and Market Data
 
@@ -76,3 +76,102 @@ This project aims to collect information about companies in the US capital marke
 [✓] - main.py functionality preserved, imports updated
 [✓] - Consistent client naming pattern: `AlgoTraderRedisClient`, `AlgoTraderSchwabClient`
 
+## Phase 2: InfluxDB Integration - COMPLETED
+
+**Goal:** Store historical candle data for multiple frequencies, periods, and tickers into an influxdb database
+
+**Objectives:**
+- System activates
+- Market data is pulled using the schwab client
+- Market data should include 3 different tickers, periods, and frequencies
+- Frequency should be at least 1 day (no intraday market data)
+- Database name should be `historical-market-data`
+- The batch write config into InfluxDB should be large enough such that all this data can be written in 1 batch
+- InfluxDB tables should be organized by ticker symbol 
+- Queries of ticker symbols should be able to seamlessly include the period and frequency filtering
+
+**Deliverables:**
+[✓] - Market data contains 3 different tickers (AAPL, MSFT, GOOGL), each with 3 different periods and frequencies
+[✓] - InfluxDB client is created under `clients/` and uses the variables provided in the `algo_trader.env` file
+[✓] - `historical-market-data` database contains the ticker data, and has infinite retention
+[✓] - Batch write config to influx writes the data in one batch
+[✓] - Queries from `historical-market-data` can include `ticker`, `frequency` and `period`
+
+### Phase 2 Implementation Details
+
+#### Infrastructure Components
+- **BaseInfluxDBClient** (`infrastructure/clients/influxdb_client.py`): Provides common InfluxDB functionality for all systems
+  - Connection management with environment variable configuration
+  - Single point write with tags and fields
+  - Batch write support for multiple points
+  - SQL query execution
+  - Connection lifecycle management
+
+#### System Components
+- **AlgoTraderInfluxDBClient** (`system/algo_trader/clients/influxdb_client.py`): Market data specific implementation
+  - `write_candle_data()`: Writes OHLCV data with ticker/period/frequency tags
+  - `query_candles()`: Flexible querying with optional filters
+  - `get_available_tickers()`: Lists all tickers in database
+  - All data written in single batch per ticker/period/frequency combination
+
+#### Data Organization
+- **Measurement**: `market_data` (single measurement for all tickers)
+- **Tags** (indexed, for filtering):
+  - `ticker`: Stock symbol (AAPL, MSFT, GOOGL)
+  - `period_type`: Type of period (month, year)
+  - `period`: Number of periods (1, 3)
+  - `frequency_type`: Type of frequency (daily, weekly)
+  - `frequency`: Frequency interval (1)
+- **Fields** (actual data):
+  - `open`, `high`, `low`, `close`: Float prices
+  - `volume`: Integer volume
+- **Timestamp**: DateTime from candle data
+
+#### Market Data Configuration
+Three tickers, each with three period/frequency combinations:
+1. 1 month, daily frequency
+2. 3 months, daily frequency  
+3. 1 year, weekly frequency
+
+#### Testing
+- **Unit Tests**: Mock all external dependencies (InfluxDB, environment)
+  - Test initialization, write operations, queries, error handling
+  - Run with: `bazel test --config=unit //system/algo_trader/clients:influxdb_client_test_unit`
+- **Integration Tests**: Test against real InfluxDB instance
+  - Run with: `bazel test --config=integration //system/algo_trader/clients:influxdb_client_test_integration`
+
+
+### Phase 2.1
+**Goal:** Fix authentication errors from schwab client
+
+**Objectives:**
+- System activates
+- schwab client attempts to authenticate and fails
+- Because we do not have an access token or refresh token anymore, a full OATH2 is required
+- After the user completes the OATH2 manually, the following tokens will be produced (according to the Schwab API documentation)
+```
+Token
+
+Several types of Tokens are used in OAuth 2 Flows. All Tokens are simply string values representing attributes such as scope, lifetime, and other information that is used for different purposes.
+
+Access Token
+
+To enhance API security, Apps will use an Access Token to access User's Protected Resources. This is used in place of their username+password combination.
+
+Bearer Token
+
+A Bearer token is the Access Token in the context of an API call for Protected Resource data. It is passed in the Authorization header as "Bearer {access_token_value}.
+
+Refresh Token
+
+The Refresh Token renews access to User’s Protected Resources. This may be done before, or at any point after the current, valid access_token expires. When it does expire, the corresponding Refresh Token is used to request a new Access Token as opposed to repeating the entire Flow. This token is provided along with the initial Access Token and should be stored for later use.
+```
+- Access token should be stored somewhere more persistent, and used to get refresh tokens when the old ones expire
+- Refresh token should be stored in Redis with a 30min TTL
+- When the refresh token expires, a new one will need to be obtained useing the access token
+
+**Deliverables:**
+[] - OATH2 is triggered upon a failed refresh or access token 
+[] - access token is stored somewhere persistent and is *secure* (shall **not** be committed to git)
+[] - refresh token is stored in redis with a ttl of 30min
+[] - Second execution of `main` runs without need to authenticate again

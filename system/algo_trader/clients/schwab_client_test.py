@@ -1,6 +1,7 @@
 """Unit and integration tests for AlgoTraderSchwabClient."""
 import pytest
-from unittest.mock import MagicMock, patch, call
+import os
+from unittest.mock import MagicMock, patch, call, mock_open
 from system.algo_trader.clients.schwab_client import AlgoTraderSchwabClient
 from system.algo_trader.clients.redis_client import AlgoTraderRedisClient
 
@@ -23,7 +24,10 @@ class TestAlgoTraderSchwabClientUnit:
     @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
     @patch('infrastructure.clients.redis_client.redis.Redis')
     @patch('builtins.input')
-    def test_authenticate_success(self, mock_input, mock_redis, mock_pool):
+    @patch('builtins.open', new_callable=MagicMock)
+    @patch('os.makedirs')
+    @patch('os.chmod')
+    def test_authenticate_success(self, mock_chmod, mock_makedirs, mock_open, mock_input, mock_redis, mock_pool):
         """Test successful authentication flow."""
         redis_client = AlgoTraderRedisClient()
         mock_redis_instance = MagicMock()
@@ -137,7 +141,8 @@ class TestAlgoTraderSchwabClientUnit:
     
     @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
     @patch('infrastructure.clients.redis_client.redis.Redis')
-    def test_get_price_history_no_token(self, mock_redis, mock_pool):
+    @patch('os.path.exists', return_value=False)
+    def test_get_price_history_no_token(self, mock_exists, mock_redis, mock_pool):
         """Test price history when no valid token available."""
         redis_client = AlgoTraderRedisClient()
         mock_redis_instance = MagicMock()
@@ -148,6 +153,37 @@ class TestAlgoTraderSchwabClientUnit:
         data = client.get_price_history("AAPL")
         
         assert data is None
+    
+    @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
+    @patch('infrastructure.clients.redis_client.redis.Redis')
+    @patch('builtins.open', new_callable=mock_open, read_data='{"refresh_token": "test_token"}')
+    @patch('os.path.exists', return_value=True)
+    def test_read_refresh_token_from_file(self, mock_exists, mock_file, mock_redis, mock_pool):
+        """Test reading refresh token from file."""
+        redis_client = AlgoTraderRedisClient()
+        client = AlgoTraderSchwabClient(redis_client)
+        
+        token = client._read_refresh_token_from_file()
+        
+        assert token == "test_token"
+        mock_file.assert_called_once()
+    
+    @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
+    @patch('infrastructure.clients.redis_client.redis.Redis')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('os.makedirs')
+    @patch('os.chmod')
+    @patch('os.path.exists', return_value=False)
+    def test_write_refresh_token_to_file(self, mock_exists, mock_chmod, mock_makedirs, mock_file, mock_redis, mock_pool):
+        """Test writing refresh token to file."""
+        redis_client = AlgoTraderRedisClient()
+        client = AlgoTraderSchwabClient(redis_client)
+        
+        result = client._write_refresh_token_to_file("new_token")
+        
+        assert result is True
+        mock_file.assert_called()
+        mock_chmod.assert_called_once()
 
 
 @pytest.mark.integration
