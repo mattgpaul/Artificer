@@ -22,3 +22,14 @@ py_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+py_library(
+    name = "influxdb_client",
+    srcs = ["influxdb_client.py"],
+    deps = [
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        requirement("influxdb3-python"),
+    ],
+    visibility = ["//visibility:public"],
+)

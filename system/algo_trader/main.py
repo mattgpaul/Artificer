@@ -1,76 +1,38 @@
 """
-Algo Trader - Phase 1: Schwab API Authentication and Market Data
+Algo Trader - Phase 2: InfluxDB Integration
 
-Entry point for testing Schwab API authentication and historical
-market data retrieval using Redis for token storage.
+Entry point for collecting historical market data from Schwab API
+and storing it in InfluxDB for long-term analysis.
 """
 import sys
-import json
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.redis_client import AlgoTraderRedisClient
-from system.algo_trader.schwab_handler import SchwabHandler
-
-
-def format_price_history(data: dict, ticker: str) -> str:
-    """
-    Format price history data for console display.
-    
-    Arguments:
-        data: Price history response from Schwab API
-        ticker: Stock ticker symbol
-        
-    Returns:
-        Formatted string for display
-    """
-    if not data or 'candles' not in data:
-        return f"No price history data available for {ticker}"
-    
-    candles = data['candles']
-    if not candles:
-        return f"No candles data for {ticker}"
-    
-    lines = [f"\n{'='*60}"]
-    lines.append(f"Price History for {ticker.upper()}")
-    lines.append(f"Total candles: {len(candles)}")
-    lines.append(f"{'='*60}\n")
-    
-    # Show first 5 and last 5 candles
-    display_candles = candles[:5] + candles[-5:] if len(candles) > 10 else candles
-    
-    for candle in display_candles:
-        timestamp = candle.get('datetime', 'N/A')
-        open_price = candle.get('open', 0)
-        high = candle.get('high', 0)
-        low = candle.get('low', 0)
-        close = candle.get('close', 0)
-        volume = candle.get('volume', 0)
-        
-        lines.append(f"Date: {timestamp}")
-        lines.append(f"  Open: ${open_price:.2f}  High: ${high:.2f}  Low: ${low:.2f}  Close: ${close:.2f}")
-        lines.append(f"  Volume: {volume:,}")
-        lines.append("")
-    
-    return "\n".join(lines)
+from system.algo_trader.clients.redis_client import AlgoTraderRedisClient
+from system.algo_trader.clients.schwab_client import AlgoTraderSchwabClient
+from system.algo_trader.clients.influxdb_client import AlgoTraderInfluxDBClient
 
 
 def main():
     """
-    Phase 1 main flow: authenticate and retrieve market data.
+    Phase 2 main flow: fetch market data and store in InfluxDB.
     """
     logger = get_logger("AlgoTraderMain")
     
-    # Configuration
-    ticker = "AAPL"  # Default ticker for testing
-    period_type = "month"
-    period = 1
-    frequency_type = "daily"
-    frequency = 1
+    # Phase 2 Configuration: 3 tickers, each with 3 period/frequency combinations
+    tickers = ["AAPL", "MSFT", "GOOGL"]
     
-    logger.info("Algo Trader Phase 1: Starting")
+    # Each ticker gets these period/frequency combinations (all daily or higher)
+    market_data_configs = [
+        {"period_type": "month", "period": 1, "frequency_type": "daily", "frequency": 1},
+        {"period_type": "month", "period": 3, "frequency_type": "daily", "frequency": 1},
+        {"period_type": "year", "period": 1, "frequency_type": "weekly", "frequency": 1},
+    ]
+    
+    logger.info("Algo Trader Phase 2: Starting")
     
     # Initialize clients
     redis_client = AlgoTraderRedisClient()
-    schwab_handler = SchwabHandler(redis_client)
+    schwab_client = AlgoTraderSchwabClient(redis_client)
+    influx_client = AlgoTraderInfluxDBClient()
     
     # Test Redis connection
     if not redis_client.ping():
@@ -79,37 +41,76 @@ def main():
     
     logger.info("Redis connection successful")
     
-    # Check if we have a refresh token
-    refresh_token = redis_client.get_refresh_token()
+    # Note: Authentication is handled automatically by schwab_client when needed
+    # It will trigger OAuth2 flow if refresh token is missing or invalid
     
-    if not refresh_token:
-        logger.info("No refresh token found, initiating authentication flow")
-        success = schwab_handler.authenticate()
-        if not success:
-            logger.error("Authentication failed")
-            return 1
+    # Fetch and store data for each ticker and configuration
+    total_candles = 0
+    successful_writes = 0
     
-    # Attempt to get price history
-    logger.info(f"Fetching price history for {ticker}")
-    price_data = schwab_handler.get_price_history(
-        symbol=ticker,
-        period_type=period_type,
-        period=period,
-        frequency_type=frequency_type,
-        frequency=frequency
-    )
+    for ticker in tickers:
+        logger.info(f"\nProcessing ticker: {ticker}")
+        
+        for config in market_data_configs:
+            period_type = config["period_type"]
+            period = config["period"]
+            frequency_type = config["frequency_type"]
+            frequency = config["frequency"]
+            
+            logger.info(f"  Fetching {ticker} data: {period}{period_type}, {frequency}{frequency_type}")
+            
+            # Fetch price history from Schwab
+            price_data = schwab_client.get_price_history(
+                symbol=ticker,
+                period_type=period_type,
+                period=period,
+                frequency_type=frequency_type,
+                frequency=frequency
+            )
+            
+            if not price_data or 'candles' not in price_data:
+                logger.warning(f"  No data retrieved for {ticker}")
+                continue
+            
+            candles = price_data['candles']
+            logger.info(f"  Retrieved {len(candles)} candles for {ticker}")
+            
+            # Write to InfluxDB
+            success = influx_client.write_candle_data(
+                ticker=ticker,
+                period_type=period_type,
+                period=period,
+                frequency_type=frequency_type,
+                frequency=frequency,
+                candles=candles
+            )
+            
+            if success:
+                successful_writes += 1
+                total_candles += len(candles)
+            else:
+                logger.error(f"  Failed to write {ticker} data to InfluxDB")
     
-    if price_data:
-        # Format and print results
-        output = format_price_history(price_data, ticker)
-        print(output)
-        logger.info("Phase 1 completed successfully")
+    # Summary
+    expected_writes = len(tickers) * len(market_data_configs)
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Phase 2 Summary:")
+    logger.info(f"  Tickers processed: {len(tickers)}")
+    logger.info(f"  Successful writes: {successful_writes}/{expected_writes}")
+    logger.info(f"  Total candles stored: {total_candles}")
+    logger.info(f"{'='*60}")
+    
+    # Close InfluxDB connection
+    influx_client.close()
+    
+    if successful_writes == expected_writes:
+        logger.info("Phase 2 completed successfully")
+        print("\nPhase 2 completed successfully!")
         return 0
     else:
-        logger.error("Failed to retrieve price history")
+        logger.error(f"Phase 2 completed with errors ({successful_writes}/{expected_writes} successful)")
         return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

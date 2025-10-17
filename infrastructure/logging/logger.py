@@ -15,14 +15,16 @@ class ColoredFormatter(logging.Formatter):
     }
 
     def format(self, record):
-        # Get the original formatted message
-        message = super().format(record)
+        # Format timestamp
+        timestamp = self.formatTime(record, self.datefmt)
         
-        # Add color based on log level
+        # Add color only to log level
         color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
         reset = self.COLORS['RESET']
+        colored_level = f"{color}{record.levelname:<8}{reset}"
         
-        return f"{color}{message}{reset}"
+        # Build message with pipe separators and alignment
+        return f"{timestamp} | {colored_level} | {record.name} | {record.getMessage()}"
 
 def _setup_global_logging():
     """Automatically configure logging when this module loads"""
@@ -33,8 +35,7 @@ def _setup_global_logging():
     if not root_logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
         formatter = ColoredFormatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            datefmt='%H:%M:%S'
+            datefmt='%Y-%m-%d %H:%M:%S'
         )
         handler.setFormatter(formatter)
         root_logger.addHandler(handler)
