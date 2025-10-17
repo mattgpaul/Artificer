@@ -7,6 +7,7 @@ py_binary(
         "//system/algo_trader/clients:redis_client",
         "//system/algo_trader/clients:schwab_client",
         "//system/algo_trader/clients:influxdb_client",
+        "//system/algo_trader/datasources:sec",
         "//infrastructure/logging:logger",
     ],
     visibility = ["//visibility:public"],
