@@ -7,11 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 2 (InfluxDB Integration) - COMPLETED
-- **Version:** v0.2.0
+- **Phase:** Phase 2.1 (OAuth2 Fix & InfluxDB Auto-Start) - COMPLETED
+- **Version:** v0.2.1
 - **Started:** October 2024
-- **Last Updated:** January 2025
-- **Key Milestone:** Historical market data storage in InfluxDB with batch write support
+- **Last Updated:** October 2025
+- **Key Milestone:** Persistent token storage with automatic OAuth2 re-authentication and InfluxDB server management
 
 ## Phase 1: Schwab API Authentication and Market Data
 
@@ -141,37 +141,47 @@ Three tickers, each with three period/frequency combinations:
   - Run with: `bazel test --config=integration //system/algo_trader/clients:influxdb_client_test_integration`
 
 
-### Phase 2.1
-**Goal:** Fix authentication errors from schwab client
+### Phase 2.1 - COMPLETED
+**Goal:** Fix authentication errors with persistent token storage and automatic OAuth2 re-authentication
 
-**Objectives:**
-- System activates
-- schwab client attempts to authenticate and fails
-- Because we do not have an access token or refresh token anymore, a full OATH2 is required
-- After the user completes the OATH2 manually, the following tokens will be produced (according to the Schwab API documentation)
-```
-Token
+**Version:** v0.2.1
 
-Several types of Tokens are used in OAuth 2 Flows. All Tokens are simply string values representing attributes such as scope, lifetime, and other information that is used for different purposes.
+**Problem:** 
+Token expiration was causing authentication failures, requiring manual re-authentication. Tokens stored only in Redis were lost on restart.
 
-Access Token
+**Solution:**
+Implemented persistent token storage with automatic OAuth2 re-authentication when tokens expire or are invalid.
 
-To enhance API security, Apps will use an Access Token to access User's Protected Resources. This is used in place of their username+password combination.
+**OAuth2 Token Types (Schwab API):**
+- **Access Token**: Short-lived (~30 min), used for API calls, passed as Bearer token
+- **Refresh Token**: Long-lived (~7 days), used to obtain new access tokens without re-authentication
+- When refresh token expires, full OAuth2 flow is required
 
-Bearer Token
-
-A Bearer token is the Access Token in the context of an API call for Protected Resource data. It is passed in the Authorization header as "Bearer {access_token_value}.
-
-Refresh Token
-
-The Refresh Token renews access to User’s Protected Resources. This may be done before, or at any point after the current, valid access_token expires. When it does expire, the corresponding Refresh Token is used to request a new Access Token as opposed to repeating the entire Flow. This token is provided along with the initial Access Token and should be stored for later use.
-```
-- Access token should be stored somewhere more persistent, and used to get refresh tokens when the old ones expire
-- Refresh token should be stored in Redis with a 30min TTL
-- When the refresh token expires, a new one will need to be obtained useing the access token
+**Implementation:**
+- **Access Token Storage**: Redis with 30-minute TTL (ephemeral, short-lived)
+- **Refresh Token Storage**: Persistent JSON file at `system/algo_trader/.tokens.json`
+  - Survives system reboots
+  - File permissions: 600 (owner read/write only)
+  - Gitignored via system-specific `.gitignore`
+- **Automatic OAuth2 Re-authentication**: Triggers when tokens are missing or invalid
+- **Session Tracking**: Only prompts for auth once per session to avoid multiple prompts
+- **InfluxDB Server Management**: Auto-starts InfluxDB3 server if not running
 
 **Deliverables:**
-[] - OATH2 is triggered upon a failed refresh or access token 
-[] - access token is stored somewhere persistent and is *secure* (shall **not** be committed to git)
-[] - refresh token is stored in redis with a ttl of 30min
-[] - Second execution of `main` runs without need to authenticate again
+[✓] - OAuth2 triggered upon failed refresh or access token 
+[✓] - Refresh token stored persistently in `.tokens.json` (secure, not committed to git)
+[✓] - Access token stored in Redis with 30min TTL
+[✓] - Second execution runs without re-authentication (until refresh token expires ~7 days)
+[✓] - InfluxDB server auto-starts when client initializes
+[✓] - All unit and integration tests passing
+
+**Testing:**
+- Unit tests: `bazel test --config=unit //system/algo_trader/clients:schwab_client_test_unit`
+- Integration tests: `bazel test --config=integration //system/algo_trader/clients:schwab_client_test_integration`
+
+**Token Lifecycle:**
+1. First run: OAuth2 prompt → tokens saved (access in Redis, refresh in file)
+2. Subsequent runs: Uses refresh token from file to get new access token
+3. After ~7 days: Refresh token expires → OAuth2 prompt → new tokens saved
+4. System restart: Refresh token persists in file, access token expires → automatic refresh
+
