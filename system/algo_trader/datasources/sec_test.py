@@ -280,11 +280,10 @@ class TestSECDataSourceIntegration:
             
             assert query_result is not None
             assert len(query_result) > 0
-            # PyArrow Table has column_names, not columns
-            column_names = query_result.column_names
-            assert 'ticker' in column_names
-            assert 'cik' in column_names
-            assert 'title' in column_names
+            # Pandas DataFrame has columns attribute
+            assert 'ticker' in query_result.columns
+            assert 'cik' in query_result.columns
+            assert 'title' in query_result.columns
             
         finally:
             influx_client.close()
@@ -309,11 +308,10 @@ class TestSECDataSourceIntegration:
             result = influx_client.query(sql)
             
             if result is not None and len(result) > 0:
-                # Verify we can query using the ticker tag (PyArrow Table)
-                ticker_col = result.column('ticker')
-                assert ticker_col[0].as_py() == 'AAPL'
-                assert 'cik' in result.column_names
-                assert 'title' in result.column_names
+                # Verify we can query using the ticker tag (pandas DataFrame)
+                assert result.iloc[0]['ticker'] == 'AAPL'
+                assert 'cik' in result.columns
+                assert 'title' in result.columns
                 
         finally:
             influx_client.close()

@@ -67,10 +67,9 @@ def main():
             sql = f"SELECT ticker, cik, title FROM ticker_metadata WHERE ticker = '{symbol}' LIMIT 1"
             result = influx_client.query(sql)
             if result is not None and len(result) > 0:
-                # PyArrow Table: access columns directly
-                cik = result.column('cik')[0].as_py()
-                title = result.column('title')[0].as_py()
-                logger.info(f"  {symbol}: CIK={cik}, Title={title}")
+                # Pandas DataFrame: use iloc to access rows
+                row = result.iloc[0]
+                logger.info(f"  {symbol}: CIK={row['cik']}, Title={row['title']}")
     else:
         logger.error("Failed to store SEC ticker list in InfluxDB")
         return 1
@@ -153,8 +152,8 @@ def main():
             sql = f"SELECT COUNT(*) as count FROM market_data WHERE ticker = '{ticker}'"
             candle_count = influx_client.query(sql)
             if candle_count is not None and len(candle_count) > 0:
-                # PyArrow Table: access column values
-                count = candle_count.column('count')[0].as_py()
+                # Pandas DataFrame: use iloc to access rows
+                count = candle_count.iloc[0]['count']
                 logger.info(f"  {ticker}: Found in SEC list, {count} candles in database")
     
     # Close InfluxDB connection
