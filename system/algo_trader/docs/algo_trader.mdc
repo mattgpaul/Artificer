@@ -7,11 +7,11 @@ alwaysApply: true
 This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
 
 ## Current Status
-- **Phase:** Phase 2.1 (OAuth2 Fix & InfluxDB Auto-Start) - COMPLETED
-- **Version:** v0.2.1
+- **Phase:** Phase 2.2 (Logging and Merge Conflicts) - COMPLETED
+- **Version:** v0.2.2
 - **Started:** October 2024
 - **Last Updated:** October 2025
-- **Key Milestone:** Persistent token storage with automatic OAuth2 re-authentication and InfluxDB server management
+- **Key Milestone:** Improved logging format with pipe separators and proper color isolation
 
 ## Phase 1: Schwab API Authentication and Market Data
 
