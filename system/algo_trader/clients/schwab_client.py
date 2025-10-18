@@ -15,7 +15,7 @@ class AlgoTraderSchwabClient:
     for the algo_trader system. Uses Redis for token storage.
     """
     
-    def __init__(self, redis_client: AlgoTraderRedisClient, token_file_path: str = "/home/matthew/Artificer/system/algo_trader/.tokens.json"):
+    def __init__(self, redis_client: AlgoTraderRedisClient, token_file_path: str = "/home/matthew/Artificer/infrastructure/clients/schwab/schwab_tokens.json"):
         """
         Initialize Schwab client.
         
@@ -201,6 +201,9 @@ class AlgoTraderSchwabClient:
         """
         Refresh access token using refresh token.
         
+        CRITICAL: Schwab returns a NEW refresh token with each access token refresh.
+        This method updates BOTH the access token (in Redis) and refresh token (in file).
+        
         Arguments:
             refresh_token: Current refresh token
             
@@ -213,10 +216,19 @@ class AlgoTraderSchwabClient:
             
             expires_in = tokens.get('expires_in', 1800)
             access_token = tokens['access_token']
+            new_refresh_token = tokens.get('refresh_token')  # Schwab returns a NEW refresh token!
             
-            # Store new access token in Redis
+            # Store new access token in Redis (short-lived, 30 min)
             self.redis.store_access_token(access_token, ttl=expires_in)
-            self.logger.info("Token refresh successful")
+            
+            # CRITICAL: Update the refresh token in the file with the new one
+            # If we don't do this, the old refresh token will expire and we'll need OAuth2
+            if new_refresh_token:
+                self._write_refresh_token_to_file(new_refresh_token)
+                self.logger.info("Token refresh successful - updated both access and refresh tokens")
+            else:
+                self.logger.warning("Token refresh successful but no new refresh token returned - this is unexpected!")
+            
             return access_token
         except Exception as e:
             self.logger.error(f"Error refreshing token: {e}")

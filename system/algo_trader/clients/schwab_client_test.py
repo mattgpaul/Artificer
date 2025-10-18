@@ -71,8 +71,12 @@ class TestAlgoTraderSchwabClientUnit:
     
     @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
     @patch('infrastructure.clients.redis_client.redis.Redis')
-    def test_refresh_token_success(self, mock_redis, mock_pool):
-        """Test successful token refresh."""
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('os.makedirs')
+    @patch('os.chmod')
+    @patch('os.path.exists', return_value=True)
+    def test_refresh_token_success(self, mock_exists, mock_chmod, mock_makedirs, mock_file, mock_redis, mock_pool):
+        """Test successful token refresh updates BOTH access and refresh tokens."""
         redis_client = AlgoTraderRedisClient()
         mock_redis_instance = MagicMock()
         mock_redis_instance.set.return_value = True
@@ -80,18 +84,27 @@ class TestAlgoTraderSchwabClientUnit:
         
         client = AlgoTraderSchwabClient(redis_client)
         
-        # Mock the schwab client refresh method
+        # Mock the file read to return existing tokens
+        mock_file().read.return_value = '{"refresh_token": "old_refresh_token"}'
+        
+        # Mock the schwab client refresh method - CRITICAL: returns NEW refresh token
         mock_schwab = MagicMock()
         mock_schwab.refresh_access_token.return_value = {
             'access_token': 'new_access_token',
+            'refresh_token': 'new_refresh_token',  # Schwab returns NEW refresh token!
             'expires_in': 1800
         }
         client.schwab_client = mock_schwab
         
         token = client._refresh_token("old_refresh_token")
         
+        # Verify new access token is returned
         assert token == "new_access_token"
         mock_schwab.refresh_access_token.assert_called_once_with("old_refresh_token")
+        
+        # Verify that the file write was called to update the refresh token
+        # This is CRITICAL - without this, the old refresh token expires!
+        assert mock_file().write.called
     
     @patch('infrastructure.clients.redis_client.redis.ConnectionPool')
     @patch('infrastructure.clients.redis_client.redis.Redis')

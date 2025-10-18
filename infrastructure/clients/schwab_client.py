@@ -91,8 +91,9 @@ class SchwabClient(Client):
             refresh_token: Valid refresh token
             
         Returns:
-            Dictionary containing new access_token, expires_in, etc.
-            Note: refresh_token is NOT included in response (Schwab keeps the same one)
+            Dictionary containing new access_token, refresh_token, expires_in, etc.
+            IMPORTANT: Schwab returns a NEW refresh token with each refresh!
+            You MUST update your stored refresh token or it will expire.
             
         Raises:
             Exception: If token refresh fails
