@@ -271,3 +271,116 @@ Ticker metadata can be used to:
   4. Fetch market data (Phase 2 functionality)
   5. Demonstrate filtering by showing ticker metadata exists for market data tickers
 
+## Phase 4: Grafana Vizualization
+**Goal:** Visualize different tickers and timeframes in a candle panel of grafana
+
+**Objectives:**
+- System activates
+- 5 random tickers are pulled from the SEC ticker list
+- 3 known tickers are also pulled (APPL, MSFT, GOOG)
+- Each ticker has historical data pulled for the following timeframes
+  - 1d:5yr
+  - 1wk:10yr
+  - 1mo:20yr
+- Data is piped into InfluxDB
+- System complete
+- Grafana is setup with an InfluxDB datasource for `historical-market-data`
+- A dashboard is visible with candle data for tickers
+- The dashboard should allow the following variables for quick access to different views
+  - ticker
+  - period
+  - frequency
+
+**Deliverables:**
+[] - 8 total tickers, each with 3 different timeframes and pulled from the schwab api, using the sec ticker list to get the symbols to pull
+[] - historical data is stored in InfluxDB
+[] - A base grafana client is created in `/infrastructure` that can be used by other systems
+[] - A system specific version of `grafana` is made in `algo_trader` that uses the grafana client
+[] - Grafana is started in a docker container
+[] - The grafana container can be build using `bazel build`, and viewed in the web browser using `bazel run`
+[] - A grafana instance is available to view the historical data
+[] - A candle chart type is available in grafana to visualize the data
+[] - the grafana dashboard has variables for ticker, period, and frequency
+[] - the query in grafana can alter the view based on the variable selection
+
+### Phase 4 Grafana Implementation Notes
+
+**Dashboard UID Requirement:**
+Grafana dashboards MUST have a `uid` field to prevent duplicates. Without a UID, Grafana cannot identify existing dashboards and will create a new one on each provisioning cycle.
+
+**Dashboard Configuration Example:**
+```json
+{
+  "dashboard": {
+    "id": null,
+    "uid": "market-data-candles",  // REQUIRED: Unique identifier
+    "title": "Market Data - Candlestick Charts",
+    "tags": ["market-data", "candles", "ohlc"],
+    "timezone": "browser",
+    "panels": [...]
+  },
+  "overwrite": true  // REQUIRED: Allows updating existing dashboard
+}
+```
+
+**Candlestick Panel Configuration:**
+The candlestick visualization type requires specific configuration based on Grafana documentation:
+https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/candlestick/
+
+```json
+{
+  "id": 1,
+  "title": "OHLC Candlestick Chart",
+  "type": "candlestick",  // Must be "candlestick", not "barchart"
+  "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+  "targets": [
+    {
+      "datasource": "InfluxDB-MarketData",
+      "query": "from(bucket: \"historical-market-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"market_data\")\n  |> filter(fn: (r) => r.ticker == \"${ticker}\")\n  |> filter(fn: (r) => r.period_type == \"${period_type}\")\n  |> filter(fn: (r) => r.period == \"${period}\")\n  |> filter(fn: (r) => r.frequency_type == \"${frequency_type}\")\n  |> filter(fn: (r) => r.frequency == \"${frequency}\")\n  |> filter(fn: (r) => r._field == \"open\" or r._field == \"high\" or r._field == \"low\" or r._field == \"close\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
+      "refId": "A"
+    }
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "unit": "currencyUSD",
+      "decimals": 2,
+      "custom": {
+        "candleStyle": "candles",
+        "colorStrategy": "open-close",
+        "mode": "candles"
+      }
+    }
+  },
+  "options": {
+    "candleStyle": "candles",
+    "colorStrategy": "open-close",
+    "colors": {
+      "up": "green",
+      "down": "red"
+    },
+    "legend": {
+      "displayMode": "list",
+      "placement": "bottom",
+      "showLegend": true
+    },
+    "tooltip": {
+      "mode": "single",
+      "sort": "none"
+    }
+  }
+}
+```
+
+**Key Points:**
+- Panel type must be `"candlestick"` (not barchart)
+- Flux query uses dot notation: `r.field` (not `r["field"]`)
+- Datasource can be referenced by name string
+- Dashboard UID prevents duplicates: `"uid": "market-data-candles"`
+- Overwrite flag enables updates: `"overwrite": true`
+- Variables use `${variable}` syntax in queries
+
+**Docker + Bazel Architecture:**
+- Infrastructure layer (`infrastructure/clients/grafana_client.py`): Reusable container management
+- System layer (`system/algo_trader/clients/grafana_client.py`): Loads JSON dashboards, integrated CLI
+- Data layer (`system/algo_trader/grafana/*.json`): Dashboard definitions as JSON files
+- Entry point: `bazel run //system/algo_trader/clients:grafana`

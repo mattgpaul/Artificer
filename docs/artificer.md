@@ -50,6 +50,60 @@ Relational database for contextual/structured data
 - Optimized for: complex queries, joins, transactions
 - Use when data integrity and ACID properties are required
 
+### Docker (Grafana Only - POC)
+Container orchestration for external services
+- **Current Status**: Proof of concept with Grafana only
+- **Hybrid Approach**: Bazel builds code, Docker runs services
+- **Why**: Bazel's hermetic builds conflict with Docker's non-hermetic nature
+- **Management**: Via Bazel or convenience scripts
+- **Future**: May expand to Redis, InfluxDB, MySQL if POC successful
+
+#### Docker + Bazel Integration Philosophy
+The industry-standard approach is **separation of concerns**:
+- **Bazel**: Handles building, testing, and running application code
+- **Docker Compose**: Manages external service dependencies (databases, visualization tools)
+- **Why Not rules_docker**: Deprecated and forces non-hermetic operations into Bazel's build graph
+
+This pattern is used at Google, Uber, and other major tech companies that use both tools.
+
+#### Architecture Layers
+Container management follows the repository's component/infrastructure/system hierarchy:
+
+1. **Infrastructure Layer** (`infrastructure/clients/grafana_client.py`):
+   - `BaseGrafanaClient` provides reusable container lifecycle methods
+   - Methods: `start_via_compose()`, `stop_via_compose()`, `restart_via_compose()`, etc.
+   - Reusable across all systems that need Grafana
+
+2. **System Layer** (`system/algo_trader/clients/grafana_client.py`):
+   - `AlgoTraderGrafanaClient` extends BaseGrafanaClient
+   - Loads dashboards from JSON files in `system/algo_trader/grafana/*.json`
+   - Provides InfluxDB datasource configuration
+   - Includes integrated CLI interface (no separate wrapper needed)
+   - Entry point: `bazel run //system/algo_trader/clients:grafana`
+
+3. **Data Layer** (`system/algo_trader/grafana/`):
+   - Dashboard definitions as `.json` files
+   - Loaded dynamically by the client at runtime
+   - Easy to add/modify dashboards without changing code
+
+This ensures container management logic lives in infrastructure (reusable), system-specific Python logic in clients, and dashboard data as JSON files.
+
+#### Current Docker Services
+- **Grafana**: Visualization dashboard (port 3000)
+  - Start: `bazel run //system/algo_trader/clients:grafana`
+  - Stop: `bazel run //system/algo_trader/clients:grafana stop`
+  - Status: `bazel run //system/algo_trader/clients:grafana status`
+  - Logs: `bazel run //system/algo_trader/clients:grafana logs`
+  - Alternative: `./scripts/grafana.sh {start|stop|status|logs}`
+  - Dashboards: JSON files in `system/algo_trader/grafana/`
+  - Authentication: Disabled for localhost (no login required)
+  - Configuration: `docker-compose.yml` at repository root
+
+#### Services Still on Host
+- **Redis**: Run manually with `redis-server`
+- **InfluxDB**: Run manually (configured via `artificer.env`)
+- These may be migrated to Docker Compose in future iterations
+
 ## Project Structure
 ### Components
 Classified as hardware or software that "depends on nothing but itself"

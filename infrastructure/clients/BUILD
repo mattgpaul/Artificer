@@ -35,3 +35,28 @@ py_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+py_library(
+    name = "grafana_client",
+    srcs = ["grafana_client.py"],
+    deps = [
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        requirement("requests"),
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# Grafana Client Tests
+load("//:pytest_test.bzl", "pytest_test")
+
+pytest_test(
+    name = "grafana_client_test_unit",
+    srcs = ["grafana_client_test.py"],
+    args = ["-m", "unit"],
+    tags = ["unit"],
+    coverage_path = "infrastructure.clients.grafana_client",
+    deps = [
+        ":grafana_client",
+    ],
+)
