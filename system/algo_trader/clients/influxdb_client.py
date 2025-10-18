@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from influxdb_client_3 import Point
@@ -201,5 +202,90 @@ class AlgoTraderInfluxDBClient(BaseInfluxDBClient):
         except Exception as e:
             self.logger.error(f"Error getting available tickers: {e}")
             return None
+    
+    @staticmethod
+    def print_access_info(host: str):
+        """
+        Display InfluxDB access information.
+        
+        Arguments:
+            host: The host URL (from client instance, includes env var configuration)
+        """
+        print("\n" + "="*60)
+        print("InfluxDB is running!")
+        print("="*60)
+        print(f"API URL: http://{host}")
+        print("Health endpoint: /health")
+        print("Database: algo-trader-database")
+        print("="*60 + "\n")
+    
+    @classmethod
+    def cli(cls):
+        """
+        Command-line interface for InfluxDB container management.
+        
+        System-specific CLI that uses algo_trader configuration with fallback to
+        infrastructure defaults from artificer.env.
+        
+        Provides start, stop, restart, status, and logs commands.
+        Run as: bazel run //system/algo_trader/clients:influxdb
+        """
+        # Parse command
+        command = sys.argv[1] if len(sys.argv) > 1 else "start"
+        
+        # Show usage if invalid command
+        valid_commands = ["start", "stop", "restart", "status", "logs"]
+        if command not in valid_commands:
+            print(f"Usage: {sys.argv[0]} {{start|stop|restart|status|logs}}")
+            print("\nCommands:")
+            print("  start   - Start InfluxDB container (default)")
+            print("  stop    - Stop InfluxDB container")
+            print("  restart - Restart InfluxDB container")
+            print("  status  - Show InfluxDB container status")
+            print("  logs    - Show InfluxDB logs (follow mode)")
+            sys.exit(1)
+        
+        try:
+            # Create client instance with system-specific configuration
+            # This reads ALGO_TRADER_INFLUXDB_* vars with fallback to INFLUXDB3_* vars
+            # auto_start=False prevents automatic container startup in __init__
+            client = cls(auto_start=False)
+            
+            if command == "start":
+                # Start container
+                if not client.start_via_compose():
+                    sys.exit(1)
+                
+                # Use instance host (which has system-specific configuration)
+                cls.print_access_info(client.host)
+            
+            elif command == "stop":
+                if not client.stop_via_compose():
+                    sys.exit(1)
+            
+            elif command == "restart":
+                # Restart container
+                if not client.restart_via_compose():
+                    sys.exit(1)
+                
+                cls.print_access_info(client.host)
+            
+            elif command == "status":
+                client.status_via_compose()
+            
+            elif command == "logs":
+                client.logs_via_compose(follow=True)
+        
+        except KeyboardInterrupt:
+            print("\nInterrupted by user")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+
+
+if __name__ == "__main__":
+    # Allow running as: python -m system.algo_trader.clients.influxdb_client
+    AlgoTraderInfluxDBClient.cli()
 
 

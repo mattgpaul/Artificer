@@ -14,7 +14,7 @@
         "targets": [
           {
             "datasource": "InfluxDB-MarketData",
-            "query": "from(bucket: \"historical-market-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"market_data\")\n  |> filter(fn: (r) => r.ticker == \"${ticker}\")\n  |> filter(fn: (r) => r.period_type == \"${period_type}\")\n  |> filter(fn: (r) => r.period == \"${period}\")\n  |> filter(fn: (r) => r.frequency_type == \"${frequency_type}\")\n  |> filter(fn: (r) => r.frequency == \"${frequency}\")\n  |> filter(fn: (r) => r._field == \"open\" or r._field == \"high\" or r._field == \"low\" or r._field == \"close\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
+            "query": "SELECT time, open, high, low, close FROM market_data WHERE ticker='${ticker}' AND period_type='${period_type}' AND period='${period}' AND frequency_type='${frequency_type}' AND frequency='${frequency}' AND time >= $__fromTime AND time <= $__toTime ORDER BY time",
             "refId": "A"
           }
         ],
@@ -55,7 +55,7 @@
         "targets": [
           {
             "datasource": "InfluxDB-MarketData",
-            "query": "from(bucket: \"historical-market-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"market_data\")\n  |> filter(fn: (r) => r.ticker == \"${ticker}\")\n  |> filter(fn: (r) => r.period_type == \"${period_type}\")\n  |> filter(fn: (r) => r.period == \"${period}\")\n  |> filter(fn: (r) => r.frequency_type == \"${frequency_type}\")\n  |> filter(fn: (r) => r.frequency == \"${frequency}\")\n  |> filter(fn: (r) => r._field == \"volume\")",
+            "query": "SELECT time, volume FROM market_data WHERE ticker='${ticker}' AND period_type='${period_type}' AND period='${period}' AND frequency_type='${frequency_type}' AND frequency='${frequency}' AND time >= $__fromTime AND time <= $__toTime ORDER BY time",
             "refId": "A"
           }
         ],
@@ -101,7 +101,7 @@
         {
           "name": "ticker",
           "type": "query",
-          "query": "import \"influxdata/influxdb/schema\" schema.measurements(bucket: \"historical-market-data\") |> filter(fn: (r) => r._value == \"market_data\") |> map(fn: (r) => ({_value: r.ticker})) |> distinct(column: \"_value\") |> sort()",
+          "query": "SELECT DISTINCT ticker FROM market_data ORDER BY ticker",
           "datasource": "InfluxDB-MarketData",
           "refresh": 1,
           "includeAll": false,

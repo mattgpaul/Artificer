@@ -84,11 +84,13 @@ class AlgoTraderGrafanaClient(BaseGrafanaClient):
                 "access": "proxy",
                 "isDefault": True,
                 "jsonData": {
-                    "version": "Flux",
+                    "version": "SQL",  # InfluxDB 3.0 uses SQL via FlightSQL (gRPC)
                     "organization": "",
                     "defaultBucket": self.influxdb_database,
                     "tlsSkipVerify": True,
-                    "httpMode": "GET"
+                    "httpMode": "GET",
+                    "secureGrpc": False,  # InfluxDB 3.0 running without TLS (--without-auth)
+                    "allowInsecureGrpc": True  # Allow insecure gRPC connections
                 },
                 "secureJsonData": {
                     "token": self.influxdb_token

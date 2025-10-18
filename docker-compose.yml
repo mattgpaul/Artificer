@@ -1,7 +1,12 @@
+# Project name can be overridden via COMPOSE_PROJECT_NAME environment variable
+# This controls how containers are grouped in Docker (e.g., VSCode Docker extension)
+# Defaults to system-specific name, can be overridden per system
+name: ${COMPOSE_PROJECT_NAME:-algo_trader}
+
 services:
   influxdb:
     image: ${INFLUXDB3_IMAGE:-influxdb:3-core}
-    container_name: ${INFLUXDB3_CONTAINER_NAME:-algo-trader-influxdb}
+    container_name: ${INFLUXDB3_CONTAINER_NAME:-algotrader-influxdb}
     command:
       - serve
       - --node-id=${INFLUXDB3_NODE_IDENTIFIER_PREFIX:-node0}
@@ -17,7 +22,7 @@ services:
       - ${DOCKER_NETWORK_NAME:-algo-trader-network}
     restart: ${INFLUXDB3_RESTART_POLICY:-unless-stopped}
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${INFLUXDB3_PORT:-8181}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://${INFLUXDB3_HTTP_BIND_ADDR:-0.0.0.0:8181}/health || exit 1"]
       interval: ${INFLUXDB3_HEALTHCHECK_INTERVAL:-10s}
       timeout: ${INFLUXDB3_HEALTHCHECK_TIMEOUT:-5s}
       retries: ${INFLUXDB3_HEALTHCHECK_RETRIES:-5}
@@ -25,7 +30,7 @@ services:
 
   grafana:
     image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
-    container_name: ${GRAFANA_CONTAINER_NAME:-algo-trader-grafana}
+    container_name: ${GRAFANA_CONTAINER_NAME:-algotrader-grafana}
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     environment:

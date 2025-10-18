@@ -264,3 +264,5 @@ class TestBaseGrafanaClientUnit:
         assert result is True
         mock_run.assert_called()
 
+
+

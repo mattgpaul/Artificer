@@ -399,3 +399,22 @@ https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/can
 [] - data can be viewed at localhost:8181
 [] - datasource works with Grafana without error
 [] - Common functionality is available in the influxdb client in `/infrastructure`
+
+### Phase 4.2 InfluxDB Refactor - COMPLETED
+**Goal:** Adjust influxdb architecture to match Grafana
+
+**Objectives**
+- Add a py_binary for influxdb for the algo_trader (similar to the one for grafana under clients)
+- Add docker functionality for influx within `infrastructure` client
+- Start the container with `bazel run //system/algo_trader/clients:influxdb`
+
+**Deliverables:**
+[✓] - py_binary target added for influxdb in system/algo_trader/clients/BUILD
+[✓] - CLI interface added to AlgoTraderInfluxDBClient with start/stop/restart/status/logs commands
+[✓] - Docker functionality exists in infrastructure BaseInfluxDBClient (start_via_compose, stop_via_compose, etc.)
+[✓] - Container management works via `bazel run //system/algo_trader/clients:influxdb`
+[✓] - Container naming standardized to <system>-<service> pattern (algotrader-influxdb, algotrader-grafana)
+[✓] - Docker Compose project name configurable via COMPOSE_PROJECT_NAME (defaults to algo_trader)
+[✓] - Grafana datasource configured for InfluxDB 3.0 (SQL via FlightSQL with insecure gRPC)
+[✓] - Database algo-trader-database created in InfluxDB
+[✓] - All infrastructure/system tests passing

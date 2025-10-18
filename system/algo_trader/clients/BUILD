@@ -44,6 +44,17 @@ py_library(
     visibility = ["//system/algo_trader:__subpackages__"],
 )
 
+# InfluxDB client as executable for container management
+py_binary(
+    name = "influxdb",
+    srcs = ["influxdb_client.py"],
+    main = "influxdb_client.py",
+    deps = [
+        ":influxdb_client",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 # Grafana client as executable for container management
 py_binary(
     name = "grafana",
@@ -128,6 +139,9 @@ pytest_test(
     args = ["-m", "unit"],
     tags = ["unit"],
     coverage_path = "system.algo_trader.clients.grafana_client",
+    data = [
+        "//system/algo_trader/grafana:dashboard_json",
+    ],
     deps = [
         ":grafana_client",
     ],
