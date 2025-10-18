@@ -8,11 +8,11 @@ class TestAlgoTraderGrafanaClientUnit:
     """Unit tests for AlgoTraderGrafanaClient."""
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -32,16 +32,16 @@ class TestAlgoTraderGrafanaClientUnit:
         
         client = AlgoTraderGrafanaClient()
         
-        assert client.influxdb_host == "http://localhost:8181"
+        assert client.influxdb_docker_host == "influxdb:8181"
         assert client.influxdb_token == "test-token"
-        assert client.influxdb_database == "historical-market-data"
+        assert client.influxdb_database == "algo-trader-database"
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -68,11 +68,11 @@ class TestAlgoTraderGrafanaClientUnit:
         assert datasources[0]["secureJsonData"]["token"] == "test-token"
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -97,11 +97,11 @@ class TestAlgoTraderGrafanaClientUnit:
         assert len(dashboard["templating"]["list"]) == 5  # All variables
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -118,15 +118,15 @@ class TestAlgoTraderGrafanaClientUnit:
         client = AlgoTraderGrafanaClient()
         url = client.get_dashboard_url()
         
-        expected_url = "http://localhost:3000/d/market-data-candles/market-data-candlestick-charts"
+        expected_url = "http://test-grafana-host:3000/d/market-data-candles/market-data-candlestick-charts"
         assert url == expected_url
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -152,11 +152,11 @@ class TestAlgoTraderGrafanaClientUnit:
         assert mock_post.call_count >= 2
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     @patch('subprocess.run')
@@ -188,11 +188,11 @@ class TestAlgoTraderGrafanaClientIntegration:
     """Integration tests for AlgoTraderGrafanaClient."""
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     def test_datasource_configuration_valid(self):
@@ -215,14 +215,14 @@ class TestAlgoTraderGrafanaClientIntegration:
         # Validate InfluxDB specific fields
         assert ds["type"] == "influxdb"
         assert ds["jsonData"]["version"] == "Flux"
-        assert ds["jsonData"]["defaultBucket"] == "historical-market-data"
+        assert ds["jsonData"]["defaultBucket"] == "algo-trader-database"
     
     @patch.dict('os.environ', {
-        'GRAFANA_HOST': 'localhost:3000',
-        'GRAFANA_ADMIN_USER': 'admin',
-        'GRAFANA_ADMIN_PASSWORD': 'admin',
+        'GRAFANA_HOST': 'test-grafana-host',
+        'GRAFANA_ADMIN_USER': 'test-admin',
+        'GRAFANA_ADMIN_PASSWORD': 'test-password',
         'GRAFANA_CONTAINER_NAME': 'test-grafana',
-        'INFLUXDB3_HTTP_BIND_ADDR': 'localhost:8181',
+        'INFLUXDB3_HTTP_BIND_ADDR': 'test-influxdb-host:8181',
         'INFLUXDB3_AUTH_TOKEN': 'test-token'
     })
     def test_dashboard_configuration_valid(self):
