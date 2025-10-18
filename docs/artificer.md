@@ -154,32 +154,175 @@ When implementing new features:
 - When uncertain, ask "should I match the existing pattern or use best practices?"
 
 ## Environment Configuration
-Environment variables are managed at two levels:
 
-### Root Configuration
-- File: `/artificer.env` at repository root
-- Purpose: Shared infrastructure credentials (Redis, InfluxDB, MySQL)
-- Contains: Database URLs, shared API keys, infrastructure tokens
+Environment variables follow a **strict separation of concerns** between infrastructure and implementation:
 
-### System-Specific Configuration
-- File: `/system/<project>/<project>.env` (e.g., `/system/algo_trader/algo_trader.env`)
-- Purpose: Project-specific secrets and configurations
-- Contains: Project-specific API keys, feature flags, system-specific settings
-- Naming convention: Must match the system directory name
+### Philosophy: Infrastructure as a Generic Store
 
-### Loading Order
+Infrastructure code should never contain hardcoded values or implementation-specific defaults. Think of infrastructure as a grocery store: **the store provides celery, but doesn't dictate whether it's for soup, salad, or a snack** - that decision belongs to the implementation (the system).
+
+**Key Principles:**
+1. **Infrastructure is generic**: No hardcoded hosts, ports, credentials, or business logic
+2. **Systems provide configuration**: All values passed explicitly to infrastructure
+3. **Secrets never in code**: All sensitive data in environment variables
+4. **Fallback pattern**: System-specific env vars → Infrastructure defaults → Safe defaults
+
+### Environment Variable Architecture
+
+Variables are managed at two levels with a **fallback hierarchy**:
+
+#### Root Configuration (`artificer.env`)
+- **Location**: `/artificer.env` at repository root
+- **Purpose**: Safe defaults for infrastructure components
+- **Contains**: 
+  - Default hostnames and ports (e.g., `localhost`, `3000`, `8181`)
+  - Shared infrastructure tokens (Redis, InfluxDB, MySQL)
+  - Container names and configuration
+- **Security**: Contains secrets but NEVER committed to git (in `.gitignore`)
+- **Example**:
+```bash
+# Grafana (safe defaults)
+export GRAFANA_HOST=localhost
+export GRAFANA_PORT=3000
+export GRAFANA_ADMIN_USER=admin
+export GRAFANA_ADMIN_PASSWORD=admin
+export GRAFANA_CONTAINER_NAME=algo-trader-grafana
+
+# InfluxDB (safe defaults)
+export INFLUXDB3_HOST=localhost
+export INFLUXDB3_PORT=8181
+export INFLUXDB3_CONTAINER_NAME=algo-trader-influxdb
+```
+
+#### System-Specific Configuration (`system/<project>/<project>.env`)
+- **Location**: `/system/<project>/<project>.env` (e.g., `/system/algo_trader/algo_trader.env`)
+- **Purpose**: System-specific configuration and overrides
+- **Contains**:
+  - System-specific endpoints (e.g., `ALGO_TRADER_GRAFANA_HOST`)
+  - Database names specific to the system
+  - Docker network hostnames for container-to-container communication
+- **Naming Convention**: Prefixed with uppercase system name (e.g., `ALGO_TRADER_*`)
+- **Example**:
+```bash
+# Algo Trader InfluxDB Configuration
+export ALGO_TRADER_INFLUXDB_DATABASE=algo-trader-database
+export ALGO_TRADER_INFLUXDB_HOST=localhost:8181
+export ALGO_TRADER_INFLUXDB_DOCKER_HOST=influxdb:8181  # Container network
+```
+
+### Loading Order and Fallback Pattern
+
 ```bash
 # Terminal setup for working on a specific system
-source artificer.env                          # Load shared infrastructure
-source system/algo_trader/algo_trader.env     # Load project-specific vars (can override)
+source artificer.env                          # Load infrastructure defaults
+source system/algo_trader/algo_trader.env     # Load system-specific (can override)
 bazel run //system/algo_trader:main
 ```
 
-**Rationale:**
-- Different systems may need different API keys or configurations
-- Isolates secrets per project for better security
-- Makes each system more portable and self-contained
-- System .env can override root .env values when needed
+**Code implements fallback in system layer:**
+```python
+# System-specific variable first, then infrastructure default, then safe default
+host = os.getenv("ALGO_TRADER_GRAFANA_HOST", 
+                 os.getenv("GRAFANA_HOST", "localhost"))
+```
+
+### Infrastructure vs System Responsibilities
+
+#### Infrastructure Layer (`/infrastructure/clients/`)
+**Responsibilities:**
+- Provide generic, reusable functionality
+- Accept ALL configuration via constructor parameters
+- NO hardcoded defaults (all passed by caller)
+- NO business logic or implementation decisions
+- Container lifecycle management (start, stop, status)
+
+**What Infrastructure Should NOT Do:**
+- ❌ Read environment variables directly (except in CLI utilities)
+- ❌ Hardcode hostnames, ports, or credentials
+- ❌ Make implementation-specific decisions (database names, URLs)
+- ❌ Know about specific systems using it
+
+**Example:**
+```python
+class BaseGrafanaClient:
+    def __init__(self, host: str, port: int, admin_user: str, 
+                 admin_password: str, container_name: str):
+        # All configuration provided by caller - no defaults!
+        self.host = f"http://{host}:{port}"
+        self.admin_user = admin_user
+        self.admin_password = admin_password
+```
+
+#### System Layer (`/system/<project>/clients/`)
+**Responsibilities:**
+- Read environment variables with proper fallback
+- Decide which database, ports, hostnames to use
+- Pass all configuration to infrastructure base classes
+- Implement business logic specific to the system
+
+**What System MUST Do:**
+- ✅ Read env vars with fallback: system-specific → infrastructure → defaults
+- ✅ Provide ALL parameters to infrastructure constructors
+- ✅ Handle system-specific datasource configurations
+- ✅ Make implementation decisions (what database, what queries, etc.)
+
+**Example:**
+```python
+class AlgoTraderGrafanaClient(BaseGrafanaClient):
+    def __init__(self):
+        # System reads env vars and decides configuration
+        grafana_host = os.getenv("ALGO_TRADER_GRAFANA_HOST", 
+                                os.getenv("GRAFANA_HOST", "localhost"))
+        grafana_port = int(os.getenv("GRAFANA_PORT", "3000"))
+        
+        # Pass everything to infrastructure
+        super().__init__(
+            host=grafana_host,
+            port=grafana_port,
+            admin_user=os.getenv("GRAFANA_ADMIN_USER", "admin"),
+            admin_password=os.getenv("GRAFANA_ADMIN_PASSWORD", "admin"),
+            container_name=os.getenv("GRAFANA_CONTAINER_NAME", "grafana")
+        )
+```
+
+### Docker Compose Integration
+
+`docker-compose.yml` uses environment variable substitution with safe defaults:
+
+```yaml
+services:
+  influxdb:
+    container_name: ${INFLUXDB3_CONTAINER_NAME:-algo-trader-influxdb}
+    ports:
+      - "${INFLUXDB3_PORT:-8181}:${INFLUXDB3_PORT:-8181}"
+```
+
+**Pattern**: `${VARIABLE:-default}` reads from environment, falls back to default.
+
+**Usage**: Environment variables must be exported before running docker-compose:
+```bash
+source artificer.env
+docker-compose up -d
+# or via Bazel (which handles env loading):
+bazel run //infrastructure/clients:influxdb start
+```
+
+### Security Best Practices
+
+1. **Never commit secrets**: All `.env` files in `.gitignore`
+2. **Never hardcode credentials**: Always use environment variables
+3. **Use safe defaults for development**: `admin/admin` acceptable in artificer.env for localhost
+4. **Production**: Override with secure values in environment
+5. **Template files**: Provide `.env.template` to show required variables (without secrets)
+
+### Rationale
+
+- **Separation of concerns**: Infrastructure doesn't make implementation decisions
+- **Reusability**: Same infrastructure code works for any system
+- **Security**: Secrets isolated in env files, never in code
+- **Flexibility**: Systems can override any value via environment
+- **Portability**: Each system self-contained with its own configuration
+- **Clarity**: Clear which layer is responsible for what decisions
 
 ## Test Guidelines
 - New modules should have tests

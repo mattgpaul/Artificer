@@ -384,3 +384,18 @@ https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/can
 - System layer (`system/algo_trader/clients/grafana_client.py`): Loads JSON dashboards, integrated CLI
 - Data layer (`system/algo_trader/grafana/*.json`): Dashboard definitions as JSON files
 - Entry point: `bazel run //system/algo_trader/clients:grafana`
+
+### Phase 4.1 InfluxDB debugging
+**Goal:** Adjust influxdb3 implementation to utilize docker, similar to grafana, and make sure they are connected in the docker network
+
+**Objectives:**
+- Use the grafana implementation from phase 4 to build a docker compose for influxdb
+- build the container using `bazel build`, using the same principles from grafana
+- Expose the influxdb3 database on localhost:8181
+- Ensure the datasource is reachable by the grafana container
+
+**Deliverables:**
+[] - Influx container created with `bazel run //system/algo_trader/influxdb:main`
+[] - data can be viewed at localhost:8181
+[] - datasource works with Grafana without error
+[] - Common functionality is available in the influxdb client in `/infrastructure`

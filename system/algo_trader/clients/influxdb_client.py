@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from influxdb_client_3 import Point
@@ -13,14 +14,49 @@ class AlgoTraderInfluxDBClient(BaseInfluxDBClient):
     Data is tagged with ticker, period, and frequency for flexible querying.
     """
     
-    def _get_database(self) -> str:
+    def __init__(self, auto_start: bool = False):
         """
-        Define the database name for algo_trader market data.
+        Initialize AlgoTrader InfluxDB client.
         
-        Returns:
-            Database name 'historical-market-data'
+        Reads configuration from environment variables with fallback:
+        - System-specific (algo_trader.env) variables tried first
+        - Falls back to infrastructure defaults (artificer.env)
+        
+        Required environment variables:
+        - ALGO_TRADER_INFLUXDB_HOST from algo_trader.env (or INFLUXDB3_HTTP_BIND_ADDR)
+        - INFLUXDB3_PORT from artificer.env
+        - ALGO_TRADER_INFLUXDB_DATABASE from algo_trader.env
+        - INFLUXDB3_AUTH_TOKEN from artificer.env (empty string if auth disabled)
+        - INFLUXDB3_CONTAINER_NAME from artificer.env
+        
+        Arguments:
+            auto_start: If True, automatically ensure container is running.
+                       If False, only initialize configuration.
         """
-        return "historical-market-data"
+        # Load InfluxDB configuration (system-specific → artificer.env fallback)
+        host_with_port = os.getenv("ALGO_TRADER_INFLUXDB_HOST", os.getenv("INFLUXDB3_HTTP_BIND_ADDR", "localhost:8181"))
+        
+        # Parse host and port
+        if ':' in host_with_port:
+            host, port_str = host_with_port.rsplit(':', 1)
+            port = int(port_str)
+        else:
+            host = host_with_port
+            port = int(os.getenv("INFLUXDB3_PORT", "8181"))
+        
+        database = os.getenv("ALGO_TRADER_INFLUXDB_DATABASE", "algo-trader-database")
+        token = os.getenv("INFLUXDB3_AUTH_TOKEN", "")
+        container_name = os.getenv("INFLUXDB3_CONTAINER_NAME", "algo-trader-influxdb")
+        
+        # Initialize base class with all configuration
+        super().__init__(
+            host=host,
+            port=port,
+            database=database,
+            token=token,
+            container_name=container_name,
+            auto_start=auto_start
+        )
     
     def write_candle_data(self, ticker: str, period_type: str, period: int,
                           frequency_type: str, frequency: int, 

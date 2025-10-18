@@ -1,9 +1,33 @@
 services:
+  influxdb:
+    image: influxdb:3-core
+    container_name: ${INFLUXDB3_CONTAINER_NAME:-algo-trader-influxdb}
+    command:
+      - serve
+      - --node-id=${INFLUXDB3_NODE_IDENTIFIER_PREFIX:-node0}
+      - --object-store=${INFLUXDB3_OBJECT_STORE:-file}
+      - --data-dir=${INFLUXDB3_DATA_DIR:-/var/lib/influxdb3}
+      - --http-bind=0.0.0.0:${INFLUXDB3_PORT:-8181}
+      - --without-auth
+    ports:
+      - "${INFLUXDB3_PORT:-8181}:${INFLUXDB3_PORT:-8181}"
+    volumes:
+      - influxdb-data:${INFLUXDB3_DATA_DIR:-/var/lib/influxdb3}
+    networks:
+      - algo-trader-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${INFLUXDB3_PORT:-8181}/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   grafana:
     image: grafana/grafana:latest
-    container_name: algo-trader-grafana
+    container_name: ${GRAFANA_CONTAINER_NAME:-algo-trader-grafana}
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-3000}:3000"
     environment:
       # Disable authentication for localhost development
       - GF_AUTH_ANONYMOUS_ENABLED=true
@@ -11,11 +35,19 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_INSTALL_PLUGINS=
+      # Admin credentials from environment (fallback to defaults)
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
       - ./system/algo_trader/grafana:/etc/grafana/provisioning/dashboards
       - grafana-storage:/var/lib/grafana
+    networks:
+      - algo-trader-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      influxdb:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
@@ -24,7 +56,13 @@ services:
       retries: 5
       start_period: 30s
 
+networks:
+  algo-trader-network:
+    driver: bridge
+
 volumes:
+  influxdb-data:
+    driver: local
   grafana-storage:
     driver: local
 

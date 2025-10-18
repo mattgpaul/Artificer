@@ -18,37 +18,35 @@ class BaseGrafanaClient(Client):
     Inheriting classes must define their Grafana configuration via abstract methods.
     """
     
-    def __init__(self, auto_start: bool = False):
+    def __init__(self, host: str, port: int, admin_user: str, admin_password: str, 
+                 container_name: str, auto_start: bool = False):
         """
         Initialize Grafana client.
         
+        Infrastructure layer - generic Grafana container management and API interaction.
+        All configuration must be provided by the inheriting system-level implementation.
+        
         Arguments:
+            host: Grafana server hostname (e.g., 'localhost')
+            port: Grafana server port (e.g., 3000)
+            admin_user: Admin username for authentication
+            admin_password: Admin password for authentication
+            container_name: Docker container name for lifecycle management
             auto_start: If True, automatically ensure container is running and authenticate.
                        If False, only initialize configuration (for container management).
-        
-        Reads connection parameters from environment variables:
-        - GRAFANA_HOST: Grafana server address (default: localhost:3000)
-        - GRAFANA_ADMIN_USER: Admin username (default: admin)
-        - GRAFANA_ADMIN_PASSWORD: Admin password (default: admin)
-        - GRAFANA_CONTAINER_NAME: Container name (default: algo-trader-grafana)
         """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         
-        # Load from environment
-        self.host = os.getenv("GRAFANA_HOST", "localhost:3000")
-        self.admin_user = os.getenv("GRAFANA_ADMIN_USER", "admin")
-        self.admin_password = os.getenv("GRAFANA_ADMIN_PASSWORD", "admin")
-        self.container_name = os.getenv("GRAFANA_CONTAINER_NAME", "algo-trader-grafana")
-        
-        # Ensure host has protocol
-        if not self.host.startswith(('http://', 'https://')):
-            self.host = f"http://{self.host}"
+        # Store configuration (no defaults - must be provided by caller)
+        self.host = host if host.startswith(('http://', 'https://')) else f"http://{host}:{port}"
+        self.admin_user = admin_user
+        self.admin_password = admin_password
+        self.container_name = container_name
         
         self.api_key = None
         
         # Only auto-start and authenticate if requested
-        # For container lifecycle management, we don't need this
         if auto_start:
             self._ensure_container_running()
             self._wait_for_ready()

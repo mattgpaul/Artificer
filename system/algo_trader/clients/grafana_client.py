@@ -19,38 +19,68 @@ class AlgoTraderGrafanaClient(BaseGrafanaClient):
         """
         Initialize AlgoTrader Grafana client.
         
+        Reads configuration from environment variables with fallback:
+        - System-specific (algo_trader.env) variables tried first
+        - Falls back to infrastructure defaults (artificer.env)
+        
+        Required environment variables:
+        - GRAFANA_HOST or default from artificer.env
+        - GRAFANA_PORT or default from artificer.env  
+        - GRAFANA_ADMIN_USER from artificer.env
+        - GRAFANA_ADMIN_PASSWORD from artificer.env
+        - GRAFANA_CONTAINER_NAME from artificer.env
+        - ALGO_TRADER_INFLUXDB_DATABASE from algo_trader.env
+        - ALGO_TRADER_INFLUXDB_DOCKER_HOST from algo_trader.env
+        
         Arguments:
             auto_start: If True, automatically ensure container is running and authenticate.
                        If False, only initialize configuration (for container management).
-        
-        Reads InfluxDB connection parameters from environment variables:
-        - INFLUXDB3_HTTP_BIND_ADDR: InfluxDB server address
-        - INFLUXDB3_AUTH_TOKEN: InfluxDB authentication token
         """
-        super().__init__(auto_start=auto_start)
+        # Load Grafana configuration (system-specific → artificer.env fallback)
+        grafana_host = os.getenv("ALGO_TRADER_GRAFANA_HOST", os.getenv("GRAFANA_HOST", "localhost"))
+        grafana_port_str = os.getenv("GRAFANA_PORT", "3000")
+        grafana_port = int(grafana_port_str.split(':')[-1]) if ':' in grafana_port_str else int(grafana_port_str)
+        admin_user = os.getenv("GRAFANA_ADMIN_USER", "admin")
+        admin_password = os.getenv("GRAFANA_ADMIN_PASSWORD", "admin")
+        container_name = os.getenv("GRAFANA_CONTAINER_NAME", "algo-trader-grafana")
+        
+        # Initialize base class with all configuration
+        super().__init__(
+            host=grafana_host,
+            port=grafana_port,
+            admin_user=admin_user,
+            admin_password=admin_password,
+            container_name=container_name,
+            auto_start=auto_start
+        )
+        
         self.logger = get_logger(self.__class__.__name__)
         
-        # Load InfluxDB connection details
-        self.influxdb_host = os.getenv("INFLUXDB3_HTTP_BIND_ADDR", "localhost:8181")
+        # Load system-specific InfluxDB connection details for datasources
+        self.influxdb_docker_host = os.getenv("ALGO_TRADER_INFLUXDB_DOCKER_HOST", "influxdb:8181")
         self.influxdb_token = os.getenv("INFLUXDB3_AUTH_TOKEN", "")
-        self.influxdb_database = "historical-market-data"
-        
-        # Ensure InfluxDB host has protocol
-        if not self.influxdb_host.startswith(('http://', 'https://')):
-            self.influxdb_host = f"http://{self.influxdb_host}"
+        self.influxdb_database = os.getenv("ALGO_TRADER_INFLUXDB_DATABASE", "algo-trader-database")
     
     def get_datasources(self) -> List[Dict[str, Any]]:
         """
         Define InfluxDB datasource for market data.
         
+        Uses Docker network hostname for container-to-container communication.
+        The URL is configured via ALGO_TRADER_INFLUXDB_DOCKER_HOST environment variable.
+        
         Returns:
             List containing InfluxDB datasource configuration for InfluxDB 3.0
         """
+        # Ensure protocol prefix
+        influxdb_url = self.influxdb_docker_host
+        if not influxdb_url.startswith(('http://', 'https://')):
+            influxdb_url = f"http://{influxdb_url}"
+        
         return [
             {
                 "name": "InfluxDB-MarketData",
                 "type": "influxdb",
-                "url": self.influxdb_host,
+                "url": influxdb_url,
                 "access": "proxy",
                 "isDefault": True,
                 "jsonData": {

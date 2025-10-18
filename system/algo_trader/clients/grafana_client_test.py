@@ -61,8 +61,10 @@ class TestAlgoTraderGrafanaClientUnit:
         assert len(datasources) == 1
         assert datasources[0]["name"] == "InfluxDB-MarketData"
         assert datasources[0]["type"] == "influxdb"
-        assert datasources[0]["url"] == "http://localhost:8181"
-        assert datasources[0]["database"] == "historical-market-data"
+        # Datasource uses Docker network URL for container-to-container communication
+        # Should use ALGO_TRADER_INFLUXDB_DOCKER_HOST from system-specific env
+        assert datasources[0]["url"] == "http://influxdb:8181"
+        assert datasources[0]["jsonData"]["defaultBucket"] == "algo-trader-database"
         assert datasources[0]["secureJsonData"]["token"] == "test-token"
     
     @patch.dict('os.environ', {
@@ -250,3 +252,5 @@ class TestAlgoTraderGrafanaClientIntegration:
         variable_names = [var["name"] for var in templating]
         expected_vars = ["ticker", "period_type", "period", "frequency_type", "frequency"]
         assert all(var in variable_names for var in expected_vars)
+
+

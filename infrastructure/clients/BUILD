@@ -47,6 +47,22 @@ py_library(
     visibility = ["//visibility:public"],
 )
 
+# InfluxDB client as executable for container management
+py_binary(
+    name = "influxdb",
+    srcs = ["influxdb_client.py"],
+    main = "influxdb_client.py",
+    deps = [
+        ":influxdb_client",
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        requirement("influxdb3-python"),
+        requirement("pandas"),
+        requirement("requests"),
+    ],
+    visibility = ["//visibility:public"],
+)
+
 # Grafana Client Tests
 load("//:pytest_test.bzl", "pytest_test")
 
