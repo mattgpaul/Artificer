@@ -153,6 +153,9 @@ pytest_test(
     args = ["-m", "integration"],
     tags = ["integration"],
     coverage_path = "system.algo_trader.clients.grafana_client",
+    data = [
+        "//system/algo_trader/grafana:dashboard_json",
+    ],
     deps = [
         ":grafana_client",
     ],
