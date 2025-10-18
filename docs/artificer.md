@@ -287,14 +287,68 @@ class AlgoTraderGrafanaClient(BaseGrafanaClient):
 
 ### Docker Compose Integration
 
-`docker-compose.yml` uses environment variable substitution with safe defaults:
+`docker-compose.yml` uses environment variable substitution with safe defaults for ALL configuration:
 
-```yaml
-services:
-  influxdb:
-    container_name: ${INFLUXDB3_CONTAINER_NAME:-algo-trader-influxdb}
-    ports:
-      - "${INFLUXDB3_PORT:-8181}:${INFLUXDB3_PORT:-8181}"
+#### InfluxDB Environment Variables
+```bash
+# Core InfluxDB Configuration
+INFLUXDB3_IMAGE=influxdb:3-core
+INFLUXDB3_CONTAINER_NAME=algo-trader-influxdb
+INFLUXDB3_PORT=8181
+INFLUXDB3_HTTP_BIND_ADDR=0.0.0.0:8181
+INFLUXDB3_DATA_DIR=/var/lib/influxdb3
+INFLUXDB3_OBJECT_STORE=file
+INFLUXDB3_NODE_IDENTIFIER_PREFIX=node0
+
+# Volume and Network Configuration
+INFLUXDB3_VOLUME_NAME=influxdb-data
+INFLUXDB3_VOLUME_DRIVER=local
+INFLUXDB3_RESTART_POLICY=unless-stopped
+
+# Health Check Configuration
+INFLUXDB3_HEALTHCHECK_INTERVAL=10s
+INFLUXDB3_HEALTHCHECK_TIMEOUT=5s
+INFLUXDB3_HEALTHCHECK_RETRIES=5
+INFLUXDB3_HEALTHCHECK_START_PERIOD=20s
+```
+
+#### Grafana Environment Variables
+```bash
+# Core Grafana Configuration
+GRAFANA_IMAGE=grafana/grafana:latest
+GRAFANA_CONTAINER_NAME=algo-trader-grafana
+GRAFANA_PORT=3000
+
+# Authentication Configuration
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=admin
+GRAFANA_ANONYMOUS_AUTH_ENABLED=true
+GRAFANA_ANONYMOUS_ORG_ROLE=Admin
+GRAFANA_DISABLE_LOGIN_FORM=true
+GRAFANA_ALLOW_EMBEDDING=true
+GRAFANA_INSTALL_PLUGINS=
+
+# Volume and Network Configuration
+GRAFANA_PROVISIONING_PATH=./system/algo_trader/grafana
+GRAFANA_PROVISIONING_MOUNT=/etc/grafana/provisioning/dashboards
+GRAFANA_VOLUME_NAME=grafana-storage
+GRAFANA_STORAGE_PATH=/var/lib/grafana
+GRAFANA_RESTART_POLICY=unless-stopped
+GRAFANA_EXTRA_HOST=host.docker.internal
+
+# Health Check Configuration
+GRAFANA_HEALTHCHECK_COMMAND=wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+GRAFANA_HEALTHCHECK_INTERVAL=10s
+GRAFANA_HEALTHCHECK_TIMEOUT=5s
+GRAFANA_HEALTHCHECK_RETRIES=5
+GRAFANA_HEALTHCHECK_START_PERIOD=30s
+```
+
+#### Shared Docker Configuration
+```bash
+# Network Configuration
+DOCKER_NETWORK_NAME=algo-trader-network
+DOCKER_NETWORK_DRIVER=bridge
 ```
 
 **Pattern**: `${VARIABLE:-default}` reads from environment, falls back to default.
