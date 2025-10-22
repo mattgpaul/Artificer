@@ -1,5 +1,6 @@
 import redis
 import json
+import os
 from typing import Optional, Dict, Any, Union, List
 from abc import abstractmethod
 from infrastructure.logging.logger import get_logger
@@ -11,10 +12,12 @@ class BaseRedisClient(Client):
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
 
-        # defaults
-        self.host = "localhost"
-        self.port = 6379
-        self.db = 0
+        # Configuration from environment variables with fallback defaults
+        self.host = os.getenv("REDIS_HOST", "localhost")
+        self.port = int(os.getenv("REDIS_PORT", "6379"))
+        self.db = int(os.getenv("REDIS_DB", "0"))
+        self.max_connections = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
+        self.socket_timeout = int(os.getenv("REDIS_SOCKET_TIMEOUT", "30"))
 
         self._create_connection_pool()
 
@@ -26,17 +29,17 @@ class BaseRedisClient(Client):
         pass
 
     def _create_connection_pool(self):
-        """Create Redis connection pool with standard settings"""
+        """Create Redis connection pool with configurable settings"""
         try:
             self.pool = redis.ConnectionPool(
                 host=self.host,
                 port=self.port,
                 db=self.db,
-                max_connections=10,
-                socket_timeout=30
+                max_connections=self.max_connections,
+                socket_timeout=self.socket_timeout
             )
             self.client = redis.Redis(connection_pool=self.pool)
-            self.logger.info(f"Redis connection pool created for namespace: {self.namespace}")
+            self.logger.info(f"Redis connection pool created for namespace: {self.namespace} (host: {self.host}, port: {self.port}, db: {self.db})")
         except Exception as e:
             self.logger.error(f"Failed to create Redis connection pool {e}")
             raise

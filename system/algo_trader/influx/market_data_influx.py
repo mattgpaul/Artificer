@@ -2,8 +2,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, Union, List
 
-from infrastructure.clients.influx_client import BaseInfluxDBClient
-from infrastructure.clients.influx_client import BatchWriteConfig
+from infrastructure.influxdb.influxdb import BaseInfluxDBClient
+from infrastructure.influxdb.influxdb import BatchWriteConfig
 
 from infrastructure.logging.logger import get_logger
 

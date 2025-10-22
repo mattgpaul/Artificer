@@ -8,7 +8,7 @@ py_library(
         "timescale_enum.py",
     ],
     deps = [
-        "//infrastructure/clients:schwab_client",
+        "//infrastructure/schwab:schwab",
         "//infrastructure/logging:logger",
         "//system/algo_trader/utils:schema"
     ],
@@ -17,10 +17,3 @@ py_library(
         "//system:__pkg__",  # Allow system package access
     ],
 )
-
-# py_binary(
-#     name = "test_market_handler",
-#     srcs = ["market_handler.py"],
-#     deps = [":schwab_services"],
-#     main = "market_handler.py",
-# )

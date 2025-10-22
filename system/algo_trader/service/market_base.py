@@ -152,8 +152,10 @@ class MarketBase(ABC):
         )
         parser.add_argument(
             'command', 
+            nargs='?',
+            default='run',
             choices=['run', 'health'],
-            help="Command to execute"
+            help="Command to execute (default: run)"
         )
         parser.add_argument(
             '--log-level', default='INFO',
