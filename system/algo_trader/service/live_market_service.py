@@ -1,7 +1,7 @@
 import sys
 import argparse
 
-from component.software.finance.schema import MarketHours
+from system.algo_trader.utils.schema import MarketHours
 from system.algo_trader.redis.live_market import LiveMarketBroker
 from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 
@@ -46,8 +46,16 @@ class LiveMarketService(MarketBase):
         tickers = self.watchlist_broker.get_watchlist()
         self.logger.debug(f"Tickers: {tickers}")
 
-        success = self.market_broker.set_quotes(self.api_handler.get_quotes(tickers))
+        # Convert set to list for get_quotes method
+        ticker_list = list(tickers) if tickers else []
+        
+        if not ticker_list:
+            self.logger.info("No tickers in watchlist, skipping quotes update")
+            return True
+
+        success = self.market_broker.set_quotes(self.api_handler.get_quotes(ticker_list))
         self.logger.debug(f"Set quotes for tickers: {success}")
+        return success
 
     def health_check(self) -> bool:
         pass

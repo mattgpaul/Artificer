@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch, MagicMock
 import pandas as pd
 from influxdb_client_3 import InfluxDBError, Point
 
-from infrastructure.clients.influx_client import (
+from infrastructure.influxdb.influxdb import (
     BatchWriteConfig, 
     BatchingCallback, 
     BaseInfluxDBClient
@@ -27,11 +27,11 @@ class TestInfluxDBClientUnit:
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies"""
-        with patch('infrastructure.clients.influx_client.get_logger') as mock_logger, \
-             patch('infrastructure.clients.influx_client.InfluxDBClient3') as mock_client_class, \
-             patch('infrastructure.clients.influx_client.write_client_options') as mock_wco, \
-             patch('infrastructure.clients.influx_client.BaseInfluxDBClient.ping') as mock_ping, \
-             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server') as mock_start_server:
+        with patch('infrastructure.influxdb.influxdb.get_logger') as mock_logger, \
+             patch('infrastructure.influxdb.influxdb.InfluxDBClient3') as mock_client_class, \
+             patch('infrastructure.influxdb.influxdb.write_client_options') as mock_wco, \
+             patch('infrastructure.influxdb.influxdb.BaseInfluxDBClient.ping') as mock_ping, \
+             patch('infrastructure.influxdb.influxdb.BaseInfluxDBClient._start_server') as mock_start_server:
             
             mock_client = MagicMock()
             mock_client_class.return_value = mock_client
@@ -92,7 +92,7 @@ class TestInfluxDBClientUnit:
         config = BatchWriteConfig(max_retries=0)
         assert config.max_retries == 0
 
-    @patch('infrastructure.clients.influx_client.WriteOptions')
+    @patch('infrastructure.influxdb.influxdb.WriteOptions')
     def test_batch_write_config_to_write_options_conversion(self, mock_write_options):
         """Test conversion to WriteOptions format"""
         config = BatchWriteConfig(batch_size=200, max_retries=10)
@@ -255,11 +255,11 @@ class TestInfluxDBClientUnit:
 
     def test_ping_success(self, mock_env_vars):
         """Test successful ping to InfluxDB server"""
-        with patch('infrastructure.clients.influx_client.get_logger'), \
-             patch('infrastructure.clients.influx_client.InfluxDBClient3'), \
-             patch('infrastructure.clients.influx_client.write_client_options'), \
-             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server'), \
-             patch('infrastructure.clients.influx_client.requests.get') as mock_get:
+        with patch('infrastructure.influxdb.influxdb.get_logger'), \
+             patch('infrastructure.influxdb.influxdb.InfluxDBClient3'), \
+             patch('infrastructure.influxdb.influxdb.write_client_options'), \
+             patch('infrastructure.influxdb.influxdb.BaseInfluxDBClient._start_server'), \
+             patch('infrastructure.influxdb.influxdb.requests.get') as mock_get:
             
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -276,11 +276,11 @@ class TestInfluxDBClientUnit:
 
     def test_ping_failure(self, mock_env_vars):
         """Test ping failure when server is not responding"""
-        with patch('infrastructure.clients.influx_client.get_logger'), \
-             patch('infrastructure.clients.influx_client.InfluxDBClient3'), \
-             patch('infrastructure.clients.influx_client.write_client_options'), \
-             patch('infrastructure.clients.influx_client.BaseInfluxDBClient._start_server'), \
-             patch('infrastructure.clients.influx_client.requests.get') as mock_get:
+        with patch('infrastructure.influxdb.influxdb.get_logger'), \
+             patch('infrastructure.influxdb.influxdb.InfluxDBClient3'), \
+             patch('infrastructure.influxdb.influxdb.write_client_options'), \
+             patch('infrastructure.influxdb.influxdb.BaseInfluxDBClient._start_server'), \
+             patch('infrastructure.influxdb.influxdb.requests.get') as mock_get:
             
             mock_get.side_effect = Exception("Connection failed")
             

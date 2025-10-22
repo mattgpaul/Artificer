@@ -2,8 +2,8 @@ load("@pip//:requirements.bzl", "requirement")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "redis_client",
-    srcs = ["redis_client.py"],
+    name = "redis",
+    srcs = ["redis.py"],
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
@@ -13,8 +13,8 @@ py_library(
 )
 
 py_library(
-    name = "schwab_client",
-    srcs = ["schwab_client.py"],
+    name = "schwab",
+    srcs = ["schwab.py"],
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
@@ -24,8 +24,8 @@ py_library(
 )
 
 py_library(
-    name = "influx_client",
-    srcs = ["influx_client.py"],
+    name = "influx",
+    srcs = ["influx.py"],
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
@@ -38,58 +38,20 @@ py_library(
 
 py_binary(
     name = "schwab_authenticate",
-    srcs = ["schwab_client.py"],
-    main = "schwab_client.py",
+    srcs = ["schwab.py"],
+    main = "schwab.py",
     deps = [
-        ":schwab_client",
+        ":schwab",
     ],
     visibility = ["//visibility:public"],
 )
 
 py_binary(
     name = "influx_authenticate",
-    srcs = ["influx_client.py"],
-    main = "influx_client.py",
+    srcs = ["influx.py"],
+    main = "influx.py",
     deps = [
-        ":influx_client",
+        ":influx",
     ],
     visibility = ["//visibility:public"]
-)
-
-##### Unit tests #####
-pytest_test(
-    name = "influx_client_test_unit", 
-    srcs = ["influx_client_test.py"],
-    coverage_path = "infrastructure.clients.influx_client",
-    deps = [
-        ":influx_client",
-        requirement("requests"),
-    ],
-    python_version = "PY3",
-    tags = [
-        "infrastructure", 
-        "unit",
-    ],
-    args = ["-k", "TestInfluxDBClientUnit"],
-    size = "small",
-    visibility = ["//visibility:public"],
-)
-
-##### Integration tests #####
-pytest_test(
-    name = "influx_client_test_integration", 
-    srcs = ["influx_client_test.py"],
-    coverage_path = "infrastructure.clients.influx_client",
-    deps = [
-        ":influx_client",
-        requirement("requests"),
-    ],
-    python_version = "PY3",
-    tags = [
-        "infrastructure", 
-        "integration",
-    ],
-    args = ["-k", "TestInfluxDBClientIntegration"],
-    size = "medium",
-    visibility = ["//visibility:public"],
 )

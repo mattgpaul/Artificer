@@ -1,5 +1,5 @@
 from infrastructure.logging.logger import get_logger
-from infrastructure.clients.redis_client import BaseRedisClient
+from infrastructure.redis.redis import BaseRedisClient
 
 class WatchlistBroker(BaseRedisClient):
     def __init__(self, ttl: int = None):

@@ -19,7 +19,7 @@ class SchwabClient(Client):
         # Use absolute path to actual source directory
         workspace_root = "/home/matthew/Artificer"  # TODO: make this dynamic later
         #TODO: put this in the redis db
-        self.token_file = os.path.join(workspace_root, "infrastructure/clients/schwab/schwab_tokens.json")
+        self.token_file = os.path.join(workspace_root, "infrastructure/schwab/tokens.json")
 
     def get_initial_tokens(self) -> dict:
         """One-time OAuth2 setup to get initial tokens"""
@@ -69,6 +69,7 @@ class SchwabClient(Client):
             'created_at': now.isoformat()
         }
         
+        # Save to JSON file
         with open(self.token_file, 'w') as f:
             json.dump(token_data, f, indent=2)
         
