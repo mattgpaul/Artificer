@@ -1,4 +1,4 @@
-from infrastructure.clients.schwab_client import SchwabClient
+from infrastructure.schwab.schwab import SchwabClient
 from infrastructure.logging.logger import get_logger
 
 class AccountHandler(SchwabClient):
