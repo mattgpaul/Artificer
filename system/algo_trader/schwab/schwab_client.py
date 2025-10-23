@@ -88,7 +88,7 @@ class SchwabClient(Client):
         self.logger.info("No valid access token in Redis, attempting refresh")
         
         # Step 2: Try to refresh using Redis refresh token
-        if self._refresh_access_token_from_redis():
+        if self.refresh_token():
             access_token = self.account_broker.get_access_token()
             if access_token:
                 self.logger.info("Successfully refreshed access token from Redis")
@@ -97,8 +97,8 @@ class SchwabClient(Client):
         self.logger.info("Redis refresh failed, checking environment file")
         
         # Step 3: Load refresh token from env file and store in Redis
-        if self._load_refresh_token_from_env():
-            if self._refresh_access_token_from_redis():
+        if self.load_token():
+            if self.refresh_token():
                 access_token = self.account_broker.get_access_token()
                 if access_token:
                     self.logger.info("Successfully refreshed access token from env file")
@@ -107,16 +107,16 @@ class SchwabClient(Client):
         self.logger.warning("All refresh attempts failed, initiating OAuth2 flow")
         
         # Step 4: Perform complete OAuth2 flow
-        tokens = self._perform_oauth2_flow()
+        tokens = self.authenticate()
         if tokens and tokens.get('access_token'):
             self.logger.info("OAuth2 flow completed successfully")
             return tokens['access_token']
         
         raise Exception("Unable to obtain valid access token after all attempts")
 
-    def _refresh_access_token_from_redis(self) -> bool:
+    def refresh_token(self) -> bool:
         """
-        Refresh access token using refresh token stored in Redis.
+        Refresh access token using stored refresh token.
         
         Returns:
             bool: True if refresh was successful, False otherwise
@@ -137,23 +137,21 @@ class SchwabClient(Client):
                 # Update env file with new tokens for persistence
                 self._update_env_file_with_tokens(tokens)
                 
-                self.logger.info("Successfully refreshed access token from Redis")
+                self.logger.info("Successfully refreshed access token")
                 return True
         except Exception as e:
-            self.logger.error(f"Failed to refresh token from Redis: {e}")
+            self.logger.error(f"Failed to refresh token: {e}")
         
         return False
 
-    def _load_refresh_token_from_env(self) -> bool:
+    def load_token(self) -> bool:
         """
-        Load refresh token from environment file and store in Redis.
+        Load refresh token from environment and store in Redis.
         
         Returns:
             bool: True if refresh token was loaded and stored, False otherwise
         """
         try:
-            # Try to read from env file (this is a simple implementation)
-            # In practice, you might want to parse the env file more carefully
             refresh_token = os.getenv("SCHWAB_REFRESH_TOKEN")
             if refresh_token:
                 self.account_broker.set_refresh_token(refresh_token)
@@ -164,45 +162,9 @@ class SchwabClient(Client):
         
         return False
 
-    def _make_refresh_request(self, refresh_token: str) -> Optional[Dict[str, Any]]:
-        """
-        Make HTTP request to refresh access token.
-        
-        Args:
-            refresh_token: The refresh token to use
-            
-        Returns:
-            Dict containing new tokens if successful, None otherwise
-        """
-        credentials = f"{self.api_key}:{self.secret}"
-        headers = {
-            "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
-        
-        self.logger.debug("Sending token refresh request to Schwab API")
-        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
-        
-        if response.status_code == 200:
-            tokens = response.json()
-            # Keep the original refresh token if not provided in response
-            if "refresh_token" not in tokens:
-                tokens["refresh_token"] = refresh_token
-            return tokens
-        else:
-            self.logger.error(f"Token refresh failed: {response.status_code} - {response.text}")
-            return None
-
-    def _perform_oauth2_flow(self) -> Optional[Dict[str, Any]]:
+    def authenticate(self) -> Optional[Dict[str, Any]]:
         """
         Perform complete OAuth2 authentication flow.
-        
-        This method guides the user through the OAuth2 process:
-        1. Display authorization URL
-        2. Get authorization code from user
-        3. Exchange code for tokens
-        4. Store tokens in Redis and update env file
         
         Returns:
             Dict containing tokens if successful, None otherwise
