@@ -127,8 +127,23 @@ class SchwabClient(Client):
             return False
         
         try:
-            tokens = self._make_refresh_request(refresh_token)
-            if tokens:
+            # Make refresh request
+            credentials = f"{self.api_key}:{self.secret}"
+            headers = {
+                "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+            payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
+            
+            self.logger.debug("Sending token refresh request to Schwab API")
+            response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
+            
+            if response.status_code == 200:
+                tokens = response.json()
+                # Keep the original refresh token if not provided in response
+                if "refresh_token" not in tokens:
+                    tokens["refresh_token"] = refresh_token
+                
                 # Store new tokens in Redis
                 self.account_broker.set_access_token(tokens['access_token'])
                 if tokens.get('refresh_token'):
@@ -139,6 +154,9 @@ class SchwabClient(Client):
                 
                 self.logger.info("Successfully refreshed access token")
                 return True
+            else:
+                self.logger.error(f"Token refresh failed: {response.status_code} - {response.text}")
+                return False
         except Exception as e:
             self.logger.error(f"Failed to refresh token: {e}")
         
