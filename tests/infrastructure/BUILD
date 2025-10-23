@@ -1,47 +1,11 @@
-load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
 
-##### Unit tests #####
-py_test(
-    name = "influx_test_unit",
-    srcs = ["test_runner.py"],
-    main = "test_runner.py",
-    data = ["influx_test.py"],
+py_library(
+    name = "test_client_lib",
+    srcs = ["test_client.py"],
     deps = [
-        "//infrastructure/influxdb:influxdb",
-        requirement("requests"),
-        requirement("pandas"),
-        requirement("influxdb3-python"),
-        requirement("pytest"),
-        requirement("pytest-mock"),
+        "//infrastructure:client",
     ],
-    args = ["influx_test.py", "-k", "TestInfluxDBClientUnit"],
-    tags = [
-        "infrastructure", 
-        "unit",
-    ],
-    size = "small",
-    visibility = ["//visibility:public"],
-)
-
-##### Integration tests #####
-py_test(
-    name = "influx_test_integration",
-    srcs = ["test_runner.py"],
-    main = "test_runner.py",
-    data = ["influx_test.py"],
-    deps = [
-        "//infrastructure/influxdb:influxdb",
-        requirement("requests"),
-        requirement("pandas"),
-        requirement("influxdb3-python"),
-        requirement("pytest"),
-        requirement("pytest-mock"),
-    ],
-    args = ["influx_test.py", "-k", "TestInfluxDBClientIntegration"],
-    tags = [
-        "infrastructure", 
-        "integration",
-    ],
-    size = "medium",
-    visibility = ["//visibility:public"],
+    testonly = True,
+    visibility = ["//infrastructure:__pkg__"],
 )
