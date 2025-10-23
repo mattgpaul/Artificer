@@ -1,203 +1,63 @@
-import requests
-import base64
 from datetime import datetime
+from typing import Dict, List, Any, Optional
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.algo_trader.redis.account import AccountBroker
-from infrastructure.schwab.schwab import SchwabClient
+from system.algo_trader.schwab.schwab_client import SchwabClient
 from infrastructure.logging.logger import get_logger
 
+
 class MarketHandler(SchwabClient):
+    """
+    Schwab Market Data API Handler.
+    
+    Provides methods for retrieving market data including quotes, price history,
+    and market hours. Inherits from SchwabClient for authentication and token management.
+    """
+    
     def __init__(self):
+        """Initialize MarketHandler with market data API endpoint."""
         super().__init__()
         self.market_url = f"{self.base_url}/marketdata/v1"
         self.logger = get_logger(self.__class__.__name__)
-        self.account = AccountBroker()
-        # Local tokens file in algo_trader directory
-        self.local_tokens_file = '/home/matthew/Artificer/system/algo_trader/schwab/tokens.json'
+        self.logger.info("MarketHandler initialized successfully")
 
-    def _load_token(self) -> str:
-        """Get valid access token, refreshing if necessary"""
-        # First try to get from Redis
-        token = self.account.get_access_token()
-        if token is None:
-            self.logger.info("Access token not found in Redis, attempting refresh")
-            self._refresh_token()
-            token = self.account.get_access_token()
         
-        if token is None:
-            self.logger.info("No tokens in Redis, checking local tokens file")
-            self._load_tokens_from_file()
-            token = self.account.get_access_token()
-        
-        if token is None:
-            self.logger.info("No tokens available, starting OAuth2 flow")
-            self._perform_oauth2_flow()
-            token = self.account.get_access_token()
-        
-        return token
 
-    def _load_tokens_from_file(self) -> bool:
-        """Load tokens from local file and push to Redis"""
+    def _send_request(self, url: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Send authenticated request to Schwab API.
+        
+        Args:
+            url: Full URL for the request
+            params: Query parameters for the request
+            
+        Returns:
+            Dict containing response data if successful, None otherwise
+        """
+        self.logger.debug(f"Sending request to {url}")
         try:
-            import json
-            from datetime import datetime
-            
-            with open(self.local_tokens_file, 'r') as f:
-                tokens = json.load(f)
-            
-            # Check if tokens are expired
-            expires_at = datetime.fromisoformat(tokens['expires_at'])
-            if datetime.now() >= expires_at:
-                self.logger.info("Local tokens are expired, will need refresh")
-                # Still load refresh token for potential refresh
-                if 'refresh_token' in tokens:
-                    self.account.set_refresh_token(tokens['refresh_token'])
-                return False
-            
-            # Tokens are valid, save to Redis
-            self.account.set_access_token(tokens['access_token'])
-            self.account.set_refresh_token(tokens['refresh_token'])
-            
-            self.logger.info("Tokens loaded from local file and saved to Redis")
-            return True
-            
-        except FileNotFoundError:
-            self.logger.info("No local tokens file found")
-            return False
-        except Exception as e:
-            self.logger.error(f"Error loading tokens from file: {e}")
-            return False
-
-    def _refresh_token(self) -> dict:
-        """Refresh expired access token using stored refresh token"""
-        self.logger.info("Starting token refresh")
-        
-        # Load stored refresh token from Redis
-        refresh_token = self.account.get_refresh_token()
-        if refresh_token is None:
-            self.logger.warning("No refresh token found in Redis")
-            return None
-        
-        # Build request
-        credentials = f"{self.api_key}:{self.secret}"
-        headers = {
-            "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
-        
-        self.logger.info("Sending token refresh request")
-        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
-        
-        if response.status_code == 200:
-            new_tokens = response.json()
-            # Keep the original refresh token if not provided in response
-            if "refresh_token" not in new_tokens:
-                new_tokens["refresh_token"] = refresh_token
-            
-            # Save tokens to Redis
-            self.account.set_refresh_token(new_tokens["refresh_token"])
-            self.account.set_access_token(new_tokens["access_token"])
-            self.logger.info("Token refresh successful")
-            return new_tokens
-        else:
-            self.logger.error(f"Token refresh failed: {response.status_code}")
-            raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
-
-    def _perform_oauth2_flow(self) -> dict:
-        """Perform complete OAuth2 flow and save tokens to Redis"""
-        self.logger.info("Starting OAuth2 authentication flow")
-        
-        # Step 1: Show auth URL
-        auth_url = f"{self.base_url}/v1/oauth/authorize?client_id={self.api_key}&redirect_uri=https://127.0.0.1"
-        self.logger.info("Click to authenticate:")
-        self.logger.info(auth_url)
-        
-        # Step 2: Get redirect URL from user  
-        print("After authorizing, paste the redirect URL here:")
-        returned_url = input("Redirect URL: ")
-        
-        # Step 3: Extract code (Schwab-specific format)
-        response_code = f"{returned_url[returned_url.index('code=') + 5: returned_url.index('%40')]}@"
-        
-        # Step 4: Build request and get tokens
-        credentials = f"{self.api_key}:{self.secret}"
-        base64_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
-        
-        headers = {
-            "Authorization": f"Basic {base64_credentials}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        
-        payload = {
-            "grant_type": "authorization_code",
-            "code": response_code, 
-            "redirect_uri": "https://127.0.0.1",
-        }
-        
-        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
-        
-        if response.status_code == 200:
-            tokens = response.json()
-            self.logger.info("OAuth2 authentication successful")
-            
-            # Save tokens to Redis
-            self.account.set_refresh_token(tokens["refresh_token"])
-            self.account.set_access_token(tokens["access_token"])
-            
-            # Also save to local workspace for backup
-            self._save_tokens_to_workspace(tokens)
-            
-            return tokens
-        else:
-            self.logger.error(f"OAuth2 authentication failed: {response.status_code}")
-            raise Exception(f"OAuth2 authentication failed: {response.status_code} - {response.text}")
-
-    def _save_tokens_to_workspace(self, tokens: dict) -> None:
-        """Save tokens to local algo_trader directory as backup"""
-        import json
-        from datetime import datetime, timedelta
-        
-        now = datetime.now()
-        expires_in = tokens.get('expires_in', 1800)
-        expires_at = now + timedelta(seconds=expires_in)
-        
-        token_data = {
-            'access_token': tokens.get('access_token'),
-            'refresh_token': tokens.get('refresh_token'),
-            'token_type': tokens.get('token_type', 'Bearer'),
-            'expires_in': expires_in,
-            'expires_at': expires_at.isoformat(),
-            'created_at': now.isoformat()
-        }
-        
-        # Save to local algo_trader tokens file
-        with open(self.local_tokens_file, 'w') as f:
-            json.dump(token_data, f, indent=2)
-        
-        self.logger.info(f"Tokens saved to local file: {self.local_tokens_file}")
-
-    def _construct_headers(self):
-        token = self._load_token()
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept" : "application/json",
-        }
-        return headers
-        
-
-    def _send_request(self, url: str, headers: dict, params: dict) -> dict:
-        self.logger.info(f"Sending request to {url}")
-        try:
-            response = requests.get(url, headers=headers, params=params)
+            response = self.make_authenticated_request('GET', url, params=params)
             self.logger.debug(f"Response status code: {response.status_code}")
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                self.logger.error(f"Request failed with status {response.status_code}: {response.text}")
+                return None
         except Exception as e:
-            self.logger.error(f"Error getting quotes: {e}")
+            self.logger.error(f"Error making request: {e}")
             return None
-        return response.json()
 
-    def _extract_quote_data(self, response: dict) -> dict:
-        self.logger.debug(f"Extracting quote data")
+    def _extract_quote_data(self, response: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract relevant quote data from Schwab API response.
+        
+        Args:
+            response: Raw response from Schwab quotes API
+            
+        Returns:
+            Dict containing extracted quote data for each symbol
+        """
+        self.logger.debug("Extracting quote data from response")
         extracted = {}
         
         for symbol, data in response.items():
@@ -215,14 +75,26 @@ class MarketHandler(SchwabClient):
         
         return extracted
 
-    def get_quotes(self, tickers: list[str]) -> dict:
+    def get_quotes(self, tickers: List[str]) -> Dict[str, Any]:
+        """
+        Get real-time quotes for specified tickers.
+        
+        Args:
+            tickers: List of stock symbols to get quotes for
+            
+        Returns:
+            Dict containing quote data for each ticker
+        """
         self.logger.info(f"Getting quotes for {tickers}")
-        headers = self._construct_headers()
-        url = self.market_url + "/quotes"
-        params = {"symbols": tickers}
-        response = self._send_request(url, headers, params)
-        extracted_data = self._extract_quote_data(response)
-        return extracted_data
+        url = f"{self.market_url}/quotes"
+        params = {"symbols": ",".join(tickers)}
+        
+        response = self._send_request(url, params)
+        if response:
+            return self._extract_quote_data(response)
+        else:
+            self.logger.error("Failed to get quotes")
+            return {}
 
     def get_price_history(
         self,
@@ -232,11 +104,25 @@ class MarketHandler(SchwabClient):
         frequency_type: FrequencyType = FrequencyType.DAILY,
         frequency: int = 1,
         extended_hours: bool = False,
-    ) -> dict:
+    ) -> Dict[str, Any]:
+        """
+        Get historical price data for a ticker.
+        
+        Args:
+            ticker: Stock symbol to get history for
+            period_type: Type of period (day, month, year, ytd)
+            period: Number of periods
+            frequency_type: Frequency of data points (minute, daily, weekly, monthly)
+            frequency: Frequency value (1, 5, 10, 15, 30 for minutes)
+            extended_hours: Whether to include extended hours data
+            
+        Returns:
+            Dict containing historical price data
+        """
         self.logger.info(f"Getting price history for {ticker}")
         period_type.validate_combination(period, frequency_type, frequency)
-        headers = self._construct_headers()
-        url = self.market_url + "/pricehistory"
+        
+        url = f"{self.market_url}/pricehistory"
         params = {
             "symbol": ticker,
             "periodType": period_type.value,
@@ -245,36 +131,75 @@ class MarketHandler(SchwabClient):
             "frequency": frequency,
             "needExtendedHoursData": extended_hours,
         }
-        response = self._send_request(url, headers, params)
-        return response
+        
+        response = self._send_request(url, params)
+        if response:
+            return response
+        else:
+            self.logger.error(f"Failed to get price history for {ticker}")
+            return {}
 
+    def get_option_chains(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get option chain data for a ticker.
+        
+        Args:
+            ticker: Stock symbol to get option chain for
+            
+        Returns:
+            Dict containing option chain data
+        """
+        # TODO: Implement option chain functionality
+        self.logger.warning(f"Option chain functionality not yet implemented for {ticker}")
+        return {}
 
-    def get_option_chains(self, ticker: str) -> dict:
-        pass
-
-    def get_market_hours(self, date: datetime, markets: list[str] = ["equity"]) -> dict:
+    def get_market_hours(self, date: datetime, markets: List[str] = ["equity"]) -> Dict[str, Any]:
+        """
+        Get market hours for specified date and markets.
+        
+        Args:
+            date: Date to get market hours for
+            markets: List of market types (e.g., ["equity"])
+            
+        Returns:
+            Dict containing market hours information
+        """
         self.logger.info(f"Getting {markets} hours for: {date}")
-        headers = self._construct_headers()
-        url = self.market_url + "/markets"
+        
+        url = f"{self.market_url}/markets"
         params = {
-            "markets": markets,
+            "markets": ",".join(markets),
             "date": date.strftime("%Y-%m-%d")
         }
-        response = self._send_request(url, headers, params)
-        self.logger.debug(f"Response: {response}")
         
-        if "EQ" in response["equity"].keys():
-            equity_info = response["equity"]["EQ"]
+        response = self._send_request(url, params)
+        if not response:
+            self.logger.error("Failed to get market hours")
+            return {}
+        
+        self.logger.debug(f"Market hours response: {response}")
+        
+        # Extract equity market hours
+        if "equity" in response:
+            equity_data = response["equity"]
+            if "EQ" in equity_data:
+                equity_info = equity_data["EQ"]
+            else:
+                equity_info = equity_data.get("equity", {})
+            
+            market_hours = {"date": date.strftime("%Y-%m-%d")}
+            
+            if equity_info.get("isOpen", False):
+                self.logger.debug("Equity markets are open")
+                regular_session = equity_info["sessionHours"]["regularMarket"][0]
+                market_hours["start"] = regular_session["start"]
+                market_hours["end"] = regular_session["end"]
+            else:
+                self.logger.debug("Equity markets are closed")
+            
+            return market_hours
         else:
-            equity_info = response["equity"]["equity"]
-        market_hours = {}
-        market_hours["date"] = date.strftime("%Y-%m-%d")
-        if equity_info["isOpen"]:
-            #TODO: This needs to be able to handle after hours sessions
-            self.logger.debug("Equity markets are open")
-            regular_session = equity_info["sessionHours"]["regularMarket"][0]
-            market_hours["start"] = regular_session["start"]
-            market_hours["end"] = regular_session["end"]
-        return market_hours
+            self.logger.warning("No equity market data in response")
+            return {"date": date.strftime("%Y-%m-%d")}
 
 
