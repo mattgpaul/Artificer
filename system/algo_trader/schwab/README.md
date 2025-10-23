@@ -148,11 +148,13 @@ Run the test suite:
 
 ```bash
 # Run all Schwab tests
-bazel test //tests/algo_trader/schwab:test_schwab_client
-bazel test //tests/algo_trader/schwab:test_market_handler
+bazel test //system/algo_trader/schwab:test_schwab_client
+bazel test //system/algo_trader/schwab:test_market_handler
+bazel test //system/algo_trader/schwab:test_account_handler
+bazel test //system/algo_trader/schwab:test_timescale_enum
 
 # Run with coverage
-bazel test //tests/algo_trader/schwab:test_schwab_client --test_output=all
+bazel test //system/algo_trader/schwab:test_schwab_client --test_output=all
 ```
 
 ## Troubleshooting

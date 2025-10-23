@@ -1,4 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
+load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "influxdb",
@@ -21,4 +22,12 @@ py_binary(
         ":influxdb",
     ],
     visibility = ["//visibility:public"]
+)
+
+# Test target
+pytest_test(
+    name = "test_influxdb",
+    test_lib = "//tests/infrastructure/influxdb:test_influxdb_lib",
+    coverage_path = "infrastructure.influxdb",
+    tags = ["unit"],
 )

@@ -51,7 +51,8 @@ class TestMarketHandlerInitialization:
         
         assert handler.market_url == "https://api.schwabapi.com/marketdata/v1"
         assert handler.logger is not None
-        mock_dependencies['client_class'].assert_called_once()
+        assert handler.api_key == 'test_api_key'
+        assert handler.secret == 'test_secret'
 
 
 class TestMarketHandlerRequestMethods:
@@ -91,13 +92,14 @@ class TestMarketHandlerRequestMethods:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {'test': 'data'}
-        mock_dependencies['client'].make_authenticated_request.return_value = mock_response
         
         handler = MarketHandler()
+        handler.make_authenticated_request = Mock(return_value=mock_response)
+        
         result = handler._send_request('https://api.test.com/test', {'param': 'value'})
         
         assert result == {'test': 'data'}
-        mock_dependencies['client'].make_authenticated_request.assert_called_once_with(
+        handler.make_authenticated_request.assert_called_once_with(
             'GET', 'https://api.test.com/test', params={'param': 'value'}
         )
 

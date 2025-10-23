@@ -1,4 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
+load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "influx_services",
@@ -26,5 +27,14 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/influx:__pkg__",
     ],
+)
+
+# Test target
+pytest_test(
+    name = "test_market_data_influx",
+    test_lib = "//tests/system/algo_trader/influx:test_market_data_influx_lib",
+    coverage_path = "system.algo_trader.influx",
+    tags = ["unit"],
 )
