@@ -1,20 +1,21 @@
+import argparse
 import signal
 import time
-import argparse
-import os
-from enum import Enum
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 
-from system.algo_trader.utils.schema import MarketHours
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.watchlist import WatchlistBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
+from system.algo_trader.utils.schema import MarketHours
+
 
 class MarketHoursType(Enum):
     PREMARKET = "premarket"
     STANDARD = "standard"
     EXTENDED = "extended"
+
 
 class MarketBase(ABC):
     def __init__(self, sleep_override=None):
@@ -39,28 +40,28 @@ class MarketBase(ABC):
 
     def _sleep_with_interrupt_check(self, target_interval: float):
         """Sleep to maintain precise interval timing, accounting for work duration"""
-        if not hasattr(self, '_last_cycle_time'):
+        if not hasattr(self, "_last_cycle_time"):
             self._last_cycle_time = time.time()
-        
+
         # Calculate when the next cycle should start
         next_cycle_time = self._last_cycle_time + target_interval
         current_time = time.time()
-        
+
         # Calculate remaining sleep time
         sleep_duration = next_cycle_time - current_time
-        
+
         if sleep_duration > 0:
             # Use the precise sleep logic we discussed earlier
             check_interval = 0.1
             start_sleep = time.time()
-            
+
             while self.running and (time.time() - start_sleep) < sleep_duration:
                 remaining = sleep_duration - (time.time() - start_sleep)
                 time.sleep(min(check_interval, max(0, remaining)))
-        
+
         # Update for next cycle
         self._last_cycle_time = next_cycle_time
-        
+
         if not self.running:
             self.logger.info("Shutdown signal received during sleep")
 
@@ -121,7 +122,7 @@ class MarketBase(ABC):
                     time.sleep(1)
                     self._set_market_hours()
                     today = datetime.now(timezone.utc).date()
-                
+
                 # Get sleep interval based on market hours
                 sleep_interval = self._get_sleep_interval()
                 self.logger.debug(f"Sleep interval set for: {sleep_interval}")
@@ -135,7 +136,7 @@ class MarketBase(ABC):
                     self.logger.info("Pipeline execution complete")
                 except Exception as e:
                     self.logger.error(f"Pipeline execution failed: {e}")
-                    
+
                 self.logger.info(f"Sleeping for {sleep_interval} seconds")
                 self._sleep_with_interrupt_check(sleep_interval)
 
@@ -148,24 +149,22 @@ class MarketBase(ABC):
     @classmethod
     def main(cls, description: str = None):
         """Generic main method for all market services"""
-        parser = argparse.ArgumentParser(
-            description=description or f"{cls.__name__} Service"
+        parser = argparse.ArgumentParser(description=description or f"{cls.__name__} Service")
+        parser.add_argument(
+            "command",
+            nargs="?",
+            default="run",
+            choices=["run", "health"],
+            help="Command to execute (default: run)",
         )
         parser.add_argument(
-            'command', 
-            nargs='?',
-            default='run',
-            choices=['run', 'health'],
-            help="Command to execute (default: run)"
+            "--log-level",
+            default="INFO",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+            help="Set logging level",
         )
         parser.add_argument(
-            '--log-level', default='INFO',
-            choices=['DEBUG','INFO','WARNING','ERROR'],
-            help='Set logging level'
-        )
-        parser.add_argument(
-            '--sleep-interval', type=int, default=None,
-            help="Override sleep interval in seconds"
+            "--sleep-interval", type=int, default=None, help="Override sleep interval in seconds"
         )
 
         args = parser.parse_args()
@@ -173,13 +172,13 @@ class MarketBase(ABC):
         try:
             service = cls(sleep_override=args.sleep_interval)
 
-            if args.command == 'run':
+            if args.command == "run":
                 service.logger.info(f"Starting {cls.__name__.lower()}...")
                 if args.sleep_interval:
                     service.logger.info(f"Using fixed sleep interval: {args.sleep_interval}")
                 service.run()
                 return 0
-            elif args.command == 'health':
+            elif args.command == "health":
                 if service.health_check():
                     service.logger.info("Health check passed")
                     return 0

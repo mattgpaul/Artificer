@@ -1,6 +1,7 @@
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 
+
 class AccountBroker(BaseRedisClient):
     def __init__(self):
         super().__init__()
@@ -20,10 +21,9 @@ class AccountBroker(BaseRedisClient):
         return token
 
     def set_access_token(self, token, ttl: int = 30) -> bool:
-        success = self.set(key="access-token", value=token, ttl=ttl*60)
+        success = self.set(key="access-token", value=token, ttl=ttl * 60)
         return success
-        
+
     def get_access_token(self) -> str:
         token = self.get("access-token")
         return token
-

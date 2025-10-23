@@ -1,14 +1,18 @@
-from dataclasses import dataclass
-from abc import abstractmethod
-import requests
-import pandas as pd
 import os
-from typing import Any, Optional
+from abc import abstractmethod
+from dataclasses import dataclass
 
-from influxdb_client_3 import InfluxDBClient3, Point, WriteOptions, InfluxDBError, write_client_options
+import requests
+from influxdb_client_3 import (
+    InfluxDBClient3,
+    InfluxDBError,
+    WriteOptions,
+    write_client_options,
+)
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
+
 
 @dataclass
 class BatchWriteConfig:
@@ -19,7 +23,7 @@ class BatchWriteConfig:
     max_retries: int = 5
     max_retry_delay: int = 30_000
     exponential_base: int = 2
-    
+
     def __post_init__(self):
         """Validate configuration values"""
         if self.batch_size <= 0:
@@ -36,11 +40,11 @@ class BatchWriteConfig:
             retry_interval=self.retry_interval,
             max_retries=self.max_retries,
             max_retry_delay=self.max_retry_delay,
-            exponential_base=self.exponential_base
+            exponential_base=self.exponential_base,
         )
 
-class BatchingCallback(object):
 
+class BatchingCallback:
     def success(self, conf, data: str):
         print(f"Written batch: {conf}")
 
@@ -52,14 +56,14 @@ class BatchingCallback(object):
 
 
 class BaseInfluxDBClient(Client):
-    def __init__(self, database: str, write_config: Optional[BatchWriteConfig] = None):
+    def __init__(self, database: str, write_config: BatchWriteConfig | None = None):
         self.logger = get_logger(self.__class__.__name__)
-        
+
         # Read configuration from environment variables
         self.token = os.getenv("INFLUXDB3_AUTH_TOKEN", "my-secret-token")
         self.url = f"http://{os.getenv('INFLUXDB3_HTTP_BIND_ADDR', 'localhost:8181')}"
         self.database = database
-        
+
         # Use provided config or default
         self.write_config = write_config or self._get_write_config()
         self._write_options = self.write_config._to_write_options()
@@ -68,9 +72,9 @@ class BaseInfluxDBClient(Client):
             success_callback=self._callback.success,
             error_callback=self._callback.error,
             retry_callback=self._callback.retry,
-            write_options=self._write_options
+            write_options=self._write_options,
         )
-        
+
         # Create client - assumes server is already running
         self.client = InfluxDBClient3(
             token=self.token,
@@ -105,7 +109,7 @@ class BaseInfluxDBClient(Client):
 
     def close(self):
         """Close the client and flush any pending writes"""
-        if hasattr(self, 'client') and self.client:
+        if hasattr(self, "client") and self.client:
             try:
                 self.client.close()
             except Exception as e:
@@ -118,6 +122,7 @@ class BaseInfluxDBClient(Client):
     @abstractmethod
     def query(self):
         pass
+
 
 if __name__ == "__main__":
     print(os.getenv("INFLUXDB3_AUTH_TOKEN"))

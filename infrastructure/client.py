@@ -1,3 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
-class Client(ABC):...
+
+class Client(ABC): ...

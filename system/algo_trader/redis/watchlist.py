@@ -1,6 +1,7 @@
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 
+
 class WatchlistBroker(BaseRedisClient):
     def __init__(self, ttl: int = None):
         super().__init__()
@@ -12,7 +13,7 @@ class WatchlistBroker(BaseRedisClient):
         return "watchlist"
 
     def set_watchlist(self, tickers: list[str], strategy: str = "all") -> bool:
-        #TODO: Not sure if "all" is the way to go. It will work for now
+        # TODO: Not sure if "all" is the way to go. It will work for now
         success = self.sadd(strategy, *tickers, ttl=self.ttl)
         return success
 

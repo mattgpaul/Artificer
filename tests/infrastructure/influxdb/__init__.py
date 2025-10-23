@@ -1,4 +1,2 @@
+"""Unit tests for InfluxDB infrastructure components
 """
-Unit tests for InfluxDB infrastructure components
-"""
-

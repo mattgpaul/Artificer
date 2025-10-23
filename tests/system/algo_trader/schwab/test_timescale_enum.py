@@ -1,11 +1,11 @@
-"""
-Unit tests for Timescale Enums - FrequencyType and PeriodType
+"""Unit tests for Timescale Enums - FrequencyType and PeriodType
 
 Tests cover validation logic for frequency types, period types, and their valid combinations
 for Schwab API price history requests.
 """
 
 import pytest
+
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
 
@@ -126,7 +126,7 @@ class TestPeriodFrequencyCombinations:
         """Test DAY period only accepts MINUTE frequency type"""
         # Valid: DAY + MINUTE
         PeriodType.DAY.validate_combination(1, FrequencyType.MINUTE, 5)
-        
+
         # Invalid: DAY + other frequency types
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.DAY.validate_combination(1, FrequencyType.DAILY, 1)
@@ -139,14 +139,14 @@ class TestPeriodFrequencyCombinations:
         """Test MONTH period accepts DAILY and WEEKLY frequency types"""
         # Valid: MONTH + DAILY
         PeriodType.MONTH.validate_combination(1, FrequencyType.DAILY, 1)
-        
+
         # Valid: MONTH + WEEKLY
         PeriodType.MONTH.validate_combination(1, FrequencyType.WEEKLY, 1)
-        
+
         # Invalid: MONTH + MINUTE
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.MONTH.validate_combination(1, FrequencyType.MINUTE, 1)
-        
+
         # Invalid: MONTH + MONTHLY
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.MONTH.validate_combination(1, FrequencyType.MONTHLY, 1)
@@ -155,13 +155,13 @@ class TestPeriodFrequencyCombinations:
         """Test YEAR period accepts DAILY, WEEKLY, and MONTHLY frequency types"""
         # Valid: YEAR + DAILY
         PeriodType.YEAR.validate_combination(1, FrequencyType.DAILY, 1)
-        
+
         # Valid: YEAR + WEEKLY
         PeriodType.YEAR.validate_combination(1, FrequencyType.WEEKLY, 1)
-        
+
         # Valid: YEAR + MONTHLY
         PeriodType.YEAR.validate_combination(1, FrequencyType.MONTHLY, 1)
-        
+
         # Invalid: YEAR + MINUTE
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.YEAR.validate_combination(1, FrequencyType.MINUTE, 1)
@@ -170,14 +170,14 @@ class TestPeriodFrequencyCombinations:
         """Test YTD period accepts DAILY and WEEKLY frequency types"""
         # Valid: YTD + DAILY
         PeriodType.YTD.validate_combination(1, FrequencyType.DAILY, 1)
-        
+
         # Valid: YTD + WEEKLY
         PeriodType.YTD.validate_combination(1, FrequencyType.WEEKLY, 1)
-        
+
         # Invalid: YTD + MINUTE
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.YTD.validate_combination(1, FrequencyType.MINUTE, 1)
-        
+
         # Invalid: YTD + MONTHLY
         with pytest.raises(ValueError, match="Invalid frequency type"):
             PeriodType.YTD.validate_combination(1, FrequencyType.MONTHLY, 1)
@@ -187,11 +187,11 @@ class TestPeriodFrequencyCombinations:
         # Invalid frequency value for MINUTE
         with pytest.raises(ValueError, match="Invalid frequency"):
             PeriodType.DAY.validate_combination(1, FrequencyType.MINUTE, 7)
-        
+
         # Invalid frequency value for DAILY
         with pytest.raises(ValueError, match="Invalid frequency"):
             PeriodType.MONTH.validate_combination(1, FrequencyType.DAILY, 2)
-        
+
         # Invalid frequency value for WEEKLY
         with pytest.raises(ValueError, match="Invalid frequency"):
             PeriodType.MONTH.validate_combination(1, FrequencyType.WEEKLY, 4)
@@ -229,4 +229,3 @@ class TestRealWorldScenarios:
         """Test configuration for monthly candles over multiple years"""
         # 10 years, monthly intervals
         PeriodType.YEAR.validate_combination(10, FrequencyType.MONTHLY, 1)
-

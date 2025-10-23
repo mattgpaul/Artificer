@@ -1,6 +1,6 @@
-
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
+
 
 class LiveMarketBroker(BaseRedisClient):
     def __init__(self, ttl: int = 30):
@@ -15,8 +15,8 @@ class LiveMarketBroker(BaseRedisClient):
     def set_quotes(self, quotes_dict: dict) -> bool:
         operations = []
         for ticker, quote_data in quotes_dict.items():
-            operations.append(('hmset', ticker, quote_data))
-            operations.append(('expire', ticker, self.ttl))
+            operations.append(("hmset", ticker, quote_data))
+            operations.append(("expire", ticker, self.ttl))
 
         success = self.pipeline_execute(operations)
         self.logger.debug(f"Set {len(quotes_dict)} quotes via pipeline -> {success}")

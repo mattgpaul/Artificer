@@ -1,10 +1,11 @@
 module(
-    name="artificer",
-    version="0.1.0",
+    name = "artificer",
+    version = "0.1.0",
 )
 
-bazel_dep(name="rules_cc", version="0.1.1")
-bazel_dep(name="rules_python", version="0.40.0")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_python", version = "0.40.0")
+bazel_dep(name = "platforms", version = "0.0.10")
 
 # Python toolchain
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
@@ -14,7 +15,41 @@ use_repo(python, "python_3_11")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
+    python_version = "3.11",
     requirements_lock = "//:requirements.txt",
-    python_version = "3.11", # Must match the toolchain version
 )
 use_repo(pip, "pip")
+
+# Ruff for linting and formatting
+# Download binaries directly from GitHub releases for hermetic builds
+RUFF_VERSION = "0.14.1"
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_file(
+    name = "ruff-osx-tar",
+    downloaded_file_path = "ruff.tar.gz",
+    urls = ["https://github.com/astral-sh/ruff/releases/download/{0}/ruff-aarch64-apple-darwin.tar.gz".format(RUFF_VERSION)],
+)
+
+http_archive(
+    name = "ruff-linux",
+    build_file_content = 'exports_files(["ruff"])',
+    strip_prefix = "ruff-x86_64-unknown-linux-gnu",
+    urls = ["https://github.com/astral-sh/ruff/releases/download/{0}/ruff-x86_64-unknown-linux-gnu.tar.gz".format(RUFF_VERSION)],
+)
+
+# Buildifier for Bazel file formatting and linting
+BUILDIFIER_VERSION = "8.2.1"
+
+http_file(
+    name = "buildifier-linux",
+    urls = ["https://github.com/bazelbuild/buildtools/releases/download/v{0}/buildifier-linux-amd64".format(BUILDIFIER_VERSION)],
+)
+
+http_file(
+    name = "buildifier-osx",
+    urls = ["https://github.com/bazelbuild/buildtools/releases/download/v{0}/buildifier-darwin-arm64".format(BUILDIFIER_VERSION)],
+)
