@@ -23,9 +23,13 @@ class AccountBroker(BaseRedisClient):
         namespace: Redis key namespace for account data.
     """
 
-    def __init__(self) -> None:
-        """Initialize account broker."""
-        super().__init__()
+    def __init__(self, config=None) -> None:
+        """Initialize account broker.
+
+        Args:
+            config: Optional RedisConfig. If None, reads from environment.
+        """
+        super().__init__(config=config)
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
 

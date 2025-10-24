@@ -34,14 +34,20 @@ class MarketDataInflux(BaseInfluxDBClient):
         write_config: Batch write configuration for market data.
     """
 
-    def __init__(self, database: str = "historical_market_data", write_config=market_write_config):
+    def __init__(
+        self,
+        database: str = "historical_market_data",
+        write_config=market_write_config,
+        config=None,
+    ):
         """Initialize market data InfluxDB client.
 
         Args:
             database: Target database name for market data storage.
             write_config: Batch write configuration optimized for market data.
+            config: Optional InfluxDBConfig. If None, reads from environment.
         """
-        super().__init__(database=database, write_config=write_config)
+        super().__init__(database=database, write_config=write_config, config=config)
         self.logger = get_logger(self.__class__.__name__)
 
     def _format_stock_data(self, data: dict, ticker: str) -> pd.DataFrame:
