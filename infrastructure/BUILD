@@ -9,7 +9,7 @@ py_library(
 # Test target
 pytest_test(
     name = "test_client",
-    test_lib = "//tests/infrastructure:test_client_lib",
     coverage_path = "infrastructure",
     tags = ["unit"],
+    test_lib = "//tests/infrastructure:test_client_lib",
 )
