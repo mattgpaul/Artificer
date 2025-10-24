@@ -8,6 +8,12 @@ from enum import Enum
 
 
 class FrequencyType(Enum):
+    """Frequency types for Schwab price history API requests.
+
+    Defines valid frequency types (minute, daily, weekly, monthly) and
+    validates frequency values for each type per Schwab API requirements.
+    """
+
     MINUTE = "minute"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -25,6 +31,12 @@ class FrequencyType(Enum):
 
 
 class PeriodType(Enum):
+    """Period types for Schwab price history API requests.
+
+    Defines valid period types (day, month, year, ytd) and validates
+    period/frequency combinations per Schwab API requirements.
+    """
+
     DAY = "day"
     MONTH = "month"
     YEAR = "year"

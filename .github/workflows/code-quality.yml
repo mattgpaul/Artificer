@@ -22,14 +22,11 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
       
-      - name: Check Python formatting
+      - name: Check code quality
+        run: bazel run //:lint
+      
+      - name: Verify Python formatting (no changes)
         run: bazel run //:ruff -- format --check .
-      
-      - name: Check Python linting
-        run: bazel run //:ruff -- check .
-      
-      - name: Check BUILD formatting
-        run: bazel run //:buildifier -- -lint=warn -mode=check -r .
   
   test:
     name: Run Tests

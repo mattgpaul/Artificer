@@ -9,6 +9,7 @@ import datetime
 import logging
 import os
 import sys
+from typing import ClassVar
 
 
 class ColoredFormatter(logging.Formatter):
@@ -22,7 +23,7 @@ class ColoredFormatter(logging.Formatter):
     """
 
     # ANSI color codes
-    COLORS = {
+    COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": "\033[90m",  # Grey
         "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow

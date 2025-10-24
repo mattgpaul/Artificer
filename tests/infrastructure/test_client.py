@@ -4,7 +4,7 @@ Tests cover abstract class enforcement and that concrete implementations
 properly inherit from the Client ABC.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 
 from infrastructure.client import Client
 
@@ -20,8 +20,6 @@ class TestClientAbstractClass:
 
     def test_client_is_abstract(self):
         """Test Client is an abstract base class."""
-        from abc import ABCMeta
-
         assert isinstance(Client, ABCMeta)
 
     def test_client_can_be_subclassed(self):

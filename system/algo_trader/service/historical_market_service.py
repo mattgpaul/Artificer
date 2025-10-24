@@ -17,6 +17,12 @@ from system.algo_trader.utils.schema import MarketHours
 
 
 class IntradayInterval(Enum):
+    """Intraday data collection intervals in minutes.
+
+    Defines supported minute-level intervals for historical market data
+    collection during market hours.
+    """
+
     MIN1 = 1
     MIN5 = 5
     MIN10 = 10
@@ -25,7 +31,23 @@ class IntradayInterval(Enum):
 
 
 class HistoricalMarketService(MarketBase):
+    """Service for collecting and storing historical market data.
+
+    Fetches historical price data from Schwab API at regular intervals
+    and stores it in InfluxDB. Handles market hours checking, intraday
+    data collection, and precise timing control.
+
+    Attributes:
+        _market_broker: Historical market data Redis broker.
+        _influx_handler: InfluxDB client for data storage.
+    """
+
     def __init__(self, sleep_override=None):
+        """Initialize historical market data service.
+
+        Args:
+            sleep_override: Optional sleep interval override (not used by this service).
+        """
         self._market_broker = HistoricalMarketBroker()
         self._influx_handler = MarketDataInflux(database="market_data")
         super().__init__(sleep_override)
@@ -35,10 +57,20 @@ class HistoricalMarketService(MarketBase):
 
     @property
     def market_broker(self):
+        """Get the historical market data broker instance.
+
+        Returns:
+            HistoricalMarketBroker instance for Redis operations.
+        """
         return self._market_broker
 
     @property
     def database_handler(self):
+        """Get the InfluxDB handler instance.
+
+        Returns:
+            MarketDataInflux instance for time-series data storage.
+        """
         return self._influx_handler
 
     def _check_intraday_interval(self) -> IntradayInterval:

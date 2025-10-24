@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from infrastructure.influxdb.influxdb import BatchWriteConfig
 from system.algo_trader.influx.market_data_influx import MarketDataInflux, market_write_config
 
 
@@ -59,8 +60,6 @@ class TestMarketDataInfluxInitialization:
 
     def test_initialization_custom_write_config(self, mock_dependencies):
         """Test initialization with custom write config."""
-        from infrastructure.influxdb.influxdb import BatchWriteConfig
-
         custom_config = BatchWriteConfig(batch_size=5000, max_retries=10)
         client = MarketDataInflux(write_config=custom_config)
 

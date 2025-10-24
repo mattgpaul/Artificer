@@ -112,7 +112,28 @@ class BatchingCallback:
 
 
 class BaseInfluxDBClient(Client):
+    """Base class for InfluxDB 3.0 client operations.
+
+    Provides connection management, batch writing capabilities, and query
+    operations for InfluxDB 3.0 using the Core API. This abstract base class
+    handles authentication, write configuration, and connection pooling.
+
+    Attributes:
+        logger: Configured logger instance.
+        token: InfluxDB authentication token from environment.
+        url: InfluxDB server URL from environment.
+        database: Target database name.
+        write_config: Batch write configuration settings.
+        client: InfluxDB client instance.
+    """
+
     def __init__(self, database: str, write_config: BatchWriteConfig | None = None):
+        """Initialize InfluxDB client with connection and write configuration.
+
+        Args:
+            database: Target database name for operations.
+            write_config: Optional batch write configuration. If None, uses defaults.
+        """
         self.logger = get_logger(self.__class__.__name__)
 
         # Read configuration from environment variables
@@ -173,10 +194,20 @@ class BaseInfluxDBClient(Client):
 
     @abstractmethod
     def write(self):
+        """Write data to InfluxDB.
+
+        Subclasses must implement this method to define how data is formatted
+        and written to InfluxDB.
+        """
         pass
 
     @abstractmethod
     def query(self):
+        """Query data from InfluxDB.
+
+        Subclasses must implement this method to define how data is queried
+        from InfluxDB.
+        """
         pass
 
 

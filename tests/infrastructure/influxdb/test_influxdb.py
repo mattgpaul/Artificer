@@ -6,6 +6,7 @@ All InfluxDB operations are mocked to avoid requiring an InfluxDB server.
 """
 
 import os
+from abc import ABCMeta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -451,8 +452,6 @@ class TestInfluxDBClientAbstractMethods:
             # Attempting to instantiate BaseInfluxDBClient directly should fail
             # due to abstract methods (if not for the concrete implementation)
             # This test verifies the abstract nature is preserved
-            from abc import ABCMeta
-
             assert isinstance(BaseInfluxDBClient, ABCMeta)
 
 

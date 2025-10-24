@@ -28,8 +28,9 @@ select = [
 ]
 
 ignore = [
-    "D203",   # one-blank-line-before-class (conflicts with D211)
-    "D213",   # multi-line-summary-second-line (conflicts with D212)
+    "D203",    # one-blank-line-before-class (conflicts with D211)
+    "D213",    # multi-line-summary-second-line (conflicts with D212)
+    "PLR2004", # magic-value-comparison (too noisy for constants like HTTP codes, TTLs)
 ]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided

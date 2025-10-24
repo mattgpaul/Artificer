@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from infrastructure.redis.redis import BaseRedisClient
 from system.algo_trader.redis.account import AccountBroker
 
 
@@ -43,8 +44,6 @@ class TestAccountBrokerInitialization:
 
     def test_initialization_inherits_from_base_redis_client(self, mock_redis, mock_logger):
         """Test that AccountBroker inherits from BaseRedisClient."""
-        from infrastructure.redis.redis import BaseRedisClient
-
         broker = AccountBroker()
 
         assert isinstance(broker, BaseRedisClient)

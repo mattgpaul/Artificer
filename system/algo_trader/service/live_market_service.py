@@ -12,12 +12,32 @@ from system.algo_trader.utils.schema import MarketHours
 
 
 class LiveMarketService(MarketBase):
+    """Service for collecting and caching live market quote data.
+
+    Fetches real-time stock quotes from Schwab API at regular intervals
+    and caches them in Redis. Handles market hours checking and provides
+    health check capabilities for monitoring.
+
+    Attributes:
+        _market_broker: Live market data Redis broker.
+    """
+
     def __init__(self, sleep_override=None):
+        """Initialize live market data service.
+
+        Args:
+            sleep_override: Optional sleep interval override in seconds.
+        """
         super().__init__(sleep_override)
         self._market_broker = LiveMarketBroker()
 
     @property
     def market_broker(self):
+        """Get the live market data broker instance.
+
+        Returns:
+            LiveMarketBroker instance for Redis operations.
+        """
         return self._market_broker
 
     def _get_sleep_interval(self) -> int:
@@ -64,6 +84,11 @@ class LiveMarketService(MarketBase):
         return success
 
     def health_check(self) -> bool:
+        """Perform health check on service and dependencies.
+
+        Returns:
+            True if service is healthy, False otherwise.
+        """
         pass
 
 

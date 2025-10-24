@@ -17,7 +17,30 @@ from infrastructure.logging.logger import get_logger
 
 
 class BaseRedisClient(Client):
+    """Base class for Redis client operations with connection pooling.
+
+    Provides connection management, namespace isolation, and common Redis
+    operations for all Redis-based data brokers. Handles connection pooling,
+    key building with namespace prefixes, and comprehensive error handling.
+
+    Attributes:
+        logger: Configured logger instance.
+        namespace: Redis key namespace for this client.
+        host: Redis server hostname from environment.
+        port: Redis server port from environment.
+        db: Redis database number from environment.
+        max_connections: Maximum connection pool size.
+        socket_timeout: Socket timeout in seconds.
+        pool: Redis connection pool instance.
+        client: Redis client instance.
+    """
+
     def __init__(self):
+        """Initialize Redis client with connection pool and configuration.
+
+        Reads connection parameters from environment variables and creates
+        a connection pool with configured timeout and pool size settings.
+        """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
@@ -48,7 +71,8 @@ class BaseRedisClient(Client):
             )
             self.client = redis.Redis(connection_pool=self.pool)
             self.logger.info(
-                f"Redis connection pool created for namespace: {self.namespace} (host: {self.host}, port: {self.port}, db: {self.db})"
+                f"Redis connection pool created for namespace: {self.namespace} "
+                f"(host: {self.host}, port: {self.port}, db: {self.db})"
             )
         except Exception as e:
             self.logger.error(f"Failed to create Redis connection pool {e}")
@@ -592,6 +616,7 @@ class BaseRedisClient(Client):
 
     def flushdb(self) -> bool:
         """WARNING: Delete ALL keys in the current database.
+
         Use with extreme caution!
 
         Returns:

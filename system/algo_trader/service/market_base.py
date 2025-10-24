@@ -27,6 +27,12 @@ _NEW_DAY_SLEEP_SECONDS = 1
 
 
 class MarketHoursType(Enum):
+    """Market hours classification types.
+
+    Categorizes current time relative to market hours for scheduling
+    data collection and service behavior.
+    """
+
     PREMARKET = "premarket"
     STANDARD = "standard"
     EXTENDED = "extended"
@@ -62,6 +68,11 @@ class MarketBase(ABC):
     @property
     @abstractmethod
     def market_broker(self):
+        """Get the market data broker instance.
+
+        Returns:
+            Market data broker for Redis operations.
+        """
         pass
 
     def _setup_signal_handlers(self) -> None:

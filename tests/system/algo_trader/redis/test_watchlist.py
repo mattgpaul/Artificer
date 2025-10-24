@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from infrastructure.redis.redis import BaseRedisClient
 from system.algo_trader.redis.watchlist import WatchlistBroker
 
 
@@ -61,8 +62,6 @@ class TestWatchlistBrokerInitialization:
 
     def test_initialization_inherits_from_base_redis_client(self, mock_redis, mock_logger):
         """Test that WatchlistBroker inherits from BaseRedisClient."""
-        from infrastructure.redis.redis import BaseRedisClient
-
         broker = WatchlistBroker()
 
         assert isinstance(broker, BaseRedisClient)
