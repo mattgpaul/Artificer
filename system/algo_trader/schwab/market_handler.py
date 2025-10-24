@@ -157,7 +157,7 @@ class MarketHandler(SchwabClient):
         self.logger.warning(f"Option chain functionality not yet implemented for {ticker}")
         return {}
 
-    def get_market_hours(self, date: datetime, markets: list[str] = ["equity"]) -> dict[str, Any]:
+    def get_market_hours(self, date: datetime, markets: list[str] | None = None) -> dict[str, Any]:
         """Get market hours for specified date and markets.
 
         Args:
@@ -167,6 +167,8 @@ class MarketHandler(SchwabClient):
         Returns:
             Dict containing market hours information
         """
+        if markets is None:
+            markets = ["equity"]
         self.logger.info(f"Getting {markets} hours for: {date}")
 
         url = f"{self.market_url}/markets"

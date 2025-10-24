@@ -30,7 +30,7 @@ class MarketHours(BaseModel):
     @field_validator("start", "end")
     @classmethod
     def convert_to_utc(cls, v: Any) -> datetime:
-        """Convert datetime to UTC if it has timezone info"""
+        """Convert datetime to UTC if it has timezone info."""
         if isinstance(v, datetime):
             if v.tzinfo is not None:
                 return v.astimezone(timezone.utc)

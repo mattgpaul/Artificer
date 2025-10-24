@@ -1,4 +1,4 @@
-"""Schwab API Client - Consolidated OAuth2 and Token Management
+"""Schwab API Client - Consolidated OAuth2 and Token Management.
 
 This module provides the core Schwab API client with Redis-first token management,
 proper OAuth2 flow, and automatic token refresh capabilities.

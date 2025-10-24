@@ -1,4 +1,4 @@
-"""Unit tests for WatchlistBroker - Watchlist Management
+"""Unit tests for WatchlistBroker - Watchlist Management.
 
 Tests cover watchlist storage and retrieval using Redis sets.
 All Redis operations are mocked to avoid requiring a Redis server.
@@ -12,11 +12,11 @@ from system.algo_trader.redis.watchlist import WatchlistBroker
 
 
 class TestWatchlistBrokerInitialization:
-    """Test WatchlistBroker initialization"""
+    """Test WatchlistBroker initialization."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -28,39 +28,39 @@ class TestWatchlistBrokerInitialization:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.watchlist.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_initialization_default_ttl(self, mock_redis, mock_logger):
-        """Test initialization with default TTL of None (no expiration)"""
+        """Test initialization with default TTL of None (no expiration)."""
         broker = WatchlistBroker()
 
         assert broker.namespace == "watchlist"
         assert broker.ttl is None
 
     def test_initialization_custom_ttl(self, mock_redis, mock_logger):
-        """Test initialization with custom TTL"""
+        """Test initialization with custom TTL."""
         broker = WatchlistBroker(ttl=3600)
 
         assert broker.ttl == 3600
 
     def test_get_namespace_returns_watchlist(self, mock_redis, mock_logger):
-        """Test _get_namespace returns correct namespace"""
+        """Test _get_namespace returns correct namespace."""
         broker = WatchlistBroker()
 
         assert broker._get_namespace() == "watchlist"
 
     def test_initialization_creates_logger(self, mock_redis, mock_logger):
-        """Test initialization creates logger with class name"""
+        """Test initialization creates logger with class name."""
         broker = WatchlistBroker()
 
         assert broker.logger is not None
 
     def test_initialization_inherits_from_base_redis_client(self, mock_redis, mock_logger):
-        """Test that WatchlistBroker inherits from BaseRedisClient"""
+        """Test that WatchlistBroker inherits from BaseRedisClient."""
         from infrastructure.redis.redis import BaseRedisClient
 
         broker = WatchlistBroker()
@@ -69,11 +69,11 @@ class TestWatchlistBrokerInitialization:
 
 
 class TestWatchlistBrokerSetWatchlist:
-    """Test watchlist storage"""
+    """Test watchlist storage."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -85,14 +85,14 @@ class TestWatchlistBrokerSetWatchlist:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.watchlist.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_set_watchlist_success(self, mock_redis, mock_logger):
-        """Test successful watchlist storage"""
+        """Test successful watchlist storage."""
         mock_redis["client"].sadd.return_value = 3
 
         broker = WatchlistBroker()
@@ -102,7 +102,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert result == 3  # Number of tickers added
 
     def test_set_watchlist_default_strategy_all(self, mock_redis, mock_logger):
-        """Test default strategy is 'all'"""
+        """Test default strategy is 'all'."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker()
@@ -113,7 +113,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert "watchlist:all" in call_args[0]
 
     def test_set_watchlist_custom_strategy(self, mock_redis, mock_logger):
-        """Test setting watchlist with custom strategy name"""
+        """Test setting watchlist with custom strategy name."""
         mock_redis["client"].sadd.return_value = 2
 
         broker = WatchlistBroker()
@@ -125,7 +125,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert "watchlist:tech_stocks" in call_args[0]
 
     def test_set_watchlist_with_ttl(self, mock_redis, mock_logger):
-        """Test setting watchlist with TTL"""
+        """Test setting watchlist with TTL."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker(ttl=86400)
@@ -135,7 +135,7 @@ class TestWatchlistBrokerSetWatchlist:
         mock_redis["client"].expire.assert_called()
 
     def test_set_watchlist_without_ttl(self, mock_redis, mock_logger):
-        """Test setting watchlist without TTL (persistent)"""
+        """Test setting watchlist without TTL (persistent)."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker(ttl=None)
@@ -145,7 +145,7 @@ class TestWatchlistBrokerSetWatchlist:
         # Note: sadd is called with ttl=None
 
     def test_set_watchlist_single_ticker(self, mock_redis, mock_logger):
-        """Test adding single ticker to watchlist"""
+        """Test adding single ticker to watchlist."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker()
@@ -154,7 +154,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert result == 1
 
     def test_set_watchlist_multiple_tickers(self, mock_redis, mock_logger):
-        """Test adding multiple tickers to watchlist"""
+        """Test adding multiple tickers to watchlist."""
         mock_redis["client"].sadd.return_value = 5
 
         broker = WatchlistBroker()
@@ -164,7 +164,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert result == 5
 
     def test_set_watchlist_duplicate_tickers(self, mock_redis, mock_logger):
-        """Test adding duplicate tickers (Redis set handles duplicates)"""
+        """Test adding duplicate tickers (Redis set handles duplicates)."""
         mock_redis["client"].sadd.return_value = 1  # Only 1 unique added
 
         broker = WatchlistBroker()
@@ -174,7 +174,7 @@ class TestWatchlistBrokerSetWatchlist:
         assert result == 1
 
     def test_set_watchlist_empty_list(self, mock_redis, mock_logger):
-        """Test setting watchlist with empty ticker list"""
+        """Test setting watchlist with empty ticker list."""
         mock_redis["client"].sadd.return_value = 0
 
         broker = WatchlistBroker()
@@ -184,11 +184,11 @@ class TestWatchlistBrokerSetWatchlist:
 
 
 class TestWatchlistBrokerGetWatchlist:
-    """Test watchlist retrieval"""
+    """Test watchlist retrieval."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -200,14 +200,14 @@ class TestWatchlistBrokerGetWatchlist:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.watchlist.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_get_watchlist_success(self, mock_redis, mock_logger):
-        """Test successful watchlist retrieval"""
+        """Test successful watchlist retrieval."""
         mock_redis["client"].smembers.return_value = {b"AAPL", b"TSLA", b"GOOGL"}
 
         broker = WatchlistBroker()
@@ -217,7 +217,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert isinstance(result, set)
 
     def test_get_watchlist_default_strategy_all(self, mock_redis, mock_logger):
-        """Test get_watchlist uses default strategy 'all'"""
+        """Test get_watchlist uses default strategy 'all'."""
         mock_redis["client"].smembers.return_value = set()
 
         broker = WatchlistBroker()
@@ -227,7 +227,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert "watchlist:all" in call_args[0]
 
     def test_get_watchlist_custom_strategy(self, mock_redis, mock_logger):
-        """Test getting watchlist with custom strategy"""
+        """Test getting watchlist with custom strategy."""
         mock_redis["client"].smembers.return_value = {b"AAPL", b"MSFT"}
 
         broker = WatchlistBroker()
@@ -238,7 +238,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert "watchlist:tech_stocks" in call_args[0]
 
     def test_get_watchlist_empty(self, mock_redis, mock_logger):
-        """Test get_watchlist when no tickers exist"""
+        """Test get_watchlist when no tickers exist."""
         mock_redis["client"].smembers.return_value = set()
 
         broker = WatchlistBroker()
@@ -248,7 +248,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert isinstance(result, set)
 
     def test_get_watchlist_logs_info(self, mock_redis, mock_logger):
-        """Test get_watchlist logs info message with watchlist"""
+        """Test get_watchlist logs info message with watchlist."""
         mock_redis["client"].smembers.return_value = {b"AAPL", b"TSLA"}
 
         broker = WatchlistBroker()
@@ -260,7 +260,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert "watchlist" in info_call.lower()
 
     def test_get_watchlist_single_ticker(self, mock_redis, mock_logger):
-        """Test getting watchlist with single ticker"""
+        """Test getting watchlist with single ticker."""
         mock_redis["client"].smembers.return_value = {b"AAPL"}
 
         broker = WatchlistBroker()
@@ -269,7 +269,7 @@ class TestWatchlistBrokerGetWatchlist:
         assert result == {"AAPL"}
 
     def test_get_watchlist_many_tickers(self, mock_redis, mock_logger):
-        """Test getting large watchlist"""
+        """Test getting large watchlist."""
         tickers = {f"TICK{i}".encode() for i in range(100)}
         mock_redis["client"].smembers.return_value = tickers
 
@@ -280,11 +280,11 @@ class TestWatchlistBrokerGetWatchlist:
 
 
 class TestWatchlistBrokerIntegration:
-    """Test integration scenarios"""
+    """Test integration scenarios."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -296,14 +296,14 @@ class TestWatchlistBrokerIntegration:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.watchlist.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_add_and_retrieve_watchlist(self, mock_redis, mock_logger):
-        """Test complete workflow: add tickers then retrieve"""
+        """Test complete workflow: add tickers then retrieve."""
         tickers = {"AAPL", "TSLA", "GOOGL"}
 
         # Setup mocks
@@ -321,7 +321,7 @@ class TestWatchlistBrokerIntegration:
         assert get_result == tickers
 
     def test_multiple_strategies(self, mock_redis, mock_logger):
-        """Test using multiple strategy watchlists"""
+        """Test using multiple strategy watchlists."""
         mock_redis["client"].sadd.return_value = 2
         mock_redis["client"].smembers.side_effect = [
             {b"AAPL", b"MSFT"},  # tech_stocks
@@ -344,7 +344,7 @@ class TestWatchlistBrokerIntegration:
         assert finance == {"JPM", "BAC"}
 
     def test_incremental_watchlist_updates(self, mock_redis, mock_logger):
-        """Test adding tickers incrementally to same watchlist"""
+        """Test adding tickers incrementally to same watchlist."""
         mock_redis["client"].sadd.side_effect = [2, 2, 1]  # Add different amounts
 
         broker = WatchlistBroker()
@@ -362,7 +362,7 @@ class TestWatchlistBrokerIntegration:
         assert mock_redis["client"].sadd.call_count == 3
 
     def test_watchlist_persistence_with_ttl(self, mock_redis, mock_logger):
-        """Test watchlist with TTL expiration"""
+        """Test watchlist with TTL expiration."""
         mock_redis["client"].sadd.return_value = 1
         mock_redis["client"].smembers.side_effect = [
             {b"AAPL"},  # First call: data exists
@@ -384,11 +384,11 @@ class TestWatchlistBrokerIntegration:
 
 
 class TestWatchlistBrokerEdgeCases:
-    """Test edge cases and error handling"""
+    """Test edge cases and error handling."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -400,14 +400,14 @@ class TestWatchlistBrokerEdgeCases:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.watchlist.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_tickers_with_special_characters(self, mock_redis, mock_logger):
-        """Test tickers with special characters"""
+        """Test tickers with special characters."""
         mock_redis["client"].sadd.return_value = 3
         mock_redis["client"].smembers.return_value = {b"BRK.B", b"BF-A", b"^GSPC"}
 
@@ -424,7 +424,7 @@ class TestWatchlistBrokerEdgeCases:
         assert "^GSPC" in watchlist
 
     def test_very_long_strategy_name(self, mock_redis, mock_logger):
-        """Test strategy with very long name"""
+        """Test strategy with very long name."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker()
@@ -434,7 +434,7 @@ class TestWatchlistBrokerEdgeCases:
         assert result == 1
 
     def test_strategy_with_special_characters(self, mock_redis, mock_logger):
-        """Test strategy name with special characters"""
+        """Test strategy name with special characters."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker()
@@ -444,7 +444,7 @@ class TestWatchlistBrokerEdgeCases:
         assert result == 1
 
     def test_unicode_ticker_symbols(self, mock_redis, mock_logger):
-        """Test unicode characters in ticker symbols"""
+        """Test unicode characters in ticker symbols."""
         mock_redis["client"].sadd.return_value = 1
 
         broker = WatchlistBroker()
@@ -454,7 +454,7 @@ class TestWatchlistBrokerEdgeCases:
         assert result == 1
 
     def test_set_watchlist_redis_error(self, mock_redis, mock_logger):
-        """Test set_watchlist handles Redis errors"""
+        """Test set_watchlist handles Redis errors."""
         mock_redis["client"].sadd.side_effect = Exception("Redis error")
 
         broker = WatchlistBroker()
@@ -464,7 +464,7 @@ class TestWatchlistBrokerEdgeCases:
         assert result == 0
 
     def test_get_watchlist_redis_error(self, mock_redis, mock_logger):
-        """Test get_watchlist handles Redis errors"""
+        """Test get_watchlist handles Redis errors."""
         mock_redis["client"].smembers.side_effect = Exception("Redis error")
 
         broker = WatchlistBroker()
@@ -474,7 +474,7 @@ class TestWatchlistBrokerEdgeCases:
         assert result == set()
 
     def test_case_sensitivity(self, mock_redis, mock_logger):
-        """Test that ticker symbols maintain case sensitivity"""
+        """Test that ticker symbols maintain case sensitivity."""
         mock_redis["client"].sadd.return_value = 2
         mock_redis["client"].smembers.return_value = {b"aapl", b"AAPL"}
 
@@ -489,7 +489,7 @@ class TestWatchlistBrokerEdgeCases:
         assert "AAPL" in result
 
     def test_very_large_watchlist(self, mock_redis, mock_logger):
-        """Test watchlist with thousands of tickers"""
+        """Test watchlist with thousands of tickers."""
         mock_redis["client"].sadd.return_value = 1000
 
         broker = WatchlistBroker()

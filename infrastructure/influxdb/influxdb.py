@@ -146,11 +146,11 @@ class BaseInfluxDBClient(Client):
         }
 
     def _get_write_config(self) -> BatchWriteConfig:
-        """Get write configuration - can be overridden for testing"""
+        """Get write configuration - can be overridden for testing."""
         return BatchWriteConfig()
 
     def ping(self) -> bool:
-        """Test connection to InfluxDB server"""
+        """Test connection to InfluxDB server."""
         try:
             response = requests.get(f"{self.url}/health", headers=self._headers)
             if response.status_code == 200:
@@ -164,7 +164,7 @@ class BaseInfluxDBClient(Client):
             return False
 
     def close(self):
-        """Close the client and flush any pending writes"""
+        """Close the client and flush any pending writes."""
         if hasattr(self, "client") and self.client:
             try:
                 self.client.close()

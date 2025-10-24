@@ -1,4 +1,4 @@
-"""Unit tests for HistoricalMarketBroker - Historical Market Data Management
+"""Unit tests for HistoricalMarketBroker - Historical Market Data Management.
 
 Tests cover historical candles storage/retrieval and market hours management.
 All Redis operations are mocked to avoid requiring a Redis server.
@@ -13,11 +13,11 @@ from system.algo_trader.redis.historical_market import HistoricalMarketBroker
 
 
 class TestHistoricalMarketBrokerInitialization:
-    """Test HistoricalMarketBroker initialization"""
+    """Test HistoricalMarketBroker initialization."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -29,44 +29,44 @@ class TestHistoricalMarketBrokerInitialization:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_initialization_default_ttl(self, mock_redis, mock_logger):
-        """Test initialization with default TTL of 24 hours"""
+        """Test initialization with default TTL of 24 hours."""
         broker = HistoricalMarketBroker()
 
         assert broker.namespace == "historical"
         assert broker.ttl == 86400  # 24 hours in seconds
 
     def test_initialization_custom_ttl(self, mock_redis, mock_logger):
-        """Test initialization with custom TTL"""
+        """Test initialization with custom TTL."""
         broker = HistoricalMarketBroker(ttl=3600)
 
         assert broker.ttl == 3600
 
     def test_get_namespace_returns_historical(self, mock_redis, mock_logger):
-        """Test _get_namespace returns correct namespace"""
+        """Test _get_namespace returns correct namespace."""
         broker = HistoricalMarketBroker()
 
         assert broker._get_namespace() == "historical"
 
     def test_initialization_creates_logger(self, mock_redis, mock_logger):
-        """Test initialization creates logger with class name"""
+        """Test initialization creates logger with class name."""
         broker = HistoricalMarketBroker()
 
         assert broker.logger is not None
 
 
 class TestHistoricalMarketBrokerSetHistorical:
-    """Test historical data storage"""
+    """Test historical data storage."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -78,7 +78,7 @@ class TestHistoricalMarketBrokerSetHistorical:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
@@ -86,7 +86,7 @@ class TestHistoricalMarketBrokerSetHistorical:
 
     @pytest.fixture
     def sample_candles_data(self):
-        """Sample historical candles data"""
+        """Sample historical candles data."""
         return [
             {
                 "datetime": 1609459200000,
@@ -107,7 +107,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         ]
 
     def test_set_historical_success(self, mock_redis, mock_logger, sample_candles_data):
-        """Test successful historical data storage"""
+        """Test successful historical data storage."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -117,7 +117,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         mock_redis["client"].set.assert_called_once()
 
     def test_set_historical_uses_correct_key(self, mock_redis, mock_logger, sample_candles_data):
-        """Test set_historical uses ticker as Redis key"""
+        """Test set_historical uses ticker as Redis key."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -127,7 +127,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         assert "historical:TSLA" in call_args[0]
 
     def test_set_historical_serializes_to_json(self, mock_redis, mock_logger, sample_candles_data):
-        """Test historical data is serialized to JSON"""
+        """Test historical data is serialized to JSON."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -140,7 +140,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         json.loads(stored_value)
 
     def test_set_historical_uses_default_ttl(self, mock_redis, mock_logger, sample_candles_data):
-        """Test set_historical uses default TTL of 24 hours"""
+        """Test set_historical uses default TTL of 24 hours."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -150,7 +150,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         assert call_args[1]["ex"] == 86400
 
     def test_set_historical_uses_custom_ttl(self, mock_redis, mock_logger, sample_candles_data):
-        """Test set_historical uses custom TTL"""
+        """Test set_historical uses custom TTL."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker(ttl=7200)
@@ -162,7 +162,7 @@ class TestHistoricalMarketBrokerSetHistorical:
     def test_set_historical_logs_debug_on_success(
         self, mock_redis, mock_logger, sample_candles_data
     ):
-        """Test successful storage logs debug message"""
+        """Test successful storage logs debug message."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -173,7 +173,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         assert any("AAPL" in str(call) for call in debug_calls)
 
     def test_set_historical_failure(self, mock_redis, mock_logger, sample_candles_data):
-        """Test historical data storage failure"""
+        """Test historical data storage failure."""
         mock_redis["client"].set.return_value = False
 
         broker = HistoricalMarketBroker()
@@ -182,7 +182,7 @@ class TestHistoricalMarketBrokerSetHistorical:
         assert result is False
 
     def test_set_historical_empty_data(self, mock_redis, mock_logger):
-        """Test storing empty historical data"""
+        """Test storing empty historical data."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -192,11 +192,11 @@ class TestHistoricalMarketBrokerSetHistorical:
 
 
 class TestHistoricalMarketBrokerGetHistorical:
-    """Test historical data retrieval"""
+    """Test historical data retrieval."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -208,14 +208,14 @@ class TestHistoricalMarketBrokerGetHistorical:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_get_historical_success(self, mock_redis, mock_logger):
-        """Test successful historical data retrieval"""
+        """Test successful historical data retrieval."""
         stored_data = [
             {"datetime": 1609459200000, "close": 104.0},
             {"datetime": 1609545600000, "close": 105.5},
@@ -229,7 +229,7 @@ class TestHistoricalMarketBrokerGetHistorical:
         assert isinstance(result, list)
 
     def test_get_historical_uses_correct_key(self, mock_redis, mock_logger):
-        """Test get_historical uses correct Redis key"""
+        """Test get_historical uses correct Redis key."""
         mock_redis["client"].get.return_value = json.dumps([]).encode("utf-8")
 
         broker = HistoricalMarketBroker()
@@ -238,7 +238,7 @@ class TestHistoricalMarketBrokerGetHistorical:
         mock_redis["client"].get.assert_called_once_with("historical:TSLA")
 
     def test_get_historical_cache_miss_returns_empty_list(self, mock_redis, mock_logger):
-        """Test cache miss returns empty list"""
+        """Test cache miss returns empty list."""
         mock_redis["client"].get.return_value = None
 
         broker = HistoricalMarketBroker()
@@ -247,7 +247,7 @@ class TestHistoricalMarketBrokerGetHistorical:
         assert result == []
 
     def test_get_historical_cache_miss_logs_warning(self, mock_redis, mock_logger):
-        """Test cache miss logs warning"""
+        """Test cache miss logs warning."""
         mock_redis["client"].get.return_value = None
 
         broker = HistoricalMarketBroker()
@@ -258,7 +258,7 @@ class TestHistoricalMarketBrokerGetHistorical:
         assert any("MISSING" in str(call) for call in warning_calls)
 
     def test_get_historical_logs_debug(self, mock_redis, mock_logger):
-        """Test get_historical logs debug message"""
+        """Test get_historical logs debug message."""
         mock_redis["client"].get.return_value = json.dumps([]).encode("utf-8")
 
         broker = HistoricalMarketBroker()
@@ -268,7 +268,7 @@ class TestHistoricalMarketBrokerGetHistorical:
         assert any("AAPL" in str(call) for call in debug_calls)
 
     def test_get_historical_deserializes_json(self, mock_redis, mock_logger):
-        """Test historical data is deserialized from JSON"""
+        """Test historical data is deserialized from JSON."""
         data = [{"key": "value"}]
         mock_redis["client"].get.return_value = json.dumps(data).encode("utf-8")
 
@@ -280,11 +280,11 @@ class TestHistoricalMarketBrokerGetHistorical:
 
 
 class TestHistoricalMarketBrokerMarketHours:
-    """Test market hours operations"""
+    """Test market hours operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -296,14 +296,14 @@ class TestHistoricalMarketBrokerMarketHours:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_set_market_hours_success(self, mock_redis, mock_logger):
-        """Test successful market hours storage"""
+        """Test successful market hours storage."""
         mock_redis["client"].hmset.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -313,7 +313,7 @@ class TestHistoricalMarketBrokerMarketHours:
         assert result is True
 
     def test_set_market_hours_uses_correct_key(self, mock_redis, mock_logger):
-        """Test set_market_hours uses 'hours' as key"""
+        """Test set_market_hours uses 'hours' as key."""
         mock_redis["client"].hmset.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -323,7 +323,7 @@ class TestHistoricalMarketBrokerMarketHours:
         assert "historical:hours" in call_args[0]
 
     def test_set_market_hours_ttl_12_hours(self, mock_redis, mock_logger):
-        """Test market hours TTL is 12 hours (43200 seconds)"""
+        """Test market hours TTL is 12 hours (43200 seconds)."""
         mock_redis["client"].hmset.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -333,7 +333,7 @@ class TestHistoricalMarketBrokerMarketHours:
         mock_redis["client"].expire.assert_called_with("historical:hours", 43200)
 
     def test_get_market_hours_success(self, mock_redis, mock_logger):
-        """Test successful market hours retrieval"""
+        """Test successful market hours retrieval."""
         mock_redis["client"].hgetall.return_value = {b"isOpen": b"true", b"sessionStart": b"09:30"}
 
         broker = HistoricalMarketBroker()
@@ -342,7 +342,7 @@ class TestHistoricalMarketBrokerMarketHours:
         assert result == {"isOpen": "true", "sessionStart": "09:30"}
 
     def test_get_market_hours_cache_miss(self, mock_redis, mock_logger):
-        """Test get_market_hours when no data exists"""
+        """Test get_market_hours when no data exists."""
         mock_redis["client"].hgetall.return_value = {}
 
         broker = HistoricalMarketBroker()
@@ -351,7 +351,7 @@ class TestHistoricalMarketBrokerMarketHours:
         assert result == {}
 
     def test_get_market_hours_cache_miss_logs_warning(self, mock_redis, mock_logger):
-        """Test cache miss logs warning"""
+        """Test cache miss logs warning."""
         mock_redis["client"].hgetall.return_value = {}
 
         broker = HistoricalMarketBroker()
@@ -361,11 +361,11 @@ class TestHistoricalMarketBrokerMarketHours:
 
 
 class TestHistoricalMarketBrokerIntegration:
-    """Test integration scenarios"""
+    """Test integration scenarios."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -377,14 +377,14 @@ class TestHistoricalMarketBrokerIntegration:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_store_and_retrieve_historical_data(self, mock_redis, mock_logger):
-        """Test complete workflow: store then retrieve historical data"""
+        """Test complete workflow: store then retrieve historical data."""
         test_data = [{"datetime": 1609459200000, "close": 104.0}]
 
         # Setup mocks
@@ -401,7 +401,7 @@ class TestHistoricalMarketBrokerIntegration:
         assert result == test_data
 
     def test_multiple_tickers_storage(self, mock_redis, mock_logger):
-        """Test storing data for multiple tickers"""
+        """Test storing data for multiple tickers."""
         mock_redis["client"].set.return_value = True
 
         broker = HistoricalMarketBroker()
@@ -415,11 +415,11 @@ class TestHistoricalMarketBrokerIntegration:
 
 
 class TestHistoricalMarketBrokerEdgeCases:
-    """Test edge cases and error handling"""
+    """Test edge cases and error handling."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -431,14 +431,14 @@ class TestHistoricalMarketBrokerEdgeCases:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.historical_market.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_ticker_with_special_characters(self, mock_redis, mock_logger):
-        """Test ticker with special characters or unusual format"""
+        """Test ticker with special characters or unusual format."""
         mock_redis["client"].set.return_value = True
         mock_redis["client"].get.return_value = json.dumps([]).encode("utf-8")
 
@@ -450,7 +450,7 @@ class TestHistoricalMarketBrokerEdgeCases:
             assert broker.get_historical(ticker) == []
 
     def test_invalid_json_in_cache(self, mock_redis, mock_logger):
-        """Test handling of corrupted JSON in cache"""
+        """Test handling of corrupted JSON in cache."""
         mock_redis["client"].get.return_value = b"invalid json data"
 
         broker = HistoricalMarketBroker()

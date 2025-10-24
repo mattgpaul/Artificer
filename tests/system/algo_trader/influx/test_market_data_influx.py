@@ -1,4 +1,4 @@
-"""Unit tests for MarketDataInflux - Market Data InfluxDB Client
+"""Unit tests for MarketDataInflux - Market Data InfluxDB Client.
 
 Tests cover initialization, data formatting, write operations, and query operations.
 All external dependencies are mocked to avoid requiring an InfluxDB server.
@@ -13,11 +13,11 @@ from system.algo_trader.influx.market_data_influx import MarketDataInflux, marke
 
 
 class TestMarketDataInfluxInitialization:
-    """Test MarketDataInflux initialization"""
+    """Test MarketDataInflux initialization."""
 
     @pytest.fixture
     def mock_dependencies(self):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.influx.market_data_influx.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_base_logger,
@@ -45,20 +45,20 @@ class TestMarketDataInfluxInitialization:
             }
 
     def test_initialization_default_database(self, mock_dependencies):
-        """Test initialization with default database name"""
+        """Test initialization with default database name."""
         client = MarketDataInflux()
 
         assert client.database == "historical_market_data"
         assert client.write_config == market_write_config
 
     def test_initialization_custom_database(self, mock_dependencies):
-        """Test initialization with custom database name"""
+        """Test initialization with custom database name."""
         client = MarketDataInflux(database="custom_market_data")
 
         assert client.database == "custom_market_data"
 
     def test_initialization_custom_write_config(self, mock_dependencies):
-        """Test initialization with custom write config"""
+        """Test initialization with custom write config."""
         from infrastructure.influxdb.influxdb import BatchWriteConfig
 
         custom_config = BatchWriteConfig(batch_size=5000, max_retries=10)
@@ -68,7 +68,7 @@ class TestMarketDataInfluxInitialization:
         assert client.write_config.max_retries == 10
 
     def test_initialization_uses_market_write_config_by_default(self, mock_dependencies):
-        """Test that default write config uses optimized market settings"""
+        """Test that default write config uses optimized market settings."""
         client = MarketDataInflux()
 
         assert client.write_config.batch_size == 10000
@@ -76,18 +76,18 @@ class TestMarketDataInfluxInitialization:
         assert client.write_config.max_retries == 5
 
     def test_initialization_creates_logger(self, mock_dependencies):
-        """Test that initialization creates a logger with class name"""
-        client = MarketDataInflux()
+        """Test that initialization creates a logger with class name."""
+        MarketDataInflux()
 
         mock_dependencies["logger"].assert_called_with("MarketDataInflux")
 
 
 class TestMarketDataInfluxFormatStockData:
-    """Test stock data formatting"""
+    """Test stock data formatting."""
 
     @pytest.fixture
     def mock_dependencies(self):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.influx.market_data_influx.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_base_logger,
@@ -115,7 +115,7 @@ class TestMarketDataInfluxFormatStockData:
             }
 
     def test_format_stock_data_success(self, mock_dependencies):
-        """Test successful stock data formatting"""
+        """Test successful stock data formatting."""
         client = MarketDataInflux()
 
         # Sample market data with millisecond timestamps
@@ -138,7 +138,7 @@ class TestMarketDataInfluxFormatStockData:
         assert len(result) == 3
 
     def test_format_stock_data_datetime_conversion(self, mock_dependencies):
-        """Test that datetime is properly converted from milliseconds to datetime index"""
+        """Test that datetime is properly converted from milliseconds to datetime index."""
         client = MarketDataInflux()
 
         data = {
@@ -156,7 +156,7 @@ class TestMarketDataInfluxFormatStockData:
         assert result.index[0].day == 1
 
     def test_format_stock_data_logs_debug(self, mock_dependencies):
-        """Test that formatting logs debug message with ticker"""
+        """Test that formatting logs debug message with ticker."""
         client = MarketDataInflux()
 
         data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
@@ -166,7 +166,7 @@ class TestMarketDataInfluxFormatStockData:
         mock_dependencies["logger_instance"].debug.assert_called_with("Formatting TSLA")
 
     def test_format_stock_data_empty_data(self, mock_dependencies):
-        """Test formatting with empty data"""
+        """Test formatting with empty data."""
         client = MarketDataInflux()
 
         data = {"datetime": [], "open": [], "close": []}
@@ -177,7 +177,7 @@ class TestMarketDataInfluxFormatStockData:
         assert len(result) == 0
 
     def test_format_stock_data_preserves_all_columns(self, mock_dependencies):
-        """Test that all data columns are preserved except datetime"""
+        """Test that all data columns are preserved except datetime."""
         client = MarketDataInflux()
 
         data = {
@@ -202,11 +202,11 @@ class TestMarketDataInfluxFormatStockData:
 
 
 class TestMarketDataInfluxWrite:
-    """Test write operations"""
+    """Test write operations."""
 
     @pytest.fixture
     def mock_dependencies(self):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.influx.market_data_influx.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_base_logger,
@@ -234,7 +234,7 @@ class TestMarketDataInfluxWrite:
             }
 
     def test_write_stock_data_success(self, mock_dependencies):
-        """Test successful stock data write"""
+        """Test successful stock data write."""
         mock_dependencies["client"].write.return_value = "Success"
 
         client = MarketDataInflux()
@@ -257,7 +257,7 @@ class TestMarketDataInfluxWrite:
         assert call_args[1]["data_frame_tag_columns"] == ["ticker"]
 
     def test_write_adds_ticker_tag(self, mock_dependencies):
-        """Test that write adds ticker as a tag column"""
+        """Test that write adds ticker as a tag column."""
         mock_dependencies["client"].write.return_value = "Success"
 
         client = MarketDataInflux()
@@ -274,7 +274,7 @@ class TestMarketDataInfluxWrite:
         assert df_passed["ticker"].iloc[0] == "TSLA"
 
     def test_write_logs_debug_on_success(self, mock_dependencies):
-        """Test that successful write logs debug message"""
+        """Test that successful write logs debug message."""
         mock_dependencies["client"].write.return_value = "Write callback"
 
         client = MarketDataInflux()
@@ -286,7 +286,7 @@ class TestMarketDataInfluxWrite:
         mock_dependencies["logger_instance"].debug.assert_called()
 
     def test_write_failure_returns_false(self, mock_dependencies):
-        """Test that write returns False on exception"""
+        """Test that write returns False on exception."""
         mock_dependencies["client"].write.side_effect = Exception("Write failed")
 
         client = MarketDataInflux()
@@ -298,7 +298,7 @@ class TestMarketDataInfluxWrite:
         assert result is False
 
     def test_write_failure_logs_error(self, mock_dependencies):
-        """Test that write failure logs error message with ticker"""
+        """Test that write failure logs error message with ticker."""
         mock_dependencies["client"].write.side_effect = Exception("Connection timeout")
 
         client = MarketDataInflux()
@@ -313,7 +313,7 @@ class TestMarketDataInfluxWrite:
         assert "Connection timeout" in error_call[0][0]
 
     def test_write_with_custom_table_name(self, mock_dependencies):
-        """Test write with custom table name"""
+        """Test write with custom table name."""
         mock_dependencies["client"].write.return_value = "Success"
 
         client = MarketDataInflux()
@@ -327,7 +327,7 @@ class TestMarketDataInfluxWrite:
         assert call_args[1]["data_frame_measurement_name"] == "stock"
 
     def test_write_multiple_tickers(self, mock_dependencies):
-        """Test writing data for different tickers"""
+        """Test writing data for different tickers."""
         mock_dependencies["client"].write.return_value = "Success"
 
         client = MarketDataInflux()
@@ -346,11 +346,11 @@ class TestMarketDataInfluxWrite:
 
 
 class TestMarketDataInfluxQuery:
-    """Test query operations"""
+    """Test query operations."""
 
     @pytest.fixture
     def mock_dependencies(self):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.influx.market_data_influx.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_base_logger,
@@ -378,7 +378,7 @@ class TestMarketDataInfluxQuery:
             }
 
     def test_query_success(self, mock_dependencies):
-        """Test successful query execution"""
+        """Test successful query execution."""
         # Create mock DataFrame
         mock_df = pd.DataFrame(
             {
@@ -401,7 +401,7 @@ class TestMarketDataInfluxQuery:
         )
 
     def test_query_logs_info(self, mock_dependencies):
-        """Test that query logs info message"""
+        """Test that query logs info message."""
         mock_df = pd.DataFrame({"close": [104.0]})
         mock_dependencies["client"].query.return_value = mock_df
 
@@ -412,7 +412,7 @@ class TestMarketDataInfluxQuery:
         mock_dependencies["logger_instance"].info.assert_called_with("Getting data")
 
     def test_query_failure_returns_false(self, mock_dependencies):
-        """Test that query returns False on exception"""
+        """Test that query returns False on exception."""
         mock_dependencies["client"].query.side_effect = Exception("Query failed")
 
         client = MarketDataInflux()
@@ -422,7 +422,7 @@ class TestMarketDataInfluxQuery:
         assert result is False
 
     def test_query_failure_logs_error(self, mock_dependencies):
-        """Test that query failure logs error message"""
+        """Test that query failure logs error message."""
         mock_dependencies["client"].query.side_effect = Exception("Connection timeout")
 
         client = MarketDataInflux()
@@ -434,15 +434,15 @@ class TestMarketDataInfluxQuery:
         assert "Connection timeout" in error_call[0][0]
 
     def test_query_with_complex_sql(self, mock_dependencies):
-        """Test query with complex SQL statement"""
+        """Test query with complex SQL statement."""
         mock_df = pd.DataFrame({"avg_close": [105.5]})
         mock_dependencies["client"].query.return_value = mock_df
 
         client = MarketDataInflux()
 
         query = """
-        SELECT ticker, AVG(close) as avg_close 
-        FROM stock 
+        SELECT ticker, AVG(close) as avg_close
+        FROM stock
         WHERE time > NOW() - INTERVAL '7 days'
         GROUP BY ticker
         """
@@ -455,7 +455,7 @@ class TestMarketDataInfluxQuery:
         )
 
     def test_query_empty_result(self, mock_dependencies):
-        """Test query that returns empty DataFrame"""
+        """Test query that returns empty DataFrame."""
         mock_df = pd.DataFrame()
         mock_dependencies["client"].query.return_value = mock_df
 
@@ -467,7 +467,7 @@ class TestMarketDataInfluxQuery:
         assert len(result) == 0
 
     def test_query_uses_sql_language(self, mock_dependencies):
-        """Test that query uses SQL language parameter"""
+        """Test that query uses SQL language parameter."""
         mock_df = pd.DataFrame({"close": [104.0]})
         mock_dependencies["client"].query.return_value = mock_df
 
@@ -479,7 +479,7 @@ class TestMarketDataInfluxQuery:
         assert call_args[1]["language"] == "sql"
 
     def test_query_uses_pandas_mode(self, mock_dependencies):
-        """Test that query uses pandas mode parameter"""
+        """Test that query uses pandas mode parameter."""
         mock_df = pd.DataFrame({"close": [104.0]})
         mock_dependencies["client"].query.return_value = mock_df
 
@@ -492,11 +492,11 @@ class TestMarketDataInfluxQuery:
 
 
 class TestMarketDataInfluxIntegration:
-    """Test integration scenarios"""
+    """Test integration scenarios."""
 
     @pytest.fixture
     def mock_dependencies(self):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.influx.market_data_influx.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_base_logger,
@@ -524,7 +524,7 @@ class TestMarketDataInfluxIntegration:
             }
 
     def test_write_then_query_workflow(self, mock_dependencies):
-        """Test complete workflow: write data then query it back"""
+        """Test complete workflow: write data then query it back."""
         # Setup mock for write
         mock_dependencies["client"].write.return_value = "Success"
 
@@ -545,7 +545,7 @@ class TestMarketDataInfluxIntegration:
         assert len(query_result) == 1
 
     def test_batch_write_multiple_tickers(self, mock_dependencies):
-        """Test writing data for multiple tickers in batch"""
+        """Test writing data for multiple tickers in batch."""
         mock_dependencies["client"].write.return_value = "Success"
 
         client = MarketDataInflux()
@@ -564,7 +564,7 @@ class TestMarketDataInfluxIntegration:
         assert mock_dependencies["client"].write.call_count == len(tickers)
 
     def test_error_recovery_continues_after_failed_write(self, mock_dependencies):
-        """Test that client can continue after a failed write"""
+        """Test that client can continue after a failed write."""
         # First write fails, second succeeds
         mock_dependencies["client"].write.side_effect = [Exception("Write failed"), "Success"]
 
@@ -582,14 +582,14 @@ class TestMarketDataInfluxIntegration:
 
 
 class TestMarketWriteConfig:
-    """Test market_write_config module-level configuration"""
+    """Test market_write_config module-level configuration."""
 
     def test_market_write_config_exists(self):
-        """Test that market_write_config is defined"""
+        """Test that market_write_config is defined."""
         assert market_write_config is not None
 
     def test_market_write_config_values(self):
-        """Test market_write_config has correct values for market data"""
+        """Test market_write_config has correct values for market data."""
         assert market_write_config.batch_size == 10000
         assert market_write_config.flush_interval == 1000
         assert market_write_config.jitter_interval == 2000
@@ -599,7 +599,7 @@ class TestMarketWriteConfig:
         assert market_write_config.exponential_base == 2
 
     def test_market_write_config_optimized_for_high_volume(self):
-        """Test that config is optimized for high-volume market data"""
+        """Test that config is optimized for high-volume market data."""
         # Large batch size for efficiency
         assert market_write_config.batch_size >= 10000
 

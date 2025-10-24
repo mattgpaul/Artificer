@@ -14,7 +14,7 @@ class FrequencyType(Enum):
     MONTHLY = "monthly"
 
     def is_valid_frequency(self, frequency: int) -> bool:
-        """Check if frequency value is valid for this frequency type"""
+        """Check if frequency value is valid for this frequency type."""
         valid_frequencies = {
             FrequencyType.MINUTE: frozenset([1, 5, 10, 15, 30]),
             FrequencyType.DAILY: frozenset([1]),
@@ -33,7 +33,7 @@ class PeriodType(Enum):
     def validate_combination(
         self, period: int, frequency_type: FrequencyType, frequency: int
     ) -> None:
-        """Validate entire period/frequency combination - raises ValueError if invalid"""
+        """Validate entire period/frequency combination - raises ValueError if invalid."""
         # Check period
         valid_periods = {
             PeriodType.DAY: frozenset([1, 2, 3, 4, 5, 10]),

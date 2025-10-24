@@ -33,11 +33,11 @@ class BaseRedisClient(Client):
 
     @abstractmethod
     def _get_namespace(self) -> str:
-        """Inheriting class needs to define their db namespace"""
+        """Inheriting class needs to define their db namespace."""
         pass
 
     def _create_connection_pool(self):
-        """Create Redis connection pool with configurable settings"""
+        """Create Redis connection pool with configurable settings."""
         try:
             self.pool = redis.ConnectionPool(
                 host=self.host,
@@ -55,7 +55,7 @@ class BaseRedisClient(Client):
             raise
 
     def _build_key(self, key: str) -> str:
-        """Build namsepace key: namespace:key"""
+        """Build namsepace key: namespace:key."""
         return f"{self.namespace}:{key}"
 
     def get(self, key: str) -> str | None:

@@ -1,4 +1,4 @@
-"""Unit tests for AccountBroker - Account Token Management
+"""Unit tests for AccountBroker - Account Token Management.
 
 Tests cover token storage and retrieval for OAuth2 authentication.
 All Redis operations are mocked to avoid requiring a Redis server.
@@ -12,11 +12,11 @@ from system.algo_trader.redis.account import AccountBroker
 
 
 class TestAccountBrokerInitialization:
-    """Test AccountBroker initialization"""
+    """Test AccountBroker initialization."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -28,21 +28,21 @@ class TestAccountBrokerInitialization:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.account.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_initialization_success(self, mock_redis, mock_logger):
-        """Test successful AccountBroker initialization"""
+        """Test successful AccountBroker initialization."""
         broker = AccountBroker()
 
         assert broker.namespace == "account"
         assert broker.logger is not None
 
     def test_initialization_inherits_from_base_redis_client(self, mock_redis, mock_logger):
-        """Test that AccountBroker inherits from BaseRedisClient"""
+        """Test that AccountBroker inherits from BaseRedisClient."""
         from infrastructure.redis.redis import BaseRedisClient
 
         broker = AccountBroker()
@@ -50,25 +50,25 @@ class TestAccountBrokerInitialization:
         assert isinstance(broker, BaseRedisClient)
 
     def test_get_namespace_returns_account(self, mock_redis, mock_logger):
-        """Test _get_namespace returns correct namespace"""
+        """Test _get_namespace returns correct namespace."""
         broker = AccountBroker()
 
         assert broker._get_namespace() == "account"
 
     def test_initialization_creates_connection_pool(self, mock_redis, mock_logger):
-        """Test initialization creates Redis connection pool"""
-        broker = AccountBroker()
+        """Test initialization creates Redis connection pool."""
+        AccountBroker()
 
         mock_redis["module"].ConnectionPool.assert_called()
         mock_redis["module"].Redis.assert_called()
 
 
 class TestAccountBrokerRefreshToken:
-    """Test refresh token operations"""
+    """Test refresh token operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -80,14 +80,14 @@ class TestAccountBrokerRefreshToken:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.account.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_set_refresh_token_success(self, mock_redis, mock_logger):
-        """Test successful refresh token storage"""
+        """Test successful refresh token storage."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -101,7 +101,7 @@ class TestAccountBrokerRefreshToken:
         assert call_args[1]["ex"] == expected_ttl
 
     def test_set_refresh_token_uses_correct_key(self, mock_redis, mock_logger):
-        """Test set_refresh_token uses correct Redis key"""
+        """Test set_refresh_token uses correct Redis key."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -111,7 +111,7 @@ class TestAccountBrokerRefreshToken:
         assert "account:refresh-token" in call_args[0]
 
     def test_set_refresh_token_ttl_is_90_days(self, mock_redis, mock_logger):
-        """Test refresh token TTL is exactly 90 days"""
+        """Test refresh token TTL is exactly 90 days."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -122,7 +122,7 @@ class TestAccountBrokerRefreshToken:
         assert call_args[1]["ex"] == expected_ttl
 
     def test_set_refresh_token_failure(self, mock_redis, mock_logger):
-        """Test refresh token storage failure"""
+        """Test refresh token storage failure."""
         mock_redis["client"].set.return_value = False
 
         broker = AccountBroker()
@@ -131,7 +131,7 @@ class TestAccountBrokerRefreshToken:
         assert result is False
 
     def test_get_refresh_token_success(self, mock_redis, mock_logger):
-        """Test successful refresh token retrieval"""
+        """Test successful refresh token retrieval."""
         mock_redis["client"].get.return_value = b"stored_refresh_token"
 
         broker = AccountBroker()
@@ -141,7 +141,7 @@ class TestAccountBrokerRefreshToken:
         mock_redis["client"].get.assert_called_once_with("account:refresh-token")
 
     def test_get_refresh_token_not_found(self, mock_redis, mock_logger):
-        """Test refresh token retrieval when token doesn't exist"""
+        """Test refresh token retrieval when token doesn't exist."""
         mock_redis["client"].get.return_value = None
 
         broker = AccountBroker()
@@ -150,7 +150,7 @@ class TestAccountBrokerRefreshToken:
         assert result is None
 
     def test_get_refresh_token_uses_correct_key(self, mock_redis, mock_logger):
-        """Test get_refresh_token uses correct Redis key"""
+        """Test get_refresh_token uses correct Redis key."""
         mock_redis["client"].get.return_value = b"token"
 
         broker = AccountBroker()
@@ -160,11 +160,11 @@ class TestAccountBrokerRefreshToken:
 
 
 class TestAccountBrokerAccessToken:
-    """Test access token operations"""
+    """Test access token operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -176,14 +176,14 @@ class TestAccountBrokerAccessToken:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.account.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_set_access_token_success(self, mock_redis, mock_logger):
-        """Test successful access token storage"""
+        """Test successful access token storage."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -192,7 +192,7 @@ class TestAccountBrokerAccessToken:
         assert result is True
 
     def test_set_access_token_default_ttl(self, mock_redis, mock_logger):
-        """Test access token uses default TTL of 30 minutes"""
+        """Test access token uses default TTL of 30 minutes."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -204,7 +204,7 @@ class TestAccountBrokerAccessToken:
         assert call_args[1]["ex"] == expected_ttl
 
     def test_set_access_token_custom_ttl(self, mock_redis, mock_logger):
-        """Test access token with custom TTL"""
+        """Test access token with custom TTL."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -216,7 +216,7 @@ class TestAccountBrokerAccessToken:
         assert call_args[1]["ex"] == expected_ttl
 
     def test_set_access_token_uses_correct_key(self, mock_redis, mock_logger):
-        """Test set_access_token uses correct Redis key"""
+        """Test set_access_token uses correct Redis key."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -226,7 +226,7 @@ class TestAccountBrokerAccessToken:
         assert "account:access-token" in call_args[0]
 
     def test_set_access_token_failure(self, mock_redis, mock_logger):
-        """Test access token storage failure"""
+        """Test access token storage failure."""
         mock_redis["client"].set.return_value = False
 
         broker = AccountBroker()
@@ -235,7 +235,7 @@ class TestAccountBrokerAccessToken:
         assert result is False
 
     def test_get_access_token_success(self, mock_redis, mock_logger):
-        """Test successful access token retrieval"""
+        """Test successful access token retrieval."""
         mock_redis["client"].get.return_value = b"stored_access_token"
 
         broker = AccountBroker()
@@ -245,7 +245,7 @@ class TestAccountBrokerAccessToken:
         mock_redis["client"].get.assert_called_once_with("account:access-token")
 
     def test_get_access_token_not_found(self, mock_redis, mock_logger):
-        """Test access token retrieval when token doesn't exist"""
+        """Test access token retrieval when token doesn't exist."""
         mock_redis["client"].get.return_value = None
 
         broker = AccountBroker()
@@ -254,7 +254,7 @@ class TestAccountBrokerAccessToken:
         assert result is None
 
     def test_get_access_token_expired(self, mock_redis, mock_logger):
-        """Test access token retrieval when token has expired"""
+        """Test access token retrieval when token has expired."""
         mock_redis["client"].get.return_value = None  # Expired tokens return None
 
         broker = AccountBroker()
@@ -264,11 +264,11 @@ class TestAccountBrokerAccessToken:
 
 
 class TestAccountBrokerIntegration:
-    """Test integration scenarios with multiple operations"""
+    """Test integration scenarios with multiple operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -280,14 +280,14 @@ class TestAccountBrokerIntegration:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.account.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_oauth_token_lifecycle(self, mock_redis, mock_logger):
-        """Test complete OAuth token lifecycle"""
+        """Test complete OAuth token lifecycle."""
         mock_redis["client"].set.return_value = True
         mock_redis["client"].get.side_effect = [b"refresh_token_value", b"access_token_value"]
 
@@ -305,7 +305,7 @@ class TestAccountBrokerIntegration:
         assert access_token == "access_token_value"
 
     def test_token_refresh_workflow(self, mock_redis, mock_logger):
-        """Test token refresh workflow: get refresh token -> set new access token"""
+        """Test token refresh workflow: get refresh token -> set new access token."""
         mock_redis["client"].get.return_value = b"valid_refresh_token"
         mock_redis["client"].set.return_value = True
 
@@ -319,7 +319,7 @@ class TestAccountBrokerIntegration:
         assert broker.set_access_token("new_access_token") is True
 
     def test_expired_access_token_with_valid_refresh(self, mock_redis, mock_logger):
-        """Test scenario where access token expired but refresh token valid"""
+        """Test scenario where access token expired but refresh token valid."""
         mock_redis["client"].get.side_effect = [
             None,  # Access token expired
             b"valid_refresh_token",  # Refresh token still valid
@@ -340,7 +340,7 @@ class TestAccountBrokerIntegration:
         assert broker.set_access_token("refreshed_access_token") is True
 
     def test_both_tokens_expired(self, mock_redis, mock_logger):
-        """Test scenario where both tokens are expired"""
+        """Test scenario where both tokens are expired."""
         mock_redis["client"].get.return_value = None
 
         broker = AccountBroker()
@@ -350,7 +350,7 @@ class TestAccountBrokerIntegration:
         assert broker.get_refresh_token() is None
 
     def test_update_existing_tokens(self, mock_redis, mock_logger):
-        """Test updating existing tokens with new values"""
+        """Test updating existing tokens with new values."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -367,11 +367,11 @@ class TestAccountBrokerIntegration:
 
 
 class TestAccountBrokerEdgeCases:
-    """Test edge cases and error handling"""
+    """Test edge cases and error handling."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -383,14 +383,14 @@ class TestAccountBrokerEdgeCases:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("system.algo_trader.redis.account.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_set_empty_string_token(self, mock_redis, mock_logger):
-        """Test storing empty string as token"""
+        """Test storing empty string as token."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -399,7 +399,7 @@ class TestAccountBrokerEdgeCases:
         assert result is True
 
     def test_set_very_long_token(self, mock_redis, mock_logger):
-        """Test storing very long token string"""
+        """Test storing very long token string."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -409,7 +409,7 @@ class TestAccountBrokerEdgeCases:
         assert result is True
 
     def test_set_token_with_special_characters(self, mock_redis, mock_logger):
-        """Test storing token with special characters"""
+        """Test storing token with special characters."""
         mock_redis["client"].set.return_value = True
 
         broker = AccountBroker()
@@ -419,7 +419,7 @@ class TestAccountBrokerEdgeCases:
         assert result is True
 
     def test_redis_connection_error_on_set(self, mock_redis, mock_logger):
-        """Test handling Redis connection error during set"""
+        """Test handling Redis connection error during set."""
         mock_redis["client"].set.side_effect = Exception("Connection error")
 
         broker = AccountBroker()
@@ -431,7 +431,7 @@ class TestAccountBrokerEdgeCases:
         assert result is False
 
     def test_redis_connection_error_on_get(self, mock_redis, mock_logger):
-        """Test handling Redis connection error during get"""
+        """Test handling Redis connection error during get."""
         mock_redis["client"].get.side_effect = Exception("Connection error")
 
         broker = AccountBroker()

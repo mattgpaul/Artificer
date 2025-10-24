@@ -1,4 +1,4 @@
-"""Unit tests for BaseInfluxDBClient - InfluxDB Database Operations
+"""Unit tests for BaseInfluxDBClient - InfluxDB Database Operations.
 
 Tests cover client initialization, batch write configuration, connection management,
 ping functionality, and error handling.
@@ -15,22 +15,22 @@ from infrastructure.influxdb.influxdb import BaseInfluxDBClient, BatchingCallbac
 
 
 class ConcreteInfluxDBClient(BaseInfluxDBClient):
-    """Concrete implementation for testing abstract BaseInfluxDBClient"""
+    """Concrete implementation for testing abstract BaseInfluxDBClient."""
 
     def write(self):
-        """Concrete implementation of abstract write method"""
+        """Concrete implementation of abstract write method."""
         pass
 
     def query(self):
-        """Concrete implementation of abstract query method"""
+        """Concrete implementation of abstract query method."""
         pass
 
 
 class TestBatchWriteConfig:
-    """Test BatchWriteConfig dataclass configuration"""
+    """Test BatchWriteConfig dataclass configuration."""
 
     def test_default_config(self):
-        """Test BatchWriteConfig with default values"""
+        """Test BatchWriteConfig with default values."""
         config = BatchWriteConfig()
 
         assert config.batch_size == 100
@@ -42,7 +42,7 @@ class TestBatchWriteConfig:
         assert config.exponential_base == 2
 
     def test_custom_config(self):
-        """Test BatchWriteConfig with custom values"""
+        """Test BatchWriteConfig with custom values."""
         config = BatchWriteConfig(
             batch_size=50,
             flush_interval=5_000,
@@ -62,7 +62,7 @@ class TestBatchWriteConfig:
         assert config.exponential_base == 3
 
     def test_validation_positive_batch_size(self):
-        """Test BatchWriteConfig validates positive batch_size"""
+        """Test BatchWriteConfig validates positive batch_size."""
         with pytest.raises(ValueError, match="batch_size must be positive"):
             BatchWriteConfig(batch_size=0)
 
@@ -70,17 +70,17 @@ class TestBatchWriteConfig:
             BatchWriteConfig(batch_size=-1)
 
     def test_validation_non_negative_retries(self):
-        """Test BatchWriteConfig validates non-negative max_retries"""
+        """Test BatchWriteConfig validates non-negative max_retries."""
         with pytest.raises(ValueError, match="max_retries cannot be negative"):
             BatchWriteConfig(max_retries=-1)
 
     def test_valid_zero_retries(self):
-        """Test BatchWriteConfig allows zero retries"""
+        """Test BatchWriteConfig allows zero retries."""
         config = BatchWriteConfig(max_retries=0)
         assert config.max_retries == 0
 
     def test_to_write_options(self):
-        """Test _to_write_options conversion"""
+        """Test _to_write_options conversion."""
         config = BatchWriteConfig(batch_size=200, max_retries=10)
 
         with patch("infrastructure.influxdb.influxdb.WriteOptions") as mock_write_options:
@@ -98,23 +98,23 @@ class TestBatchWriteConfig:
 
 
 class TestBatchingCallback:
-    """Test BatchingCallback methods"""
+    """Test BatchingCallback methods."""
 
     @pytest.fixture
     def callback(self):
-        """Fixture to create a BatchingCallback instance"""
+        """Fixture to create a BatchingCallback instance."""
         return BatchingCallback()
 
     def test_success_callback(self, callback, capsys):
-        """Test success callback prints confirmation"""
+        """Test success callback prints confirmation."""
         callback.success("batch_config", "test_data")
 
         captured = capsys.readouterr()
         assert "Written batch: batch_config" in captured.out
 
     def test_error_callback(self, callback, capsys):
-        """Test error callback prints error details"""
-        with patch("influxdb_client_3.InfluxDBError") as mock_error:
+        """Test error callback prints error details."""
+        with patch("influxdb_client_3.InfluxDBError"):
             mock_error_instance = Mock()
             mock_error_instance.__str__ = Mock(return_value="Test error")
 
@@ -124,8 +124,8 @@ class TestBatchingCallback:
             assert "Cannot write batch: batch_config" in captured.out
 
     def test_retry_callback(self, callback, capsys):
-        """Test retry callback prints retry information"""
-        with patch("influxdb_client_3.InfluxDBError") as mock_error:
+        """Test retry callback prints retry information."""
+        with patch("influxdb_client_3.InfluxDBError"):
             mock_error_instance = Mock()
             mock_error_instance.__str__ = Mock(return_value="Retryable error")
 
@@ -136,11 +136,11 @@ class TestBatchingCallback:
 
 
 class TestInfluxDBClientInitialization:
-    """Test BaseInfluxDBClient initialization and configuration"""
+    """Test BaseInfluxDBClient initialization and configuration."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -163,7 +163,7 @@ class TestInfluxDBClientInitialization:
             }
 
     def test_initialization_default_config(self, mock_influx_dependencies):
-        """Test initialization with default configuration"""
+        """Test initialization with default configuration."""
         with patch.dict(os.environ, {}, clear=True):
             client = ConcreteInfluxDBClient(database="test_db")
 
@@ -173,7 +173,7 @@ class TestInfluxDBClientInitialization:
             assert isinstance(client.write_config, BatchWriteConfig)
 
     def test_initialization_custom_env_config(self, mock_influx_dependencies):
-        """Test initialization with custom environment configuration"""
+        """Test initialization with custom environment configuration."""
         with patch.dict(
             os.environ,
             {
@@ -188,7 +188,7 @@ class TestInfluxDBClientInitialization:
             assert client.url == "http://influxdb.example.com:8086"
 
     def test_initialization_custom_write_config(self, mock_influx_dependencies):
-        """Test initialization with custom BatchWriteConfig"""
+        """Test initialization with custom BatchWriteConfig."""
         custom_config = BatchWriteConfig(batch_size=500, max_retries=10)
 
         client = ConcreteInfluxDBClient(database="test_db", write_config=custom_config)
@@ -197,12 +197,12 @@ class TestInfluxDBClientInitialization:
         assert client.write_config.max_retries == 10
 
     def test_client_creation(self, mock_influx_dependencies):
-        """Test InfluxDB client is created with correct parameters"""
+        """Test InfluxDB client is created with correct parameters."""
         with patch.dict(
             os.environ,
             {"INFLUXDB3_AUTH_TOKEN": "test_token", "INFLUXDB3_HTTP_BIND_ADDR": "localhost:8181"},
         ):
-            client = ConcreteInfluxDBClient(database="test_db")
+            ConcreteInfluxDBClient(database="test_db")
 
             mock_influx_dependencies["client_class"].assert_called_once()
             call_kwargs = mock_influx_dependencies["client_class"].call_args[1]
@@ -211,8 +211,8 @@ class TestInfluxDBClientInitialization:
             assert call_kwargs["database"] == "test_db"
 
     def test_write_client_options_setup(self, mock_influx_dependencies):
-        """Test write client options are configured correctly"""
-        client = ConcreteInfluxDBClient(database="test_db")
+        """Test write client options are configured correctly."""
+        ConcreteInfluxDBClient(database="test_db")
 
         mock_influx_dependencies["wco"].assert_called_once()
         call_kwargs = mock_influx_dependencies["wco"].call_args[1]
@@ -222,7 +222,7 @@ class TestInfluxDBClientInitialization:
         assert "write_options" in call_kwargs
 
     def test_headers_property(self, mock_influx_dependencies):
-        """Test _headers property returns correct authorization"""
+        """Test _headers property returns correct authorization."""
         with patch.dict(os.environ, {"INFLUXDB3_AUTH_TOKEN": "test_token"}):
             client = ConcreteInfluxDBClient(database="test_db")
 
@@ -232,11 +232,11 @@ class TestInfluxDBClientInitialization:
 
 
 class TestInfluxDBClientPing:
-    """Test ping functionality"""
+    """Test ping functionality."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -261,7 +261,7 @@ class TestInfluxDBClientPing:
             }
 
     def test_ping_success(self, mock_influx_dependencies):
-        """Test successful ping to InfluxDB server"""
+        """Test successful ping to InfluxDB server."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_influx_dependencies["requests"].get.return_value = mock_response
@@ -275,7 +275,7 @@ class TestInfluxDBClientPing:
         )
 
     def test_ping_failure_non_200_status(self, mock_influx_dependencies):
-        """Test ping failure with non-200 status code"""
+        """Test ping failure with non-200 status code."""
         mock_response = MagicMock()
         mock_response.status_code = 500
         mock_influx_dependencies["requests"].get.return_value = mock_response
@@ -287,7 +287,7 @@ class TestInfluxDBClientPing:
         mock_influx_dependencies["logger_instance"].debug.assert_called()
 
     def test_ping_failure_exception(self, mock_influx_dependencies):
-        """Test ping failure with exception"""
+        """Test ping failure with exception."""
         mock_influx_dependencies["requests"].get.side_effect = Exception("Connection refused")
 
         client = ConcreteInfluxDBClient(database="test_db")
@@ -297,7 +297,7 @@ class TestInfluxDBClientPing:
         mock_influx_dependencies["logger_instance"].debug.assert_called()
 
     def test_ping_uses_correct_url(self, mock_influx_dependencies):
-        """Test ping uses correct health endpoint URL"""
+        """Test ping uses correct health endpoint URL."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_influx_dependencies["requests"].get.return_value = mock_response
@@ -318,7 +318,7 @@ class TestInfluxDBClientPing:
             )
 
     def test_ping_timeout(self, mock_influx_dependencies):
-        """Test ping handles timeout exceptions"""
+        """Test ping handles timeout exceptions."""
         mock_influx_dependencies["requests"].get.side_effect = requests.Timeout("Request timeout")
 
         client = ConcreteInfluxDBClient(database="test_db")
@@ -327,7 +327,7 @@ class TestInfluxDBClientPing:
         assert result is False
 
     def test_ping_connection_error(self, mock_influx_dependencies):
-        """Test ping handles connection errors"""
+        """Test ping handles connection errors."""
         mock_influx_dependencies["requests"].get.side_effect = requests.ConnectionError(
             "Connection error"
         )
@@ -339,11 +339,11 @@ class TestInfluxDBClientPing:
 
 
 class TestInfluxDBClientClose:
-    """Test close functionality"""
+    """Test close functionality."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -366,14 +366,14 @@ class TestInfluxDBClientClose:
             }
 
     def test_close_success(self, mock_influx_dependencies):
-        """Test successful client close"""
+        """Test successful client close."""
         client = ConcreteInfluxDBClient(database="test_db")
         client.close()
 
         mock_influx_dependencies["client"].close.assert_called_once()
 
     def test_close_with_exception(self, mock_influx_dependencies):
-        """Test close handles exceptions gracefully"""
+        """Test close handles exceptions gracefully."""
         mock_influx_dependencies["client"].close.side_effect = Exception("Close error")
 
         client = ConcreteInfluxDBClient(database="test_db")
@@ -382,7 +382,7 @@ class TestInfluxDBClientClose:
         mock_influx_dependencies["logger_instance"].warning.assert_called()
 
     def test_close_without_client(self, mock_influx_dependencies):
-        """Test close when client doesn't exist"""
+        """Test close when client doesn't exist."""
         client = ConcreteInfluxDBClient(database="test_db")
         del client.client
 
@@ -390,7 +390,7 @@ class TestInfluxDBClientClose:
         client.close()
 
     def test_close_with_none_client(self, mock_influx_dependencies):
-        """Test close when client is None"""
+        """Test close when client is None."""
         client = ConcreteInfluxDBClient(database="test_db")
         client.client = None
 
@@ -399,11 +399,11 @@ class TestInfluxDBClientClose:
 
 
 class TestInfluxDBClientAbstractMethods:
-    """Test abstract method enforcement"""
+    """Test abstract method enforcement."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -426,7 +426,7 @@ class TestInfluxDBClientAbstractMethods:
             }
 
     def test_write_is_abstract(self, mock_influx_dependencies):
-        """Test write method is abstract and must be implemented"""
+        """Test write method is abstract and must be implemented."""
         # ConcreteInfluxDBClient implements write, so it should work
         client = ConcreteInfluxDBClient(database="test_db")
 
@@ -434,7 +434,7 @@ class TestInfluxDBClientAbstractMethods:
         client.write()
 
     def test_query_is_abstract(self, mock_influx_dependencies):
-        """Test query method is abstract and must be implemented"""
+        """Test query method is abstract and must be implemented."""
         # ConcreteInfluxDBClient implements query, so it should work
         client = ConcreteInfluxDBClient(database="test_db")
 
@@ -442,7 +442,7 @@ class TestInfluxDBClientAbstractMethods:
         client.query()
 
     def test_cannot_instantiate_without_implementation(self):
-        """Test BaseInfluxDBClient cannot be instantiated without implementing abstract methods"""
+        """Test BaseInfluxDBClient cannot be instantiated without implementing abstract methods."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger"),
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3"),
@@ -457,11 +457,11 @@ class TestInfluxDBClientAbstractMethods:
 
 
 class TestInfluxDBClientIntegration:
-    """Test integration scenarios"""
+    """Test integration scenarios."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -486,7 +486,7 @@ class TestInfluxDBClientIntegration:
             }
 
     def test_full_lifecycle(self, mock_influx_dependencies):
-        """Test complete client lifecycle: init -> ping -> close"""
+        """Test complete client lifecycle: init -> ping -> close."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_influx_dependencies["requests"].get.return_value = mock_response
@@ -503,7 +503,7 @@ class TestInfluxDBClientIntegration:
         mock_influx_dependencies["client"].close.assert_called_once()
 
     def test_multiple_pings(self, mock_influx_dependencies):
-        """Test multiple ping operations"""
+        """Test multiple ping operations."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_influx_dependencies["requests"].get.return_value = mock_response
@@ -518,7 +518,7 @@ class TestInfluxDBClientIntegration:
         assert mock_influx_dependencies["requests"].get.call_count == 3
 
     def test_connection_failure_recovery(self, mock_influx_dependencies):
-        """Test recovery from connection failure"""
+        """Test recovery from connection failure."""
         # First ping fails, second succeeds
         mock_response_fail = MagicMock()
         mock_response_fail.status_code = 500
@@ -538,11 +538,11 @@ class TestInfluxDBClientIntegration:
 
 
 class TestInfluxDBClientEdgeCases:
-    """Test edge cases and error handling"""
+    """Test edge cases and error handling."""
 
     @pytest.fixture
     def mock_influx_dependencies(self):
-        """Fixture to mock InfluxDB dependencies"""
+        """Fixture to mock InfluxDB dependencies."""
         with (
             patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
             patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
@@ -565,25 +565,25 @@ class TestInfluxDBClientEdgeCases:
             }
 
     def test_empty_database_name(self, mock_influx_dependencies):
-        """Test initialization with empty database name"""
+        """Test initialization with empty database name."""
         client = ConcreteInfluxDBClient(database="")
 
         assert client.database == ""
 
     def test_special_chars_in_database_name(self, mock_influx_dependencies):
-        """Test initialization with special characters in database name"""
+        """Test initialization with special characters in database name."""
         client = ConcreteInfluxDBClient(database="test-db_123")
 
         assert client.database == "test-db_123"
 
     def test_unicode_database_name(self, mock_influx_dependencies):
-        """Test initialization with unicode characters in database name"""
+        """Test initialization with unicode characters in database name."""
         client = ConcreteInfluxDBClient(database="数据库")
 
         assert client.database == "数据库"
 
     def test_get_write_config_can_be_overridden(self, mock_influx_dependencies):
-        """Test _get_write_config can be overridden for custom configuration"""
+        """Test _get_write_config can be overridden for custom configuration."""
 
         class CustomInfluxDBClient(ConcreteInfluxDBClient):
             def _get_write_config(self):
@@ -595,7 +595,7 @@ class TestInfluxDBClientEdgeCases:
         assert client.write_config.max_retries == 20
 
     def test_none_write_config_uses_default(self, mock_influx_dependencies):
-        """Test passing None for write_config uses default"""
+        """Test passing None for write_config uses default."""
         client = ConcreteInfluxDBClient(database="test_db", write_config=None)
 
         assert isinstance(client.write_config, BatchWriteConfig)

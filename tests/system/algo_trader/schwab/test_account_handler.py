@@ -1,4 +1,4 @@
-"""Unit tests for AccountHandler - Account API Methods
+"""Unit tests for AccountHandler - Account API Methods.
 
 Tests cover account retrieval, positions, orders, and trading operations.
 All external dependencies are mocked to avoid network calls.
@@ -12,11 +12,11 @@ from system.algo_trader.schwab.account_handler import AccountHandler
 
 
 class TestAccountHandlerInitialization:
-    """Test AccountHandler initialization"""
+    """Test AccountHandler initialization."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -29,7 +29,7 @@ class TestAccountHandlerInitialization:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
@@ -48,7 +48,7 @@ class TestAccountHandlerInitialization:
             }
 
     def test_initialization_success(self, mock_dependencies):
-        """Test successful AccountHandler initialization"""
+        """Test successful AccountHandler initialization."""
         handler = AccountHandler()
 
         assert handler.account_url == "https://api.schwabapi.com/trader/v1"
@@ -58,11 +58,11 @@ class TestAccountHandlerInitialization:
 
 
 class TestAccountHandlerAccountMethods:
-    """Test account information retrieval methods"""
+    """Test account information retrieval methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -75,7 +75,7 @@ class TestAccountHandlerAccountMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
@@ -94,7 +94,7 @@ class TestAccountHandlerAccountMethods:
             }
 
     def test_get_accounts_success(self, mock_dependencies):
-        """Test successful accounts retrieval"""
+        """Test successful accounts retrieval."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = [
@@ -117,7 +117,7 @@ class TestAccountHandlerAccountMethods:
         )
 
     def test_get_accounts_failure(self, mock_dependencies):
-        """Test accounts retrieval failure"""
+        """Test accounts retrieval failure."""
         mock_response = MagicMock()
         mock_response.status_code = 401
         mock_response.text = "Unauthorized"
@@ -130,7 +130,7 @@ class TestAccountHandlerAccountMethods:
         assert result == {}
 
     def test_get_account_details_success(self, mock_dependencies):
-        """Test successful account details retrieval"""
+        """Test successful account details retrieval."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -152,7 +152,7 @@ class TestAccountHandlerAccountMethods:
         )
 
     def test_get_account_details_failure(self, mock_dependencies):
-        """Test account details retrieval failure"""
+        """Test account details retrieval failure."""
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_response.text = "Account not found"
@@ -166,11 +166,11 @@ class TestAccountHandlerAccountMethods:
 
 
 class TestAccountHandlerPositionMethods:
-    """Test position retrieval methods"""
+    """Test position retrieval methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -183,7 +183,7 @@ class TestAccountHandlerPositionMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
@@ -202,7 +202,7 @@ class TestAccountHandlerPositionMethods:
             }
 
     def test_get_positions_success(self, mock_dependencies):
-        """Test successful positions retrieval"""
+        """Test successful positions retrieval."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -227,7 +227,7 @@ class TestAccountHandlerPositionMethods:
         )
 
     def test_get_positions_failure(self, mock_dependencies):
-        """Test positions retrieval failure"""
+        """Test positions retrieval failure."""
         mock_response = MagicMock()
         mock_response.status_code = 403
         mock_response.text = "Forbidden"
@@ -240,7 +240,7 @@ class TestAccountHandlerPositionMethods:
         assert result == {}
 
     def test_get_positions_empty(self, mock_dependencies):
-        """Test positions retrieval with no positions"""
+        """Test positions retrieval with no positions."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"positions": []}
@@ -254,11 +254,11 @@ class TestAccountHandlerPositionMethods:
 
 
 class TestAccountHandlerOrderMethods:
-    """Test order management methods"""
+    """Test order management methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -271,7 +271,7 @@ class TestAccountHandlerOrderMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
@@ -290,7 +290,7 @@ class TestAccountHandlerOrderMethods:
             }
 
     def test_get_orders_success(self, mock_dependencies):
-        """Test successful orders retrieval"""
+        """Test successful orders retrieval."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = [
@@ -309,7 +309,7 @@ class TestAccountHandlerOrderMethods:
         )
 
     def test_get_orders_failure(self, mock_dependencies):
-        """Test orders retrieval failure"""
+        """Test orders retrieval failure."""
         mock_response = MagicMock()
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
@@ -322,7 +322,7 @@ class TestAccountHandlerOrderMethods:
         assert result == {}
 
     def test_place_order_success(self, mock_dependencies):
-        """Test successful order placement"""
+        """Test successful order placement."""
         order_data = {
             "orderType": "LIMIT",
             "session": "NORMAL",
@@ -353,7 +353,7 @@ class TestAccountHandlerOrderMethods:
         )
 
     def test_place_order_failure(self, mock_dependencies):
-        """Test order placement failure"""
+        """Test order placement failure."""
         order_data = {"invalid": "data"}
 
         mock_response = MagicMock()
@@ -368,7 +368,7 @@ class TestAccountHandlerOrderMethods:
         assert result == {}
 
     def test_cancel_order_success(self, mock_dependencies):
-        """Test successful order cancellation"""
+        """Test successful order cancellation."""
         mock_response = MagicMock()
         mock_response.status_code = 200
 
@@ -383,7 +383,7 @@ class TestAccountHandlerOrderMethods:
         )
 
     def test_cancel_order_failure(self, mock_dependencies):
-        """Test order cancellation failure"""
+        """Test order cancellation failure."""
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_response.text = "Order not found"
@@ -396,7 +396,7 @@ class TestAccountHandlerOrderMethods:
         assert result is False
 
     def test_cancel_order_already_filled(self, mock_dependencies):
-        """Test cancelling an already filled order"""
+        """Test cancelling an already filled order."""
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.text = "Order already filled"
@@ -410,11 +410,11 @@ class TestAccountHandlerOrderMethods:
 
 
 class TestAccountHandlerIntegration:
-    """Test integration scenarios with multiple operations"""
+    """Test integration scenarios with multiple operations."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -427,7 +427,7 @@ class TestAccountHandlerIntegration:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
@@ -446,7 +446,7 @@ class TestAccountHandlerIntegration:
             }
 
     def test_full_trading_workflow(self, mock_dependencies):
-        """Test complete trading workflow: check account -> check positions -> place order"""
+        """Test complete trading workflow: check account -> check positions -> place order."""
         handler = AccountHandler()
 
         # Step 1: Get account details

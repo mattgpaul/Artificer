@@ -1,4 +1,4 @@
-"""Unit tests for Client - Abstract Base Class
+"""Unit tests for Client - Abstract Base Class.
 
 Tests cover abstract class enforcement and that concrete implementations
 properly inherit from the Client ABC.
@@ -10,36 +10,36 @@ from infrastructure.client import Client
 
 
 class ConcreteClient(Client):
-    """Concrete implementation for testing abstract Client"""
+    """Concrete implementation for testing abstract Client."""
 
     pass
 
 
 class TestClientAbstractClass:
-    """Test Client abstract base class"""
+    """Test Client abstract base class."""
 
     def test_client_is_abstract(self):
-        """Test Client is an abstract base class"""
+        """Test Client is an abstract base class."""
         from abc import ABCMeta
 
         assert isinstance(Client, ABCMeta)
 
     def test_client_can_be_subclassed(self):
-        """Test Client can be subclassed"""
+        """Test Client can be subclassed."""
         client = ConcreteClient()
 
         assert isinstance(client, Client)
         assert isinstance(client, ABC)
 
     def test_client_has_no_abstract_methods(self):
-        """Test Client has no required abstract methods in base"""
+        """Test Client has no required abstract methods in base."""
         # Client itself doesn't define abstract methods, just serves as a marker
         # Subclasses can instantiate without implementing anything
         client = ConcreteClient()
         assert client is not None
 
     def test_multiple_inheritance_levels(self):
-        """Test multiple levels of inheritance from Client"""
+        """Test multiple levels of inheritance from Client."""
 
         class IntermediateClient(Client):
             pass
@@ -52,7 +52,7 @@ class TestClientAbstractClass:
         assert isinstance(client, IntermediateClient)
 
     def test_client_as_interface_marker(self):
-        """Test Client serves as an interface marker for type checking"""
+        """Test Client serves as an interface marker for type checking."""
         client = ConcreteClient()
 
         # Should be recognized as a Client type
@@ -66,10 +66,10 @@ class TestClientAbstractClass:
 
 
 class TestClientInheritance:
-    """Test Client inheritance patterns used in codebase"""
+    """Test Client inheritance patterns used in codebase."""
 
     def test_redis_client_pattern(self):
-        """Test Redis client inheritance pattern"""
+        """Test Redis client inheritance pattern."""
 
         class MockRedisClient(Client):
             def __init__(self):
@@ -84,7 +84,7 @@ class TestClientInheritance:
         assert client.get("test_key") == "value_for_test_key"
 
     def test_influxdb_client_pattern(self):
-        """Test InfluxDB client inheritance pattern"""
+        """Test InfluxDB client inheritance pattern."""
 
         class MockInfluxDBClient(Client):
             def __init__(self, database):
@@ -112,7 +112,7 @@ class TestClientInheritance:
         assert client.query() == "querying"
 
     def test_client_with_abstract_methods(self):
-        """Test Client subclass with abstract methods"""
+        """Test Client subclass with abstract methods."""
 
         class AbstractClient(Client):
             @abstractmethod
@@ -137,10 +137,10 @@ class TestClientInheritance:
 
 
 class TestClientEdgeCases:
-    """Test edge cases and special scenarios"""
+    """Test edge cases and special scenarios."""
 
     def test_empty_client_implementation(self):
-        """Test simplest possible Client implementation"""
+        """Test simplest possible Client implementation."""
 
         class MinimalClient(Client):
             pass
@@ -150,7 +150,7 @@ class TestClientEdgeCases:
         assert isinstance(client, Client)
 
     def test_client_with_state(self):
-        """Test Client with internal state"""
+        """Test Client with internal state."""
 
         class StatefulClient(Client):
             def __init__(self):
@@ -177,7 +177,7 @@ class TestClientEdgeCases:
         assert client.retrieve("test") == "value"
 
     def test_client_inheritance_with_init(self):
-        """Test Client inheritance properly calls super().__init__()"""
+        """Test Client inheritance properly calls super().__init__()."""
         init_calls = []
 
         class BaseClient(Client):
@@ -191,13 +191,13 @@ class TestClientEdgeCases:
                 init_calls.append("DerivedClient")
 
         init_calls.clear()
-        client = DerivedClient()
+        DerivedClient()
 
         assert "BaseClient" in init_calls
         assert "DerivedClient" in init_calls
 
     def test_client_multiple_concrete_classes(self):
-        """Test multiple concrete Client implementations"""
+        """Test multiple concrete Client implementations."""
 
         class ClientA(Client):
             def method_a(self):
@@ -216,7 +216,7 @@ class TestClientEdgeCases:
         assert client_b.method_b() == "B"
 
     def test_client_with_class_methods(self):
-        """Test Client with class and static methods"""
+        """Test Client with class and static methods."""
 
         class UtilityClient(Client):
             instances = 0
@@ -235,14 +235,14 @@ class TestClientEdgeCases:
 
         UtilityClient.instances = 0  # Reset
 
-        client1 = UtilityClient()
-        client2 = UtilityClient()
+        UtilityClient()
+        UtilityClient()
 
         assert UtilityClient.get_instance_count() == 2
         assert UtilityClient.helper_method() == "helper"
 
     def test_client_with_properties(self):
-        """Test Client with property decorators"""
+        """Test Client with property decorators."""
 
         class PropertyClient(Client):
             def __init__(self):
@@ -265,10 +265,10 @@ class TestClientEdgeCases:
 
 
 class TestClientTypeChecking:
-    """Test type checking and isinstance behavior"""
+    """Test type checking and isinstance behavior."""
 
     def test_isinstance_check(self):
-        """Test isinstance works correctly with Client"""
+        """Test isinstance works correctly with Client."""
         client = ConcreteClient()
 
         assert isinstance(client, Client)
@@ -276,20 +276,20 @@ class TestClientTypeChecking:
         assert isinstance(client, object)
 
     def test_issubclass_check(self):
-        """Test issubclass works correctly with Client"""
+        """Test issubclass works correctly with Client."""
         assert issubclass(ConcreteClient, Client)
         assert issubclass(ConcreteClient, ABC)
         assert issubclass(Client, ABC)
 
     def test_type_check(self):
-        """Test type() returns correct type"""
+        """Test type() returns correct type."""
         client = ConcreteClient()
 
         assert type(client).__name__ == "ConcreteClient"
         assert issubclass(type(client), Client)
 
     def test_client_in_collection(self):
-        """Test Client instances work correctly in collections"""
+        """Test Client instances work correctly in collections."""
 
         class ClientType1(Client):
             def get_type(self):
@@ -305,7 +305,7 @@ class TestClientTypeChecking:
         assert all(isinstance(c, Client) for c in clients)
 
     def test_client_polymorphism(self):
-        """Test polymorphism with Client base class"""
+        """Test polymorphism with Client base class."""
 
         class Reader(Client):
             def process(self):

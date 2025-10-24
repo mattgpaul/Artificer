@@ -1,4 +1,4 @@
-"""Unit tests for MarketHandler - Market Data API Methods
+"""Unit tests for MarketHandler - Market Data API Methods.
 
 Tests cover market data retrieval methods including quotes, price history,
 and market hours. All external dependencies are mocked to avoid network calls.
@@ -14,11 +14,11 @@ from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
 
 class TestMarketHandlerInitialization:
-    """Test MarketHandler initialization"""
+    """Test MarketHandler initialization."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -31,7 +31,7 @@ class TestMarketHandlerInitialization:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.market_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.market_handler.SchwabClient") as mock_client_class,
@@ -50,7 +50,7 @@ class TestMarketHandlerInitialization:
             }
 
     def test_initialization_success(self, mock_dependencies):
-        """Test successful MarketHandler initialization"""
+        """Test successful MarketHandler initialization."""
         handler = MarketHandler()
 
         assert handler.market_url == "https://api.schwabapi.com/marketdata/v1"
@@ -60,11 +60,11 @@ class TestMarketHandlerInitialization:
 
 
 class TestMarketHandlerRequestMethods:
-    """Test request handling methods"""
+    """Test request handling methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -77,7 +77,7 @@ class TestMarketHandlerRequestMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.market_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.market_handler.SchwabClient") as mock_client_class,
@@ -96,7 +96,7 @@ class TestMarketHandlerRequestMethods:
             }
 
     def test_send_request_success(self, mock_dependencies):
-        """Test successful request sending"""
+        """Test successful request sending."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"test": "data"}
@@ -112,7 +112,7 @@ class TestMarketHandlerRequestMethods:
         )
 
     def test_send_request_failure(self, mock_dependencies):
-        """Test request failure handling"""
+        """Test request failure handling."""
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.text = "Bad Request"
@@ -124,7 +124,7 @@ class TestMarketHandlerRequestMethods:
         assert result is None
 
     def test_send_request_exception(self, mock_dependencies):
-        """Test request exception handling"""
+        """Test request exception handling."""
         mock_dependencies["client"].make_authenticated_request.side_effect = Exception(
             "Network error"
         )
@@ -136,11 +136,11 @@ class TestMarketHandlerRequestMethods:
 
 
 class TestMarketHandlerQuoteMethods:
-    """Test quote-related methods"""
+    """Test quote-related methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -153,7 +153,7 @@ class TestMarketHandlerQuoteMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.market_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.market_handler.SchwabClient") as mock_client_class,
@@ -172,7 +172,7 @@ class TestMarketHandlerQuoteMethods:
             }
 
     def test_extract_quote_data(self, mock_dependencies):
-        """Test quote data extraction"""
+        """Test quote data extraction."""
         response_data = {
             "AAPL": {
                 "quote": {
@@ -204,7 +204,7 @@ class TestMarketHandlerQuoteMethods:
         assert result == expected
 
     def test_extract_quote_data_missing_fields(self, mock_dependencies):
-        """Test quote data extraction with missing fields"""
+        """Test quote data extraction with missing fields."""
         response_data = {
             "AAPL": {
                 "quote": {
@@ -231,7 +231,7 @@ class TestMarketHandlerQuoteMethods:
         assert result == expected
 
     def test_get_quotes_success(self, mock_dependencies):
-        """Test successful quote retrieval"""
+        """Test successful quote retrieval."""
         mock_response = {
             "AAPL": {
                 "quote": {
@@ -256,7 +256,7 @@ class TestMarketHandlerQuoteMethods:
         handler._send_request.assert_called_once()
 
     def test_get_quotes_failure(self, mock_dependencies):
-        """Test quote retrieval failure"""
+        """Test quote retrieval failure."""
         handler = MarketHandler()
         handler._send_request = Mock(return_value=None)
 
@@ -266,11 +266,11 @@ class TestMarketHandlerQuoteMethods:
 
 
 class TestMarketHandlerPriceHistoryMethods:
-    """Test price history methods"""
+    """Test price history methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -283,7 +283,7 @@ class TestMarketHandlerPriceHistoryMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.market_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.market_handler.SchwabClient") as mock_client_class,
@@ -302,7 +302,7 @@ class TestMarketHandlerPriceHistoryMethods:
             }
 
     def test_get_price_history_success(self, mock_dependencies):
-        """Test successful price history retrieval"""
+        """Test successful price history retrieval."""
         mock_response = {
             "symbol": "AAPL",
             "candles": [
@@ -326,7 +326,7 @@ class TestMarketHandlerPriceHistoryMethods:
         handler._send_request.assert_called_once()
 
     def test_get_price_history_failure(self, mock_dependencies):
-        """Test price history retrieval failure"""
+        """Test price history retrieval failure."""
         handler = MarketHandler()
         handler._send_request = Mock(return_value=None)
 
@@ -335,14 +335,14 @@ class TestMarketHandlerPriceHistoryMethods:
         assert result == {}
 
     def test_get_price_history_invalid_combination(self, mock_dependencies):
-        """Test price history with invalid period/frequency combination"""
+        """Test price history with invalid period/frequency combination."""
         handler = MarketHandler()
 
         with pytest.raises(ValueError):
             handler.get_price_history("AAPL", PeriodType.DAY, 1, FrequencyType.MONTHLY, 1)
 
     def test_get_option_chains_not_implemented(self, mock_dependencies):
-        """Test option chains method returns empty dict"""
+        """Test option chains method returns empty dict."""
         handler = MarketHandler()
         result = handler.get_option_chains("AAPL")
 
@@ -350,11 +350,11 @@ class TestMarketHandlerPriceHistoryMethods:
 
 
 class TestMarketHandlerMarketHoursMethods:
-    """Test market hours methods"""
+    """Test market hours methods."""
 
     @pytest.fixture
     def mock_env_vars(self):
-        """Fixture to mock required environment variables"""
+        """Fixture to mock required environment variables."""
         with patch.dict(
             "os.environ",
             {
@@ -367,7 +367,7 @@ class TestMarketHandlerMarketHoursMethods:
 
     @pytest.fixture
     def mock_dependencies(self, mock_env_vars):
-        """Fixture to mock all external dependencies"""
+        """Fixture to mock all external dependencies."""
         with (
             patch("system.algo_trader.schwab.market_handler.get_logger") as mock_logger,
             patch("system.algo_trader.schwab.market_handler.SchwabClient") as mock_client_class,
@@ -386,7 +386,7 @@ class TestMarketHandlerMarketHoursMethods:
             }
 
     def test_get_market_hours_success_open(self, mock_dependencies):
-        """Test successful market hours retrieval when market is open"""
+        """Test successful market hours retrieval when market is open."""
         mock_response = {
             "equity": {
                 "EQ": {
@@ -417,7 +417,7 @@ class TestMarketHandlerMarketHoursMethods:
         assert result == expected
 
     def test_get_market_hours_success_closed(self, mock_dependencies):
-        """Test successful market hours retrieval when market is closed"""
+        """Test successful market hours retrieval when market is closed."""
         mock_response = {
             "equity": {
                 "EQ": {
@@ -444,7 +444,7 @@ class TestMarketHandlerMarketHoursMethods:
         assert result == expected
 
     def test_get_market_hours_failure(self, mock_dependencies):
-        """Test market hours retrieval failure"""
+        """Test market hours retrieval failure."""
         handler = MarketHandler()
         handler._send_request = Mock(return_value=None)
 
@@ -454,7 +454,7 @@ class TestMarketHandlerMarketHoursMethods:
         assert result == {}
 
     def test_get_market_hours_no_equity_data(self, mock_dependencies):
-        """Test market hours when no equity data in response"""
+        """Test market hours when no equity data in response."""
         mock_response = {"other_market": {"isOpen": True}}
 
         handler = MarketHandler()
@@ -467,7 +467,7 @@ class TestMarketHandlerMarketHoursMethods:
         assert result == expected
 
     def test_get_market_hours_equity_format_variation(self, mock_dependencies):
-        """Test market hours with different equity data format"""
+        """Test market hours with different equity data format."""
         mock_response = {
             "equity": {
                 "equity": {  # Different format than 'EQ'

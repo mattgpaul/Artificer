@@ -1,4 +1,4 @@
-"""Unit tests for BaseRedisClient - Redis Database Operations
+"""Unit tests for BaseRedisClient - Redis Database Operations.
 
 Tests cover client initialization, connection management, all Redis data types
 (strings, hashes, sets, lists), TTL operations, and error handling.
@@ -15,18 +15,18 @@ from infrastructure.redis.redis import BaseRedisClient
 
 
 class ConcreteRedisClient(BaseRedisClient):
-    """Concrete implementation for testing abstract BaseRedisClient"""
+    """Concrete implementation for testing abstract BaseRedisClient."""
 
     def _get_namespace(self) -> str:
         return "test_namespace"
 
 
 class TestRedisClientInitialization:
-    """Test BaseRedisClient initialization and configuration"""
+    """Test BaseRedisClient initialization and configuration."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -38,14 +38,14 @@ class TestRedisClientInitialization:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_initialization_default_config(self, mock_redis, mock_logger):
-        """Test initialization with default configuration from environment"""
+        """Test initialization with default configuration from environment."""
         with patch.dict(os.environ, {}, clear=True):
             client = ConcreteRedisClient()
 
@@ -57,7 +57,7 @@ class TestRedisClientInitialization:
             assert client.socket_timeout == 30
 
     def test_initialization_custom_config(self, mock_redis, mock_logger):
-        """Test initialization with custom configuration from environment"""
+        """Test initialization with custom configuration from environment."""
         with patch.dict(
             os.environ,
             {
@@ -77,9 +77,9 @@ class TestRedisClientInitialization:
             assert client.socket_timeout == 60
 
     def test_connection_pool_creation(self, mock_redis, mock_logger):
-        """Test Redis connection pool is created correctly"""
+        """Test Redis connection pool is created correctly."""
         with patch.dict(os.environ, {}, clear=True):
-            client = ConcreteRedisClient()
+            ConcreteRedisClient()
 
             mock_redis["module"].ConnectionPool.assert_called_once_with(
                 host="localhost", port=6379, db=0, max_connections=10, socket_timeout=30
@@ -87,7 +87,7 @@ class TestRedisClientInitialization:
             mock_redis["module"].Redis.assert_called_once()
 
     def test_connection_pool_creation_failure(self, mock_logger):
-        """Test connection pool creation handles exceptions"""
+        """Test connection pool creation handles exceptions."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_redis_module.ConnectionPool.side_effect = Exception("Connection failed")
 
@@ -95,7 +95,7 @@ class TestRedisClientInitialization:
                 ConcreteRedisClient()
 
     def test_build_key(self, mock_redis, mock_logger):
-        """Test key namespacing"""
+        """Test key namespacing."""
         client = ConcreteRedisClient()
 
         namespaced_key = client._build_key("my_key")
@@ -104,11 +104,11 @@ class TestRedisClientInitialization:
 
 
 class TestRedisClientStringOperations:
-    """Test string get/set operations"""
+    """Test string get/set operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -120,14 +120,14 @@ class TestRedisClientStringOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_get_success(self, mock_redis, mock_logger):
-        """Test successful get operation"""
+        """Test successful get operation."""
         mock_redis["client"].get.return_value = b"test_value"
 
         client = ConcreteRedisClient()
@@ -137,7 +137,7 @@ class TestRedisClientStringOperations:
         mock_redis["client"].get.assert_called_once_with("test_namespace:test_key")
 
     def test_get_nonexistent_key(self, mock_redis, mock_logger):
-        """Test get operation for nonexistent key"""
+        """Test get operation for nonexistent key."""
         mock_redis["client"].get.return_value = None
 
         client = ConcreteRedisClient()
@@ -146,7 +146,7 @@ class TestRedisClientStringOperations:
         assert result is None
 
     def test_get_exception(self, mock_redis, mock_logger):
-        """Test get operation handles exceptions"""
+        """Test get operation handles exceptions."""
         mock_redis["client"].get.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -156,7 +156,7 @@ class TestRedisClientStringOperations:
         mock_logger.error.assert_called()
 
     def test_set_success(self, mock_redis, mock_logger):
-        """Test successful set operation"""
+        """Test successful set operation."""
         mock_redis["client"].set.return_value = True
 
         client = ConcreteRedisClient()
@@ -168,7 +168,7 @@ class TestRedisClientStringOperations:
         )
 
     def test_set_with_ttl(self, mock_redis, mock_logger):
-        """Test set operation with TTL"""
+        """Test set operation with TTL."""
         mock_redis["client"].set.return_value = True
 
         client = ConcreteRedisClient()
@@ -180,7 +180,7 @@ class TestRedisClientStringOperations:
         )
 
     def test_set_failure(self, mock_redis, mock_logger):
-        """Test set operation failure"""
+        """Test set operation failure."""
         mock_redis["client"].set.return_value = False
 
         client = ConcreteRedisClient()
@@ -189,7 +189,7 @@ class TestRedisClientStringOperations:
         assert result is False
 
     def test_set_exception(self, mock_redis, mock_logger):
-        """Test set operation handles exceptions"""
+        """Test set operation handles exceptions."""
         mock_redis["client"].set.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -200,11 +200,11 @@ class TestRedisClientStringOperations:
 
 
 class TestRedisClientHashOperations:
-    """Test hash operations (hget, hset, hgetall, hmset, hdel)"""
+    """Test hash operations (hget, hset, hgetall, hmset, hdel)."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -216,14 +216,14 @@ class TestRedisClientHashOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_hget_success(self, mock_redis, mock_logger):
-        """Test successful hget operation"""
+        """Test successful hget operation."""
         mock_redis["client"].hget.return_value = b"field_value"
 
         client = ConcreteRedisClient()
@@ -233,7 +233,7 @@ class TestRedisClientHashOperations:
         mock_redis["client"].hget.assert_called_once_with("test_namespace:hash_key", "field_name")
 
     def test_hget_nonexistent_field(self, mock_redis, mock_logger):
-        """Test hget for nonexistent field"""
+        """Test hget for nonexistent field."""
         mock_redis["client"].hget.return_value = None
 
         client = ConcreteRedisClient()
@@ -242,7 +242,7 @@ class TestRedisClientHashOperations:
         assert result is None
 
     def test_hget_exception(self, mock_redis, mock_logger):
-        """Test hget handles exceptions"""
+        """Test hget handles exceptions."""
         mock_redis["client"].hget.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -252,7 +252,7 @@ class TestRedisClientHashOperations:
         mock_logger.error.assert_called()
 
     def test_hset_success(self, mock_redis, mock_logger):
-        """Test successful hset operation"""
+        """Test successful hset operation."""
         mock_redis["client"].hset.return_value = 1
 
         client = ConcreteRedisClient()
@@ -264,7 +264,7 @@ class TestRedisClientHashOperations:
         )
 
     def test_hset_with_ttl(self, mock_redis, mock_logger):
-        """Test hset operation with TTL"""
+        """Test hset operation with TTL."""
         mock_redis["client"].hset.return_value = 1
 
         client = ConcreteRedisClient()
@@ -274,7 +274,7 @@ class TestRedisClientHashOperations:
         mock_redis["client"].expire.assert_called_once_with("test_namespace:hash_key", 600)
 
     def test_hgetall_success(self, mock_redis, mock_logger):
-        """Test successful hgetall operation"""
+        """Test successful hgetall operation."""
         mock_redis["client"].hgetall.return_value = {b"field1": b"value1", b"field2": b"value2"}
 
         client = ConcreteRedisClient()
@@ -284,7 +284,7 @@ class TestRedisClientHashOperations:
         mock_redis["client"].hgetall.assert_called_once_with("test_namespace:hash_key")
 
     def test_hgetall_empty(self, mock_redis, mock_logger):
-        """Test hgetall on empty hash"""
+        """Test hgetall on empty hash."""
         mock_redis["client"].hgetall.return_value = {}
 
         client = ConcreteRedisClient()
@@ -293,7 +293,7 @@ class TestRedisClientHashOperations:
         assert result == {}
 
     def test_hgetall_exception(self, mock_redis, mock_logger):
-        """Test hgetall handles exceptions"""
+        """Test hgetall handles exceptions."""
         mock_redis["client"].hgetall.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -303,7 +303,7 @@ class TestRedisClientHashOperations:
         mock_logger.error.assert_called()
 
     def test_hmset_success(self, mock_redis, mock_logger):
-        """Test successful hmset operation"""
+        """Test successful hmset operation."""
         mock_redis["client"].hmset.return_value = True
 
         client = ConcreteRedisClient()
@@ -314,7 +314,7 @@ class TestRedisClientHashOperations:
         mock_redis["client"].hmset.assert_called_once_with("test_namespace:hash_key", mapping)
 
     def test_hmset_with_ttl(self, mock_redis, mock_logger):
-        """Test hmset operation with TTL"""
+        """Test hmset operation with TTL."""
         mock_redis["client"].hmset.return_value = True
 
         client = ConcreteRedisClient()
@@ -325,7 +325,7 @@ class TestRedisClientHashOperations:
         mock_redis["client"].expire.assert_called_once_with("test_namespace:hash_key", 300)
 
     def test_hdel_success(self, mock_redis, mock_logger):
-        """Test successful hdel operation"""
+        """Test successful hdel operation."""
         mock_redis["client"].hdel.return_value = 2
 
         client = ConcreteRedisClient()
@@ -337,7 +337,7 @@ class TestRedisClientHashOperations:
         )
 
     def test_hdel_nonexistent_fields(self, mock_redis, mock_logger):
-        """Test hdel with nonexistent fields"""
+        """Test hdel with nonexistent fields."""
         mock_redis["client"].hdel.return_value = 0
 
         client = ConcreteRedisClient()
@@ -346,7 +346,7 @@ class TestRedisClientHashOperations:
         assert result == 0
 
     def test_hdel_exception(self, mock_redis, mock_logger):
-        """Test hdel handles exceptions"""
+        """Test hdel handles exceptions."""
         mock_redis["client"].hdel.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -357,11 +357,11 @@ class TestRedisClientHashOperations:
 
 
 class TestRedisClientJSONOperations:
-    """Test JSON get/set operations"""
+    """Test JSON get/set operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -373,14 +373,14 @@ class TestRedisClientJSONOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_get_json_success(self, mock_redis, mock_logger):
-        """Test successful get_json operation"""
+        """Test successful get_json operation."""
         test_dict = {"key": "value", "number": 42}
         mock_redis["client"].get.return_value = json.dumps(test_dict).encode("utf-8")
 
@@ -390,7 +390,7 @@ class TestRedisClientJSONOperations:
         assert result == test_dict
 
     def test_get_json_array(self, mock_redis, mock_logger):
-        """Test get_json with array"""
+        """Test get_json with array."""
         test_array = ["item1", "item2", "item3"]
         mock_redis["client"].get.return_value = json.dumps(test_array).encode("utf-8")
 
@@ -400,7 +400,7 @@ class TestRedisClientJSONOperations:
         assert result == test_array
 
     def test_get_json_nonexistent(self, mock_redis, mock_logger):
-        """Test get_json for nonexistent key"""
+        """Test get_json for nonexistent key."""
         mock_redis["client"].get.return_value = None
 
         client = ConcreteRedisClient()
@@ -409,7 +409,7 @@ class TestRedisClientJSONOperations:
         assert result is None
 
     def test_get_json_invalid_json(self, mock_redis, mock_logger):
-        """Test get_json with invalid JSON"""
+        """Test get_json with invalid JSON."""
         mock_redis["client"].get.return_value = b"not valid json"
 
         client = ConcreteRedisClient()
@@ -419,7 +419,7 @@ class TestRedisClientJSONOperations:
         mock_logger.error.assert_called()
 
     def test_set_json_success(self, mock_redis, mock_logger):
-        """Test successful set_json operation"""
+        """Test successful set_json operation."""
         mock_redis["client"].set.return_value = True
 
         client = ConcreteRedisClient()
@@ -433,7 +433,7 @@ class TestRedisClientJSONOperations:
         assert '"key"' in call_args[0][1]  # Check JSON format
 
     def test_set_json_with_ttl(self, mock_redis, mock_logger):
-        """Test set_json operation with TTL"""
+        """Test set_json operation with TTL."""
         mock_redis["client"].set.return_value = True
 
         client = ConcreteRedisClient()
@@ -442,7 +442,7 @@ class TestRedisClientJSONOperations:
         assert result is True
 
     def test_set_json_array(self, mock_redis, mock_logger):
-        """Test set_json with array"""
+        """Test set_json with array."""
         mock_redis["client"].set.return_value = True
 
         client = ConcreteRedisClient()
@@ -452,7 +452,7 @@ class TestRedisClientJSONOperations:
         assert result is True
 
     def test_set_json_exception(self, mock_redis, mock_logger):
-        """Test set_json handles exceptions"""
+        """Test set_json handles exceptions."""
         mock_redis["client"].set.side_effect = Exception("Redis error")
 
         client = ConcreteRedisClient()
@@ -463,11 +463,11 @@ class TestRedisClientJSONOperations:
 
 
 class TestRedisClientSetOperations:
-    """Test set operations (sadd, smembers, srem, sismember, scard)"""
+    """Test set operations (sadd, smembers, srem, sismember, scard)."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -479,14 +479,14 @@ class TestRedisClientSetOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_sadd_success(self, mock_redis, mock_logger):
-        """Test successful sadd operation"""
+        """Test successful sadd operation."""
         mock_redis["client"].sadd.return_value = 2
 
         client = ConcreteRedisClient()
@@ -498,7 +498,7 @@ class TestRedisClientSetOperations:
         )
 
     def test_sadd_with_ttl(self, mock_redis, mock_logger):
-        """Test sadd operation with TTL"""
+        """Test sadd operation with TTL."""
         mock_redis["client"].sadd.return_value = 1
 
         client = ConcreteRedisClient()
@@ -508,7 +508,7 @@ class TestRedisClientSetOperations:
         mock_redis["client"].expire.assert_called_once_with("test_namespace:set_key", 180)
 
     def test_smembers_success(self, mock_redis, mock_logger):
-        """Test successful smembers operation"""
+        """Test successful smembers operation."""
         mock_redis["client"].smembers.return_value = {b"member1", b"member2", b"member3"}
 
         client = ConcreteRedisClient()
@@ -517,7 +517,7 @@ class TestRedisClientSetOperations:
         assert result == {"member1", "member2", "member3"}
 
     def test_smembers_empty(self, mock_redis, mock_logger):
-        """Test smembers on empty set"""
+        """Test smembers on empty set."""
         mock_redis["client"].smembers.return_value = set()
 
         client = ConcreteRedisClient()
@@ -526,7 +526,7 @@ class TestRedisClientSetOperations:
         assert result == set()
 
     def test_srem_success(self, mock_redis, mock_logger):
-        """Test successful srem operation"""
+        """Test successful srem operation."""
         mock_redis["client"].srem.return_value = 1
 
         client = ConcreteRedisClient()
@@ -535,7 +535,7 @@ class TestRedisClientSetOperations:
         assert result == 1
 
     def test_sismember_exists(self, mock_redis, mock_logger):
-        """Test sismember for existing member"""
+        """Test sismember for existing member."""
         mock_redis["client"].sismember.return_value = True
 
         client = ConcreteRedisClient()
@@ -544,7 +544,7 @@ class TestRedisClientSetOperations:
         assert result is True
 
     def test_sismember_not_exists(self, mock_redis, mock_logger):
-        """Test sismember for nonexistent member"""
+        """Test sismember for nonexistent member."""
         mock_redis["client"].sismember.return_value = False
 
         client = ConcreteRedisClient()
@@ -553,7 +553,7 @@ class TestRedisClientSetOperations:
         assert result is False
 
     def test_scard_success(self, mock_redis, mock_logger):
-        """Test successful scard operation"""
+        """Test successful scard operation."""
         mock_redis["client"].scard.return_value = 5
 
         client = ConcreteRedisClient()
@@ -563,11 +563,11 @@ class TestRedisClientSetOperations:
 
 
 class TestRedisClientListOperations:
-    """Test list operations (lpush, rpush, lpop, rpop, llen, lrange)"""
+    """Test list operations (lpush, rpush, lpop, rpop, llen, lrange)."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -579,14 +579,14 @@ class TestRedisClientListOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_lpush_success(self, mock_redis, mock_logger):
-        """Test successful lpush operation"""
+        """Test successful lpush operation."""
         mock_redis["client"].lpush.return_value = 3
 
         client = ConcreteRedisClient()
@@ -598,7 +598,7 @@ class TestRedisClientListOperations:
         )
 
     def test_lpush_with_ttl(self, mock_redis, mock_logger):
-        """Test lpush operation with TTL"""
+        """Test lpush operation with TTL."""
         mock_redis["client"].lpush.return_value = 1
 
         client = ConcreteRedisClient()
@@ -608,7 +608,7 @@ class TestRedisClientListOperations:
         mock_redis["client"].expire.assert_called_once_with("test_namespace:list_key", 240)
 
     def test_rpush_success(self, mock_redis, mock_logger):
-        """Test successful rpush operation"""
+        """Test successful rpush operation."""
         mock_redis["client"].rpush.return_value = 2
 
         client = ConcreteRedisClient()
@@ -617,7 +617,7 @@ class TestRedisClientListOperations:
         assert result == 2
 
     def test_lpop_success(self, mock_redis, mock_logger):
-        """Test successful lpop operation"""
+        """Test successful lpop operation."""
         mock_redis["client"].lpop.return_value = b"popped_value"
 
         client = ConcreteRedisClient()
@@ -626,7 +626,7 @@ class TestRedisClientListOperations:
         assert result == "popped_value"
 
     def test_lpop_empty_list(self, mock_redis, mock_logger):
-        """Test lpop on empty list"""
+        """Test lpop on empty list."""
         mock_redis["client"].lpop.return_value = None
 
         client = ConcreteRedisClient()
@@ -635,7 +635,7 @@ class TestRedisClientListOperations:
         assert result is None
 
     def test_rpop_success(self, mock_redis, mock_logger):
-        """Test successful rpop operation"""
+        """Test successful rpop operation."""
         mock_redis["client"].rpop.return_value = b"last_value"
 
         client = ConcreteRedisClient()
@@ -644,7 +644,7 @@ class TestRedisClientListOperations:
         assert result == "last_value"
 
     def test_llen_success(self, mock_redis, mock_logger):
-        """Test successful llen operation"""
+        """Test successful llen operation."""
         mock_redis["client"].llen.return_value = 10
 
         client = ConcreteRedisClient()
@@ -653,7 +653,7 @@ class TestRedisClientListOperations:
         assert result == 10
 
     def test_lrange_success(self, mock_redis, mock_logger):
-        """Test successful lrange operation"""
+        """Test successful lrange operation."""
         mock_redis["client"].lrange.return_value = [b"item1", b"item2", b"item3"]
 
         client = ConcreteRedisClient()
@@ -663,7 +663,7 @@ class TestRedisClientListOperations:
         mock_redis["client"].lrange.assert_called_once_with("test_namespace:list_key", 0, -1)
 
     def test_lrange_partial(self, mock_redis, mock_logger):
-        """Test lrange with partial range"""
+        """Test lrange with partial range."""
         mock_redis["client"].lrange.return_value = [b"item2", b"item3"]
 
         client = ConcreteRedisClient()
@@ -673,11 +673,11 @@ class TestRedisClientListOperations:
 
 
 class TestRedisClientUtilityOperations:
-    """Test utility operations (ping, exists, delete, expire, ttl, keys, flushdb)"""
+    """Test utility operations (ping, exists, delete, expire, ttl, keys, flushdb)."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -689,14 +689,14 @@ class TestRedisClientUtilityOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_ping_success(self, mock_redis, mock_logger):
-        """Test successful ping operation"""
+        """Test successful ping operation."""
         mock_redis["client"].ping.return_value = True
 
         client = ConcreteRedisClient()
@@ -705,7 +705,7 @@ class TestRedisClientUtilityOperations:
         assert result is True
 
     def test_ping_failure(self, mock_redis, mock_logger):
-        """Test ping failure"""
+        """Test ping failure."""
         mock_redis["client"].ping.side_effect = Exception("Connection refused")
 
         client = ConcreteRedisClient()
@@ -715,7 +715,7 @@ class TestRedisClientUtilityOperations:
         mock_logger.error.assert_called()
 
     def test_exists_true(self, mock_redis, mock_logger):
-        """Test exists for existing key"""
+        """Test exists for existing key."""
         mock_redis["client"].exists.return_value = 1
 
         client = ConcreteRedisClient()
@@ -724,7 +724,7 @@ class TestRedisClientUtilityOperations:
         assert result is True
 
     def test_exists_false(self, mock_redis, mock_logger):
-        """Test exists for nonexistent key"""
+        """Test exists for nonexistent key."""
         mock_redis["client"].exists.return_value = 0
 
         client = ConcreteRedisClient()
@@ -733,7 +733,7 @@ class TestRedisClientUtilityOperations:
         assert result is False
 
     def test_delete_success(self, mock_redis, mock_logger):
-        """Test successful delete operation"""
+        """Test successful delete operation."""
         mock_redis["client"].delete.return_value = 1
 
         client = ConcreteRedisClient()
@@ -742,7 +742,7 @@ class TestRedisClientUtilityOperations:
         assert result is True
 
     def test_delete_nonexistent(self, mock_redis, mock_logger):
-        """Test delete nonexistent key"""
+        """Test delete nonexistent key."""
         mock_redis["client"].delete.return_value = 0
 
         client = ConcreteRedisClient()
@@ -751,7 +751,7 @@ class TestRedisClientUtilityOperations:
         assert result is False
 
     def test_expire_success(self, mock_redis, mock_logger):
-        """Test successful expire operation"""
+        """Test successful expire operation."""
         mock_redis["client"].expire.return_value = True
 
         client = ConcreteRedisClient()
@@ -761,7 +761,7 @@ class TestRedisClientUtilityOperations:
         mock_redis["client"].expire.assert_called_once_with("test_namespace:key", 60)
 
     def test_ttl_has_expiration(self, mock_redis, mock_logger):
-        """Test ttl for key with expiration"""
+        """Test ttl for key with expiration."""
         mock_redis["client"].ttl.return_value = 120
 
         client = ConcreteRedisClient()
@@ -770,7 +770,7 @@ class TestRedisClientUtilityOperations:
         assert result == 120
 
     def test_ttl_no_expiration(self, mock_redis, mock_logger):
-        """Test ttl for key without expiration"""
+        """Test ttl for key without expiration."""
         mock_redis["client"].ttl.return_value = -1
 
         client = ConcreteRedisClient()
@@ -779,7 +779,7 @@ class TestRedisClientUtilityOperations:
         assert result == -1
 
     def test_ttl_key_not_exists(self, mock_redis, mock_logger):
-        """Test ttl for nonexistent key"""
+        """Test ttl for nonexistent key."""
         mock_redis["client"].ttl.return_value = -2
 
         client = ConcreteRedisClient()
@@ -788,7 +788,7 @@ class TestRedisClientUtilityOperations:
         assert result == -2
 
     def test_keys_success(self, mock_redis, mock_logger):
-        """Test successful keys operation"""
+        """Test successful keys operation."""
         mock_redis["client"].keys.return_value = [
             b"test_namespace:key1",
             b"test_namespace:key2",
@@ -801,7 +801,7 @@ class TestRedisClientUtilityOperations:
         assert result == ["key1", "key2", "key3"]
 
     def test_keys_pattern(self, mock_redis, mock_logger):
-        """Test keys with specific pattern"""
+        """Test keys with specific pattern."""
         mock_redis["client"].keys.return_value = [
             b"test_namespace:user:1",
             b"test_namespace:user:2",
@@ -813,7 +813,7 @@ class TestRedisClientUtilityOperations:
         assert result == ["user:1", "user:2"]
 
     def test_flushdb_success(self, mock_redis, mock_logger):
-        """Test successful flushdb operation"""
+        """Test successful flushdb operation."""
         mock_redis["client"].flushdb.return_value = True
 
         client = ConcreteRedisClient()
@@ -823,7 +823,7 @@ class TestRedisClientUtilityOperations:
         mock_logger.warning.assert_called()
 
     def test_flushdb_failure(self, mock_redis, mock_logger):
-        """Test flushdb failure"""
+        """Test flushdb failure."""
         mock_redis["client"].flushdb.side_effect = Exception("Permission denied")
 
         client = ConcreteRedisClient()
@@ -833,11 +833,11 @@ class TestRedisClientUtilityOperations:
 
 
 class TestRedisClientPipelineOperations:
-    """Test pipeline operations"""
+    """Test pipeline operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -856,14 +856,14 @@ class TestRedisClientPipelineOperations:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_pipeline_execute_success(self, mock_redis, mock_logger):
-        """Test successful pipeline execution"""
+        """Test successful pipeline execution."""
         mock_redis["pipeline"].execute.return_value = [True, True, True]
 
         client = ConcreteRedisClient()
@@ -878,7 +878,7 @@ class TestRedisClientPipelineOperations:
         mock_redis["pipeline"].execute.assert_called_once()
 
     def test_pipeline_execute_partial_failure(self, mock_redis, mock_logger):
-        """Test pipeline execution with some failures"""
+        """Test pipeline execution with some failures."""
         mock_redis["pipeline"].execute.return_value = [True, False, True]
 
         client = ConcreteRedisClient()
@@ -892,7 +892,7 @@ class TestRedisClientPipelineOperations:
         assert result is False
 
     def test_pipeline_execute_exception(self, mock_redis, mock_logger):
-        """Test pipeline execution handles exceptions"""
+        """Test pipeline execution handles exceptions."""
         mock_redis["pipeline"].execute.side_effect = Exception("Pipeline error")
 
         client = ConcreteRedisClient()
@@ -904,11 +904,11 @@ class TestRedisClientPipelineOperations:
 
 
 class TestRedisClientIntegration:
-    """Test integration scenarios with multiple operations"""
+    """Test integration scenarios with multiple operations."""
 
     @pytest.fixture
     def mock_redis(self):
-        """Fixture to mock Redis connection"""
+        """Fixture to mock Redis connection."""
         with patch("infrastructure.redis.redis.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
@@ -920,14 +920,14 @@ class TestRedisClientIntegration:
 
     @pytest.fixture
     def mock_logger(self):
-        """Fixture to mock logger"""
+        """Fixture to mock logger."""
         with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
             mock_logger_instance = MagicMock()
             mock_get_logger.return_value = mock_logger_instance
             yield mock_logger_instance
 
     def test_user_session_workflow(self, mock_redis, mock_logger):
-        """Test complete user session workflow"""
+        """Test complete user session workflow."""
         # Mock responses
         mock_redis["client"].set.return_value = True
         mock_redis["client"].get.return_value = json.dumps({"user_id": "123"}).encode("utf-8")
@@ -951,7 +951,7 @@ class TestRedisClientIntegration:
         assert client.delete("session:abc123")
 
     def test_cache_workflow(self, mock_redis, mock_logger):
-        """Test cache set and retrieval workflow"""
+        """Test cache set and retrieval workflow."""
         mock_redis["client"].set.return_value = True
         mock_redis["client"].get.return_value = b"cached_value"
         mock_redis["client"].ttl.return_value = 300
