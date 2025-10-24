@@ -1,0 +1,74 @@
+# Ruff configuration for Artificer monorepo
+# See: https://docs.astral.sh/ruff/configuration/
+
+# Formatting settings
+line-length = 100
+indent-width = 4
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Linting settings
+[lint]
+select = [
+    "F",      # Pyflakes - basic errors
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "I",      # isort - import sorting
+    "N",      # pep8-naming - naming conventions
+    "D",      # pydocstyle - docstring conventions
+    "UP",     # pyupgrade - Python version upgrades
+    "B",      # bugbear - likely bugs
+    "C90",    # mccabe - complexity checking
+    "PL",     # Pylint subset
+    "RUF",    # Ruff-specific rules
+]
+
+ignore = [
+    "D203",    # one-blank-line-before-class (conflicts with D211)
+    "D213",    # multi-line-summary-second-line (conflicts with D212)
+    "PLR2004", # magic-value-comparison (too noisy for constants like HTTP codes, TTLs)
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude specific directories
+exclude = [
+    ".git",
+    ".bazel",
+    "bazel-*",
+    "__pycache__",
+    "*.egg-info",
+    ".venv",
+    "venv",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["D104"]  # Don't require docstrings in __init__.py
+"tests/**/*.py" = [
+    "D100",   # Missing docstring in public module
+    "D103",   # Missing docstring in public function
+]
+
+[lint.mccabe]
+max-complexity = 15  # Google standard
+
+[lint.pydocstyle]
+convention = "google"  # Use Google docstring style
+
+[lint.isort]
+# Import order: stdlib → third-party → local
+known-first-party = ["infrastructure", "system", "component"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+

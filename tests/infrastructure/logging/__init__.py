@@ -1,4 +1,1 @@
-"""
-Unit tests for logging infrastructure components
-"""
-
+"""Unit tests for logging infrastructure components."""
