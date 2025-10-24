@@ -20,15 +20,15 @@ This project follows **Google Python Style Guide** and uses automated tooling to
 
 #### Format all code:
 ```bash
-./scripts/format.sh
+bazel run //:format
 ```
 
 #### Check for issues:
 ```bash
-./scripts/lint.sh
+bazel run //:lint
 ```
 
-#### Individual commands:
+#### Or use individual tools:
 ```bash
 # Format Python
 bazel run //:ruff -- format .

@@ -31,7 +31,7 @@ if [ -n "$PYTHON_FILES" ]; then
     # Check for remaining errors
     if ! bazel run //:ruff -- check $PYTHON_FILES; then
         echo "❌ Ruff found issues that need manual fixing. Commit aborted."
-        echo "   Run: bazel run //:ruff -- check . --fix"
+        echo "   Run: bazel run //:format"
         exit 1
     fi
 fi

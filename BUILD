@@ -70,3 +70,24 @@ alias(
     }),
     visibility = ["//visibility:public"],
 )
+
+# Development workflow scripts
+sh_binary(
+    name = "format",
+    srcs = ["scripts/format.sh"],
+    data = [
+        ":buildifier",
+        ":ruff",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "lint",
+    srcs = ["scripts/lint.sh"],
+    data = [
+        ":buildifier",
+        ":ruff",
+    ],
+    visibility = ["//visibility:public"],
+)

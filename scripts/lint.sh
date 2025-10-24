@@ -1,9 +1,11 @@
 #!/bin/bash
 # Manual linting script for checking code quality
-# Usage: ./scripts/lint.sh [path]
+# Usage: bazel run //:lint [-- path]
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+set +e  # Don't exit on error, we want to show both checks
+
+# Change to workspace root (Bazel provides this)
+cd "$BUILD_WORKSPACE_DIRECTORY"
 
 TARGET="${1:-.}"  # Default to current directory if no argument
 
@@ -26,7 +28,7 @@ if [ $RUFF_EXIT -eq 0 ] && [ $BUILDIFIER_EXIT -eq 0 ]; then
     exit 0
 else
     echo "❌ Lint checks failed. Run these to fix:"
-    [ $RUFF_EXIT -ne 0 ] && echo "   bazel run //:ruff -- check . --fix"
+    [ $RUFF_EXIT -ne 0 ] && echo "   bazel run //:format  (or bazel run //:ruff -- check . --fix)"
     [ $BUILDIFIER_EXIT -ne 0 ] && echo "   bazel run //:buildifier -- -r ."
     exit 1
 fi

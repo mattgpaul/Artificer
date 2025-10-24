@@ -1,9 +1,11 @@
 #!/bin/bash
 # Format all Python and BUILD files
-# Usage: ./scripts/format.sh
+# Usage: bazel run //:format
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+set -e
+
+# Change to workspace root (Bazel provides this)
+cd "$BUILD_WORKSPACE_DIRECTORY"
 
 echo "📝 Formatting all code files..."
 echo ""
@@ -19,5 +21,5 @@ bazel run //:buildifier -- -r .
 echo ""
 echo "✅ Formatting complete!"
 echo ""
-echo "Run './scripts/lint.sh' to check for any remaining issues."
+echo "Run 'bazel run //:lint' to check for any remaining issues."
 

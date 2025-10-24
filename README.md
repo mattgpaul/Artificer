@@ -73,11 +73,11 @@ See `.cursor/rules/linting-and-formatting.mdc` for detailed documentation on sta
 - Tests should be run manually: `bazel test //...`
 
 **Manual** (without hooks):
-1. Format all: `./scripts/format.sh`
-2. Check quality: `./scripts/lint.sh`
+1. Format all: `bazel run //:format`
+2. Check quality: `bazel run //:lint`
 3. Test: `bazel test //...`
 
-Or individually:
+Or use individual tools:
 1. Format Python: `bazel run //:ruff -- format .`
 2. Lint Python: `bazel run //:ruff -- check --fix .`
 3. Format Bazel: `bazel run //:buildifier -- -r .`
