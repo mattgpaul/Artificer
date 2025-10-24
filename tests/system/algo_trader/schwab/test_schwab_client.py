@@ -5,7 +5,7 @@ All external dependencies are mocked to avoid network calls.
 """
 
 import os
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -140,10 +140,8 @@ class TestSchwabClientTokenManagement:
         }
         mock_dependencies["requests"].post.return_value = mock_response
 
-        # Mock file operations
-        with patch("builtins.open", mock_open(read_data="export SCHWAB_API_KEY=test_api_key\n")):
-            client = SchwabClient()
-            token = client.get_valid_access_token()
+        client = SchwabClient()
+        token = client.get_valid_access_token()
 
         assert token == "refreshed_token"
 
@@ -172,10 +170,8 @@ class TestSchwabClientTokenManagement:
         }
         mock_dependencies["requests"].post.return_value = mock_response
 
-        # Mock file operations for env file update
-        with patch("builtins.open", mock_open(read_data="export SCHWAB_API_KEY=test_api_key\n")):
-            client = SchwabClient()
-            result = client.refresh_token()
+        client = SchwabClient()
+        result = client.refresh_token()
 
         assert result is True
         mock_dependencies["broker"].set_access_token.assert_called_with("new_access_token")
@@ -218,10 +214,8 @@ class TestSchwabClientTokenManagement:
         }
         mock_dependencies["requests"].post.return_value = mock_response
 
-        # Mock file operations
-        with patch("builtins.open", mock_open(read_data="export SCHWAB_API_KEY=test_api_key\n")):
-            client = SchwabClient()
-            result = client.refresh_token()
+        client = SchwabClient()
+        result = client.refresh_token()
 
         assert result is True
         mock_dependencies["broker"].set_access_token.assert_called_with("new_access_token")
@@ -307,8 +301,11 @@ class TestSchwabClientOAuth2Flow:
 
     def test_authenticate_success(self, mock_dependencies):
         """Test successful OAuth2 flow."""
-        # Mock user input
-        mock_dependencies["input"].return_value = "https://127.0.0.1/?code=test_code%40"
+        # Mock user input - first for redirect URL, second for confirmation
+        mock_dependencies["input"].side_effect = [
+            "https://127.0.0.1/?code=test_code%40",
+            "",  # User presses ENTER after copying token
+        ]
 
         # Mock successful token exchange
         mock_response = MagicMock()
@@ -319,10 +316,8 @@ class TestSchwabClientOAuth2Flow:
         }
         mock_dependencies["requests"].post.return_value = mock_response
 
-        # Mock file operations
-        with patch("builtins.open", mock_open(read_data="export SCHWAB_API_KEY=test_api_key\n")):
-            client = SchwabClient()
-            result = client.authenticate()
+        client = SchwabClient()
+        result = client.authenticate()
 
         assert result is not None
         assert result["access_token"] == "oauth_access_token"
@@ -331,6 +326,9 @@ class TestSchwabClientOAuth2Flow:
         # Verify tokens were stored
         mock_dependencies["broker"].set_access_token.assert_called_with("oauth_access_token")
         mock_dependencies["broker"].set_refresh_token.assert_called_with("oauth_refresh_token")
+
+        # Verify print was called to display token instructions
+        assert mock_dependencies["print"].called
 
     def test_authenticate_invalid_url(self, mock_dependencies):
         """Test OAuth2 flow fails with invalid redirect URL."""
@@ -460,25 +458,33 @@ class TestSchwabClientUtilityMethods:
         assert "headers" in call_args[1]
         assert call_args[1]["headers"]["Authorization"] == "Bearer test_token"
 
-    def test_update_env_file_with_tokens(self, mock_dependencies):
-        """Test updating environment file with new tokens."""
-        tokens = {"access_token": "new_access_token", "refresh_token": "new_refresh_token"}
+    def test_display_refresh_token_instructions(self, mock_dependencies):
+        """Test display of refresh token instructions with user confirmation."""
+        test_token = "test_refresh_token_12345"
 
-        # Mock existing env file content
-        existing_content = "export SCHWAB_API_KEY=test_key\nexport OTHER_VAR=value\n"
+        # Mock both input and print
+        with (
+            patch("builtins.input", return_value="") as mock_input,
+            patch("builtins.print") as mock_print,
+        ):
+            client = SchwabClient()
+            client._display_refresh_token_instructions(test_token)
 
-        m = mock_open(read_data=existing_content)
-        with patch("builtins.open", m):
-            with patch("os.path.exists", return_value=True):
-                client = SchwabClient()
-                client._update_env_file_with_tokens(tokens)
+            # Verify print was called with token instructions
+            assert mock_print.called
+            print_calls = [str(call) for call in mock_print.call_args_list]
+            print_output = " ".join(print_calls)
 
-            # Get the written lines by collecting all writelines calls
-            write_calls = [call for call in m().writelines.call_args_list]
-            if write_calls:
-                written_lines = write_calls[0][0][0]  # Get the first writelines call's argument
-                written_content = "".join(written_lines)
+            # Check that key elements are in the output
+            assert "OAUTH2 FLOW COMPLETE" in print_output
+            assert test_token in print_output
+            assert "SCHWAB_REFRESH_TOKEN" in print_output
+            assert "Redis is ephemeral" in print_output
 
-                assert "export SCHWAB_ACCESS_TOKEN=new_access_token" in written_content
-                assert "export SCHWAB_REFRESH_TOKEN=new_refresh_token" in written_content
-                assert "export OTHER_VAR=value" in written_content  # Existing content preserved
+            # Verify input was called for user confirmation
+            mock_input.assert_called_once()
+
+            # Verify logger was called to confirm user action
+            mock_dependencies["logger_instance"].info.assert_called_with(
+                "User confirmed token copied"
+            )

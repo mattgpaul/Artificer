@@ -1,0 +1,519 @@
+---
+alwaysApply: true
+---
+
+# Linting and Formatting Standards
+
+## Purpose
+
+This document specifies the concrete tooling, configurations, and standards for linting and formatting Python and Bazel code in the Artificer monorepo. These rules complement the high-level best practices in `bazel-monorepo-python.mdc` with specific, actionable tooling choices.
+
+**Note**: These standards are for developer reference and AI-assisted development. They are not enforced in CI/CD pipelines.
+
+## Python Standards
+
+### Formatter: Ruff
+
+**Tool**: `ruff format` (modern, fast replacement for Black)
+
+**Configuration** (`ruff.toml`):
+```toml
+# Ruff formatter configuration for Artificer monorepo
+line-length = 100  # Google Python Style Guide standard
+indent-width = 4   # PEP 8 standard
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+```
+
+**Usage**:
+```bash
+# Format all Python files
+bazel run //tools:ruff -- format .
+
+# Check formatting without changes
+bazel run //tools:ruff -- format --check .
+```
+
+**Key Rules**:
+- **Line Length**: 100 characters maximum
+- **Indentation**: 4 spaces (never tabs)
+- **Quotes**: Double quotes for strings
+- **Trailing Commas**: Use trailing commas in multi-line structures
+- **Line Endings**: LF (Unix-style) line endings
+
+### Linter: Ruff
+
+**Tool**: `ruff check` (replaces flake8, pylint, isort)
+
+**Configuration** (`ruff.toml` continued):
+```toml
+[lint]
+select = [
+    "F",      # Pyflakes - basic errors
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "I",      # isort - import sorting
+    "N",      # pep8-naming - naming conventions
+    "D",      # pydocstyle - docstring conventions
+    "UP",     # pyupgrade - Python version upgrades
+    "B",      # bugbear - likely bugs
+    "C90",    # mccabe - complexity checking
+    "PL",     # Pylint subset
+    "RUF",    # Ruff-specific rules
+]
+
+ignore = [
+    "D203",   # one-blank-line-before-class (conflicts with D211)
+    "D213",   # multi-line-summary-second-line (conflicts with D212)
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude specific directories
+exclude = [
+    ".git",
+    ".bazel",
+    "bazel-*",
+    "__pycache__",
+    "*.egg-info",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["D104"]  # Don't require docstrings in __init__.py
+"tests/**/*.py" = [
+    "D100",   # Missing docstring in public module
+    "D103",   # Missing docstring in public function
+]
+
+[lint.mccabe]
+max-complexity = 15  # Google standard
+
+[lint.pydocstyle]
+convention = "google"  # Use Google docstring style
+
+[lint.isort]
+# Import order: stdlib → third-party → local
+known-first-party = ["infrastructure", "system", "component"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+```
+
+**Usage**:
+```bash
+# Lint all Python files
+bazel run //tools:ruff -- check .
+
+# Auto-fix issues
+bazel run //tools:ruff -- check --fix .
+```
+
+**Key Rules**:
+- **Import Order**: stdlib → third-party → local (enforced by isort)
+- **Naming Conventions**: 
+  - `snake_case` for functions, variables, methods
+  - `PascalCase` for classes
+  - `UPPER_CASE` for constants
+- **Complexity**: Maximum cyclomatic complexity of 15
+- **Docstrings**: Required for all public APIs (Google style)
+
+### Type Checker: mypy
+
+**Tool**: `mypy` (static type checker)
+
+**Configuration** (`mypy.ini`):
+```ini
+[mypy]
+# General settings
+python_version = 3.11
+warn_return_any = True
+warn_unused_configs = True
+disallow_untyped_defs = False  # Start lenient, increase over time
+check_untyped_defs = True
+
+# Import discovery
+namespace_packages = True
+explicit_package_bases = True
+mypy_path = .
+
+# Warnings
+warn_redundant_casts = True
+warn_unused_ignores = True
+warn_no_return = True
+warn_unreachable = True
+
+# Strictness (gradually increase these)
+disallow_any_generics = False
+disallow_subclassing_any = False
+disallow_untyped_calls = False
+disallow_incomplete_defs = True
+no_implicit_optional = True
+strict_equality = True
+
+# Output
+show_error_codes = True
+show_column_numbers = True
+pretty = True
+
+# Per-module options
+[mypy-tests.*]
+disallow_untyped_defs = False
+
+[mypy-pytest.*]
+ignore_missing_imports = True
+
+[mypy-redis.*]
+ignore_missing_imports = True
+```
+
+**Usage**:
+```bash
+# Type check Python directories
+bazel run //tools:mypy -- infrastructure system tests
+```
+
+**Key Rules**:
+- **Type Hints Required**: All public functions must have type hints
+- **Modern Syntax**: Use `list[str]` not `List[str]` (Python 3.9+)
+- **Future Annotations**: Use `from __future__ import annotations` for forward references
+- **Gradual Typing**: Start with basic checks, increase strictness over time
+
+### Python Code Examples
+
+#### Properly Formatted Module
+
+```python
+"""Market data service base class.
+
+This module provides abstract base classes for market data services following
+Google's Python style guide and internal patterns.
+"""
+
+from __future__ import annotations
+
+import signal
+import time
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from typing import Optional
+
+from infrastructure.logging.logger import get_logger
+from system.algo_trader.redis.watchlist import WatchlistBroker
+from system.algo_trader.schwab.market_handler import MarketHandler
+from system.algo_trader.utils.schema import MarketHours
+
+
+class MarketBase(ABC):
+    """Base class for market data services.
+
+    Provides common functionality including:
+    - Signal handling for graceful shutdown
+    - Precise timing control
+    - Error handling and logging
+    - Client initialization
+
+    Args:
+        sleep_override: Optional sleep interval override in seconds.
+
+    Attributes:
+        logger: Configured logger instance for this class.
+        running: Boolean flag indicating if service is running.
+        sleep_override: Optional sleep interval override.
+    """
+
+    def __init__(self, sleep_override: Optional[int] = None) -> None:
+        """Initialize market service with optional sleep override."""
+        self.logger = get_logger(self.__class__.__name__)
+        self.running = True
+        self.sleep_override = sleep_override
+        self._setup_signal_handlers()
+        self._setup_clients()
+
+    def _setup_signal_handlers(self) -> None:
+        """Configure signal handlers for graceful shutdown."""
+        signal.signal(signal.SIGTERM, self._shutdown_handler)
+        signal.signal(signal.SIGINT, self._shutdown_handler)
+
+    def _shutdown_handler(self, signum: int, frame: Any) -> None:
+        """Handle shutdown signals gracefully.
+
+        Args:
+            signum: Signal number received.
+            frame: Current stack frame.
+        """
+        self.logger.info(f"Received signal {signum}, shutting down gracefully...")
+        self.running = False
+
+    @abstractmethod
+    def _execute_pipeline(self) -> bool:
+        """Execute the main data processing pipeline.
+
+        Returns:
+            True if pipeline executed successfully, False otherwise.
+
+        Raises:
+            ValueError: If pipeline configuration is invalid.
+            ConnectionError: If external service is unavailable.
+        """
+        pass
+```
+
+## Bazel Standards
+
+### Formatter: buildifier
+
+**Tool**: `buildifier` (official Bazel formatter from Bazel team)
+
+**Installation**:
+```bash
+# Download from GitHub releases
+wget https://github.com/bazelbuild/buildtools/releases/download/v7.0.0/buildifier-linux-amd64
+chmod +x buildifier-linux-amd64
+sudo mv buildifier-linux-amd64 /usr/local/bin/buildifier
+```
+
+**Configuration** (command-line flags):
+```bash
+buildifier \
+  --type=build \           # File type (build, bzl, workspace)
+  --lint=warn \            # Lint mode (off, warn, fix)
+  --mode=fix \             # Mode (check, diff, fix, print_if_changed)
+  --warnings=all \         # Enable all warnings
+  -r .                     # Recursive
+```
+
+**Usage**:
+```bash
+# Format all Bazel files
+bazel run //tools:buildifier -- -r .
+
+# Lint Bazel files  
+bazel run //tools:buildifier -- -lint=warn -mode=check -r .
+
+# Format and fix lint issues
+bazel run //tools:buildifier -- -lint=fix -r .
+```
+
+**Key Rules**:
+- **Indentation**: 4 spaces
+- **Line Length**: 100 characters
+- **List Sorting**: Sort `deps`, `srcs`, and other lists alphabetically
+- **Load Statement Order**: Sort `load()` statements alphabetically
+- **Target Organization**: Group related targets together
+- **Comments**: Preserve inline comments, format block comments
+
+### Bazel BUILD File Examples
+
+#### Properly Formatted BUILD File
+
+```python
+# Load statements at top, sorted alphabetically
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("//:pytest_test.bzl", "pytest_test")
+
+# Library target with sorted dependencies
+py_library(
+    name = "market_handler_lib",
+    srcs = [
+        "account_handler.py",
+        "market_handler.py",
+        "schwab_client.py",
+        "timescale_enum.py",
+    ],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//system:__pkg__",
+        "//tests:__subpackages__",
+    ],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//infrastructure:client",
+        "//system/algo_trader/redis:redis_services",
+        requirement("requests"),
+    ],
+)
+
+# Test target with proper naming and tags
+pytest_test(
+    name = "test_market_handler",
+    size = "small",
+    coverage_path = "system.algo_trader.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/schwab:test_market_handler_lib",
+)
+```
+
+**Key Conventions**:
+- **Target Names**: Use descriptive `{component}_{type}` pattern
+- **Visibility**: Be explicit about target visibility
+- **Tags**: Categorize targets (`unit`, `integration`, `e2e`)
+- **Dependencies**: List explicit dependencies, avoid implicit ones
+- **Comments**: Document non-obvious build rules
+
+## Combined Workflow
+
+### Pre-Commit Checklist
+
+Before committing code, run:
+
+1. **Format Python**: `bazel run //tools:ruff -- format .`
+2. **Lint Python**: `bazel run //tools:ruff -- check --fix .`
+3. **Format Bazel**: `bazel run //tools:buildifier -- -r .`
+4. **Tests**: `bazel test //...`
+
+### IDE Integration
+
+#### VS Code / Cursor Settings
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+  "python.linting.enabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.formatting.provider": "none",
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true,
+      "source.organizeImports": true
+    }
+  },
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
+}
+```
+
+#### Ruff VS Code Extension
+
+Install: `charliermarsh.ruff`
+
+This provides real-time linting and formatting in the editor.
+
+## Common Issues and Fixes
+
+### Import Order Violations
+
+**Before**:
+```python
+from system.algo_trader.utils.schema import MarketHours
+import signal
+from infrastructure.logging.logger import get_logger
+import time
+```
+
+**After** (automatically fixed by Ruff):
+```python
+import signal
+import time
+
+from infrastructure.logging.logger import get_logger
+from system.algo_trader.utils.schema import MarketHours
+```
+
+### Missing Docstrings
+
+**Before**:
+```python
+def calculate_total(prices):
+    return sum(prices)
+```
+
+**After**:
+```python
+def calculate_total(prices: list[float]) -> float:
+    """Calculate total sum of prices.
+
+    Args:
+        prices: List of price values to sum.
+
+    Returns:
+        Total sum of all prices.
+    """
+    return sum(prices)
+```
+
+### Type Hint Violations
+
+**Before**:
+```python
+def get_user_data(user_id):
+    return {"id": user_id, "name": "John"}
+```
+
+**After**:
+```python
+def get_user_data(user_id: int) -> dict[str, str | int]:
+    """Get user data by ID.
+
+    Args:
+        user_id: Unique identifier for the user.
+
+    Returns:
+        Dictionary containing user ID and name.
+    """
+    return {"id": user_id, "name": "John"}
+```
+
+### Line Length Violations
+
+**Before**:
+```python
+result = some_very_long_function_name(argument1, argument2, argument3, argument4, argument5, argument6)
+```
+
+**After**:
+```python
+result = some_very_long_function_name(
+    argument1,
+    argument2,
+    argument3,
+    argument4,
+    argument5,
+    argument6,
+)
+```
+
+## Tool Versions
+
+All tools are managed by Bazel via binary downloads:
+
+- **Ruff**: v0.14.1 (downloaded from GitHub releases)
+- **Buildifier**: v8.2.1 (downloaded from GitHub releases)
+
+To update versions, modify `MODULE.bazel`:
+- `RUFF_VERSION = "0.14.1"`
+- `BUILDIFIER_VERSION = "8.2.1"`
+
+## Bazel Integration
+
+This setup follows the approach from [bazel-ruff](https://github.com/philipuvarov/bazel-ruff), which downloads tool binaries directly from GitHub releases for hermetic, reproducible builds
+
+## Summary
+
+This document establishes:
+
+1. **Ruff** as the primary Python formatter and linter
+2. **mypy** as the type checker
+3. **buildifier** as the Bazel formatter and linter
+4. **Google Python Style Guide** as the foundation
+5. **100-character line length** as standard
+6. **4-space indentation** for all code
+7. **Google-style docstrings** for documentation
+8. **Type hints required** for public APIs
+
+All tools are accessible via `bazel run //tools:toolname` commands, following Bazel best practices for tool integration.

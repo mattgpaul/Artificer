@@ -1,0 +1,622 @@
+---
+globs: *test*.py
+alwaysApply: false
+---
+## Test Organization
+
+### File Structure
+
+Each test file should follow this structure:
+
+```python
+"""
+Unit tests for [Component] - [Brief Description]
+
+Tests cover [list key areas being tested].
+All external dependencies are mocked to avoid [external requirements].
+"""
+
+import pytest
+from unittest.mock import Mock, patch, MagicMock
+# ... other imports
+
+from [module.path] import [ClassToTest]
+
+
+class Test[Component][Aspect]:
+    """Test [specific aspect] of [component]"""
+
+    @pytest.fixture
+    def mock_dependencies(self):
+        """Fixture to mock all external dependencies"""
+        # Setup mocks
+        yield {'mock1': mock1, 'mock2': mock2}
+
+    def test_[specific_behavior]_[expected_outcome](self, mock_dependencies):
+        """Test [what is being tested] [under what conditions]"""
+        # Arrange
+        # Act
+        # Assert
+
+
+class Test[Component][AnotherAspect]:
+    """Test [another aspect] of [component]"""
+    # ... more tests
+```
+
+### Test Class Organization
+
+Group tests into logical classes based on functionality:
+
+```python
+class TestComponentInitialization:
+    """Test component initialization and configuration"""
+
+class TestComponentCoreFunctionality:
+    """Test primary operations"""
+
+class TestComponentErrorHandling:
+    """Test error scenarios and edge cases"""
+
+class TestComponentIntegration:
+    """Test integration scenarios with multiple operations"""
+```
+
+---
+
+## BUILD File Structure
+
+### Two-File Pattern
+
+Tests require TWO BUILD files:
+
+1. **Test BUILD file** (`tests/.../BUILD`) - Defines test libraries
+2. **Implementation BUILD file** (`implementation/.../BUILD`) - Defines test targets
+
+### Test BUILD File (Library Definitions)
+
+Location: `tests/[path]/BUILD`
+
+```python
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "test_[component]_lib",
+    srcs = ["test_[component].py"],
+    deps = [
+        "//[path/to/implementation]:[component]",
+        "//[other/dependencies]",
+    ],
+    testonly = True,
+    visibility = ["//[path/to/implementation]:__pkg__"],
+)
+```
+
+**Key Points:**
+- Only defines `py_library` targets
+- Visibility restricted to implementation package
+- `testonly = True` to prevent use in production code
+
+### Implementation BUILD File (Test Targets)
+
+Location: `[implementation_path]/BUILD`
+
+```python
+load("@pip//:requirements.bzl", "requirement")
+load("//:pytest_test.bzl", "pytest_test")
+
+py_library(
+    name = "[component]",
+    srcs = ["[component].py"],
+    deps = [...],
+    visibility = [
+        "//[allowed/packages]:__subpackages__",
+        "//tests/[matching/path]:__pkg__",  # Allow test access
+    ],
+)
+
+# Test target
+pytest_test(
+    name = "test_[component]",
+    test_lib = "//tests/[matching/path]:test_[component]_lib",
+    coverage_path = "[dotted.module.path]",
+    size = "small",  # Optional: small, medium, large
+)
+```
+
+**Key Points:**
+- Test targets defined alongside implementation
+- Test libraries referenced from tests/ directory
+- Implementation must grant visibility to test package
+- Use appropriate test size (small by default)
+
+### Complete Example
+
+**Implementation:** `infrastructure/redis/BUILD`
+```python
+load("@pip//:requirements.bzl", "requirement")
+load("//:pytest_test.bzl", "pytest_test")
+
+py_library(
+    name = "redis",
+    srcs = ["redis.py"],
+    deps = [
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        requirement("redis"),
+    ],
+    visibility = [
+        "//visibility:public",
+        "//tests/infrastructure/redis:__pkg__",
+    ],
+)
+
+# Test target
+pytest_test(
+    name = "test_redis",
+    test_lib = "//tests/infrastructure/redis:test_redis_lib",
+    coverage_path = "infrastructure.redis",
+)
+```
+
+**Tests:** `tests/infrastructure/redis/BUILD`
+```python
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "test_redis_lib",
+    srcs = ["test_redis.py"],
+    deps = [
+        "//infrastructure/redis:redis",
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+    ],
+    testonly = True,
+    visibility = ["//infrastructure/redis:__pkg__"],
+)
+```
+
+---
+
+## Test Patterns
+
+### 1. Comprehensive Mocking
+
+**Rule:** Mock ALL external dependencies - no real databases, APIs, or services.
+
+```python
+@pytest.fixture
+def mock_dependencies(self):
+    """Fixture to mock all external dependencies"""
+    with patch('module.get_logger') as mock_logger, \
+         patch('module.RedisClient') as mock_redis, \
+         patch('module.requests') as mock_requests:
+        
+        mock_logger_instance = MagicMock()
+        mock_logger.return_value = mock_logger_instance
+        
+        mock_redis_instance = MagicMock()
+        mock_redis.return_value = mock_redis_instance
+        
+        yield {
+            'logger': mock_logger,
+            'logger_instance': mock_logger_instance,
+            'redis': mock_redis,
+            'redis_instance': mock_redis_instance,
+            'requests': mock_requests
+        }
+```
+
+### 2. Test Success and Failure Paths
+
+**Rule:** Test both happy paths and error scenarios.
+
+```python
+def test_operation_success(self, mock_dependencies):
+    """Test successful operation"""
+    mock_dependencies['service'].call.return_value = "success"
+    result = component.operation()
+    assert result is True
+
+def test_operation_failure(self, mock_dependencies):
+    """Test operation handles failures gracefully"""
+    mock_dependencies['service'].call.side_effect = Exception("Error")
+    result = component.operation()
+    assert result is False
+
+def test_operation_logs_error(self, mock_dependencies):
+    """Test operation logs errors appropriately"""
+    mock_dependencies['service'].call.side_effect = Exception("Error")
+    component.operation()
+    mock_dependencies['logger_instance'].error.assert_called()
+```
+
+### 3. Test Edge Cases
+
+**Rule:** Include tests for edge cases, empty data, None values, etc.
+
+```python
+def test_with_empty_input(self):
+    """Test handling of empty input"""
+    result = component.process([])
+    assert result == []
+
+def test_with_none_value(self):
+    """Test handling of None value"""
+    result = component.process(None)
+    assert result is None
+
+def test_with_invalid_type(self):
+    """Test handling of invalid input type"""
+    with pytest.raises(TypeError):
+        component.process("invalid")
+```
+
+### 4. Integration Tests
+
+**Rule:** Include integration scenarios testing multiple operations.
+
+```python
+class TestComponentIntegration:
+    """Test integration scenarios"""
+    
+    def test_complete_workflow(self, mock_dependencies):
+        """Test complete workflow: init -> process -> cleanup"""
+        component = Component()
+        
+        # Step 1: Initialize
+        assert component.initialize() is True
+        
+        # Step 2: Process data
+        result = component.process(data)
+        assert result is not None
+        
+        # Step 3: Cleanup
+        assert component.cleanup() is True
+```
+
+### 5. Descriptive Test Names
+
+**Rule:** Test names should clearly describe what is being tested.
+
+```python
+# ✅ GOOD: Clear what's being tested and expected outcome
+def test_write_stock_data_success(self):
+def test_write_adds_ticker_tag(self):
+def test_write_failure_logs_error(self):
+
+# ❌ BAD: Unclear what's being tested
+def test_write(self):
+def test_write_1(self):
+def test_write_edge_case(self):
+```
+
+---
+
+## Naming Conventions
+
+### Test Files
+- **Pattern:** `test_[component_name].py`
+- **Examples:** `test_redis.py`, `test_logger.py`, `test_market_data_influx.py`
+
+### Test Classes
+- **Pattern:** `Test[Component][Aspect]`
+- **Examples:** 
+  - `TestRedisClientInitialization`
+  - `TestLoggerFormatting`
+  - `TestMarketDataInfluxWrite`
+
+### Test Methods
+- **Pattern:** `test_[action]_[condition]_[expected_result]`
+- **Examples:**
+  - `test_initialize_default_config`
+  - `test_write_with_ttl`
+  - `test_query_failure_returns_false`
+
+### BUILD Targets
+- **Test Library:** `test_[component]_lib`
+- **Test Target:** `test_[component]`
+- **Examples:**
+  - `test_redis_lib` (library)
+  - `test_redis` (test target)
+
+---
+
+## Test Coverage Requirements
+
+### Minimum Coverage
+
+Each module should have tests covering:
+
+1. **Initialization** (5-10% of tests)
+   - Default configuration
+   - Custom configuration
+   - Environment variable handling
+   - Configuration validation
+
+2. **Core Functionality** (40-50% of tests)
+   - Primary operations
+   - Data transformations
+   - Business logic
+   - Return values
+
+3. **Error Handling** (20-30% of tests)
+   - Exception handling
+   - Error logging
+   - Graceful degradation
+   - Invalid inputs
+
+4. **Edge Cases** (10-20% of tests)
+   - Empty data
+   - None values
+   - Boundary conditions
+   - Special characters/unicode
+
+5. **Integration** (10-20% of tests)
+   - Multi-step workflows
+   - Component interactions
+   - State management
+
+### Coverage Metrics
+
+- **Target:** 100% statement coverage for critical paths
+- **Minimum:** 80% overall coverage
+- **Required:** All public methods must have tests
+
+### Example Coverage
+
+```
+Module: market_data_influx.py
+Total Tests: 31
+
+Breakdown:
+- Initialization:        5 tests (16%)
+- Data Formatting:       5 tests (16%)
+- Write Operations:      7 tests (23%)
+- Query Operations:      8 tests (26%)
+- Integration:           3 tests (10%)
+- Config Validation:     3 tests (10%)
+```
+
+---
+
+## Running Tests
+
+### Run Single Test
+
+```bash
+# Run specific test target
+bazel test //infrastructure/redis:test_redis
+
+# Run with verbose output
+bazel test //infrastructure/redis:test_redis --test_output=all
+
+# Run with errors only
+bazel test //infrastructure/redis:test_redis --test_output=errors
+```
+
+### Run Multiple Tests
+
+```bash
+# Run all tests in a package
+bazel test //infrastructure/...
+
+# Run all infrastructure tests
+bazel test //infrastructure:test_client \
+           //infrastructure/logging:test_logger \
+           //infrastructure/redis:test_redis \
+           //infrastructure/influxdb:test_influxdb
+
+# Run all system tests
+bazel test //system/algo_trader/...
+```
+
+### Test with Coverage
+
+```bash
+# Coverage is automatically generated with pytest_test macro
+bazel test //infrastructure/redis:test_redis --test_output=all
+
+# View coverage in output:
+# Coverage HTML written to dir htmlcov
+```
+
+### Common Test Flags
+
+```bash
+--test_output=errors    # Show only errors (default for CI)
+--test_output=all       # Show all output (useful for debugging)
+--test_output=summary   # Show summary only
+--test_size_filters=small  # Run only small tests
+-c dbg                  # Debug build configuration
+```
+
+---
+
+## Examples
+
+### Example 1: Simple Component Test
+
+**Implementation:** `infrastructure/client.py`
+```python
+from abc import ABC
+
+class Client(ABC):
+    """Abstract base class for clients"""
+    pass
+```
+
+**Test:** `tests/infrastructure/test_client.py`
+```python
+"""
+Unit tests for Client - Abstract Base Class
+
+Tests cover abstract class enforcement and inheritance patterns.
+"""
+
+import pytest
+from abc import ABC
+
+from infrastructure.client import Client
+
+
+class ConcreteClient(Client):
+    """Concrete implementation for testing"""
+    pass
+
+
+class TestClientAbstractClass:
+    """Test Client abstract base class"""
+
+    def test_client_is_abstract(self):
+        """Test Client is an abstract base class"""
+        from abc import ABCMeta
+        assert isinstance(Client, ABCMeta)
+
+    def test_client_can_be_subclassed(self):
+        """Test Client can be subclassed"""
+        client = ConcreteClient()
+        assert isinstance(client, Client)
+```
+
+**Test BUILD:** `tests/infrastructure/BUILD`
+```python
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "test_client_lib",
+    srcs = ["test_client.py"],
+    deps = ["//infrastructure:client"],
+    testonly = True,
+    visibility = ["//infrastructure:__pkg__"],
+)
+```
+
+**Implementation BUILD:** `infrastructure/BUILD`
+```python
+load("//:pytest_test.bzl", "pytest_test")
+
+py_library(
+    name = "client",
+    srcs = ["client.py"],
+    visibility = ["//visibility:public"],
+)
+
+pytest_test(
+    name = "test_client",
+    test_lib = "//tests/infrastructure:test_client_lib",
+    coverage_path = "infrastructure",
+)
+```
+
+### Example 2: Complex Component with Dependencies
+
+**Implementation:** `system/algo_trader/influx/market_data_influx.py`
+```python
+from infrastructure.influxdb.influxdb import BaseInfluxDBClient
+
+class MarketDataInflux(BaseInfluxDBClient):
+    def write(self, data, ticker, table):
+        # Implementation
+        pass
+```
+
+**Test:** `tests/system/algo_trader/influx/test_market_data_influx.py`
+```python
+"""
+Unit tests for MarketDataInflux
+
+Tests cover initialization, write operations, and query operations.
+All InfluxDB operations are mocked.
+"""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+from system.algo_trader.influx.market_data_influx import MarketDataInflux
+
+
+class TestMarketDataInfluxWrite:
+    """Test write operations"""
+
+    @pytest.fixture
+    def mock_dependencies(self):
+        """Fixture to mock dependencies"""
+        with patch('system.algo_trader.influx.market_data_influx.get_logger'), \
+             patch('infrastructure.influxdb.influxdb.InfluxDBClient3') as mock_client:
+            mock_client.return_value = MagicMock()
+            yield {'client': mock_client}
+
+    def test_write_success(self, mock_dependencies):
+        """Test successful write operation"""
+        client = MarketDataInflux()
+        result = client.write({'data': [1, 2, 3]}, 'AAPL', 'stock')
+        assert result is True
+```
+
+---
+
+## Quick Reference Checklist
+
+When creating tests, verify:
+
+- [ ] Test directory mirrors implementation directory exactly
+- [ ] Test file uses `test_` prefix
+- [ ] Test BUILD file defines `py_library` with `testonly = True`
+- [ ] Implementation BUILD file defines `pytest_test` target
+- [ ] Implementation grants visibility to test package
+- [ ] All external dependencies are mocked
+- [ ] Tests cover success, failure, and edge cases
+- [ ] Test names are descriptive and follow conventions
+- [ ] Fixtures are used for repeated setup
+- [ ] Integration tests validate workflows
+- [ ] Tests pass when run with `bazel test`
+
+---
+
+## Getting Help
+
+### Common Issues
+
+1. **Visibility Errors**
+   ```
+   target 'X' is not visible from target 'Y'
+   ```
+   **Solution:** Add test package to visibility list in implementation BUILD
+
+2. **Import Errors**
+   ```
+   ModuleNotFoundError: No module named 'X'
+   ```
+   **Solution:** Add missing dependency to test library deps in BUILD
+
+3. **Test Path Errors**
+   ```
+   ERROR: no such target '//tests/...'
+   ```
+   **Solution:** Verify test directory matches implementation path
+
+### Resources
+
+- Schwab tests: `tests/system/algo_trader/schwab/` - Reference implementation
+- Infrastructure tests: `tests/infrastructure/` - Comprehensive examples
+- pytest docs: https://docs.pytest.org/
+- Bazel testing: https://bazel.build/reference/test-encyclopedia
+
+---
+
+## Appendix: Test Statistics
+
+Current test coverage across the project:
+
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| infrastructure/client | 19 | 100% |
+| infrastructure/logging | 29 | 100% |
+| infrastructure/redis | 69 | 100% |
+| infrastructure/influxdb | 36 | 100% |
+| system/algo_trader/schwab | 4 suites | ~95% |
+| system/algo_trader/influx | 31 | 100% |
+
+**Total:** 200+ tests across all modules
+
