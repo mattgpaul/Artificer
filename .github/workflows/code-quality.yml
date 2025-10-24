@@ -1,0 +1,51 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [main, algo_trader]
+  push:
+    branches: [main, algo_trader]
+
+jobs:
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.8.1
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+      
+      - name: Check Python formatting
+        run: bazel run //:ruff -- format --check .
+      
+      - name: Check Python linting
+        run: bazel run //:ruff -- check .
+      
+      - name: Check BUILD formatting
+        run: bazel run //:buildifier -- -lint=warn -mode=check -r .
+  
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.8.1
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+      
+      - name: Run all tests
+        run: bazel test //... --test_output=errors
+

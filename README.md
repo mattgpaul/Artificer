@@ -1,6 +1,17 @@
 # Artificer
 Monorepo for my robotics lab
 
+## Getting Started
+
+### Setup Development Environment
+
+```bash
+# Install Git hooks for automated code quality checks
+./scripts/setup-hooks.sh
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
+
 ## Linting and Formatting Tools
 
 Bazel targets for linting and formatting code in the Artificer monorepo.
@@ -57,9 +68,25 @@ See `.cursor/rules/linting-and-formatting.mdc` for detailed documentation on sta
 
 ### Pre-Commit Workflow
 
-Before committing code:
+**Automatic** (with Git hooks installed):
+- Code is automatically formatted and linted on commit
+- Tests should be run manually: `bazel test //...`
 
+**Manual** (without hooks):
+1. Format all: `./scripts/format.sh`
+2. Check quality: `./scripts/lint.sh`
+3. Test: `bazel test //...`
+
+Or individually:
 1. Format Python: `bazel run //:ruff -- format .`
 2. Lint Python: `bazel run //:ruff -- check --fix .`
 3. Format Bazel: `bazel run //:buildifier -- -r .`
 4. Test: `bazel test //...`
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Code quality standards
+- Development workflow
+- IDE setup instructions
+- Testing requirements
