@@ -18,3 +18,65 @@ build --copt=-g
 build --cxxopt=-Wall
 build --cxxopt=-Wextra
 build --cxxopt=-Wpedantic
+
+# ==============================================================================
+# Performance and Caching Optimizations
+# ==============================================================================
+
+# Use all available CPU cores
+build --jobs=auto
+
+# Reuse sandbox directories for better performance
+build --experimental_reuse_sandbox_directories
+
+# Strict action environment for better caching
+build --incompatible_strict_action_env
+
+# Show timing information for long-running actions
+build --experimental_ui_max_stdouterr_bytes=1048576
+
+# ==============================================================================
+# Test Configuration
+# ==============================================================================
+
+# Show detailed test summary
+test --test_summary=detailed
+
+# Show test output only on failure
+test --test_output=errors
+
+# Reuse test sandboxes for speed
+test --experimental_reuse_sandbox_directories
+
+# Only build tests when running tests
+test --build_tests_only
+
+# ==============================================================================
+# CI/CD Configuration (activated via --config=ci)
+# ==============================================================================
+
+# Optimizations for CI environments
+build:ci --jobs=auto
+build:ci --local_resources=cpu=HOST_CPUS
+build:ci --local_resources=memory=HOST_RAM*.8
+build:ci --noshow_progress
+build:ci --color=yes
+build:ci --show_result=0
+test:ci --test_output=errors
+test:ci --test_summary=detailed
+
+# ==============================================================================
+# Remote Cache Configuration (optional - uncomment when ready)
+# ==============================================================================
+
+# To enable remote caching:
+# 1. Uncomment the lines below
+# 2. Replace YOUR_BUCKET with your GCS bucket or cache endpoint
+# 3. Set up authentication (gcloud auth or service account)
+
+# build:remote-cache --remote_cache=https://storage.googleapis.com/YOUR_BUCKET
+# build:remote-cache --experimental_remote_cache_compression
+# build:remote-cache --experimental_remote_download_minimal
+# build:remote-cache --remote_local_fallback
+
+# Then run with: bazel build --config=remote-cache //...
