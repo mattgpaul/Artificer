@@ -13,6 +13,40 @@ from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
 
+# Module-level fixtures to prevent OAuth flow hangs
+@pytest.fixture(autouse=True)
+def mock_all_external_calls():
+    """Mock all external calls to prevent hangs and network activity."""
+    with (
+        patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker,
+        patch("system.algo_trader.schwab.schwab_client.requests") as mock_requests,
+        patch("builtins.input", return_value="") as mock_input,
+        patch("builtins.print") as mock_print,
+    ):
+        # Mock AccountBroker to return valid tokens, preventing OAuth flow
+        mock_broker_instance = MagicMock()
+        mock_broker_instance.get_access_token.return_value = "test_access_token"
+        mock_broker_instance.get_refresh_token.return_value = None
+        mock_broker_instance.set_access_token.return_value = True
+        mock_broker_instance.set_refresh_token.return_value = True
+        mock_broker.return_value = mock_broker_instance
+
+        # Mock requests to prevent any HTTP hangs
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {}
+        mock_requests.post.return_value = mock_response
+        mock_requests.get.return_value = mock_response
+
+        yield {
+            "broker": mock_broker,
+            "broker_instance": mock_broker_instance,
+            "requests": mock_requests,
+            "input": mock_input,
+            "print": mock_print,
+        }
+
+
 class TestMarketHandlerInitialization:
     """Test MarketHandler initialization."""
 

@@ -12,18 +12,20 @@ The Schwab integration consists of three main components:
 
 ## Token Management
 
-The integration uses a Redis-first approach for token management with environment file fallback:
+The integration uses a Redis-first approach for token management with environment variable fallback:
 
 ### Token Lifecycle
 
 1. **Check Redis**: Look for valid access token (TTL: 30 minutes)
 2. **Refresh from Redis**: If expired, use refresh token from Redis (TTL: 90 days)
-3. **Load from Environment**: If Redis refresh fails, load refresh token from env file
+3. **Load from Environment**: If Redis refresh fails, load refresh token from environment variable
 4. **OAuth2 Flow**: If all else fails, initiate complete OAuth2 authentication
+
+**Important**: Redis is ephemeral - tokens stored in Redis will be lost on restart. The refresh token MUST be persisted as an environment variable for future sessions.
 
 ### Environment Variables
 
-Required environment variables in `algo_trader.env`:
+Required environment variables (must be set externally, not in files included in builds):
 
 ```bash
 # Required for initialization
@@ -31,10 +33,15 @@ export SCHWAB_APP_NAME=your_app_name
 export SCHWAB_API_KEY=your_api_key
 export SCHWAB_SECRET=your_secret
 
-# Optional - for token persistence
-export SCHWAB_ACCESS_TOKEN=your_access_token
+# Required for token persistence across Redis restarts (valid for 90 days)
 export SCHWAB_REFRESH_TOKEN=your_refresh_token
 ```
+
+**Note**: Environment variables should be set via:
+- Shell environment (`.bashrc`, `.zshrc`, etc.)
+- Docker environment variables
+- Container orchestration secrets (Kubernetes, Docker Compose, etc.)
+- Never commit `.env` files to version control or include them in builds
 
 ## OAuth2 Setup Process
 
@@ -61,7 +68,15 @@ When OAuth2 is required, the system will:
 1. Display authorization URL
 2. Prompt for redirect URL after user authorization
 3. Exchange authorization code for tokens
-4. Store tokens in Redis and update environment file
+4. Store tokens in Redis (ephemeral, for current session)
+5. Display refresh token and instructions for manual persistence
+6. Wait for user confirmation after copying token
+
+**Critical**: After OAuth2 completes, you MUST:
+- Copy the displayed refresh token
+- Set it as an environment variable: `export SCHWAB_REFRESH_TOKEN=<token>`
+- Add it to your persistent environment configuration
+- The token is valid for 90 days and must be set before the next run
 
 ## Usage Examples
 
