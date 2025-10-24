@@ -57,8 +57,8 @@ test --build_tests_only
 
 # Optimizations for CI environments
 build:ci --jobs=auto
-build:ci --local_ram_resources=HOST_RAM*.8
-build:ci --local_cpu_resources=HOST_CPUS
+build:ci --local_resources=cpu=HOST_CPUS
+build:ci --local_resources=memory=HOST_RAM*.8
 build:ci --noshow_progress
 build:ci --color=yes
 build:ci --show_result=0
