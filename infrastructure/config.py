@@ -54,7 +54,7 @@ class InfluxDBConfig(BaseSettings):
 
     host: str = Field(default="localhost")
     port: int = Field(default=8181)
-    token: str = Field(default="")
+    token: str = Field(default="my-secret-token")
     database: str = Field(default="")
 
     class Config:
