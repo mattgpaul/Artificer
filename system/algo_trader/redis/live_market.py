@@ -24,13 +24,14 @@ class LiveMarketBroker(BaseRedisClient):
         ttl: Time-to-live for cached quotes in seconds.
     """
 
-    def __init__(self, ttl: int = _DEFAULT_LIVE_QUOTE_TTL) -> None:
+    def __init__(self, ttl: int = _DEFAULT_LIVE_QUOTE_TTL, config=None) -> None:
         """Initialize live market broker.
 
         Args:
             ttl: Time-to-live for cached quotes in seconds (default: 30).
+            config: Optional RedisConfig. If None, reads from environment.
         """
-        super().__init__()
+        super().__init__(config=config)
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
         self.ttl = ttl

@@ -22,14 +22,16 @@ class LiveMarketService(MarketBase):
         _market_broker: Live market data Redis broker.
     """
 
-    def __init__(self, sleep_override=None):
+    def __init__(self, sleep_override=None, config=None):
         """Initialize live market data service.
 
         Args:
             sleep_override: Optional sleep interval override in seconds.
+            config: Optional AlgoTraderConfig. If None, uses environment variables.
         """
-        super().__init__(sleep_override)
-        self._market_broker = LiveMarketBroker()
+        super().__init__(sleep_override, config)
+        redis_config = self.config.redis if self.config else None
+        self._market_broker = LiveMarketBroker(config=redis_config)
 
     @property
     def market_broker(self):

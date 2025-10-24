@@ -13,6 +13,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
+        "//system/algo_trader:config",
         "//system/algo_trader/influx:influx_services",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
