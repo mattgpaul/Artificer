@@ -33,8 +33,10 @@ The system uses a layered configuration approach:
 
 **Setup**:
 ```bash
-# Source environment variables
-source system/algo_trader/algo_trader.env
+# Export environment variables (or source from your .env file)
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+# ... other environment variables ...
 
 # Run services - automatically reads from environment
 bazel run //system/algo_trader/service:live_market_service
@@ -42,7 +44,7 @@ bazel run //system/algo_trader/service:historical_market_service
 ```
 
 **Configuration Files**:
-- `system/algo_trader/algo_trader.env` - Contains all environment variables
+- Create a `.env` file with all required environment variables
 
 **Environment Variables**:
 ```bash
@@ -173,7 +175,7 @@ services:
       - INFLUXDB3_AUTH_TOKEN=${INFLUXDB_TOKEN}
       - INFLUXDB_DATABASE=algo-trader-database
       
-      # Schwab API (from .env)
+      # Schwab API (from environment)
       - SCHWAB_APP_NAME=${SCHWAB_APP_NAME}
       - SCHWAB_API_KEY=${SCHWAB_API_KEY}
       - SCHWAB_SECRET=${SCHWAB_SECRET}
@@ -306,7 +308,7 @@ client = BaseRedisClient()  # Uses localhost (default)
 
 **Standalone**:
 ```bash
-# Edit algo_trader.env
+# Set environment variable
 export REDIS_HOST=custom-redis-server
 
 # Or set inline
@@ -324,7 +326,7 @@ service = LiveMarketService(config=AlgoTraderConfig(redis=config))
 
 **Standalone**:
 ```bash
-# Edit algo_trader.env
+# Set environment variables
 export INFLUXDB_HOST=custom-influxdb-server
 export INFLUXDB_PORT=8086
 ```
