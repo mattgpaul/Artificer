@@ -6,6 +6,11 @@ on:
   push:
     branches: [main, algo_trader]
 
+# Optimize Bazel caching and performance
+env:
+  BAZEL_CACHE_DIR: ~/.cache/bazel
+  BAZELISK_CACHE_DIR: ~/.cache/bazelisk
+
 jobs:
   lint:
     name: Lint and Format Check
@@ -15,6 +20,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Cache Bazel artifacts for massive speedup
+      - name: Cache Bazel
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          # Cache key based on lock files - invalidates when dependencies change
+          key: ${{ runner.os }}-bazel-lint-${{ hashFiles('MODULE.bazel.lock', 'requirements.txt', '.bazelversion') }}
+          # Fallback to most recent cache if exact match not found
+          restore-keys: |
+            ${{ runner.os }}-bazel-lint-
+            ${{ runner.os }}-bazel-
+      
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
         with:
@@ -22,11 +41,45 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
       
+      # Configure Bazel for optimal CI performance
+      - name: Configure Bazel
+        run: |
+          cat >> ~/.bazelrc << EOF
+          # CI-specific optimizations
+          build --jobs=auto
+          build --local_resources=cpu=HOST_CPUS
+          build --local_resources=memory=HOST_RAM*.8
+          build --noshow_progress
+          build --show_result=0
+          build --color=yes
+          
+          # Remote cache ready (uncomment when configured)
+          # build --remote_cache=https://storage.googleapis.com/your-bucket
+          # build --experimental_remote_cache_compression
+          # build --experimental_remote_download_minimal
+          
+          # Improve caching
+          build --experimental_reuse_sandbox_directories
+          build --incompatible_strict_action_env
+          EOF
+      
       - name: Check code quality
-        run: bazel run //:lint
+        run: |
+          echo "🔍 Running linter checks..."
+          bazel run //:lint
       
       - name: Verify Python formatting (no changes)
-        run: bazel run //:ruff -- format --check .
+        run: |
+          echo "📝 Verifying code formatting..."
+          bazel run //:ruff -- format --check .
+      
+      # Report cache statistics for monitoring
+      - name: Bazel cache stats
+        if: always()
+        run: |
+          echo "📊 Bazel Cache Statistics:"
+          du -sh ~/.cache/bazel 2>/dev/null || echo "Cache not found"
+          echo "Total files in cache: $(find ~/.cache/bazel -type f 2>/dev/null | wc -l)"
   
   test:
     name: Run Tests
@@ -36,6 +89,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Restore Bazel cache - can reuse from lint job
+      - name: Cache Bazel
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          key: ${{ runner.os }}-bazel-test-${{ hashFiles('MODULE.bazel.lock', 'requirements.txt', '.bazelversion') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-test-
+            ${{ runner.os }}-bazel-lint-
+            ${{ runner.os }}-bazel-
+      
       - name: Setup Bazel
         uses: bazel-contrib/setup-bazel@0.8.1
         with:
@@ -43,6 +109,60 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
       
+      # Configure Bazel for optimal CI performance
+      - name: Configure Bazel
+        run: |
+          cat >> ~/.bazelrc << EOF
+          # CI-specific optimizations
+          build --jobs=auto
+          build --local_resources=cpu=HOST_CPUS
+          build --local_resources=memory=HOST_RAM*.8
+          test --test_output=errors
+          test --test_summary=detailed
+          test --noshow_progress
+          test --color=yes
+          
+          # Remote cache ready (uncomment when configured)
+          # build --remote_cache=https://storage.googleapis.com/your-bucket
+          # build --experimental_remote_cache_compression
+          # build --experimental_remote_download_minimal
+          
+          # Improve caching and test performance
+          test --experimental_reuse_sandbox_directories
+          test --incompatible_strict_action_env
+          test --build_tests_only
+          EOF
+      
       - name: Run all tests
-        run: bazel test //... --test_output=errors
+        run: |
+          echo "🧪 Running test suite..."
+          bazel test //... --test_output=errors
+      
+      # Upload test results for visibility
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: bazel-testlogs/
+          retention-days: 7
+      
+      # Report test and cache statistics
+      - name: Test and cache stats
+        if: always()
+        run: |
+          echo "📊 Test Statistics:"
+          bazel test //... --test_summary=detailed --test_output=errors || true
+          echo ""
+          echo "📊 Bazel Cache Statistics:"
+          du -sh ~/.cache/bazel 2>/dev/null || echo "Cache not found"
+          echo "Total files in cache: $(find ~/.cache/bazel -type f 2>/dev/null | wc -l)"
+      
+      # Generate coverage report (optional)
+      - name: Generate coverage report
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "📈 Generating coverage report..."
+          bazel coverage //... --combined_report=lcov || true
+        continue-on-error: true
 
