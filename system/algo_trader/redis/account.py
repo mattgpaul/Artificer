@@ -7,6 +7,10 @@ information including positions and balances in Redis with TTL support.
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 
+# TTL constants
+_REFRESH_TOKEN_TTL_DAYS = 90
+_ACCESS_TOKEN_DEFAULT_TTL_MINUTES = 30
+
 
 class AccountBroker(BaseRedisClient):
     """Redis broker for Schwab OAuth token management.
@@ -42,7 +46,7 @@ class AccountBroker(BaseRedisClient):
         Returns:
             True if token was successfully stored, False otherwise.
         """
-        ttl = 90 * 24 * 60 * 60  # 90 days in seconds
+        ttl = _REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60  # Convert days to seconds
         success = self.set(key="refresh-token", value=token, ttl=ttl)
         return success
 
@@ -55,7 +59,7 @@ class AccountBroker(BaseRedisClient):
         token = self.get("refresh-token")
         return token
 
-    def set_access_token(self, token: str, ttl: int = 30) -> bool:
+    def set_access_token(self, token: str, ttl: int = _ACCESS_TOKEN_DEFAULT_TTL_MINUTES) -> bool:
         """Store Schwab API access token with custom expiration.
 
         Args:

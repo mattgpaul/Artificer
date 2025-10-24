@@ -18,6 +18,13 @@ from system.algo_trader.redis.watchlist import WatchlistBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.utils.schema import MarketHours
 
+# Module-level constants for timing
+_PREMARKET_START_OFFSET_MINUTES = 5
+_PREMARKET_WINDOW_HOURS = 2
+_SLEEP_CHECK_INTERVAL_SECONDS = 0.1
+_DEFAULT_ERROR_RETRY_SECONDS = 60
+_NEW_DAY_SLEEP_SECONDS = 1
+
 
 class MarketHoursType(Enum):
     PREMARKET = "premarket"
@@ -98,7 +105,7 @@ class MarketBase(ABC):
 
         if sleep_duration > 0:
             # Use the precise sleep logic we discussed earlier
-            check_interval = 0.1
+            check_interval = _SLEEP_CHECK_INTERVAL_SECONDS
             start_sleep = time.time()
 
             while self.running and (time.time() - start_sleep) < sleep_duration:
@@ -170,9 +177,12 @@ class MarketBase(ABC):
             or EXTENDED).
         """
         now = datetime.now(timezone.utc)
-        if now < hours.start - timedelta(minutes=5) and now > hours.start - timedelta(hours=2):
+        premarket_start = hours.start - timedelta(minutes=_PREMARKET_START_OFFSET_MINUTES)
+        premarket_window_start = hours.start - timedelta(hours=_PREMARKET_WINDOW_HOURS)
+
+        if now < premarket_start and now > premarket_window_start:
             market_hours = MarketHoursType.PREMARKET
-        elif now > hours.start - timedelta(minutes=5) and now < hours.end:
+        elif now > premarket_start and now < hours.end:
             market_hours = MarketHoursType.STANDARD
         else:
             market_hours = MarketHoursType.EXTENDED
@@ -216,7 +226,7 @@ class MarketBase(ABC):
                 now = datetime.now(timezone.utc).date()
                 if now > today:
                     self.logger.info("New day detected, refreshing market hours")
-                    time.sleep(1)
+                    time.sleep(_NEW_DAY_SLEEP_SECONDS)
                     self._set_market_hours()
                     today = datetime.now(timezone.utc).date()
 
@@ -239,7 +249,7 @@ class MarketBase(ABC):
 
             except Exception as e:
                 self.logger.error(f"Unexpected error in main loop: {e}")
-                self._sleep_with_interrupt_check(60)
+                self._sleep_with_interrupt_check(_DEFAULT_ERROR_RETRY_SECONDS)
 
         self.logger.info(f"{self.__class__.__name__} shutdown complete")
 

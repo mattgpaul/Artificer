@@ -7,6 +7,10 @@ candle data and market hours information in Redis with TTL support.
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 
+# TTL constants in seconds
+_DEFAULT_HISTORICAL_DATA_TTL = 86400  # 1 day
+_MARKET_HOURS_TTL = 43200  # 12 hours
+
 
 class HistoricalMarketBroker(BaseRedisClient):
     """Redis broker for historical market candle data.
@@ -20,7 +24,7 @@ class HistoricalMarketBroker(BaseRedisClient):
         ttl: Time-to-live for cached data in seconds.
     """
 
-    def __init__(self, ttl: int = 86400) -> None:
+    def __init__(self, ttl: int = _DEFAULT_HISTORICAL_DATA_TTL) -> None:
         """Initialize historical market broker.
 
         Args:
@@ -81,7 +85,7 @@ class HistoricalMarketBroker(BaseRedisClient):
         Returns:
             True if successfully stored, False otherwise.
         """
-        success = self.hmset(key="hours", mapping=market_hours, ttl=43200)
+        success = self.hmset(key="hours", mapping=market_hours, ttl=_MARKET_HOURS_TTL)
         self.logger.debug(f"Set {market_hours} to {self.namespace}:'hours'")
         return success
 
