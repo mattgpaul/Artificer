@@ -1,3 +1,10 @@
+"""Base class for market data services.
+
+This module provides the MarketBase abstract class with common functionality
+for market data pipeline services, including signal handling, market hours
+management, timing control, and service lifecycle management.
+"""
+
 import argparse
 import signal
 import time

@@ -1,3 +1,10 @@
+"""InfluxDB client for market data persistence.
+
+This module provides the MarketDataInflux class for storing market data
+time-series in InfluxDB with batch write support and pandas DataFrame
+integration.
+"""
+
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BaseInfluxDBClient, BatchWriteConfig

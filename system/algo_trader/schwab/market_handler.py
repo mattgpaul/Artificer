@@ -1,3 +1,10 @@
+"""Schwab market data API handler.
+
+This module provides the MarketHandler class for interacting with Schwab's
+market data endpoints, including price history, quotes, and market hours
+information.
+"""
+
 from datetime import datetime
 from typing import Any
 

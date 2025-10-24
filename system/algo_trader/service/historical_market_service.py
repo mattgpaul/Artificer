@@ -1,3 +1,10 @@
+"""Historical market data service.
+
+This module provides the HistoricalMarketService for fetching and storing
+historical price data from Schwab API, with caching in Redis and persistence
+to InfluxDB.
+"""
+
 import sys
 from datetime import datetime, timezone
 from enum import Enum

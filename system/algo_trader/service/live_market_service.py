@@ -1,3 +1,9 @@
+"""Live market data service.
+
+This module provides the LiveMarketService for fetching and caching real-time
+stock quotes from Schwab API with automatic refresh based on market hours.
+"""
+
 import sys
 
 from system.algo_trader.redis.live_market import LiveMarketBroker

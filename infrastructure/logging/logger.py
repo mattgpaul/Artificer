@@ -1,3 +1,10 @@
+"""Colored logging configuration for the Artificer monorepo.
+
+This module provides automatic colored logging setup with environment-based
+configuration. The logging is configured globally when the module is imported,
+providing consistent colored output across all services.
+"""
+
 import logging
 import sys
 

@@ -1,3 +1,9 @@
+"""Redis broker for watchlist management.
+
+This module provides the WatchlistBroker class for managing stock watchlists
+in Redis using set operations, with TTL support for automatic expiration.
+"""
+
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 

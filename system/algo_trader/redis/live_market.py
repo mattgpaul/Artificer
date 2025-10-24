@@ -1,3 +1,9 @@
+"""Redis broker for live market data quotes and watchlists.
+
+This module provides the LiveMarketBroker class for caching real-time stock
+quotes and market hours information in Redis with TTL support.
+"""
+
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 

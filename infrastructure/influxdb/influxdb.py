@@ -1,3 +1,10 @@
+"""InfluxDB client and configuration for time-series data storage.
+
+This module provides InfluxDB client functionality with batch write support,
+custom error handling, and configuration management for storing market data
+and other time-series metrics.
+"""
+
 import os
 from abc import abstractmethod
 from dataclasses import dataclass

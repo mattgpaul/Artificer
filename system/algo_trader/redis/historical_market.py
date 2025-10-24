@@ -1,3 +1,9 @@
+"""Redis broker for historical market data storage and retrieval.
+
+This module provides the HistoricalMarketBroker class for caching historical
+candle data and market hours information in Redis with TTL support.
+"""
+
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 

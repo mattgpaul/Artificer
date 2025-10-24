@@ -1,3 +1,9 @@
+"""Redis broker for account data storage and retrieval.
+
+This module provides the AccountBroker class for caching Schwab account
+information including positions and balances in Redis with TTL support.
+"""
+
 from infrastructure.logging.logger import get_logger
 from infrastructure.redis.redis import BaseRedisClient
 

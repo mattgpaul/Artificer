@@ -1,3 +1,10 @@
+"""Redis client base class with namespacing and TTL support.
+
+This module provides the BaseRedisClient abstract class for Redis operations
+with automatic key namespacing, TTL management, and support for various data
+types including strings, hashes, JSON, and sets.
+"""
+
 import json
 import os
 from abc import abstractmethod

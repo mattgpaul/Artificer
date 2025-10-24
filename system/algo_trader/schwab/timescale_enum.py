@@ -1,3 +1,9 @@
+"""Timescale enumerations for Schwab API price history requests.
+
+This module provides FrequencyType and PeriodType enums with validation
+logic for constructing valid price history API requests.
+"""
+
 from enum import Enum
 
 

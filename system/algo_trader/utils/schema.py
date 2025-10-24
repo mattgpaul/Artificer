@@ -1,3 +1,10 @@
+"""Pydantic schemas for market data validation.
+
+This module provides Pydantic models for validating stock quotes, market hours,
+and other market-related data structures with automatic timezone handling and
+field validation.
+"""
+
 from datetime import datetime, timezone
 from typing import Any
 
