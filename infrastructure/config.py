@@ -73,16 +73,17 @@ class InfluxDBConfig(BaseSettings):
         """Create config from environment variables.
 
         Handles special case of INFLUXDB3_HTTP_BIND_ADDR format (host:port).
+        BaseSettings will automatically read env vars via the Config.fields mapping.
         """
         # Check for bind addr format first
         bind_addr = os.getenv("INFLUXDB3_HTTP_BIND_ADDR")
         if bind_addr and ":" in bind_addr:
             host, port = bind_addr.split(":", 1)
-            return cls(
-                host=host,
-                port=int(port),
-                token=os.getenv("INFLUXDB3_AUTH_TOKEN", ""),
-                database=os.getenv("INFLUXDB_DATABASE", ""),
-            )
-        # Otherwise use standard parsing
+            # Create instance with bind addr parsed manually
+            # Other fields will still read from env vars via BaseSettings
+            config = cls()  # Reads token, database from env
+            config.host = host
+            config.port = int(port)
+            return config
+        # Otherwise use standard parsing via BaseSettings
         return cls()
