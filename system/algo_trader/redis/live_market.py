@@ -9,16 +9,45 @@ from infrastructure.redis.redis import BaseRedisClient
 
 
 class LiveMarketBroker(BaseRedisClient):
-    def __init__(self, ttl: int = 30):
+    """Redis broker for live market quote data.
+
+    Manages storage and retrieval of real-time stock quotes with short TTL
+    for rapid updates.
+
+    Attributes:
+        logger: Configured logger instance.
+        namespace: Redis key namespace for live data.
+        ttl: Time-to-live for cached quotes in seconds.
+    """
+
+    def __init__(self, ttl: int = 30) -> None:
+        """Initialize live market broker.
+
+        Args:
+            ttl: Time-to-live for cached quotes in seconds (default: 30).
+        """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
         self.ttl = ttl
 
     def _get_namespace(self) -> str:
+        """Get the Redis namespace for this broker.
+
+        Returns:
+            Namespace string 'live' for key prefixing.
+        """
         return "live"
 
     def set_quotes(self, quotes_dict: dict) -> bool:
+        """Store multiple stock quotes using Redis pipeline.
+
+        Args:
+            quotes_dict: Dictionary mapping ticker symbols to quote data dicts.
+
+        Returns:
+            True if all quotes were successfully stored, False otherwise.
+        """
         operations = []
         for ticker, quote_data in quotes_dict.items():
             operations.append(("hmset", ticker, quote_data))
@@ -29,6 +58,14 @@ class LiveMarketBroker(BaseRedisClient):
         return success
 
     def get_quotes(self, tickers: list[str]) -> dict[str, str]:
+        """Retrieve quotes for multiple tickers.
+
+        Args:
+            tickers: List of ticker symbols to retrieve.
+
+        Returns:
+            Dictionary mapping tickers to quote data, with None for cache misses.
+        """
         quotes = {}
         for ticker in tickers:
             quote_data = self.hgetall(ticker)
@@ -39,11 +76,24 @@ class LiveMarketBroker(BaseRedisClient):
         return quotes
 
     def set_market_hours(self, market_hours: dict) -> bool:
+        """Store market hours information.
+
+        Args:
+            market_hours: Dictionary with market open/close times.
+
+        Returns:
+            True if successfully stored, False otherwise.
+        """
         success = self.hmset(key="hours", mapping=market_hours, ttl=43200)
         self.logger.debug(f"Set {market_hours} to {self.namespace}:'hours'")
         return success
 
     def get_market_hours(self) -> dict[str, str]:
+        """Retrieve stored market hours information.
+
+        Returns:
+            Dictionary with market hours, or empty dict if not found.
+        """
         hours = self.hgetall("hours")
         self.logger.debug(f"Returned hours: {hours}")
         if not hours:

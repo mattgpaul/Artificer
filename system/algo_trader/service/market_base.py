@@ -11,6 +11,7 @@ import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Any
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.watchlist import WatchlistBroker
@@ -25,7 +26,26 @@ class MarketHoursType(Enum):
 
 
 class MarketBase(ABC):
-    def __init__(self, sleep_override=None):
+    """Base class for market data pipeline services.
+
+    Provides common functionality for market data services including signal
+    handling for graceful shutdown, timing control with interrupt checking,
+    market hours management, and service lifecycle management.
+
+    Attributes:
+        logger: Configured logger instance for the service.
+        running: Boolean flag indicating if service is currently running.
+        sleep_override: Optional override for sleep interval in seconds.
+        api_handler: MarketHandler instance for Schwab API calls.
+        watchlist_broker: WatchlistBroker for managing stock watchlists.
+    """
+
+    def __init__(self, sleep_override: int | None = None) -> None:
+        """Initialize market service with optional sleep override.
+
+        Args:
+            sleep_override: Optional sleep interval override in seconds.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.running = True
         self.sleep_override = sleep_override
@@ -37,16 +57,35 @@ class MarketBase(ABC):
     def market_broker(self):
         pass
 
-    def _setup_signal_handlers(self):
+    def _setup_signal_handlers(self) -> None:
+        """Configure signal handlers for graceful shutdown.
+
+        Sets up handlers for SIGTERM and SIGINT signals to enable clean
+        service termination.
+        """
         signal.signal(signal.SIGTERM, self._shutdown_handler)
         signal.signal(signal.SIGINT, self._shutdown_handler)
 
-    def _shutdown_handler(self, signum, frame):
+    def _shutdown_handler(self, signum: int, frame: Any) -> None:
+        """Handle shutdown signals gracefully.
+
+        Args:
+            signum: Signal number received.
+            frame: Current stack frame at signal receipt.
+        """
         self.logger.info(f"Received signal {signum}, sutting down gracefully...")
         self.running = False
 
-    def _sleep_with_interrupt_check(self, target_interval: float):
-        """Sleep to maintain precise interval timing, accounting for work duration"""
+    def _sleep_with_interrupt_check(self, target_interval: float) -> None:
+        """Sleep while maintaining precise timing and checking for interrupts.
+
+        Uses precise timing to account for work duration and maintains target
+        interval between cycles. Checks for shutdown signals periodically
+        during sleep.
+
+        Args:
+            target_interval: Target time in seconds between cycle starts.
+        """
         if not hasattr(self, "_last_cycle_time"):
             self._last_cycle_time = time.time()
 
@@ -72,7 +111,16 @@ class MarketBase(ABC):
         if not self.running:
             self.logger.info("Shutdown signal received during sleep")
 
-    def _setup_clients(self):
+    def _setup_clients(self) -> None:
+        """Initialize API clients with proper error handling.
+
+        Sets up MarketHandler for Schwab API calls and WatchlistBroker for
+        watchlist management. Logs initialization progress and re-raises
+        exceptions with context.
+
+        Raises:
+            Exception: If client initialization fails.
+        """
         try:
             self.logger.info("Setting up clients")
             self.api_handler = MarketHandler()
@@ -82,11 +130,25 @@ class MarketBase(ABC):
             raise
 
     def _set_market_hours(self) -> None:
+        """Fetch and store current market hours from Schwab API.
+
+        Retrieves market hours for today and stores them in the market broker
+        for use in determining service behavior.
+        """
         today = datetime.now(timezone.utc).date()
         self.logger.info(f"Setting market hours for: {today.strftime('%Y-%m-%d')}")
         self.market_broker.set_market_hours(self.api_handler.get_market_hours(today))
 
     def _check_market_open(self, todays_hours: dict[str, str]) -> bool:
+        """Check if market is open today based on hours data.
+
+        Args:
+            todays_hours: Dictionary containing market hours with 'start' key.
+
+        Returns:
+            True if market is open, False otherwise. When True, also returns
+            the hours dictionary as second value.
+        """
         if "start" not in todays_hours.keys():
             self.logger.info("Market not open today")
             return False
@@ -95,6 +157,18 @@ class MarketBase(ABC):
             return True, todays_hours
 
     def _check_market_hours(self, hours: MarketHours) -> MarketHoursType:
+        """Determine current market hours phase based on time.
+
+        Classifies current time as premarket, standard hours, or extended
+        hours trading based on market start and end times.
+
+        Args:
+            hours: MarketHours object containing start and end times.
+
+        Returns:
+            MarketHoursType enum indicating current phase (PREMARKET, STANDARD,
+            or EXTENDED).
+        """
         now = datetime.now(timezone.utc)
         if now < hours.start - timedelta(minutes=5) and now > hours.start - timedelta(hours=2):
             market_hours = MarketHoursType.PREMARKET
@@ -107,13 +181,29 @@ class MarketBase(ABC):
 
     @abstractmethod
     def _get_sleep_interval(self) -> int:
+        """Get the sleep interval for the current market conditions.
+
+        Returns:
+            Sleep interval in seconds appropriate for current market hours.
+        """
         pass
 
     @abstractmethod
     def _execute_pipeline(self) -> bool:
+        """Execute the main data processing pipeline.
+
+        Returns:
+            True if pipeline executed successfully, False otherwise.
+        """
         pass
 
-    def run(self):
+    def run(self) -> None:
+        """Run the main service loop.
+
+        Continuously fetches and processes market data based on market hours,
+        with automatic refresh of market hours at day boundaries and graceful
+        error handling. Runs until shutdown signal received.
+        """
         self.logger.info(f"Starting {self.__class__.__name__}")
 
         # Set initial market hours
@@ -154,8 +244,18 @@ class MarketBase(ABC):
         self.logger.info(f"{self.__class__.__name__} shutdown complete")
 
     @classmethod
-    def main(cls, description: str = None):
-        """Generic main method for all market services"""
+    def main(cls, description: str | None = None) -> int:
+        """Generic main entry point for market services.
+
+        Provides command-line interface with run and health check commands,
+        logging configuration, and graceful error handling.
+
+        Args:
+            description: Optional description for the service CLI.
+
+        Returns:
+            Exit code (0 for success, 1 for failure).
+        """
         parser = argparse.ArgumentParser(description=description or f"{cls.__name__} Service")
         parser.add_argument(
             "command",

@@ -23,6 +23,21 @@ from infrastructure.logging.logger import get_logger
 
 @dataclass
 class BatchWriteConfig:
+    """Configuration for InfluxDB batch write operations.
+
+    Defines parameters for batching, flushing, and retry behavior when
+    writing data to InfluxDB.
+
+    Attributes:
+        batch_size: Number of records to batch before writing.
+        flush_interval: Milliseconds between automatic flushes.
+        jitter_interval: Random jitter added to flush interval in milliseconds.
+        retry_interval: Milliseconds to wait between retries.
+        max_retries: Maximum number of retry attempts.
+        max_retry_delay: Maximum retry delay in milliseconds.
+        exponential_base: Base for exponential backoff calculation.
+    """
+
     batch_size: int = 100
     flush_interval: int = 10_000
     jitter_interval: int = 2_000
@@ -31,15 +46,23 @@ class BatchWriteConfig:
     max_retry_delay: int = 30_000
     exponential_base: int = 2
 
-    def __post_init__(self):
-        """Validate configuration values"""
+    def __post_init__(self) -> None:
+        """Validate configuration values after initialization.
+
+        Raises:
+            ValueError: If batch_size is non-positive or max_retries is negative.
+        """
         if self.batch_size <= 0:
             raise ValueError("batch_size must be positive")
         if self.max_retries < 0:
             raise ValueError("max_retries cannot be negative")
 
-    def _to_write_options(self):
-        """Convert to format expected by InfluxDB client"""
+    def _to_write_options(self) -> WriteOptions:
+        """Convert configuration to InfluxDB WriteOptions format.
+
+        Returns:
+            WriteOptions instance with configured batch write parameters.
+        """
         return WriteOptions(
             batch_size=self.batch_size,
             flush_interval=self.flush_interval,
@@ -52,13 +75,39 @@ class BatchWriteConfig:
 
 
 class BatchingCallback:
-    def success(self, conf, data: str):
+    """Callback handler for InfluxDB batch write operations.
+
+    Provides success, error, and retry callback methods for monitoring
+    batch write operations.
+    """
+
+    def success(self, conf: str, data: str) -> None:
+        """Handle successful batch write.
+
+        Args:
+            conf: Write configuration details.
+            data: Data that was successfully written.
+        """
         print(f"Written batch: {conf}")
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf: str, data: str, exception: InfluxDBError) -> None:
+        """Handle batch write error.
+
+        Args:
+            conf: Write configuration details.
+            data: Data that failed to write.
+            exception: InfluxDB error that occurred.
+        """
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
+    def retry(self, conf: str, data: str, exception: InfluxDBError) -> None:
+        """Handle retryable batch write error.
+
+        Args:
+            conf: Write configuration details.
+            data: Data that will be retried.
+            exception: InfluxDB error that triggered the retry.
+        """
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 

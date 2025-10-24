@@ -10,7 +10,14 @@ import sys
 
 
 class ColoredFormatter(logging.Formatter):
-    """Add colors to log levels"""
+    """Logging formatter that adds ANSI color codes to log messages.
+
+    This formatter applies different colors to log messages based on their
+    severity level and uses millisecond precision timestamps for DEBUG logs.
+
+    Attributes:
+        COLORS: Dictionary mapping log level names to ANSI color codes.
+    """
 
     # ANSI color codes
     COLORS = {
@@ -22,7 +29,15 @@ class ColoredFormatter(logging.Formatter):
         "RESET": "\033[0m",  # Reset to normal
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record with color codes and appropriate timestamp.
+
+        Args:
+            record: LogRecord instance containing log information.
+
+        Returns:
+            Formatted and colorized log message string.
+        """
         # Use different timestamp formats based on log level
         if record.levelname == "DEBUG":
             # Debug gets milliseconds
@@ -41,8 +56,13 @@ class ColoredFormatter(logging.Formatter):
         return f"{color}{message}{reset}"
 
 
-def _setup_global_logging():
-    """Automatically configure logging when this module loads"""
+def _setup_global_logging() -> None:
+    """Configure global logging with colored output.
+
+    Sets up the root logger with ColoredFormatter and configures log level
+    from LOG_LEVEL environment variable. This function is idempotent and
+    runs automatically when the module is imported.
+    """
     import os
 
     root_logger = logging.getLogger()
@@ -71,7 +91,17 @@ _setup_global_logging()
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Get a colored logger - setup is automatic"""
+    """Get a configured logger with colored output.
+
+    Creates or retrieves a logger with the specified name and sets its level
+    from the LOG_LEVEL environment variable.
+
+    Args:
+        name: Name for the logger, typically the module or class name.
+
+    Returns:
+        Configured logger instance with colored formatting.
+    """
     logger = logging.getLogger(name)
 
     # Set log level from environment variable each time
