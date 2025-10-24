@@ -1,2 +1,1 @@
-"""Unit tests for Redis infrastructure components
-"""
+"""Unit tests for Redis infrastructure components"""

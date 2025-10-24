@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BaseInfluxDBClient, BatchWriteConfig

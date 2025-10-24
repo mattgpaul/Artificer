@@ -26,8 +26,7 @@ class BaseRedisClient(Client):
 
     @abstractmethod
     def _get_namespace(self) -> str:
-        """Inheriting class needs to define their db namespace
-        """
+        """Inheriting class needs to define their db namespace"""
         pass
 
     def _create_connection_pool(self):
@@ -224,9 +223,7 @@ class BaseRedisClient(Client):
             self.logger.error(f"Error getting JSON key '{key}': {e}")
             return None
 
-    def set_json(
-        self, key: str, value: dict[str, Any] | list[Any], ttl: int | None = None
-    ) -> bool:
+    def set_json(self, key: str, value: dict[str, Any] | list[Any], ttl: int | None = None) -> bool:
         """Set JSON object in Redis (automatically converts to string).
 
         Arguments:
