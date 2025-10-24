@@ -12,7 +12,7 @@ This document establishes mandatory practices for all code modifications in the 
 
 ### 1. Feature Branch Workflow
 
-**Rule**: ALL code changes MUST be made on a feature branch, never directly on `main` or long-lived branches.
+**Rule**: ALL code changes MUST be made on a feature branch, never directly on `algo_trader` or other long-lived branches.
 
 #### Branch Naming Convention
 
@@ -41,19 +41,19 @@ Use descriptive branch names following this pattern:
 #### Creating Feature Branches
 
 ```bash
-# Always branch from latest main
-git checkout main
-git pull origin main
+# Always branch from latest algo_trader
+git checkout algo_trader
+git pull origin algo_trader
 git checkout -b <type>/<description>
 ```
 
 #### Branch Lifecycle
 
-1. **Create**: Branch from `main` for each logical unit of work
+1. **Create**: Branch from `algo_trader` for each logical unit of work
 2. **Develop**: Make commits with clear messages
 3. **Test**: Ensure all tests pass before merging
 4. **Review**: Get code review (when applicable)
-5. **Merge**: Merge back to `main` when complete
+5. **Merge**: Merge back to `algo_trader` when complete
 6. **Delete**: Remove branch after successful merge
 
 ### 2. Test Requirements
@@ -95,7 +95,7 @@ For any code change, verify:
 
 #### Checklist
 
-- [ ] **Branch**: Working on a feature branch (not main)
+- [ ] **Branch**: Working on a feature branch (not algo_trader)
 - [ ] **Tests**: All tests pass locally
   ```bash
   bazel test //path/to/modified:tests
@@ -168,7 +168,7 @@ When working in a team environment:
 - [ ] Code is formatted and linted
 - [ ] Documentation is updated
 - [ ] Commit messages are clear
-- [ ] Branch is up to date with main
+- [ ] Branch is up to date with algo_trader
 
 #### Review Checklist
 
@@ -301,8 +301,8 @@ Implemented new endpoint that provides Y capability.
 git push origin feature/add-new-endpoint
 
 # 10. After merge, cleanup
-git checkout main
-git pull origin main
+git checkout algo_trader
+git pull origin algo_trader
 git branch -d feature/add-new-endpoint
 ```
 
@@ -368,7 +368,7 @@ This document establishes mandatory practices for all code modifications in the 
 
 ### 1. Feature Branch Workflow
 
-**Rule**: ALL code changes MUST be made on a feature branch, never directly on `main` or long-lived branches.
+**Rule**: ALL code changes MUST be made on a feature branch, never directly on `algo_trader` or other long-lived branches.
 
 #### Branch Naming Convention
 
@@ -397,19 +397,19 @@ Use descriptive branch names following this pattern:
 #### Creating Feature Branches
 
 ```bash
-# Always branch from latest main
-git checkout main
-git pull origin main
+# Always branch from latest algo_trader
+git checkout algo_trader
+git pull origin algo_trader
 git checkout -b <type>/<description>
 ```
 
 #### Branch Lifecycle
 
-1. **Create**: Branch from `main` for each logical unit of work
+1. **Create**: Branch from `algo_trader` for each logical unit of work
 2. **Develop**: Make commits with clear messages
 3. **Test**: Ensure all tests pass before merging
 4. **Review**: Get code review (when applicable)
-5. **Merge**: Merge back to `main` when complete
+5. **Merge**: Merge back to `algo_trader` when complete
 6. **Delete**: Remove branch after successful merge
 
 ### 2. Test Requirements
@@ -451,7 +451,7 @@ For any code change, verify:
 
 #### Checklist
 
-- [ ] **Branch**: Working on a feature branch (not main)
+- [ ] **Branch**: Working on a feature branch (not algo_trader)
 - [ ] **Tests**: All tests pass locally
   ```bash
   bazel test //path/to/modified:tests
@@ -524,7 +524,7 @@ When working in a team environment:
 - [ ] Code is formatted and linted
 - [ ] Documentation is updated
 - [ ] Commit messages are clear
-- [ ] Branch is up to date with main
+- [ ] Branch is up to date with algo_trader
 
 #### Review Checklist
 
@@ -657,8 +657,8 @@ Implemented new endpoint that provides Y capability.
 git push origin feature/add-new-endpoint
 
 # 10. After merge, cleanup
-git checkout main
-git pull origin main
+git checkout algo_trader
+git pull origin algo_trader
 git branch -d feature/add-new-endpoint
 ```
 

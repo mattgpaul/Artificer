@@ -35,10 +35,17 @@ class TestColoredFormatter:
 
     def test_color_codes_defined(self, formatter):
         """Test all required color codes are defined."""
-        expected_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "RESET"]
+        # Test level colors in COLORS dict
+        expected_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         for level in expected_levels:
             assert level in formatter.COLORS
             assert isinstance(formatter.COLORS[level], str)
+
+        # Test separate color attributes
+        assert hasattr(formatter, "GREY")
+        assert isinstance(formatter.GREY, str)
+        assert hasattr(formatter, "RESET")
+        assert isinstance(formatter.RESET, str)
 
     def test_format_debug_message(self, formatter):
         """Test DEBUG messages get millisecond timestamp."""

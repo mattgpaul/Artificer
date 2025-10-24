@@ -15,11 +15,14 @@ from typing import ClassVar
 class ColoredFormatter(logging.Formatter):
     """Logging formatter that adds ANSI color codes to log messages.
 
-    This formatter applies different colors to log messages based on their
-    severity level and uses millisecond precision timestamps for DEBUG logs.
+    This formatter applies different colors to log levels only, with proper
+    column alignment using pipe separators. Timestamps and DEBUG levels are
+    displayed in grey.
 
     Attributes:
         COLORS: Dictionary mapping log level names to ANSI color codes.
+        GREY: ANSI color code for grey (timestamps and DEBUG).
+        RESET: ANSI reset code.
     """
 
     # ANSI color codes
@@ -29,32 +32,48 @@ class ColoredFormatter(logging.Formatter):
         "WARNING": "\033[33m",  # Yellow
         "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[35m",  # Magenta
-        "RESET": "\033[0m",  # Reset to normal
     }
+    GREY: ClassVar[str] = "\033[90m"  # Grey for timestamps
+    RESET: ClassVar[str] = "\033[0m"  # Reset to normal
 
     def format(self, record: logging.LogRecord) -> str:
-        """Format log record with color codes and appropriate timestamp.
+        """Format log record with color codes and proper alignment.
 
         Args:
             record: LogRecord instance containing log information.
 
         Returns:
-            Formatted and colorized log message string.
+            Formatted and colorized log message string with aligned columns.
         """
         # Use different timestamp formats based on log level
         if record.levelname == "DEBUG":
             # Debug gets milliseconds
             timestamp = datetime.datetime.fromtimestamp(record.created).strftime("%H:%M:%S.%f")[:-3]
-            message = f"{timestamp} - {record.levelname} - {record.name} - {record.getMessage()}"
         else:
             # All other levels use standard format without milliseconds
-            message = super().format(record)
+            timestamp = datetime.datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
 
-        # Add color based on log level
-        color = self.COLORS.get(record.levelname, self.COLORS["RESET"])
-        reset = self.COLORS["RESET"]
+        # Pad log level to 8 characters for alignment (CRITICAL is longest at 8)
+        level_padded = record.levelname.ljust(8)
 
-        return f"{color}{message}{reset}"
+        # Pad logger name to 30 characters for alignment
+        name_padded = record.name.ljust(30)
+
+        # Get color for log level
+        level_color = self.COLORS.get(record.levelname, self.RESET)
+
+        # Build message with proper coloring:
+        # - Timestamp in grey
+        # - Log level in its specific color
+        # - Name and message in normal color
+        message = (
+            f"{self.GREY}{timestamp}{self.RESET} | "
+            f"{level_color}{level_padded}{self.RESET} | "
+            f"{name_padded} | "
+            f"{record.getMessage()}"
+        )
+
+        return message
 
 
 def _setup_global_logging() -> None:
@@ -69,9 +88,7 @@ def _setup_global_logging() -> None:
     # Only setup once
     if not root_logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
-        formatter = ColoredFormatter(
-            "%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%H:%M:%S"
-        )
+        formatter = ColoredFormatter()
         handler.setFormatter(formatter)
         root_logger.addHandler(handler)
 
