@@ -6,7 +6,6 @@ types including strings, hashes, JSON, and sets.
 """
 
 import json
-import os
 from abc import abstractmethod
 from typing import Any
 
@@ -35,22 +34,28 @@ class BaseRedisClient(Client):
         client: Redis client instance.
     """
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize Redis client with connection pool and configuration.
 
-        Reads connection parameters from environment variables and creates
-        a connection pool with configured timeout and pool size settings.
+        Args:
+            config: Optional RedisConfig object. If None, auto-populates from environment.
         """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
 
-        # Configuration from environment variables with fallback defaults
-        self.host = os.getenv("REDIS_HOST", "localhost")
-        self.port = int(os.getenv("REDIS_PORT", "6379"))
-        self.db = int(os.getenv("REDIS_DB", "0"))
-        self.max_connections = int(os.getenv("REDIS_MAX_CONNECTIONS", "10"))
-        self.socket_timeout = int(os.getenv("REDIS_SOCKET_TIMEOUT", "30"))
+        # Auto-populate from environment if not provided
+        if config is None:
+            from infrastructure.config import RedisConfig  # noqa: PLC0415
+
+            config = RedisConfig()
+
+        # Use config values (either provided or from environment)
+        self.host = config.host
+        self.port = config.port
+        self.db = config.db
+        self.max_connections = config.max_connections
+        self.socket_timeout = config.socket_timeout
 
         self._create_connection_pool()
 
