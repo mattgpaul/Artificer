@@ -53,15 +53,17 @@ class MarketBase(ABC):
         watchlist_broker: WatchlistBroker for managing stock watchlists.
     """
 
-    def __init__(self, sleep_override: int | None = None) -> None:
-        """Initialize market service with optional sleep override.
+    def __init__(self, sleep_override: int | None = None, config=None) -> None:
+        """Initialize market service with optional sleep override and config.
 
         Args:
             sleep_override: Optional sleep interval override in seconds.
+            config: Optional AlgoTraderConfig. If None, clients use environment variables.
         """
         self.logger = get_logger(self.__class__.__name__)
         self.running = True
         self.sleep_override = sleep_override
+        self.config = config  # Store for subclass access
         self._setup_signal_handlers()
         self._setup_clients()
 
@@ -133,8 +135,7 @@ class MarketBase(ABC):
         """Initialize API clients with proper error handling.
 
         Sets up MarketHandler for Schwab API calls and WatchlistBroker for
-        watchlist management. Logs initialization progress and re-raises
-        exceptions with context.
+        watchlist management. Passes config if available.
 
         Raises:
             Exception: If client initialization fails.
@@ -142,7 +143,10 @@ class MarketBase(ABC):
         try:
             self.logger.info("Setting up clients")
             self.api_handler = MarketHandler()
-            self.watchlist_broker = WatchlistBroker()
+
+            # Pass config to brokers if available
+            redis_config = self.config.redis if self.config else None
+            self.watchlist_broker = WatchlistBroker(config=redis_config)
         except Exception as e:
             self.logger.error(f"Failed to initialize clients: {e}")
             raise

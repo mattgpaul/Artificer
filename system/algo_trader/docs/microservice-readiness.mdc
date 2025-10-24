@@ -1,0 +1,281 @@
+---
+alwaysApply: false
+description: Algo Trader System Microservice Architecture
+---
+
+# Algo Trader Microservice Architecture
+
+## Overview
+
+The algo_trader system is designed to support both **standalone** (localhost) and **microservice** (Docker/containerized) deployments. This flexibility is achieved through a configuration management layer that enables service coordination via Redis as the data boundary layer.
+
+## Architecture Principles
+
+### 1. Configuration Management
+
+**Infrastructure Layer** (`infrastructure/config.py`):
+- Reusable across all systems
+- Contains `RedisConfig` and `InfluxDBConfig`
+- Uses Pydantic BaseSettings for automatic environment variable parsing
+- No direct environment variable reading in client code
+
+**System Layer** (`system/algo_trader/config.py`):
+- Algo trader specific (Schwab API, system-level config)
+- Composes infrastructure configs
+- Provides `AlgoTraderConfig` for complete system configuration
+
+**Key Pattern**:
+```python
+# Single code path - no if/else branching
+config = config or RedisConfig()  # Auto-populates from env if not provided
+self.host = config.host           # Always use config values
+```
+
+### 2. Redis as Service Boundary
+
+**Communication Pattern**:
+- Services communicate via Redis pub/sub and shared state
+- No direct service-to-service calls
+- Redis namespacing (`live:`, `historical:`, `watchlist:`, `account:`) for data isolation
+- TTL-based caching for automatic expiration
+
+**Why Redis Works**:
+- Pub/Sub for event notifications
+- Key namespacing for multi-tenant data isolation
+- TTL management for cache expiration
+- Multiple data structures (sets, JSON, hashes) for diverse use cases
+
+### 3. Deployment Modes
+
+#### Standalone Mode (Current)
+
+```bash
+# Setup environment variables
+source system/algo_trader/algo_trader.env
+
+# Run services via Bazel
+bazel run //system/algo_trader/service:live_market_service
+bazel run //system/algo_trader/service:historical_market_service
+```
+
+**Behavior**:
+- Services auto-populate config from environment variables
+- Connect to `localhost:6379` (Redis) and `localhost:8181` (InfluxDB)
+- Works with existing `.env` file setup
+
+#### Microservice Mode (Future Docker)
+
+```python
+# In docker-compose or container orchestration
+config = AlgoTraderConfig(
+    redis=RedisConfig(host="redis", port=6379),  # Docker service name
+    influxdb=InfluxDBConfig(host="influxdb", port=8086),
+    schwab=SchwabConfig(...)
+)
+
+service = LiveMarketService(config=config)
+```
+
+**Behavior**:
+- Explicit config passed to services
+- Connect to Docker service names (`redis`, `influxdb`)
+- Same code, different configuration
+
+### 4. Configuration Priority
+
+**Priority Order**:
+1. **Explicit config object** - When passed to constructor
+2. **Environment variables** - Auto-populated by Pydantic BaseSettings
+3. **Default values** - Defined in Field(default=...)
+
+**Implementation**:
+```python
+class RedisConfig(BaseSettings):
+    host: str = Field(default="localhost")
+    port: int = Field(default=6379)
+    
+    class Config:
+        env_prefix = "REDIS_"  # Reads REDIS_HOST, REDIS_PORT automatically
+```
+
+### 5. Backward Compatibility
+
+**All Changes Are Optional**:
+- Infrastructure clients: `__init__(self, config: Config | None = None)`
+- Services: `__init__(self, sleep_override=None, config: AlgoTraderConfig | None = None)`
+- Brokers: `__init__(self, ttl=30, config: RedisConfig | None = None)`
+
+**Default Behavior**:
+- If `config=None`, auto-populate from environment variables
+- Existing code works without modification
+- New configuration layer is opt-in
+
+## Service Architecture
+
+### Service Components
+
+**LiveMarketService**:
+- Fetches real-time quotes from Schwab API
+- Caches in Redis (`live:` namespace)
+- Updates every 1s during market hours, 1hr otherwise
+- Reads watchlist from Redis
+
+**HistoricalMarketService**:
+- Fetches historical price data from Schwab API
+- Stores in InfluxDB for time-series data
+- Caches in Redis (`historical:` namespace)
+- Updates at varying intervals based on market conditions
+
+**Both Services**:
+- Extend `MarketBase` for common functionality
+- Handle graceful shutdown via signal handlers
+- Auto-refresh market hours at day boundaries
+- Health check capabilities
+
+### Data Flow
+
+```
+Schwab API
+    ↓
+MarketHandler (API client)
+    ↓
+Service Pipeline (_execute_pipeline)
+    ↓
+    ├→ Redis (caching, state)
+    └→ InfluxDB (historical persistence)
+```
+
+## Redis Usage Patterns
+
+### Namespaces
+
+- `live:` - Real-time quotes with 30s TTL
+- `historical:` - Historical candle data with 1 day TTL
+- `watchlist:` - Ticker lists per strategy
+- `account:` - OAuth tokens with appropriate TTLs
+
+### Data Structures
+
+- **Sets**: Watchlists (ticker symbols)
+- **JSON**: Historical candles, quotes
+- **Hashes**: OAuth tokens, market hours
+- **TTL**: Automatic expiration based on sleep intervals
+
+## Configuration Files
+
+### Current (Standalone)
+
+`system/algo_trader/algo_trader.env`:
+```bash
+export SCHWAB_APP_NAME=...
+export SCHWAB_API_KEY=...
+export SCHWAB_SECRET=...
+export SCHWAB_REFRESH_TOKEN=...
+export INFLUXDB3_AUTH_TOKEN=...
+export INFLUXDB_DATABASE=...
+```
+
+### Future (Docker)
+
+Would use explicit config:
+```python
+config = AlgoTraderConfig.from_env()  # Or explicit values
+```
+
+## Testing Strategy
+
+### Unit Tests
+- Test config loading and validation
+- Test clients with and without config
+- Mock Redis/InfluxDB connections
+
+### Integration Tests
+- Test services with localhost connections
+- Verify backward compatibility (no config passed)
+- Test config injection paths
+
+### E2E Tests
+- Test full service lifecycle
+- Verify Redis data persistence
+- Test InfluxDB write operations
+
+## Future Microservice Deployment
+
+### Docker Compose Example
+
+```yaml
+services:
+  redis:
+    image: redis:7-alpine
+    networks: [algo-trader]
+
+  influxdb:
+    image: influxdb:2.7
+    networks: [algo-trader]
+
+  live-market-service:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - INFLUXDB_HOST=influxdb
+    networks: [algo-trader]
+    depends_on: [redis, influxdb]
+```
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-market-service
+spec:
+  template:
+    spec:
+      containers:
+      - name: service
+        env:
+        - name: REDIS_HOST
+          value: redis-service
+        - name: INFLUXDB_HOST
+          value: influxdb-service
+```
+
+## Key Benefits
+
+1. **Zero Code Changes**: Standalone → Microservice migration
+2. **Type Safety**: Pydantic validation prevents runtime errors
+3. **Testability**: Easy to inject test configurations
+4. **Maintainability**: Single code path, no branching logic
+5. **Scalability**: Redis supports horizontal scaling
+6. **Flexibility**: Choose deployment mode per environment
+
+## Migration Path
+
+### Phase 1: Foundation (Current)
+- [x] Add pydantic-settings dependency
+- [ ] Create infrastructure/config.py
+- [ ] Create system/algo_trader/config.py
+- [ ] Update infrastructure clients
+- [ ] Update service brokers
+- [ ] Update market services
+- [ ] Verify backward compatibility
+
+### Phase 2: Docker Support (Future)
+- [ ] Create Dockerfile
+- [ ] Create docker-compose.yml
+- [ ] Create Kubernetes manifests
+- [ ] Document deployment procedures
+
+### Phase 3: API Gateway (Future)
+- [ ] Add FastAPI gateway layer
+- [ ] Expose HTTP/REST endpoints
+- [ ] Add WebSocket streams
+- [ ] Implement rate limiting
+
+## References
+
+- Plan: `system/algo_trader/config-layer-plan.md`
+- Configuration: `infrastructure/config.py`, `system/algo_trader/config.py`
+- Services: `system/algo_trader/service/`
+- Brokers: `system/algo_trader/redis/`, `system/algo_trader/influx/`

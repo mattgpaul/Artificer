@@ -7,6 +7,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//infrastructure:client",
+        "//infrastructure:config",
         "//infrastructure/logging:logger",
         requirement("requests"),
         requirement("pandas"),

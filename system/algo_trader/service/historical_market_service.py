@@ -42,15 +42,21 @@ class HistoricalMarketService(MarketBase):
         _influx_handler: InfluxDB client for data storage.
     """
 
-    def __init__(self, sleep_override=None):
+    def __init__(self, sleep_override=None, config=None):
         """Initialize historical market data service.
 
         Args:
             sleep_override: Optional sleep interval override (not used by this service).
+            config: Optional AlgoTraderConfig. If None, uses environment variables.
         """
-        self._market_broker = HistoricalMarketBroker()
-        self._influx_handler = MarketDataInflux(database="market_data")
-        super().__init__(sleep_override)
+        # Extract configs if provided, otherwise None (will use env vars)
+        redis_config = config.redis if config else None
+        influx_config = config.influxdb if config else None
+
+        self._market_broker = HistoricalMarketBroker(config=redis_config)
+        self._influx_handler = MarketDataInflux(database="market_data", config=influx_config)
+
+        super().__init__(sleep_override, config)
         if sleep_override is not None:
             self.logger.warning("HistoricalMarketService does not use sleep_override")
             self.sleep_override = None

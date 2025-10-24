@@ -20,13 +20,14 @@ class WatchlistBroker(BaseRedisClient):
         ttl: Time-to-live for watchlist data in seconds.
     """
 
-    def __init__(self, ttl: int | None = None) -> None:
+    def __init__(self, ttl: int | None = None, config=None) -> None:
         """Initialize watchlist broker.
 
         Args:
             ttl: Optional time-to-live for watchlist data in seconds.
+            config: Optional RedisConfig. If None, reads from environment.
         """
-        super().__init__()
+        super().__init__(config=config)
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
         self.ttl = ttl
