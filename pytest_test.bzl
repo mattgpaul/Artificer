@@ -1,12 +1,15 @@
-load("@pip//:requirements.bzl", "requirement")
+"""Pytest test macro for Bazel with output visibility and coverage support.
 
-# pytest_test.bzl - Working pytest macro that shows output
+This module provides a pytest_test macro that creates properly configured
+py_test targets with pytest dependencies and coverage reporting.
+"""
+
+load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_test")
 load("@rules_python//python/entry_points:py_console_script_binary.bzl", "py_console_script_binary")
 
 def pytest_test(name, test_lib, coverage_path = None, **kwargs):
-    """
-    Pytest macro that properly shows test output and pytest details.
+    """Create a pytest test target with proper configuration.
 
     Requires explicit py_library definitions for test code:
     1. Define py_library with test source files and implementation deps
@@ -14,11 +17,10 @@ def pytest_test(name, test_lib, coverage_path = None, **kwargs):
     3. Macro adds pytest dependencies and creates test target
 
     Args:
-        name: Name of the test target
-        test_lib: Label of the py_library containing test code
-        coverage_path: Path for coverage reporting (e.g., "system.algo_trader.schwab")
-        deps: Additional dependencies beyond test_lib
-        **kwargs: Additional arguments passed to py_test
+        name: Name of the test target.
+        test_lib: Label of the py_library containing test code.
+        coverage_path: Optional path for coverage reporting (e.g., "system.algo_trader.schwab").
+        **kwargs: Additional arguments passed to py_test (e.g., deps, data, env, args).
     """
     user_deps = kwargs.pop("deps", [])
     data = kwargs.pop("data", [])

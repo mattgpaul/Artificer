@@ -1,5 +1,5 @@
-load("@pip//:requirements.bzl", "requirement")
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@pip//:requirements.bzl", "requirement")  # @unused
+load("@rules_python//python:defs.bzl", "py_binary")  # @unused
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 
 compile_pip_requirements(
@@ -72,6 +72,7 @@ alias(
 )
 
 # Development workflow scripts
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "format",
     srcs = ["scripts/format.sh"],
@@ -82,6 +83,7 @@ sh_binary(
     visibility = ["//visibility:public"],
 )
 
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "lint",
     srcs = ["scripts/lint.sh"],
