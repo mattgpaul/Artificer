@@ -1,0 +1,640 @@
+---
+alwaysApply: true
+---
+
+# Bazel, Monorepo, and Python Development Rules
+
+## Industry Best Practices Foundation
+
+### Default Standards
+- **Primary Standard**: Follow Google's internal standards and best practices
+- **Industry Standards**: Apply established industry patterns when Google standards are not available
+- **Community Standards**: Use widely adopted community practices as fallback
+- **Documentation**: Always document deviations from standards with clear reasoning
+
+### Google Standards Reference
+- **Bazel**: Follow Google's Bazel documentation and examples
+- **Python**: Apply Google's Python style guide and internal practices
+- **Monorepo**: Use Google's monorepo patterns and organizational principles
+- **Documentation**: Follow Google's technical writing standards
+
+## Bazel Build System Rules
+
+### BUILD File Structure (Google Standard)
+```python
+# Follow Google's BUILD file conventions
+py_library(
+    name = "module_name",
+    srcs = glob(["*.py"]),
+    deps = [
+        "//path:to:dependency",
+        "@pip//package_name",
+    ],
+    visibility = ["//visibility:public"],
+    tags = ["unit"],  # Google standard: categorize targets
+)
+```
+
+### Target Naming (Industry Best Practice)
+- Use descriptive names: `{component}_{type}` (e.g., `market_handler_lib`, `redis_client_bin`)
+- Follow Google's naming conventions for consistency
+- Avoid generic names like `lib`, `test`, `main`
+- Use consistent naming across the entire monorepo
+
+### Dependency Management (Google Standard)
+- Use `deps` for compile-time dependencies
+- Use `data` for runtime data files
+- Use `srcs` for source files
+- Prefer explicit dependencies over transitive ones
+- Use `visibility` to control target accessibility (Google practice)
+
+### Workspace Configuration (Industry Best Practice)
+```python
+# MODULE.bazel - Follow Google's module system
+module(
+    name = "artificer",
+    version = "0.1.0",
+)
+
+# Use Google's recommended Bazel rules
+bazel_dep(name = "rules_python", version = "0.40.0")
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.11")  # Google standard: pin versions
+```
+
+## Monorepo Organization (Google Standard)
+
+### Directory Structure (Industry Best Practice)
+```
+project_root/
+├── component/          # Hardware components (Google: clear separation)
+│   ├── actuator/       # Component interfaces
+│   ├── hardware/       # Hardware abstractions
+│   └── sensor/         # Sensor interfaces
+├── infrastructure/     # Shared services (Google: infrastructure layer)
+│   ├── logging/        # Cross-cutting concerns
+│   ├── redis/          # Data layer
+│   └── influxdb/       # Time-series data
+├── system/             # Business logic (Google: application layer)
+│   └── algo_trader/   # Domain-specific systems
+└── tests/              # Test organization (Google: mirror structure)
+```
+
+### Package Boundaries (Google Standard)
+- **Clear separation** between infrastructure, components, and systems
+- **Minimal dependencies** between packages
+- **Interface-based design** for loose coupling
+- **Documentation** of package responsibilities and boundaries
+
+### Cross-Package Dependencies (Industry Best Practice)
+- Use absolute imports: `from infrastructure.logging.logger import get_logger`
+- Avoid circular dependencies (Google: strict enforcement)
+- Document complex dependency relationships
+- Use dependency injection for testability
+
+## Python Code Structure (Google Standard)
+
+### Code Style (Google Python Style Guide)
+```python
+# Follow Google's Python style guide
+from typing import Optional, List, Dict
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+
+class MarketBase(ABC):
+    """Base class for market services following Google patterns."""
+    
+    def __init__(self, sleep_override: Optional[int] = None) -> None:
+        """Initialize market service with optional sleep override.
+        
+        Args:
+            sleep_override: Optional sleep interval override in seconds.
+        """
+        self.logger = get_logger(self.__class__.__name__)
+        self.running = True
+        self.sleep_override = sleep_override
+        self._setup_signal_handlers()
+        self._setup_clients()
+```
+
+### Import Organization (Google Standard)
+```python
+# 1. Standard library imports
+import signal
+import time
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+
+# 2. Third-party imports
+import requests
+from pydantic import BaseModel
+
+# 3. Local application imports
+from infrastructure.logging.logger import get_logger
+from system.algo_trader.utils.schema import MarketHours
+```
+
+### Type Hints (Industry Best Practice)
+- **Always use type hints** for function parameters and return values
+- **Use modern syntax**: `list[str]` over `List[str]` (Python 3.9+)
+- **Use `from __future__ import annotations`** for forward references
+- **Document complex types** with clear examples
+
+### Error Handling (Google Standard)
+```python
+def _setup_clients(self) -> None:
+    """Set up external clients with proper error handling."""
+    try:
+        self.logger.info("Setting up clients")
+        self.api_handler = MarketHandler()
+        self.watchlist_broker = WatchlistBroker()
+    except Exception as e:
+        self.logger.error(f"Failed to initialize clients: {e}")
+        raise  # Google standard: re-raise with context
+```
+
+## Documentation Standards (Google Technical Writing)
+
+### Docstrings (Google Style)
+```python
+def _check_market_hours(self, hours: MarketHours) -> MarketHoursType:
+    """Determine current market hours type based on time.
+    
+    Args:
+        hours: MarketHours object containing start and end times.
+        
+    Returns:
+        MarketHoursType enum indicating current market phase.
+        
+    Raises:
+        ValueError: If hours object is invalid.
+        
+    Example:
+        >>> hours = MarketHours(start=datetime(...), end=datetime(...))
+        >>> market_type = self._check_market_hours(hours)
+        >>> print(market_type)
+        MarketHoursType.STANDARD
+    """
+```
+
+### README Files (Industry Best Practice)
+- **Purpose**: Clear description of what the component does
+- **Setup**: Step-by-step setup instructions
+- **Usage**: Code examples and common patterns
+- **API**: Reference to public interfaces
+- **Troubleshooting**: Common issues and solutions
+
+### Architecture Documentation (Google Standard)
+- **System overview**: High-level architecture diagrams
+- **Data flow**: How data moves through the system
+- **Interfaces**: Clear API contracts and protocols
+- **Decisions**: Document architectural decisions (ADRs)
+
+## Testing Standards (Google Testing Practices)
+
+### Test Organization (Industry Best Practice)
+```python
+# Mirror source structure in tests
+py_test(
+    name = "test_market_handler",
+    srcs = ["test_market_handler.py"],
+    deps = [
+        "//system/algo_trader/schwab:market_handler_lib",
+        "@pip//pytest",
+        "@pip//pytest-mock",
+    ],
+    tags = ["unit"],  # Google standard: categorize tests
+)
+```
+
+### Test Patterns (Google Standard)
+- **Unit tests**: Test individual components in isolation
+- **Integration tests**: Test component interactions
+- **System tests**: Test complete workflows
+- **Mocking**: Use appropriate mocking strategies (Google: prefer dependency injection)
+
+## Service Architecture (Google Microservices Patterns)
+
+### Service Base Classes (Industry Best Practice)
+```python
+class MarketBase(ABC):
+    """Base class for market services following Google patterns.
+    
+    Provides common functionality for market data services including:
+    - Signal handling for graceful shutdown
+    - Precise timing control
+    - Error handling and logging
+    - Health check capabilities
+    """
+    
+    @abstractmethod
+    def _execute_pipeline(self) -> bool:
+        """Execute the main data processing pipeline.
+        
+        Returns:
+            True if pipeline executed successfully, False otherwise.
+        """
+        pass
+```
+
+### Configuration Management (Google Standard)
+- **Environment variables** for configuration
+- **Validation** using Pydantic models
+- **Secrets management** through secure channels
+- **Documentation** of all configuration options
+
+## Performance and Monitoring (Google SRE Practices)
+
+### Logging (Google Standard)
+```python
+# Use structured logging with context
+self.logger.info(
+    "Pipeline execution complete",
+    extra={
+        "component": self.__class__.__name__,
+        "duration": execution_time,
+        "records_processed": count,
+    }
+)
+```
+
+### Monitoring (Industry Best Practice)
+- **Health checks**: Implement `/health` endpoints
+- **Metrics**: Track business and system metrics
+- **Alerting**: Set up appropriate alerting thresholds
+- **Dashboards**: Create operational dashboards
+
+## Security Standards (Google Security Practices)
+
+### Input Validation (Industry Best Practice)
+```python
+from pydantic import BaseModel, validator
+
+class MarketHours(BaseModel):
+    """Market hours configuration with validation."""
+    
+    start: datetime
+    end: datetime
+    
+    @validator('start', 'end')
+    def validate_timezone(cls, v):
+        if v.tzinfo is None:
+            raise ValueError('Datetime must be timezone-aware')
+        return v
+```
+
+### Secrets Management (Google Standard)
+- **Never hardcode** secrets in source code
+- **Use environment variables** for configuration
+- **Rotate secrets** regularly
+- **Audit access** to sensitive data
+
+## Deployment and Operations (Google DevOps)
+
+### Containerization (Industry Best Practice)
+- **Multi-stage builds** for efficiency
+- **Security scanning** of base images
+- **Minimal attack surface** with distroless images
+- **Proper health checks** and graceful shutdown
+
+### CI/CD (Google Standard)
+- **Automated testing** on all changes
+- **Code quality gates** (linting, formatting, security)
+- **Deployment automation** with rollback capabilities
+- **Monitoring** of deployment success
+
+## Code Review Standards (Google Code Review)
+
+### Review Process (Industry Best Practice)
+- **All changes** must be reviewed before merging
+- **Clear commit messages** following conventional format
+- **Tests required** for new functionality
+- **Documentation updates** when necessary
+- **Security review** for sensitive changes
+
+### Review Checklist (Google Standard)
+- [ ] Code follows style guidelines
+- [ ] Tests are comprehensive and pass
+- [ ] Documentation is updated
+- [ ] Performance implications considered
+- [ ] Security implications reviewed
+- [ ] Error handling is appropriate
+- [ ] Logging is sufficient for debugging
+# Bazel, Monorepo, and Python Development Rules
+
+## Industry Best Practices Foundation
+
+### Default Standards
+- **Primary Standard**: Follow Google's internal standards and best practices
+- **Industry Standards**: Apply established industry patterns when Google standards are not available
+- **Community Standards**: Use widely adopted community practices as fallback
+- **Documentation**: Always document deviations from standards with clear reasoning
+
+### Google Standards Reference
+- **Bazel**: Follow Google's Bazel documentation and examples
+- **Python**: Apply Google's Python style guide and internal practices
+- **Monorepo**: Use Google's monorepo patterns and organizational principles
+- **Documentation**: Follow Google's technical writing standards
+
+## Bazel Build System Rules
+
+### BUILD File Structure (Google Standard)
+```python
+# Follow Google's BUILD file conventions
+py_library(
+    name = "module_name",
+    srcs = glob(["*.py"]),
+    deps = [
+        "//path:to:dependency",
+        "@pip//package_name",
+    ],
+    visibility = ["//visibility:public"],
+    tags = ["unit"],  # Google standard: categorize targets
+)
+```
+
+### Target Naming (Industry Best Practice)
+- Use descriptive names: `{component}_{type}` (e.g., `market_handler_lib`, `redis_client_bin`)
+- Follow Google's naming conventions for consistency
+- Avoid generic names like `lib`, `test`, `main`
+- Use consistent naming across the entire monorepo
+
+### Dependency Management (Google Standard)
+- Use `deps` for compile-time dependencies
+- Use `data` for runtime data files
+- Use `srcs` for source files
+- Prefer explicit dependencies over transitive ones
+- Use `visibility` to control target accessibility (Google practice)
+
+### Workspace Configuration (Industry Best Practice)
+```python
+# MODULE.bazel - Follow Google's module system
+module(
+    name = "artificer",
+    version = "0.1.0",
+)
+
+# Use Google's recommended Bazel rules
+bazel_dep(name = "rules_python", version = "0.40.0")
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.11")  # Google standard: pin versions
+```
+
+## Monorepo Organization (Google Standard)
+
+### Directory Structure (Industry Best Practice)
+```
+project_root/
+├── component/          # Hardware components (Google: clear separation)
+│   ├── actuator/       # Component interfaces
+│   ├── hardware/       # Hardware abstractions
+│   └── sensor/         # Sensor interfaces
+├── infrastructure/     # Shared services (Google: infrastructure layer)
+│   ├── logging/        # Cross-cutting concerns
+│   ├── redis/          # Data layer
+│   └── influxdb/       # Time-series data
+├── system/             # Business logic (Google: application layer)
+│   └── algo_trader/   # Domain-specific systems
+└── tests/              # Test organization (Google: mirror structure)
+```
+
+### Package Boundaries (Google Standard)
+- **Clear separation** between infrastructure, components, and systems
+- **Minimal dependencies** between packages
+- **Interface-based design** for loose coupling
+- **Documentation** of package responsibilities and boundaries
+
+### Cross-Package Dependencies (Industry Best Practice)
+- Use absolute imports: `from infrastructure.logging.logger import get_logger`
+- Avoid circular dependencies (Google: strict enforcement)
+- Document complex dependency relationships
+- Use dependency injection for testability
+
+## Python Code Structure (Google Standard)
+
+### Code Style (Google Python Style Guide)
+```python
+# Follow Google's Python style guide
+from typing import Optional, List, Dict
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+
+class MarketBase(ABC):
+    """Base class for market services following Google patterns."""
+    
+    def __init__(self, sleep_override: Optional[int] = None) -> None:
+        """Initialize market service with optional sleep override.
+        
+        Args:
+            sleep_override: Optional sleep interval override in seconds.
+        """
+        self.logger = get_logger(self.__class__.__name__)
+        self.running = True
+        self.sleep_override = sleep_override
+        self._setup_signal_handlers()
+        self._setup_clients()
+```
+
+### Import Organization (Google Standard)
+```python
+# 1. Standard library imports
+import signal
+import time
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+
+# 2. Third-party imports
+import requests
+from pydantic import BaseModel
+
+# 3. Local application imports
+from infrastructure.logging.logger import get_logger
+from system.algo_trader.utils.schema import MarketHours
+```
+
+### Type Hints (Industry Best Practice)
+- **Always use type hints** for function parameters and return values
+- **Use modern syntax**: `list[str]` over `List[str]` (Python 3.9+)
+- **Use `from __future__ import annotations`** for forward references
+- **Document complex types** with clear examples
+
+### Error Handling (Google Standard)
+```python
+def _setup_clients(self) -> None:
+    """Set up external clients with proper error handling."""
+    try:
+        self.logger.info("Setting up clients")
+        self.api_handler = MarketHandler()
+        self.watchlist_broker = WatchlistBroker()
+    except Exception as e:
+        self.logger.error(f"Failed to initialize clients: {e}")
+        raise  # Google standard: re-raise with context
+```
+
+## Documentation Standards (Google Technical Writing)
+
+### Docstrings (Google Style)
+```python
+def _check_market_hours(self, hours: MarketHours) -> MarketHoursType:
+    """Determine current market hours type based on time.
+    
+    Args:
+        hours: MarketHours object containing start and end times.
+        
+    Returns:
+        MarketHoursType enum indicating current market phase.
+        
+    Raises:
+        ValueError: If hours object is invalid.
+        
+    Example:
+        >>> hours = MarketHours(start=datetime(...), end=datetime(...))
+        >>> market_type = self._check_market_hours(hours)
+        >>> print(market_type)
+        MarketHoursType.STANDARD
+    """
+```
+
+### README Files (Industry Best Practice)
+- **Purpose**: Clear description of what the component does
+- **Setup**: Step-by-step setup instructions
+- **Usage**: Code examples and common patterns
+- **API**: Reference to public interfaces
+- **Troubleshooting**: Common issues and solutions
+
+### Architecture Documentation (Google Standard)
+- **System overview**: High-level architecture diagrams
+- **Data flow**: How data moves through the system
+- **Interfaces**: Clear API contracts and protocols
+- **Decisions**: Document architectural decisions (ADRs)
+
+## Testing Standards (Google Testing Practices)
+
+### Test Organization (Industry Best Practice)
+```python
+# Mirror source structure in tests
+py_test(
+    name = "test_market_handler",
+    srcs = ["test_market_handler.py"],
+    deps = [
+        "//system/algo_trader/schwab:market_handler_lib",
+        "@pip//pytest",
+        "@pip//pytest-mock",
+    ],
+    tags = ["unit"],  # Google standard: categorize tests
+)
+```
+
+### Test Patterns (Google Standard)
+- **Unit tests**: Test individual components in isolation
+- **Integration tests**: Test component interactions
+- **System tests**: Test complete workflows
+- **Mocking**: Use appropriate mocking strategies (Google: prefer dependency injection)
+
+## Service Architecture (Google Microservices Patterns)
+
+### Service Base Classes (Industry Best Practice)
+```python
+class MarketBase(ABC):
+    """Base class for market services following Google patterns.
+    
+    Provides common functionality for market data services including:
+    - Signal handling for graceful shutdown
+    - Precise timing control
+    - Error handling and logging
+    - Health check capabilities
+    """
+    
+    @abstractmethod
+    def _execute_pipeline(self) -> bool:
+        """Execute the main data processing pipeline.
+        
+        Returns:
+            True if pipeline executed successfully, False otherwise.
+        """
+        pass
+```
+
+### Configuration Management (Google Standard)
+- **Environment variables** for configuration
+- **Validation** using Pydantic models
+- **Secrets management** through secure channels
+- **Documentation** of all configuration options
+
+## Performance and Monitoring (Google SRE Practices)
+
+### Logging (Google Standard)
+```python
+# Use structured logging with context
+self.logger.info(
+    "Pipeline execution complete",
+    extra={
+        "component": self.__class__.__name__,
+        "duration": execution_time,
+        "records_processed": count,
+    }
+)
+```
+
+### Monitoring (Industry Best Practice)
+- **Health checks**: Implement `/health` endpoints
+- **Metrics**: Track business and system metrics
+- **Alerting**: Set up appropriate alerting thresholds
+- **Dashboards**: Create operational dashboards
+
+## Security Standards (Google Security Practices)
+
+### Input Validation (Industry Best Practice)
+```python
+from pydantic import BaseModel, validator
+
+class MarketHours(BaseModel):
+    """Market hours configuration with validation."""
+    
+    start: datetime
+    end: datetime
+    
+    @validator('start', 'end')
+    def validate_timezone(cls, v):
+        if v.tzinfo is None:
+            raise ValueError('Datetime must be timezone-aware')
+        return v
+```
+
+### Secrets Management (Google Standard)
+- **Never hardcode** secrets in source code
+- **Use environment variables** for configuration
+- **Rotate secrets** regularly
+- **Audit access** to sensitive data
+
+## Deployment and Operations (Google DevOps)
+
+### Containerization (Industry Best Practice)
+- **Multi-stage builds** for efficiency
+- **Security scanning** of base images
+- **Minimal attack surface** with distroless images
+- **Proper health checks** and graceful shutdown
+
+### CI/CD (Google Standard)
+- **Automated testing** on all changes
+- **Code quality gates** (linting, formatting, security)
+- **Deployment automation** with rollback capabilities
+- **Monitoring** of deployment success
+
+## Code Review Standards (Google Code Review)
+
+### Review Process (Industry Best Practice)
+- **All changes** must be reviewed before merging
+- **Clear commit messages** following conventional format
+- **Tests required** for new functionality
+- **Documentation updates** when necessary
+- **Security review** for sensitive changes
+
+### Review Checklist (Google Standard)
+- [ ] Code follows style guidelines
+- [ ] Tests are comprehensive and pass
+- [ ] Documentation is updated
+- [ ] Performance implications considered
+- [ ] Security implications reviewed
+- [ ] Error handling is appropriate
+- [ ] Logging is sufficient for debugging

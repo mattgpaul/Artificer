@@ -6,8 +6,8 @@ proper OAuth2 flow, and automatic token refresh capabilities.
 Token Flow:
 1. Check Redis for valid access token (TTL: 30 min)
 2. If expired, check Redis for refresh token (TTL: 90 days) → refresh access token
-3. If refresh token missing from Redis, load from env and store in Redis → refresh access token
-4. If refresh token expired, initiate OAuth2 flow → save to Redis AND update env file
+3. If refresh token missing from Redis, load from env and store in Redis → refresh
+4. If refresh token expired, initiate OAuth2 flow → save to Redis, display for manual save
 """
 
 import base64
@@ -26,7 +26,8 @@ class SchwabClient(Client):
 
     This client handles OAuth2 authentication, token refresh, and provides
     a base for Schwab API operations. Tokens are stored in Redis with proper
-    TTL management, with environment file fallback for bootstrap scenarios.
+    TTL management. Refresh tokens must be persisted manually via environment
+    variables as Redis is ephemeral.
     """
 
     def __init__(self):
@@ -48,11 +49,6 @@ class SchwabClient(Client):
 
         # Initialize Redis broker for token management
         self.account_broker = AccountBroker()
-
-        # Environment file path for token persistence (bootstrap only)
-        self.env_file_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "algo_trader.env"
-        )
 
         self.logger.info("SchwabClient initialized successfully")
 
@@ -144,9 +140,6 @@ class SchwabClient(Client):
                 if tokens.get("refresh_token"):
                     self.account_broker.set_refresh_token(tokens["refresh_token"])
 
-                # Update env file with new tokens for persistence
-                self._update_env_file_with_tokens(tokens)
-
                 self.logger.info("Successfully refreshed access token")
                 return True
             else:
@@ -214,8 +207,8 @@ class SchwabClient(Client):
                 self.account_broker.set_access_token(tokens["access_token"])
                 self.account_broker.set_refresh_token(tokens["refresh_token"])
 
-                # Update env file with new tokens
-                self._update_env_file_with_tokens(tokens)
+                # Display refresh token for manual persistence
+                self._display_refresh_token_instructions(tokens["refresh_token"])
 
                 self.logger.info("OAuth2 authentication completed successfully")
                 return tokens
@@ -257,45 +250,25 @@ class SchwabClient(Client):
             self.logger.error(f"Token exchange failed: {response.status_code} - {response.text}")
             return None
 
-    def _update_env_file_with_tokens(self, tokens: dict[str, Any]) -> None:
-        """Update environment file with new tokens for persistence.
+    def _display_refresh_token_instructions(self, refresh_token: str) -> None:
+        """Display refresh token and instructions for manual persistence.
 
         Args:
-            tokens: Dictionary containing access_token and refresh_token
+            refresh_token: The new refresh token to be persisted
         """
-        try:
-            # Read current env file
-            env_lines = []
-            if os.path.exists(self.env_file_path):
-                with open(self.env_file_path) as f:
-                    env_lines = f.readlines()
+        print("\n" + "=" * 70)
+        print("OAUTH2 FLOW COMPLETE - ACTION REQUIRED")
+        print("=" * 70)
+        print("\nYour new refresh token (valid for 90 days):")
+        print(f"\n{refresh_token}\n")
+        print("Please set this as an environment variable before next run:")
+        print(f"\nexport SCHWAB_REFRESH_TOKEN={refresh_token}\n")
+        print("Note: Token is stored in Redis for this session only.")
+        print("Redis is ephemeral - you must set the env var for future runs.")
+        print("=" * 70)
 
-            # Update or add token lines
-            token_lines = {
-                "SCHWAB_ACCESS_TOKEN": tokens.get("access_token", ""),
-                "SCHWAB_REFRESH_TOKEN": tokens.get("refresh_token", ""),
-            }
-
-            # Remove existing token lines and add new ones
-            env_lines = [
-                line
-                for line in env_lines
-                if not line.startswith("SCHWAB_ACCESS_TOKEN=")
-                and not line.startswith("SCHWAB_REFRESH_TOKEN=")
-            ]
-
-            for key, value in token_lines.items():
-                if value:  # Only add if token exists
-                    env_lines.append(f"export {key}={value}\n")
-
-            # Write updated env file
-            with open(self.env_file_path, "w") as f:
-                f.writelines(env_lines)
-
-            self.logger.info(f"Updated environment file with new tokens: {self.env_file_path}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to update environment file: {e}")
+        input("\nPress ENTER to continue after copying the token...")
+        self.logger.info("User confirmed token copied")
 
     def get_auth_headers(self) -> dict[str, str]:
         """Get authentication headers for API requests.
