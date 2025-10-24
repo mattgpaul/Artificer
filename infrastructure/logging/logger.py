@@ -5,7 +5,9 @@ configuration. The logging is configured globally when the module is imported,
 providing consistent colored output across all services.
 """
 
+import datetime
 import logging
+import os
 import sys
 
 
@@ -41,8 +43,6 @@ class ColoredFormatter(logging.Formatter):
         # Use different timestamp formats based on log level
         if record.levelname == "DEBUG":
             # Debug gets milliseconds
-            import datetime
-
             timestamp = datetime.datetime.fromtimestamp(record.created).strftime("%H:%M:%S.%f")[:-3]
             message = f"{timestamp} - {record.levelname} - {record.name} - {record.getMessage()}"
         else:
@@ -63,8 +63,6 @@ def _setup_global_logging() -> None:
     from LOG_LEVEL environment variable. This function is idempotent and
     runs automatically when the module is imported.
     """
-    import os
-
     root_logger = logging.getLogger()
 
     # Only setup once
@@ -105,8 +103,6 @@ def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
 
     # Set log level from environment variable each time
-    import os
-
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     level = getattr(logging, log_level, logging.INFO)
     logger.setLevel(level)

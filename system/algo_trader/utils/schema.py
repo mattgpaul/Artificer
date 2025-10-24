@@ -7,6 +7,7 @@ field validation.
 
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, field_validator
 
@@ -35,9 +36,7 @@ class MarketHours(BaseModel):
                 return v.astimezone(timezone.utc)
             else:
                 # If naive, assume it's EST and convert to UTC
-                # EST is UTC-5, EDT is UTC-4 - you might need pytz for proper handling
-                from zoneinfo import ZoneInfo  # Python 3.9+
-
-                est = ZoneInfo("America/New_York")  # Handles EST/EDT automatically
+                # EST is UTC-5, EDT is UTC-4 - ZoneInfo handles EST/EDT automatically
+                est = ZoneInfo("America/New_York")
                 return v.replace(tzinfo=est).astimezone(timezone.utc)
         return v
