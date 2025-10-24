@@ -127,21 +127,28 @@ class BaseInfluxDBClient(Client):
         client: InfluxDB client instance.
     """
 
-    def __init__(self, database: str, write_config: BatchWriteConfig | None = None):
+    def __init__(self, database: str, write_config: BatchWriteConfig | None = None, config=None):
         """Initialize InfluxDB client with connection and write configuration.
 
         Args:
             database: Target database name for operations.
             write_config: Optional batch write configuration. If None, uses defaults.
+            config: Optional InfluxDBConfig object. If None, auto-populates from environment.
         """
         self.logger = get_logger(self.__class__.__name__)
 
-        # Read configuration from environment variables
-        self.token = os.getenv("INFLUXDB3_AUTH_TOKEN", "my-secret-token")
-        self.url = f"http://{os.getenv('INFLUXDB3_HTTP_BIND_ADDR', 'localhost:8181')}"
+        # Auto-populate from environment if not provided (handles INFLUXDB3_HTTP_BUD_ADDR format)
+        if config is None:
+            from infrastructure.config import InfluxDBConfig  # noqa: PLC0415
+
+            config = InfluxDBConfig.from_env()
+
+        # Use config values (either provided or from environment)
+        self.token = config.token
+        self.url = f"http://{config.host}:{config.port}"
         self.database = database
 
-        # Use provided config or default
+        # Use provided write config or default
         self.write_config = write_config or self._get_write_config()
         self._write_options = self.write_config._to_write_options()
         self._callback = BatchingCallback()
@@ -152,7 +159,7 @@ class BaseInfluxDBClient(Client):
             write_options=self._write_options,
         )
 
-        # Create client - assumes server is already running
+        # Create client
         self.client = InfluxDBClient3(
             token=self.token,
             host=self.url,
