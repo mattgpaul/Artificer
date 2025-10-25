@@ -7,7 +7,7 @@ stock quotes from Schwab API with automatic refresh based on market hours.
 from __future__ import annotations
 
 from system.algo_trader.config import AlgoTraderConfig
-from system.algo_trader.market_data.base import MarketBase, MarketHoursType
+from system.algo_trader.service.market_data.base import MarketBase, MarketHoursType
 from system.algo_trader.redis.live_market import LiveMarketBroker
 
 

@@ -8,21 +8,21 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from system.algo_trader.market_data.base import MarketHoursType
-from system.algo_trader.market_data.historical import HistoricalMarketService, IntradayInterval
+from system.algo_trader.service.market_data.base import MarketHoursType
+from system.algo_trader.service.market_data.historical import HistoricalMarketService, IntradayInterval
 
 
 @pytest.fixture
 def mock_historical_dependencies():
     """Fixture to mock all HistoricalMarketService dependencies."""
     with (
-        patch("system.algo_trader.market_data.base.get_logger") as mock_logger,
-        patch("system.algo_trader.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.market_data.base.WatchlistBroker") as mock_watchlist,
+        patch("system.algo_trader.service.market_data.base.get_logger") as mock_logger,
+        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
+        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
         patch(
-            "system.algo_trader.market_data.historical.HistoricalMarketBroker"
+            "system.algo_trader.service.market_data.historical.HistoricalMarketBroker"
         ) as mock_historical_broker,
-        patch("system.algo_trader.market_data.historical.MarketDataInflux") as mock_influx_handler,
+        patch("system.algo_trader.service.market_data.historical.MarketDataInflux") as mock_influx_handler,
     ):
         mock_logger_instance = Mock()
         mock_logger.return_value = mock_logger_instance
@@ -141,7 +141,7 @@ class TestHistoricalMarketServiceIntradayInterval:
         )
 
         # Mock current minute that's only divisible by 1
-        with patch("system.algo_trader.market_data.historical.datetime") as mock_datetime:
+        with patch("system.algo_trader.service.market_data.historical.datetime") as mock_datetime:
             mock_now = Mock()
             mock_now.minute = 7  # 7 is only divisible by 1 (not by 5, 10, 15, or 30)
             mock_datetime.now.return_value = mock_now
@@ -166,7 +166,7 @@ class TestHistoricalMarketServiceIntradayInterval:
         )
 
         # Mock current minute divisible by 5 but not by larger intervals
-        with patch("system.algo_trader.market_data.historical.datetime") as mock_datetime:
+        with patch("system.algo_trader.service.market_data.historical.datetime") as mock_datetime:
             mock_now = Mock()
             mock_now.minute = 5  # Divisible by 5, not by 10, 15, or 30
             mock_datetime.now.return_value = mock_now

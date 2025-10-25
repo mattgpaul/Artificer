@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from system.algo_trader.market_data.base import MarketBase, MarketHoursType
+from system.algo_trader.service.market_data.base import MarketBase, MarketHoursType
 from system.algo_trader.utils.schema import MarketHours
 
 
@@ -19,9 +19,9 @@ from system.algo_trader.utils.schema import MarketHours
 def mock_base_dependencies():
     """Fixture to mock all base MarketBase dependencies."""
     with (
-        patch("system.algo_trader.market_data.base.get_logger") as mock_logger,
-        patch("system.algo_trader.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.market_data.base.WatchlistBroker") as mock_watchlist,
+        patch("system.algo_trader.service.market_data.base.get_logger") as mock_logger,
+        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
+        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
     ):
         mock_logger_instance = Mock()
         mock_logger.return_value = mock_logger_instance
