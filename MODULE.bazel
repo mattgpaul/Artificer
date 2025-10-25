@@ -17,8 +17,8 @@ use_repo(python, "python_3_11")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
+    python_version = "3.11",  # Must match the toolchain version
     requirements_lock = "//:requirements.txt",
-    python_version = "3.11", # Must match the toolchain version
 )
 use_repo(pip, "pip")
 
