@@ -39,8 +39,8 @@ export REDIS_PORT=6379
 # ... other environment variables ...
 
 # Run services - automatically reads from environment
-bazel run //system/algo_trader/service:live_market_service
-bazel run //system/algo_trader/service:historical_market_service
+bazel run //system/algo_trader/service:market_data -- live run
+bazel run //system/algo_trader/service:market_data -- historical run
 ```
 
 **Configuration Files**:
@@ -312,7 +312,7 @@ client = BaseRedisClient()  # Uses localhost (default)
 export REDIS_HOST=custom-redis-server
 
 # Or set inline
-REDIS_HOST=custom-redis-server bazel run //system/algo_trader/service:live_market_service
+REDIS_HOST=custom-redis-server bazel run //system/algo_trader/service:market_data -- live run
 ```
 
 **Programmatic**:
@@ -342,7 +342,7 @@ service = HistoricalMarketService(config=AlgoTraderConfig(influxdb=config))
 
 **Standalone**:
 ```bash
-LOG_LEVEL=DEBUG bazel run //system/algo_trader/service:live_market_service
+bazel run //system/algo_trader/service:market_data -- --log-level DEBUG live run
 ```
 
 **Programmatic**:

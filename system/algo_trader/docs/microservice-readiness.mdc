@@ -54,8 +54,8 @@ self.host = config.host           # Always use config values
 source system/algo_trader/algo_trader.env
 
 # Run services via Bazel
-bazel run //system/algo_trader/service:live_market_service
-bazel run //system/algo_trader/service:historical_market_service
+bazel run //system/algo_trader/service:market_data -- live run
+bazel run //system/algo_trader/service:market_data -- historical run
 ```
 
 **Behavior**:

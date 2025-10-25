@@ -5,14 +5,13 @@ historical price data from Schwab API, with caching in Redis and persistence
 to InfluxDB.
 """
 
-import sys
 from datetime import datetime, timezone
 from enum import Enum
 
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from system.algo_trader.market_data.base import MarketBase, MarketHoursType
 from system.algo_trader.redis.historical_market import HistoricalMarketBroker
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 from system.algo_trader.utils.schema import MarketHours
 
 
@@ -177,7 +176,3 @@ class HistoricalMarketService(MarketBase):
                 self.logger.debug(
                     f"Set historical data for {ticker}:{freq}min frequency: {success}"
                 )
-
-
-if __name__ == "__main__":
-    sys.exit(HistoricalMarketService.main("Historical Market Data Service"))
