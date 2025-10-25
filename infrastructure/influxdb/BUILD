@@ -34,7 +34,6 @@ pytest_test(
     test_lib = "//tests/infrastructure/influxdb:test_influxdb_lib",
 )
 
-# Build the container image
 oci_image(
     name = "influxdb3_image_lib",
     base = "@influxdb3//:influxdb3",
@@ -43,5 +42,5 @@ oci_image(
 oci_load(
     name = "influxdb3_image",
     image = ":influxdb3_image_lib",
-    repo_tags = ["artificer-influxdb3:latest"],
+    repo_tags = ["artificer-influxdb:3.0-core"],
 )
