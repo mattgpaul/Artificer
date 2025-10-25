@@ -225,11 +225,16 @@ class TestLiveMarketServiceHealthCheck:
         """Test health check method exists and can be called."""
         service = LiveMarketService()
 
-        # Health check should not raise an exception
-        result = service.health_check()
+        # Mock all dependencies to return successful results
+        service.api_handler.get_market_hours = Mock(return_value={"start": "09:30", "end": "16:00"})
+        service.market_broker.get_market_hours = Mock(
+            return_value={"start": "09:30", "end": "16:00"}
+        )
+        service.watchlist_broker.get_watchlist = Mock(return_value={"AAPL"})
 
-        # Currently returns None, but method exists
-        assert result is None
+        # Health check should return True when all dependencies are healthy
+        result = service.health_check()
+        assert result is True
 
 
 class TestLiveMarketServiceErrorHandling:
@@ -243,9 +248,9 @@ class TestLiveMarketServiceErrorHandling:
         service.watchlist_broker.get_watchlist = Mock(return_value={"AAPL"})
         service.api_handler.get_quotes = Mock(side_effect=RuntimeError("API Error"))
 
-        # Should not raise exception, but may return False
-        with pytest.raises(RuntimeError):
-            service._execute_pipeline()
+        # Should return False when API error occurs
+        result = service._execute_pipeline()
+        assert result is False
 
     def test_execute_pipeline_watchlist_error(self, mock_live_dependencies):
         """Test pipeline execution handles watchlist errors gracefully."""
@@ -254,6 +259,6 @@ class TestLiveMarketServiceErrorHandling:
         # Mock watchlist error
         service.watchlist_broker.get_watchlist = Mock(side_effect=RuntimeError("Redis Error"))
 
-        # Should not raise exception, but may return False
-        with pytest.raises(RuntimeError):
-            service._execute_pipeline()
+        # Should return False when watchlist error occurs
+        result = service._execute_pipeline()
+        assert result is False

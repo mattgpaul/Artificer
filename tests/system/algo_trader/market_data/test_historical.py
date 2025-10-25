@@ -338,9 +338,9 @@ class TestHistoricalMarketServiceErrorHandling:
         service._get_frequencies = Mock(return_value=[1])
         service.api_handler.get_price_history = Mock(side_effect=RuntimeError("API Error"))
 
-        # Should not raise exception, but may log error
-        with pytest.raises(RuntimeError):
-            service._execute_pipeline()
+        # Should return False when API error occurs
+        result = service._execute_pipeline()
+        assert result is False
 
     def test_execute_pipeline_database_error(self, mock_historical_dependencies):
         """Test pipeline execution handles database errors gracefully."""
@@ -355,6 +355,6 @@ class TestHistoricalMarketServiceErrorHandling:
         )
         service.database_handler.write = Mock(side_effect=RuntimeError("Database Error"))
 
-        # Should not raise exception, but may log error
-        with pytest.raises(RuntimeError):
-            service._execute_pipeline()
+        # Should return False when database error occurs
+        result = service._execute_pipeline()
+        assert result is False

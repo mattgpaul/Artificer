@@ -203,6 +203,24 @@ class MarketBase(ABC):
         self.logger.info(f"Market hours: {market_hours}")
         return market_hours
 
+    def _get_market_conditions(self) -> dict[str, bool | MarketHoursType]:
+        """Get consolidated market conditions to avoid code duplication.
+
+        Returns:
+            Dictionary containing 'is_open' and 'hours_type' keys.
+        """
+        todays_hours = self.market_broker.get_market_hours()
+        market_open = self._check_market_open(todays_hours)
+
+        if not market_open:
+            return {"is_open": False, "hours_type": MarketHoursType.EXTENDED}
+
+        todays_hours_obj = MarketHours(**todays_hours)
+        self.logger.debug(f"Today's hours: {todays_hours_obj}")
+        current_market = self._check_market_hours(todays_hours_obj)
+
+        return {"is_open": True, "hours_type": current_market}
+
     @abstractmethod
     def _get_sleep_interval(self) -> int:
         """Get the sleep interval for the current market conditions.
