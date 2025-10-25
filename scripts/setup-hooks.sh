@@ -17,7 +17,7 @@ echo "🧪 Running integration tests before push..."
 
 # Run integration tests
 echo "Running integration tests..."
-if ! bazel test --test_tag_filters=integration; then
+if ! bazel test --test_tag_filters="integration" //...; then
     echo "❌ Integration tests failed. Push aborted."
     echo "   Fix failing tests before pushing."
     exit 1
