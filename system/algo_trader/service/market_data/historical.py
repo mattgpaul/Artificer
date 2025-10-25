@@ -57,7 +57,13 @@ class HistoricalMarketService(MarketBase):
         influx_config = config.influxdb if config else None
 
         self._market_broker = HistoricalMarketBroker(config=redis_config)
-        self._influx_handler = MarketDataInflux(database="market_data", config=influx_config)
+
+        # Use database from config with fallback to default
+        database = "market_data"  # Default fallback
+        if influx_config and influx_config.database:
+            database = influx_config.database
+
+        self._influx_handler = MarketDataInflux(database=database, config=influx_config)
 
         super().__init__(sleep_override, config)
         if sleep_override is not None:

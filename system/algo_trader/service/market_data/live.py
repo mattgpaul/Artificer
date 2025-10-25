@@ -32,7 +32,7 @@ class LiveMarketService(MarketBase):
             config: Optional AlgoTraderConfig. If None, uses environment variables.
         """
         super().__init__(sleep_override, config)
-        redis_config = self.config.redis if self.config else None
+        redis_config = config.redis if config else None
         self._market_broker = LiveMarketBroker(config=redis_config)
 
     @property

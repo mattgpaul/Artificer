@@ -85,6 +85,24 @@ class TestHistoricalMarketServiceInitialization:
         mock_config = Mock()
         mock_config.redis = Mock()
         mock_config.influxdb = Mock()
+        mock_config.influxdb.database = "custom_database"
+
+        service = HistoricalMarketService(config=mock_config)
+
+        assert service.config == mock_config
+        mock_historical_dependencies["historical_broker"].assert_called_once_with(
+            config=mock_config.redis
+        )
+        mock_historical_dependencies["influx_handler"].assert_called_once_with(
+            database="custom_database", config=mock_config.influxdb
+        )
+
+    def test_initialization_with_config_no_database(self, mock_historical_dependencies):
+        """Test initialization with config but no database specified (fallback to default)."""
+        mock_config = Mock()
+        mock_config.redis = Mock()
+        mock_config.influxdb = Mock()
+        mock_config.influxdb.database = None  # No database specified
 
         service = HistoricalMarketService(config=mock_config)
 
