@@ -9,8 +9,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from system.algo_trader.market_data.historical import HistoricalMarketService
-from system.algo_trader.market_data.live import LiveMarketService
+from system.algo_trader.service.market_data.historical import HistoricalMarketService
+from system.algo_trader.service.market_data.live import LiveMarketService
 
 
 @pytest.fixture
@@ -47,9 +47,9 @@ def mock_schwab_api():
 def mock_live_dependencies():
     """Fixture to mock all LiveMarketService dependencies."""
     with (
-        patch("system.algo_trader.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.market_data.base.WatchlistBroker") as mock_watchlist,
-        patch("system.algo_trader.market_data.live.LiveMarketBroker") as mock_live_broker,
+        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
+        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
+        patch("system.algo_trader.service.market_data.live.LiveMarketBroker") as mock_live_broker,
     ):
         mock_market_handler_instance = Mock()
         mock_market_handler.return_value = mock_market_handler_instance
@@ -74,12 +74,14 @@ def mock_live_dependencies():
 def mock_historical_dependencies():
     """Fixture to mock all HistoricalMarketService dependencies."""
     with (
-        patch("system.algo_trader.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.market_data.base.WatchlistBroker") as mock_watchlist,
+        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
+        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
         patch(
-            "system.algo_trader.market_data.historical.HistoricalMarketBroker"
+            "system.algo_trader.service.market_data.historical.HistoricalMarketBroker"
         ) as mock_historical_broker,
-        patch("system.algo_trader.market_data.historical.MarketDataInflux") as mock_influx_handler,
+        patch(
+            "system.algo_trader.service.market_data.historical.MarketDataInflux"
+        ) as mock_influx_handler,
     ):
         mock_market_handler_instance = Mock()
         mock_market_handler.return_value = mock_market_handler_instance

@@ -12,9 +12,9 @@ from enum import Enum
 
 from system.algo_trader.config import AlgoTraderConfig
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
-from system.algo_trader.market_data.base import MarketBase, MarketHoursType
 from system.algo_trader.redis.historical_market import HistoricalMarketBroker
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.service.market_data.base import MarketBase, MarketHoursType
 
 
 class IntradayInterval(Enum):

@@ -27,9 +27,9 @@ py_library(
     ],
     deps = [
         ":config",
-        "//system/algo_trader/market_data:market_data_lib",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
+        "//system/algo_trader/service/market_data:market_data_lib",
         "//system/algo_trader/utils:schema",
     ],
 )
