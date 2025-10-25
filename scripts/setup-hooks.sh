@@ -1,6 +1,9 @@
 #!/bin/bash
 # Setup Git hooks for integration testing
 # Run this after cloning the repository
+# 
+# This script configures pre-push hooks that run integration tests
+# and guides users to GitHub's native PR creation workflow.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
