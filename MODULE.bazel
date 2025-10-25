@@ -5,7 +5,8 @@ module(
 
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "rules_python", version = "0.40.0")
-bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "googletest", version = "1.15.2")
+bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_oci", version = "2.2.6")
 
 # Python toolchain
@@ -16,7 +17,7 @@ use_repo(python, "python_3_11")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
-    python_version = "3.11",
+    python_version = "3.11",  # Must match the toolchain version
     requirements_lock = "//:requirements.txt",
 )
 use_repo(pip, "pip")
@@ -59,7 +60,24 @@ http_file(
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "influxdb3",
-    image = "docker.io/library/influxdb:2.7-alpine",
+    digest = "sha256:6fa417245fe0474ed239579885a7dd6b56ba532d33f047dbca7bf66debcc1466",
+    image = "docker.io/library/influxdb:3-core",
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "influxdb3", "influxdb3_linux_amd64")
+
+oci.pull(
+    name = "redis",
+    digest = "sha256:a377481f6820efffb07a879de1703a0f6086e188b9aa89f5801563631166090b",
+    image = "docker.io/library/redis:8.0-bookworm",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "redis", "redis_linux_amd64")
+
+oci.pull(
+    name = "grafana",
+    digest = "sha256:35c41e0fd0295f5d0ee5db7e780cf33506abfaf47686196f825364889dee878b",
+    image = "docker.io/grafana/grafana:latest",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "grafana", "grafana_linux_amd64")
