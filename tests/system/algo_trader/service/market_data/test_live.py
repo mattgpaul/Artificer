@@ -8,18 +8,18 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from system.algo_trader.market_data.base import MarketHoursType
-from system.algo_trader.market_data.live import LiveMarketService
+from system.algo_trader.service.market_data.base import MarketHoursType
+from system.algo_trader.service.market_data.live import LiveMarketService
 
 
 @pytest.fixture
 def mock_live_dependencies():
     """Fixture to mock all LiveMarketService dependencies."""
     with (
-        patch("system.algo_trader.market_data.base.get_logger") as mock_logger,
-        patch("system.algo_trader.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.market_data.base.WatchlistBroker") as mock_watchlist,
-        patch("system.algo_trader.market_data.live.LiveMarketBroker") as mock_live_broker,
+        patch("system.algo_trader.service.market_data.base.get_logger") as mock_logger,
+        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
+        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
+        patch("system.algo_trader.service.market_data.live.LiveMarketBroker") as mock_live_broker,
     ):
         mock_logger_instance = Mock()
         mock_logger.return_value = mock_logger_instance

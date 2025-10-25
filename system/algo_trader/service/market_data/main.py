@@ -5,8 +5,8 @@ import argparse
 import sys
 
 from system.algo_trader.config import AlgoTraderConfig
-from system.algo_trader.market_data.historical import HistoricalMarketService
-from system.algo_trader.market_data.live import LiveMarketService
+from system.algo_trader.service.market_data.historical import HistoricalMarketService
+from system.algo_trader.service.market_data.live import LiveMarketService
 
 
 def main() -> int:
