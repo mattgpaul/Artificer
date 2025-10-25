@@ -171,7 +171,10 @@ class TestLiveMarketServicePipeline:
 
         assert result is True
         service.watchlist_broker.get_watchlist.assert_called_once()
-        service.api_handler.get_quotes.assert_called_once_with(["AAPL", "GOOGL"])
+        # Check that get_quotes was called with the correct tickers (order doesn't matter)
+        service.api_handler.get_quotes.assert_called_once()
+        call_args = service.api_handler.get_quotes.call_args[0][0]
+        assert set(call_args) == {"AAPL", "GOOGL"}
         service.market_broker.set_quotes.assert_called_once_with({"AAPL": {"price": 150.0}})
 
     def test_execute_pipeline_empty_watchlist(self, mock_live_dependencies):
