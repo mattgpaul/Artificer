@@ -9,7 +9,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from system.algo_trader.service.market_data.base import MarketHoursType
-from system.algo_trader.service.market_data.historical import HistoricalMarketService, IntradayInterval
+from system.algo_trader.service.market_data.historical import (
+    HistoricalMarketService,
+    IntradayInterval,
+)
 
 
 @pytest.fixture
@@ -22,7 +25,9 @@ def mock_historical_dependencies():
         patch(
             "system.algo_trader.service.market_data.historical.HistoricalMarketBroker"
         ) as mock_historical_broker,
-        patch("system.algo_trader.service.market_data.historical.MarketDataInflux") as mock_influx_handler,
+        patch(
+            "system.algo_trader.service.market_data.historical.MarketDataInflux"
+        ) as mock_influx_handler,
     ):
         mock_logger_instance = Mock()
         mock_logger.return_value = mock_logger_instance
