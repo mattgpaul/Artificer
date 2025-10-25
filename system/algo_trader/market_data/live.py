@@ -4,10 +4,8 @@ This module provides the LiveMarketService for fetching and caching real-time
 stock quotes from Schwab API with automatic refresh based on market hours.
 """
 
-import sys
-
+from system.algo_trader.market_data.base import MarketBase, MarketHoursType
 from system.algo_trader.redis.live_market import LiveMarketBroker
-from system.algo_trader.service.market_base import MarketBase, MarketHoursType
 from system.algo_trader.utils.schema import MarketHours
 
 
@@ -92,7 +90,3 @@ class LiveMarketService(MarketBase):
             True if service is healthy, False otherwise.
         """
         pass
-
-
-if __name__ == "__main__":
-    sys.exit(LiveMarketService.main("Live Market Data Service"))

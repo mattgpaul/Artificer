@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup Git hooks for code quality enforcement
+# Setup Git hooks for integration testing
 # Run this after cloning the repository
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,52 +8,35 @@ HOOKS_DIR="$REPO_ROOT/.git/hooks"
 
 echo "Setting up Git hooks for Artificer..."
 
-# Create pre-commit hook
-cat > "$HOOKS_DIR/pre-commit" << 'EOF'
+# Create pre-push hook for integration tests
+cat > "$HOOKS_DIR/pre-push" << 'EOF'
 #!/bin/bash
-# Pre-commit hook to enforce code quality standards
+# Pre-push hook to run integration tests before pushing
 
-echo "🔍 Running code quality checks..."
+echo "🧪 Running integration tests before push..."
 
-# Get list of Python files being committed
-PYTHON_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
-
-if [ -n "$PYTHON_FILES" ]; then
-    echo "📝 Formatting Python files with ruff..."
-    bazel run //:ruff -- format $PYTHON_FILES
-    
-    echo "🔍 Linting Python files with ruff..."
-    bazel run //:ruff -- check $PYTHON_FILES --fix
-    
-    # Re-add files that were formatted
-    git add $PYTHON_FILES
-    
-    # Check for remaining errors
-    if ! bazel run //:ruff -- check $PYTHON_FILES; then
-        echo "❌ Ruff found issues that need manual fixing. Commit aborted."
-        echo "   Run: bazel run //:format"
-        exit 1
-    fi
+# Run integration tests
+echo "Running integration tests..."
+if ! bazel test --test_tag_filters="integration" //...; then
+    echo "❌ Integration tests failed. Push aborted."
+    echo "   Fix failing tests before pushing."
+    exit 1
 fi
 
-# Get list of BUILD files being committed
-BUILD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep 'BUILD$\|\.bzl$')
-
-if [ -n "$BUILD_FILES" ]; then
-    echo "📝 Formatting BUILD files with buildifier..."
-    bazel run //:buildifier -- $BUILD_FILES
-    
-    # Re-add formatted BUILD files
-    git add $BUILD_FILES
-fi
-
-echo "✅ All checks passed!"
+echo "✅ All integration tests passed!"
+echo ""
+echo "💡 After push, GitHub will show a 'Create Pull Request' button"
+echo "   Click it to create PR and trigger CI/CD pipelines automatically"
 exit 0
 EOF
 
-chmod +x "$HOOKS_DIR/pre-commit"
+chmod +x "$HOOKS_DIR/pre-push"
 
-echo "✅ Pre-commit hook installed successfully!"
+echo "✅ Pre-push hook installed successfully!"
 echo ""
-echo "To bypass the hook (not recommended), use: git commit --no-verify"
+echo "Features enabled:"
+echo "  🧪 Integration tests before push"
+echo "  💡 GitHub's native 'Create Pull Request' button after push"
+echo ""
+echo "To bypass the hook (not recommended), use: git push --no-verify"
 

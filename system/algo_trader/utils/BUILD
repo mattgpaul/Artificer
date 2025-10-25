@@ -7,6 +7,7 @@ py_library(
     visibility = [
         "//system:__pkg__",  # Available to system package (for project aggregation)
         "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
+        "//tests/system/algo_trader/market_data:__pkg__",  # Allow market_data test access
         "//tests/system/algo_trader/utils:__pkg__",  # Allow test access
     ],
     deps = [

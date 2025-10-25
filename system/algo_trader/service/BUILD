@@ -1,46 +1,23 @@
-load("@pip//:requirements.bzl", "requirement")
-
-py_library(
-    name = "market_service_lib",
-    srcs = [
-        "historical_market_service.py",
-        "live_market_service.py",
-        "market_base.py",
-    ],
-    visibility = [
-        "//system:__pkg__",  # Allow system package access
-        "//system/algo_trader:__subpackages__",
-    ],
-    deps = [
-        "//infrastructure/logging:logger",
-        "//system/algo_trader:config",
-        "//system/algo_trader/influx:influx_services",
-        "//system/algo_trader/redis:redis_services",
-        "//system/algo_trader/schwab:schwab_services",
-        "//system/algo_trader/utils:schema",
-        requirement("pandas"),
-        requirement("pydantic"),
-    ],
-)
+load("@pip//:requirements.bzl", "requirement")  # @unused
+load("//:pytest_test.bzl", "pytest_test")
 
 py_binary(
-    name = "live_market_service",
-    srcs = ["live_market_service.py"],
-    main = "live_market_service.py",
+    name = "market_data",
+    srcs = ["market_data.py"],
+    main = "market_data.py",
     visibility = [
-        "//system:__pkg__",  # Allow system package access
+        "//system:__pkg__",
         "//system/algo_trader:__pkg__",
+        "//tests/system/algo_trader/service:__pkg__",
     ],
-    deps = [":market_service_lib"],
+    deps = ["//system/algo_trader/market_data:market_data_lib"],
 )
 
-py_binary(
-    name = "historical_market_service",
-    srcs = ["historical_market_service.py"],
-    main = "historical_market_service.py",
-    visibility = [
-        "//system:__pkg__",  # Allow system package access
-        "//system/algo_trader:__pkg__",
-    ],
-    deps = [":market_service_lib"],
+# Test target for market data service CLI
+pytest_test(
+    name = "test_market_data",
+    size = "medium",
+    coverage_path = "system.algo_trader.service",
+    tags = ["integration"],
+    test_lib = "//tests/system/algo_trader/service:test_market_data_lib",
 )

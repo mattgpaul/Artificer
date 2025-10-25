@@ -1,0 +1,54 @@
+name: Auto-Create PR
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+      - 'fix/*'
+      - 'refactor/*'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+    steps:
+      - name: Check if PR exists
+        id: check-pr
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+              state: 'open'
+            });
+            
+            if (prs.length > 0) {
+              console.log('PR already exists');
+              return 'exists';
+            }
+            return 'not-exists';
+      
+      - name: Create PR
+        if: steps.check-pr.outputs.result == 'not-exists'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const title = branch.replace(/^(feature|fix|refactor)\//, '').replace(/-/g, ' ');
+            
+            await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              head: branch,
+              base: 'main',
+              body: `## Auto-generated PR
+              
+This PR was automatically created from branch: \`${branch}\`
+
+## Changes
+- Auto-generated from feature branch
+- Ready for review and CI/CD pipeline execution`
+            });
