@@ -5,7 +5,6 @@ for market data pipeline services, including signal handling, market hours
 management, timing control, and service lifecycle management.
 """
 
-import argparse
 import signal
 import time
 from abc import ABC, abstractmethod
@@ -267,57 +266,3 @@ class MarketBase(ABC):
                 self._sleep_with_interrupt_check(_DEFAULT_ERROR_RETRY_SECONDS)
 
         self.logger.info(f"{self.__class__.__name__} shutdown complete")
-
-    @classmethod
-    def main(cls, description: str | None = None) -> int:
-        """Generic main entry point for market services.
-
-        Provides command-line interface with run and health check commands,
-        logging configuration, and graceful error handling.
-
-        Args:
-            description: Optional description for the service CLI.
-
-        Returns:
-            Exit code (0 for success, 1 for failure).
-        """
-        parser = argparse.ArgumentParser(description=description or f"{cls.__name__} Service")
-        parser.add_argument(
-            "command",
-            nargs="?",
-            default="run",
-            choices=["run", "health"],
-            help="Command to execute (default: run)",
-        )
-        parser.add_argument(
-            "--log-level",
-            default="INFO",
-            choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-            help="Set logging level",
-        )
-        parser.add_argument(
-            "--sleep-interval", type=int, default=None, help="Override sleep interval in seconds"
-        )
-
-        args = parser.parse_args()
-
-        try:
-            service = cls(sleep_override=args.sleep_interval)
-
-            if args.command == "run":
-                service.logger.info(f"Starting {cls.__name__.lower()}...")
-                if args.sleep_interval:
-                    service.logger.info(f"Using fixed sleep interval: {args.sleep_interval}")
-                service.run()
-                return 0
-            elif args.command == "health":
-                if service.health_check():
-                    service.logger.info("Health check passed")
-                    return 0
-
-        except KeyboardInterrupt:
-            print("Service interrupted by user")
-            return 0
-        except Exception as e:
-            print(f"Service failed to start: {e}")
-            return 1
