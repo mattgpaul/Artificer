@@ -8,5 +8,5 @@ oci_image(
 oci_load(
     name = "grafana_image",
     image = ":grafana_image_lib",
-    repo_tags = ["artificer-grafana:main-ubuntu"],
+    repo_tags = ["artificer-grafana:latest"],
 )
