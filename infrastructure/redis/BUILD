@@ -30,5 +30,5 @@ oci_image(
 oci_load(
     name = "redis_image",
     image = ":redis_image_lib",
-    repo_tags = ["artificer-redis:8.0-bookworm"],
+    repo_tags = ["artificer-redis:latest"],
 )

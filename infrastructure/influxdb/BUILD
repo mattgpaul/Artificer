@@ -42,5 +42,5 @@ oci_image(
 oci_load(
     name = "influxdb3_image",
     image = ":influxdb3_image_lib",
-    repo_tags = ["artificer-influxdb:3.0-core"],
+    repo_tags = ["artificer-influxdb:latest"],
 )
