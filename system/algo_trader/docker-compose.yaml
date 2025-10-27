@@ -1,0 +1,60 @@
+networks:
+  algo_trader-net:
+    driver: bridge
+
+services:
+  redis:
+    image: artificer-redis:latest
+    container_name: algo_trader-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost only
+    volumes:
+      - redis-data:/data
+    networks:
+      - algo_trader-net
+    environment:
+      - REDIS_DB=${REDIS_DB}
+      - REDIS_MAX_CONNECTIONS=${REDIS_MAX_CONNECTIONS}
+      - REDIS_SOCKET_TIMEOUT=${REDIS_SOCKET_TIMEOUT}
+
+  influxdb:
+    image: artificer-influxdb:latest
+    container_name: influxdb
+    command:
+      - influxdb3
+      - serve
+      - --node-id=node0
+      - --object-store=file
+      - --data-dir=/var/lib/influxdb3/data
+      - --plugin-dir=/var/lib/influxdb3/plugins
+    networks:
+      - algo_trader-net
+    volumes:
+      - influxdb-data:/var/lib/influxdb3/data
+      - influxdb-plugins:/var/lib/influxdb3/plugins
+    ports:
+      - "127.0.0.1:8181:8181"  # Bind to localhost only
+    environment:
+      - INFLUXDB3_AUTH_TOKEN=${INFLUXDB3_AUTH_TOKEN}
+      - INFLUXDB_DATABASE=${INFLUXDB_DATABASE}
+
+  grafana:
+    image: artificer-grafana:latest
+    container_name: algo_trader-grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"  # Bind to localhost only
+    networks:
+      - algo_trader-net
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+
+volumes:
+  influxdb-data:
+  influxdb-plugins:
+  grafana-data:
+  redis-data:
