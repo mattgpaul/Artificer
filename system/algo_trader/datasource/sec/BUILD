@@ -15,13 +15,6 @@ py_library(
     ],
 )
 
-py_binary(
-    name = "main",
-    srcs = ["tickers.py"],
-    main = "tickers.py",
-    deps = [":tickers_lib"],
-)
-
 # Test for Tickers - SEC Ticker Data Retrieval
 pytest_test(
     name = "test_tickers",
