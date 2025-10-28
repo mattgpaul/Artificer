@@ -45,9 +45,3 @@ class Tickers:
         except Exception as e:
             self.logger.error(f"Failed to get tickers: {e}")
             return None
-
-
-if __name__ == "__main__":
-    foo = Tickers()
-    tickers = foo.get_tickers()
-    print(tickers)
