@@ -1,0 +1,37 @@
+"""Build file for populate datasource tests."""
+
+load("@rules_python//python:defs.bzl", "py_library")
+
+py_library(
+    name = "test_argument_base_lib",
+    testonly = True,
+    srcs = ["test_argument_base.py"],
+    visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/datasource/populate:populate_lib",
+    ],
+)
+
+py_library(
+    name = "test_ohlcv_args_lib",
+    testonly = True,
+    srcs = ["test_ohlcv_args.py"],
+    visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/datasource/populate:populate_lib",
+        "//system/algo_trader/schwab:schwab_services",
+    ],
+)
+
+py_library(
+    name = "test_main_lib",
+    testonly = True,
+    srcs = ["test_main.py"],
+    visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
+    deps = [
+        "//system/algo_trader/datasource/populate:main",
+        "//system/algo_trader/datasource/populate:populate_lib",
+    ],
+)
