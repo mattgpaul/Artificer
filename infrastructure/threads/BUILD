@@ -1,4 +1,3 @@
-load("@pip//:requirements.bzl", "requirement")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
@@ -15,8 +14,11 @@ py_library(
 # Test target
 pytest_test(
     name = "test_thread_manager",
-    coverage_path = "infrastructure.threads",
-    tags = ["unit", "exclusive"],
     size = "small",
+    coverage_path = "infrastructure.threads",
+    tags = [
+        "exclusive",
+        "unit",
+    ],
     test_lib = "//tests/infrastructure/threads:test_thread_manager_lib",
 )
