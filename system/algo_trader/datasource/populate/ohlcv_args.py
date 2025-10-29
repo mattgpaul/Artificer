@@ -5,9 +5,13 @@ data population with validation against Schwab API timescale requirements.
 """
 
 import argparse
+import statistics
+import time
 
+from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
+from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
 
@@ -156,10 +160,12 @@ class OHLCVArgumentHandler(ArgumentHandler):
             "period_value": args.period_value,
         }
 
-    def execute(self, context: dict) -> None:
-        """Execute OHLCV data population logic.
+    def execute(self, context: dict) -> None:  # noqa: PLR0915
+        """Execute OHLCV data population with multi-threaded data fetching.
 
-        Designed to be thread-safe for future multi-threaded implementation.
+        Uses ThreadManager to fetch historical market data concurrently for multiple
+        tickers. Automatically batches requests when ticker count exceeds max_threads.
+        Displays statistics for each ticker and summary results.
 
         Args:
             context: Dictionary containing processed results from all handlers.
@@ -180,7 +186,164 @@ class OHLCVArgumentHandler(ArgumentHandler):
             f"and period {period_type.value}={period_value}"
         )
 
-        # TODO: Implement thread-safe data fetching and persistence logic
-        for ticker in tickers:
-            self.logger.info(f"Processing {ticker}")
-            # Add logic to fetch and store OHLCV data for each ticker
+        # Initialize MarketHandler and ThreadManager
+        market_handler = MarketHandler()
+        thread_manager = ThreadManager()  # Uses config from environment
+
+        max_threads = thread_manager.config.max_threads
+        self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
+
+        # Check if batching will be needed
+        if len(tickers) > max_threads:
+            self.logger.info(
+                f"Ticker count ({len(tickers)}) exceeds max_threads ({max_threads}). "
+                f"Batching will be used. Consider increasing THREAD_MAX_THREADS "
+                f"for faster processing."
+            )
+
+        def fetch_ticker_data(ticker: str) -> dict:
+            """Thread target function to fetch and calculate statistics for a ticker.
+
+            Args:
+                ticker: Stock symbol to fetch data for.
+
+            Returns:
+                Dictionary with 'success' boolean and optional 'stats' or 'error'.
+            """
+            try:
+                self.logger.debug(f"Fetching price history for {ticker}")
+
+                # Fetch price history from Schwab API
+                response = market_handler.get_price_history(
+                    ticker=ticker,
+                    period_type=period_type,
+                    period=period_value,
+                    frequency_type=frequency_type,
+                    frequency=frequency_value,
+                )
+
+                # Check for empty or invalid response
+                if not response:
+                    self.logger.error(f"{ticker}: Empty response from API")
+                    return {"success": False, "error": "Empty response"}
+
+                if "candles" not in response:
+                    self.logger.error(f"{ticker}: No candles data in response")
+                    return {"success": False, "error": "No candles data"}
+
+                candles = response["candles"]
+                if not candles:
+                    self.logger.warning(f"{ticker}: Candles list is empty")
+                    return {"success": False, "error": "Empty candles list"}
+
+                # Calculate statistics
+                closes = [c["close"] for c in candles]
+                highs = [c["high"] for c in candles]
+                lows = [c["low"] for c in candles]
+                volumes = [c["volume"] for c in candles]
+                ranges = [c["high"] - c["low"] for c in candles]
+
+                stats = {
+                    "ticker": ticker,
+                    "count": len(candles),
+                    "price_range": {"min": min(lows), "max": max(highs)},
+                    "avg_close": statistics.mean(closes),
+                    "net_change": closes[-1] - closes[0],
+                    "net_change_pct": ((closes[-1] - closes[0]) / closes[0]) * 100,
+                    "total_volume": sum(volumes),
+                    "avg_volume": statistics.mean(volumes),
+                    "avg_range": statistics.mean(ranges),
+                }
+
+                # Print formatted statistics to console
+                print(f"\n=== {ticker} Statistics ===")
+                print(f"Data Points: {stats['count']}")
+                price_min = stats["price_range"]["min"]
+                price_max = stats["price_range"]["max"]
+                print(f"Price Range: ${price_min:.2f} - ${price_max:.2f}")
+                print(f"Average Close: ${stats['avg_close']:.2f}")
+                print(
+                    f"Net Change: {'+' if stats['net_change'] >= 0 else ''}"
+                    f"${stats['net_change']:.2f} "
+                    f"({'+' if stats['net_change_pct'] >= 0 else ''}{stats['net_change_pct']:.2f}%)"
+                )
+                print(f"Total Volume: {stats['total_volume']:,}")
+                print(f"Average Volume: {stats['avg_volume']:,.0f}")
+                print(f"Average Daily Range: ${stats['avg_range']:.2f}")
+
+                return {"success": True, "stats": stats}
+
+            except Exception as e:
+                self.logger.error(f"{ticker}: Exception during processing: {e}")
+                return {"success": False, "error": str(e)}
+
+        # Batch processing loop
+        remaining_tickers = list(tickers)
+        processed_count = 0
+        last_log_time = time.time()
+
+        self.logger.info("Starting batch processing...")
+
+        while remaining_tickers:
+            # Check available thread capacity
+            active_count = thread_manager.get_active_thread_count()
+            available_slots = max_threads - active_count
+
+            # Start new threads up to available capacity
+            if available_slots > 0 and remaining_tickers:
+                batch_size = min(available_slots, len(remaining_tickers))
+                batch = remaining_tickers[:batch_size]
+                remaining_tickers = remaining_tickers[batch_size:]
+
+                for ticker in batch:
+                    try:
+                        thread_manager.start_thread(
+                            target=fetch_ticker_data,
+                            name=f"ohlcv-{ticker}",
+                            args=(ticker,),
+                        )
+                        self.logger.debug(f"Started thread for {ticker}")
+                    except RuntimeError as e:
+                        self.logger.error(f"Failed to start thread for {ticker}: {e}")
+                        remaining_tickers.append(ticker)  # Re-add to queue
+
+            # Wait briefly for threads to complete
+            time.sleep(0.5)
+
+            # Clean up dead threads periodically
+            cleaned = thread_manager.cleanup_dead_threads()
+            if cleaned > 0:
+                processed_count += cleaned
+                self.logger.debug(f"Cleaned up {cleaned} threads")
+
+            # Log progress periodically (every 10 seconds)
+            current_time = time.time()
+            if current_time - last_log_time >= 10:
+                self.logger.info(
+                    f"Progress: {processed_count}/{len(tickers)} tickers processed, "
+                    f"{len(remaining_tickers)} remaining, {active_count} active threads"
+                )
+                last_log_time = current_time
+
+        # Wait for all remaining threads to complete
+        self.logger.info("Waiting for all threads to complete...")
+        thread_manager.wait_for_all_threads(timeout=300)
+
+        # Final cleanup
+        thread_manager.cleanup_dead_threads()
+
+        # Get results summary
+        summary = thread_manager.get_results_summary()
+        self.logger.info(
+            f"Batch processing complete: {summary['successful']} successful, "
+            f"{summary['failed']} failed out of {len(tickers)} total tickers"
+        )
+
+        # Print final summary
+        print(f"\n{'=' * 50}")
+        print("OHLCV Data Population Summary")
+        print(f"{'=' * 50}")
+        print(f"Total Tickers: {len(tickers)}")
+        print(f"Successful: {summary['successful']}")
+        print(f"Failed: {summary['failed']}")
+        print(f"{'=' * 50}\n")
