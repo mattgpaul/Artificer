@@ -46,6 +46,15 @@ fi
 
 echo "✅ All integration tests passed!"
 echo ""
+
+# Check if any changes were made and amend commit if necessary
+if [ -n "$(git diff HEAD)" ]; then
+    echo "📝 Committing formatting/linting changes..."
+    git add -A
+    git commit --amend --no-edit
+    echo "✅ Changes committed to current commit"
+fi
+
 echo "💡 After push, GitHub will show a 'Create Pull Request' button"
 echo "   Click it to create PR and trigger CI/CD pipelines automatically"
 exit 0

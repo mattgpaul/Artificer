@@ -81,7 +81,9 @@ class ThreadManager(Client):
             self._thread_counter += 1
             return self._thread_counter
 
-    def _wrapped_target(self, target: Callable, name: str, args: tuple = (), kwargs: dict | None = None):
+    def _wrapped_target(
+        self, target: Callable, name: str, args: tuple = (), kwargs: dict | None = None
+    ):
         """Wrap target function with exception handling and logging.
 
         Args:
