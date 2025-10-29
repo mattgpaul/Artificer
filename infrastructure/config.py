@@ -96,3 +96,24 @@ class InfluxDBConfig(BaseSettings):
         Handles special case of INFLUXDB3_HTTP_BIND_ADDR format (host:port).
         """
         return cls()
+
+
+class ThreadConfig(BaseSettings):
+    """Thread manager configuration with environment variable support.
+
+    Reads from THREAD_* environment variables automatically.
+
+    Attributes:
+        daemon_threads: Whether threads should be daemon threads.
+        max_threads: Maximum number of concurrent threads allowed.
+        thread_timeout: Default timeout for thread operations in seconds.
+    """
+
+    daemon_threads: bool = Field(default=True)
+    max_threads: int = Field(default=10)
+    thread_timeout: int = Field(default=30)
+
+    model_config = SettingsConfigDict(
+        env_prefix="THREAD_",
+        env_file=None,
+    )
