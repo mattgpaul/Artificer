@@ -14,6 +14,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
+        "//infrastructure/threads:thread_manager",
         "//system/algo_trader:config",
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/influx:influx_services",

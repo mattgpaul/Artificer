@@ -421,24 +421,7 @@ class TestOHLCVArgumentHandlerProcess:
 
 
 class TestOHLCVArgumentHandlerExecute:
-    """Test execute method."""
-
-    def test_execute_with_valid_context(self, mock_dependencies):
-        """Test execute with valid context."""
-        handler = OHLCVArgumentHandler()
-
-        context = {
-            "tickers": ["AAPL", "MSFT"],
-            "frequency_type": FrequencyType.DAILY,
-            "frequency_value": 1,
-            "period_type": PeriodType.YEAR,
-            "period_value": 10,
-        }
-
-        handler.execute(context)
-
-        # Verify logs were called
-        mock_dependencies["logger_instance"].info.assert_called()
+    """Test execute method with multi-threading."""
 
     def test_execute_with_missing_tickers(self, mock_dependencies):
         """Test execute handles missing tickers."""
@@ -451,20 +434,209 @@ class TestOHLCVArgumentHandlerExecute:
         # Verify error was logged
         mock_dependencies["logger_instance"].error.assert_called()
 
-    def test_execute_processes_all_tickers(self, mock_dependencies):
-        """Test execute processes all tickers in context."""
-        handler = OHLCVArgumentHandler()
+    def test_execute_with_valid_context_successful(self, mock_dependencies):
+        """Test execute with valid context and successful API responses."""
+        with (
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.MarketHandler"
+            ) as mock_market_handler_class,
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.ThreadManager"
+            ) as mock_thread_manager_class,
+            patch("builtins.print"),
+        ):
+            # Mock MarketHandler
+            mock_market_handler = Mock()
+            mock_market_handler.get_price_history.return_value = {
+                "symbol": "AAPL",
+                "candles": [
+                    {
+                        "datetime": 1234567890,
+                        "open": 150.0,
+                        "high": 155.0,
+                        "low": 149.0,
+                        "close": 154.0,
+                        "volume": 1000000,
+                    },
+                    {
+                        "datetime": 1234567900,
+                        "open": 154.0,
+                        "high": 156.0,
+                        "low": 153.0,
+                        "close": 155.5,
+                        "volume": 1100000,
+                    },
+                ],
+            }
+            mock_market_handler_class.return_value = mock_market_handler
 
-        tickers = ["AAPL", "MSFT", "GOOGL"]
-        context = {
-            "tickers": tickers,
-            "frequency_type": FrequencyType.DAILY,
-            "frequency_value": 1,
-            "period_type": PeriodType.YEAR,
-            "period_value": 10,
-        }
+            # Mock ThreadManager
+            mock_thread_manager = Mock()
+            mock_thread_manager.config.max_threads = 10
+            mock_thread_manager.get_active_thread_count.return_value = 0
+            mock_thread_manager.cleanup_dead_threads.return_value = 2
+            mock_thread_manager.get_results_summary.return_value = {
+                "successful": 2,
+                "failed": 0,
+                "running": 0,
+                "total": 2,
+            }
+            mock_thread_manager_class.return_value = mock_thread_manager
 
-        handler.execute(context)
+            handler = OHLCVArgumentHandler()
 
-        # Verify processing was logged for each ticker
-        assert mock_dependencies["logger_instance"].info.call_count > 0
+            context = {
+                "tickers": ["AAPL", "MSFT"],
+                "frequency_type": FrequencyType.DAILY,
+                "frequency_value": 1,
+                "period_type": PeriodType.YEAR,
+                "period_value": 10,
+            }
+
+            handler.execute(context)
+
+            # Verify MarketHandler and ThreadManager were initialized
+            mock_market_handler_class.assert_called_once()
+            mock_thread_manager_class.assert_called_once()
+
+            # Verify threads were started for each ticker
+            assert mock_thread_manager.start_thread.call_count == 2
+
+            # Verify wait and cleanup were called
+            mock_thread_manager.wait_for_all_threads.assert_called_once()
+            mock_thread_manager.cleanup_dead_threads.assert_called()
+            mock_thread_manager.get_results_summary.assert_called_once()
+
+    def test_execute_with_api_failures(self, mock_dependencies):
+        """Test execute handles API failures gracefully."""
+        with (
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.MarketHandler"
+            ) as mock_market_handler_class,
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.ThreadManager"
+            ) as mock_thread_manager_class,
+            patch("builtins.print"),
+        ):
+            # Mock MarketHandler returning empty response
+            mock_market_handler = Mock()
+            mock_market_handler.get_price_history.return_value = {}
+            mock_market_handler_class.return_value = mock_market_handler
+
+            # Mock ThreadManager
+            mock_thread_manager = Mock()
+            mock_thread_manager.config.max_threads = 10
+            mock_thread_manager.get_active_thread_count.return_value = 0
+            mock_thread_manager.cleanup_dead_threads.return_value = 0
+            mock_thread_manager.get_results_summary.return_value = {
+                "successful": 0,
+                "failed": 1,
+                "running": 0,
+                "total": 1,
+            }
+            mock_thread_manager_class.return_value = mock_thread_manager
+
+            handler = OHLCVArgumentHandler()
+
+            context = {
+                "tickers": ["INVALID"],
+                "frequency_type": FrequencyType.DAILY,
+                "frequency_value": 1,
+                "period_type": PeriodType.YEAR,
+                "period_value": 10,
+            }
+
+            handler.execute(context)
+
+            # Verify thread was started despite failure
+            assert mock_thread_manager.start_thread.call_count == 1
+
+    def test_execute_with_empty_candles(self, mock_dependencies):
+        """Test execute handles empty candles list."""
+        with (
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.MarketHandler"
+            ) as mock_market_handler_class,
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.ThreadManager"
+            ) as mock_thread_manager_class,
+            patch("builtins.print"),
+        ):
+            # Mock MarketHandler returning response with empty candles
+            mock_market_handler = Mock()
+            mock_market_handler.get_price_history.return_value = {"symbol": "AAPL", "candles": []}
+            mock_market_handler_class.return_value = mock_market_handler
+
+            # Mock ThreadManager
+            mock_thread_manager = Mock()
+            mock_thread_manager.config.max_threads = 10
+            mock_thread_manager.get_active_thread_count.return_value = 0
+            mock_thread_manager.cleanup_dead_threads.return_value = 0
+            mock_thread_manager.get_results_summary.return_value = {
+                "successful": 0,
+                "failed": 1,
+                "running": 0,
+                "total": 1,
+            }
+            mock_thread_manager_class.return_value = mock_thread_manager
+
+            handler = OHLCVArgumentHandler()
+
+            context = {
+                "tickers": ["AAPL"],
+                "frequency_type": FrequencyType.DAILY,
+                "frequency_value": 1,
+                "period_type": PeriodType.YEAR,
+                "period_value": 10,
+            }
+
+            handler.execute(context)
+
+            # Verify thread was started
+            assert mock_thread_manager.start_thread.call_count == 1
+
+    def test_execute_logs_batching_warning(self, mock_dependencies):
+        """Test execute logs warning when batching is needed."""
+        with (
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.MarketHandler"
+            ) as mock_market_handler_class,
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv_args.ThreadManager"
+            ) as mock_thread_manager_class,
+            patch("builtins.print"),
+        ):
+            # Mock MarketHandler
+            mock_market_handler = Mock()
+            mock_market_handler_class.return_value = mock_market_handler
+
+            # Mock ThreadManager with low max_threads
+            mock_thread_manager = Mock()
+            mock_thread_manager.config.max_threads = 2
+            mock_thread_manager.get_active_thread_count.return_value = 0
+            mock_thread_manager.cleanup_dead_threads.return_value = 0
+            mock_thread_manager.get_results_summary.return_value = {
+                "successful": 5,
+                "failed": 0,
+                "running": 0,
+                "total": 5,
+            }
+            mock_thread_manager_class.return_value = mock_thread_manager
+
+            handler = OHLCVArgumentHandler()
+
+            context = {
+                "tickers": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"],
+                "frequency_type": FrequencyType.DAILY,
+                "frequency_value": 1,
+                "period_type": PeriodType.YEAR,
+                "period_value": 10,
+            }
+
+            handler.execute(context)
+
+            # Verify batching warning was logged
+            log_calls = [
+                str(call) for call in mock_dependencies["logger_instance"].info.call_args_list
+            ]
+            assert any("Batching will be used" in str(call) for call in log_calls)

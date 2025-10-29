@@ -10,6 +10,7 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
@@ -25,6 +26,7 @@ class ThreadStatus:
         started_at: Timestamp when thread was started.
         status: Current status (running, stopped, error).
         exception: Exception if thread failed.
+        result: Return value from thread target function.
     """
 
     name: str
@@ -32,6 +34,7 @@ class ThreadStatus:
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "running"
     exception: BaseException | None = None
+    result: Any | None = None
 
 
 class ThreadManager(Client):
@@ -84,7 +87,7 @@ class ThreadManager(Client):
     def _wrapped_target(
         self, target: Callable, name: str, args: tuple = (), kwargs: dict | None = None
     ):
-        """Wrap target function with exception handling and logging.
+        """Wrap target function with exception handling, logging, and result capture.
 
         Args:
             target: Function to execute in thread.
@@ -95,11 +98,12 @@ class ThreadManager(Client):
         kwargs = kwargs or {}
         try:
             self.logger.debug(f"Thread '{name}' starting execution")
-            target(*args, **kwargs)
+            result = target(*args, **kwargs)
             self.logger.info(f"Thread '{name}' completed successfully")
             with self.lock:
                 if name in self.threads:
                     self.threads[name].status = "stopped"
+                    self.threads[name].result = result
         except BaseException as e:
             self.logger.error(f"Thread '{name}' failed with exception: {e}")
             with self.lock:
@@ -259,6 +263,7 @@ class ThreadManager(Client):
                 "started_at": status.started_at.isoformat(),
                 "status": status.status,
                 "exception": str(status.exception) if status.exception else None,
+                "result": status.result,
             }
 
     def get_all_threads_status(self) -> dict[str, dict]:
@@ -276,6 +281,7 @@ class ThreadManager(Client):
                     "started_at": status.started_at.isoformat(),
                     "status": status.status,
                     "exception": str(status.exception) if status.exception else None,
+                    "result": status.result,
                 }
             return insights
 
@@ -390,3 +396,58 @@ class ThreadManager(Client):
                 self.logger.info(f"Cleaned up {len(dead_threads)} dead threads")
 
         return len(dead_threads)
+
+    def get_thread_result(self, name: str) -> Any | None:
+        """Get result from a specific thread.
+
+        Args:
+            name: Thread name.
+
+        Returns:
+            Result value from thread target function, or None if thread not found
+            or hasn't completed yet.
+        """
+        with self.lock:
+            if name not in self.threads:
+                return None
+            return self.threads[name].result
+
+    def get_all_results(self) -> dict[str, Any]:
+        """Get results from all threads.
+
+        Returns:
+            Dictionary mapping thread names to their result values.
+            Only includes threads that have completed (stopped or error status).
+        """
+        with self.lock:
+            results = {}
+            for name, status in self.threads.items():
+                if status.status in ("stopped", "error"):
+                    results[name] = status.result
+            return results
+
+    def get_results_summary(self) -> dict[str, int]:
+        """Get summary of thread execution results.
+
+        Returns:
+            Dictionary with counts of successful, failed, and running threads:
+            - 'successful': Threads that completed without exception
+            - 'failed': Threads that raised an exception
+            - 'running': Threads still executing
+            - 'total': Total number of threads
+        """
+        with self.lock:
+            successful = sum(
+                1
+                for status in self.threads.values()
+                if status.status == "stopped" and status.exception is None
+            )
+            failed = sum(1 for status in self.threads.values() if status.status == "error")
+            running = sum(1 for status in self.threads.values() if status.status == "running")
+
+            return {
+                "successful": successful,
+                "failed": failed,
+                "running": running,
+                "total": len(self.threads),
+            }
