@@ -81,7 +81,7 @@ class ThreadManager(Client):
             self._thread_counter += 1
             return self._thread_counter
 
-    def _wrapped_target(self, target: Callable, name: str, args: tuple = (), kwargs: dict = None):
+    def _wrapped_target(self, target: Callable, name: str, args: tuple = (), kwargs: dict | None = None):
         """Wrap target function with exception handling and logging.
 
         Args:
@@ -144,8 +144,9 @@ class ThreadManager(Client):
             if active_count >= self.config.max_threads:
                 raise RuntimeError(f"Max threads ({self.config.max_threads}) limit reached")
 
-            # Create wrapped target
-            wrapped_target = lambda: self._wrapped_target(target, name, args, kwargs)
+            # Create wrapped target function
+            def wrapped_target():
+                return self._wrapped_target(target, name, args, kwargs)
 
             # Create thread
             thread = threading.Thread(
