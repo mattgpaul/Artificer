@@ -11,15 +11,33 @@ HOOKS_DIR="$REPO_ROOT/.git/hooks"
 
 echo "Setting up Git hooks for Artificer..."
 
-# Create pre-push hook for integration tests
+# Create pre-push hook for code quality checks and integration tests
 cat > "$HOOKS_DIR/pre-push" << 'EOF'
 #!/bin/bash
-# Pre-push hook to run integration tests before pushing
+# Pre-push hook to run code quality checks before pushing
 
-echo "🧪 Running integration tests before push..."
+echo "🔍 Running code quality checks before push..."
+
+# Run formatting
+echo "📝 Formatting code..."
+if ! bazel run //:format; then
+    echo "❌ Formatting failed. Push aborted."
+    exit 1
+fi
+
+# Run linting
+echo "🔍 Linting code..."
+if ! bazel run //:lint; then
+    echo "❌ Linting failed. Push aborted."
+    echo "   Fix linting issues before pushing."
+    exit 1
+fi
+
+echo "✅ Code quality checks passed!"
+echo ""
 
 # Run integration tests
-echo "Running integration tests..."
+echo "🧪 Running integration tests..."
 if ! bazel test --test_tag_filters="integration" //...; then
     echo "❌ Integration tests failed. Push aborted."
     echo "   Fix failing tests before pushing."
@@ -38,7 +56,9 @@ chmod +x "$HOOKS_DIR/pre-push"
 echo "✅ Pre-push hook installed successfully!"
 echo ""
 echo "Features enabled:"
-echo "  🧪 Integration tests before push"
+echo "  📝 Code formatting with ruff"
+echo "  🔍 Code linting with ruff"
+echo "  🧪 Integration tests"
 echo "  💡 GitHub's native 'Create Pull Request' button after push"
 echo ""
 echo "To bypass the hook (not recommended), use: git push --no-verify"
