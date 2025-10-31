@@ -714,8 +714,8 @@ class TestOHLCVArgumentHandlerInfluxDBIntegration:
             # Note: Since threads are mocked, we verify the setup rather than execution
             mock_thread_manager.start_thread.assert_called_once()
 
-            # Verify close was called to flush batch writes
-            mock_influx_client.close.assert_called_once()
+            # Verify wait_for_batches was called to flush batch writes
+            mock_influx_client.wait_for_batches.assert_called_once()
 
     def test_execute_handles_influxdb_write_failure(self, mock_dependencies):
         """Test execute handles InfluxDB write failures gracefully."""
@@ -773,11 +773,11 @@ class TestOHLCVArgumentHandlerInfluxDBIntegration:
             # Verify thread was started despite write failure
             mock_thread_manager.start_thread.assert_called_once()
 
-            # Verify close was still called
-            mock_influx_client.close.assert_called_once()
+            # Verify wait_for_batches was still called
+            mock_influx_client.wait_for_batches.assert_called_once()
 
-    def test_execute_closes_influxdb_client_after_processing(self, mock_dependencies):
-        """Test execute closes InfluxDB client to flush remaining writes."""
+    def test_execute_waits_for_batches_after_processing(self, mock_dependencies):
+        """Test execute waits for batches to complete after processing."""
         with (
             patch(
                 "system.algo_trader.datasource.populate.ohlcv_args.MarketHandler"
@@ -813,6 +813,7 @@ class TestOHLCVArgumentHandlerInfluxDBIntegration:
             mock_influx_client = Mock()
             mock_influx_client.database = "algo-trader-database"
             mock_influx_client.write.return_value = True
+            mock_influx_client.wait_for_batches.return_value = True
             mock_influx_class.return_value = mock_influx_client
 
             handler = OHLCVArgumentHandler()
@@ -827,10 +828,10 @@ class TestOHLCVArgumentHandlerInfluxDBIntegration:
 
             handler.execute(context)
 
-            # Verify close was called exactly once after all processing
-            mock_influx_client.close.assert_called_once()
+            # Verify wait_for_batches was called exactly once after all processing
+            mock_influx_client.wait_for_batches.assert_called_once()
 
-            # Verify wait_for_all_threads was called before close
+            # Verify wait_for_all_threads was called before wait_for_batches
             mock_thread_manager.wait_for_all_threads.assert_called_once()
 
     def test_execute_no_longer_prints_statistics(self, mock_dependencies):

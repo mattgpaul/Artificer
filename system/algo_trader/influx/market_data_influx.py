@@ -76,6 +76,9 @@ class MarketDataInflux(BaseInfluxDBClient):
         df["ticker"] = ticker
 
         try:
+            # Increment pending batch counter before write
+            self._callback.increment_pending()
+
             callback = self.client.write(
                 df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
             )
@@ -83,6 +86,9 @@ class MarketDataInflux(BaseInfluxDBClient):
 
             return True
         except Exception as e:
+            # Decrement on exception since write failed
+            with self._callback._lock:
+                self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
 

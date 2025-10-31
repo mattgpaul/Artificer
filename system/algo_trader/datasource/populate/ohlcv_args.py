@@ -203,7 +203,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             "period_value": args.period_value,
         }
 
-    def execute(self, context: dict) -> None:  # noqa: PLR0915, C901
+    def execute(self, context: dict) -> None:  # noqa: PLR0915
         """Execute OHLCV data population with multi-threaded data fetching.
 
         Uses ThreadManager to fetch historical market data concurrently for multiple
@@ -301,7 +301,6 @@ class OHLCVArgumentHandler(ArgumentHandler):
 
         # Batch processing loop
         remaining_tickers = list(tickers)
-        processed_count = 0
         last_log_time = time.time()
 
         self.logger.info("Starting batch processing...")
@@ -332,17 +331,19 @@ class OHLCVArgumentHandler(ArgumentHandler):
             # Wait briefly for threads to complete
             time.sleep(0.5)
 
-            # Clean up dead threads periodically
-            cleaned = thread_manager.cleanup_dead_threads()
-            if cleaned > 0:
-                processed_count += cleaned
-                self.logger.debug(f"Cleaned up {cleaned} threads")
-
             # Log progress periodically (every 10 seconds)
+            # Note: We don't cleanup dead threads here to preserve results for final summary
             current_time = time.time()
             if current_time - last_log_time >= 10:
+                with thread_manager.lock:
+                    completed_count = sum(
+                        1
+                        for status in thread_manager.threads.values()
+                        if not status.thread.is_alive() and status.status in ("stopped", "error")
+                    )
+                started_count = len(tickers) - len(remaining_tickers)
                 self.logger.info(
-                    f"Progress: {processed_count}/{len(tickers)} tickers processed, "
+                    f"Progress: {started_count} started, {completed_count} completed, "
                     f"{len(remaining_tickers)} remaining, {active_count} active threads"
                 )
                 last_log_time = current_time
@@ -361,18 +362,19 @@ class OHLCVArgumentHandler(ArgumentHandler):
         # Final cleanup
         thread_manager.cleanup_dead_threads()
 
-        # Close InfluxDB client to flush remaining batch writes
-        self.logger.info("Flushing remaining batch writes to InfluxDB...")
+        # Wait for all batch writes to complete using closed-loop monitoring
+        # This tracks the actual pending batch count rather than using fixed sleep time
+        self.logger.info("Waiting for all batch writes to complete...")
+        batch_timeout = 30  # seconds
+        batches_complete = influx_client.wait_for_batches(timeout=batch_timeout)
 
-        # Give pending writes time to complete before closing
-        time.sleep(2)
-
-        try:
-            influx_client.close()
-            self.logger.info("InfluxDB client closed successfully")
-        except Exception as e:
-            self.logger.warning(f"Error during InfluxDB client close: {e}")
-            self.logger.info("Continuing despite close error - data may have been written")
+        if batches_complete:
+            self.logger.info("All OHLCV data batches written successfully to InfluxDB.")
+        else:
+            self.logger.warning(
+                f"Some batches may still be pending after {batch_timeout}s timeout. "
+                "Data may still be written in background."
+            )
 
         # Print final summary
         print(f"\n{'=' * 50}")
