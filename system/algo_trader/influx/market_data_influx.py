@@ -69,13 +69,16 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             True if write succeeded, False otherwise.
         """
-        if table == "stock":
-            df = self._format_stock_data(data, ticker)
+        # Format data (works for any table - stock, ohlcv, etc.)
+        df = self._format_stock_data(data, ticker)
 
         # Add ticker as a tag column
         df["ticker"] = ticker
 
         try:
+            # Increment pending batch counter before write
+            self._callback.increment_pending()
+
             callback = self.client.write(
                 df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
             )
@@ -83,6 +86,9 @@ class MarketDataInflux(BaseInfluxDBClient):
 
             return True
         except Exception as e:
+            # Decrement on exception since write failed
+            with self._callback._lock:
+                self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
 

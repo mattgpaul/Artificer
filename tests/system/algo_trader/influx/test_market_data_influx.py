@@ -255,6 +255,44 @@ class TestMarketDataInfluxWrite:
         assert call_args[1]["data_frame_measurement_name"] == "stock"
         assert call_args[1]["data_frame_tag_columns"] == ["ticker"]
 
+    def test_write_increments_pending_counter(self, mock_dependencies):
+        """Test that write increments pending batch counter before write."""
+        mock_dependencies["client"].write.return_value = "Success"
+
+        client = MarketDataInflux()
+
+        # Mock the callback to track calls
+        client._callback = MagicMock()
+        client._callback.increment_pending = MagicMock()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        client.write(data, "AAPL", "stock")
+
+        # Verify increment_pending was called before write
+        client._callback.increment_pending.assert_called_once()
+
+    def test_write_decrements_on_exception(self, mock_dependencies):
+        """Test that write decrements counter when exception occurs."""
+        mock_dependencies["client"].write.side_effect = Exception("Write failed")
+
+        client = MarketDataInflux()
+
+        # Mock the callback
+        client._callback = MagicMock()
+        client._callback.increment_pending = MagicMock()
+        client._callback._pending_batches = 1
+        client._callback._lock = MagicMock()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        result = client.write(data, "AAPL", "stock")
+
+        # Verify increment_pending was called
+        client._callback.increment_pending.assert_called_once()
+        # Result should be False
+        assert result is False
+
     def test_write_adds_ticker_tag(self, mock_dependencies):
         """Test that write adds ticker as a tag column."""
         mock_dependencies["client"].write.return_value = "Success"
