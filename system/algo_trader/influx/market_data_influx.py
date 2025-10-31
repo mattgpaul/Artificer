@@ -69,8 +69,8 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             True if write succeeded, False otherwise.
         """
-        if table == "stock":
-            df = self._format_stock_data(data, ticker)
+        # Format data (works for any table - stock, ohlcv, etc.)
+        df = self._format_stock_data(data, ticker)
 
         # Add ticker as a tag column
         df["ticker"] = ticker
