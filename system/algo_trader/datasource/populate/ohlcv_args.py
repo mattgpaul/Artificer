@@ -203,7 +203,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             "period_value": args.period_value,
         }
 
-    def execute(self, context: dict) -> None:  # noqa: PLR0915
+    def execute(self, context: dict) -> None:  # noqa: PLR0915, C901
         """Execute OHLCV data population with multi-threaded data fetching.
 
         Uses ThreadManager to fetch historical market data concurrently for multiple
@@ -351,20 +351,28 @@ class OHLCVArgumentHandler(ArgumentHandler):
         self.logger.info("Waiting for all threads to complete...")
         thread_manager.wait_for_all_threads(timeout=300)
 
-        # Final cleanup
-        thread_manager.cleanup_dead_threads()
-
-        # Get results summary
+        # Get results summary BEFORE cleanup (cleanup removes threads from registry!)
         summary = thread_manager.get_results_summary()
         self.logger.info(
             f"Batch processing complete: {summary['successful']} successful, "
             f"{summary['failed']} failed out of {len(tickers)} total tickers"
         )
 
+        # Final cleanup
+        thread_manager.cleanup_dead_threads()
+
         # Close InfluxDB client to flush remaining batch writes
         self.logger.info("Flushing remaining batch writes to InfluxDB...")
-        influx_client.close()
-        self.logger.info("InfluxDB client closed successfully")
+
+        # Give pending writes time to complete before closing
+        time.sleep(2)
+
+        try:
+            influx_client.close()
+            self.logger.info("InfluxDB client closed successfully")
+        except Exception as e:
+            self.logger.warning(f"Error during InfluxDB client close: {e}")
+            self.logger.info("Continuing despite close error - data may have been written")
 
         # Print final summary
         print(f"\n{'=' * 50}")
