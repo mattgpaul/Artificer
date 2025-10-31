@@ -6,6 +6,8 @@ and other time-series metrics.
 """
 
 import os
+import threading
+import time
 from abc import abstractmethod
 from dataclasses import dataclass
 
@@ -78,8 +80,24 @@ class BatchingCallback:
     """Callback handler for InfluxDB batch write operations.
 
     Provides success, error, and retry callback methods for monitoring
-    batch write operations.
+    batch write operations. Tracks pending batches for graceful shutdown.
     """
+
+    def __init__(self):
+        """Initialize callback with logger and batch tracking."""
+        self.logger = get_logger(self.__class__.__name__)
+        self._pending_batches = 0
+        self._lock = threading.Lock()
+
+    def increment_pending(self) -> None:
+        """Increment the pending batch counter (called before write)."""
+        with self._lock:
+            self._pending_batches += 1
+
+    def get_pending_count(self) -> int:
+        """Get the current number of pending batches."""
+        with self._lock:
+            return self._pending_batches
 
     def success(self, conf: str, data: str) -> None:
         """Handle successful batch write.
@@ -88,27 +106,53 @@ class BatchingCallback:
             conf: Write configuration details.
             data: Data that was successfully written.
         """
-        print(f"Written batch: {conf}")
+        with self._lock:
+            self._pending_batches -= 1
+        self.logger.debug(f"Written batch: {conf}, pending: {self._pending_batches}")
 
     def error(self, conf: str, data: str, exception: InfluxDBError) -> None:
         """Handle batch write error.
 
         Args:
             conf: Write configuration details.
-            data: Data that failed to write.
+            data: Data that failed to write (can be str or bytes).
             exception: InfluxDB error that occurred.
         """
-        print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
+        # Decrement pending count - batch is complete (even though it failed)
+        with self._lock:
+            self._pending_batches -= 1
+
+        # Convert bytes to string if needed, then truncate to avoid massive log output
+        try:
+            data_str = data.decode("utf-8") if isinstance(data, bytes) else data
+            data_preview = data_str[:200] + "..." if len(data_str) > 200 else data_str
+        except Exception:
+            data_preview = "<unable to decode data>"
+        self.logger.error(
+            f"Cannot write batch: {conf}, data preview: {data_preview} due: {exception}, "
+            f"pending: {self._pending_batches}"
+        )
 
     def retry(self, conf: str, data: str, exception: InfluxDBError) -> None:
         """Handle retryable batch write error.
 
         Args:
             conf: Write configuration details.
-            data: Data that will be retried.
+            data: Data that will be retried (can be str or bytes).
             exception: InfluxDB error that triggered the retry.
         """
-        print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
+        # Note: We don't decrement here because retry means the batch will be attempted again
+        # Convert bytes to string if needed, then truncate to avoid massive log output
+        try:
+            data_str = data.decode("utf-8") if isinstance(data, bytes) else data
+            data_preview = data_str[:200] + "..." if len(data_str) > 200 else data_str
+        except Exception:
+            data_preview = "<unable to decode data>"
+        self.logger.warning(
+            f"Retryable error occurs for batch: {conf}, "
+            f"data preview: {data_preview} retry: {exception}, "
+            f"pending: {self._pending_batches}"
+        )
 
 
 class BaseInfluxDBClient(Client):
@@ -190,6 +234,43 @@ class BaseInfluxDBClient(Client):
         except Exception as e:
             self.logger.debug(f"InfluxDB ping failed with exception: {e}")
             return False
+
+    def wait_for_batches(self, timeout: int = 30, poll_interval: float = 0.5) -> bool:
+        """Wait for all pending batch writes to complete.
+
+        Polls the batch callback's pending counter until it reaches zero or timeout occurs.
+
+        Args:
+            timeout: Maximum time to wait in seconds (default: 30).
+            poll_interval: Time between polls in seconds (default: 0.5).
+
+        Returns:
+            True if all batches completed, False if timeout occurred.
+        """
+        start_time = time.time()
+        last_log_time = start_time
+
+        while True:
+            pending = self._callback.get_pending_count()
+
+            if pending == 0:
+                self.logger.info("All batch writes completed successfully")
+                return True
+
+            elapsed = time.time() - start_time
+            if elapsed >= timeout:
+                self.logger.warning(
+                    f"Timeout waiting for batches to complete. "
+                    f"{pending} batches still pending after {timeout}s"
+                )
+                return False
+
+            # Log progress every 5 seconds
+            if time.time() - last_log_time >= 5:
+                self.logger.info(f"Waiting for {pending} pending batches to complete...")
+                last_log_time = time.time()
+
+            time.sleep(poll_interval)
 
     def close(self):
         """Close the client and flush any pending writes."""

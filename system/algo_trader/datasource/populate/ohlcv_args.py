@@ -5,14 +5,57 @@ data population with validation against Schwab API timescale requirements.
 """
 
 import argparse
-import statistics
 import time
 
+from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
+from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+
+# InfluxDB batch write configurations for OHLCV data population
+# Choose based on your use case:
+#
+# CONSERVATIVE: Best for multi-threaded safety with many concurrent threads
+# - Lower memory footprint, more frequent flushes
+# - Use for: High thread counts, limited memory environments
+# ohlcv_write_config = BatchWriteConfig(
+#     batch_size=500,
+#     flush_interval=3000,
+#     jitter_interval=500,
+#     retry_interval=10000,
+#     max_retries=3,
+#     max_retry_delay=30000,
+#     exponential_base=2,
+# )
+#
+# BALANCED (RECOMMENDED): Good compromise between throughput and resource usage
+# - Moderate memory usage, reasonable flush intervals
+# - Use for: Most scenarios, 100-1000 tickers
+ohlcv_write_config = BatchWriteConfig(
+    batch_size=2000,
+    flush_interval=5000,
+    jitter_interval=1000,
+    retry_interval=10000,
+    max_retries=3,
+    max_retry_delay=30000,
+    exponential_base=2,
+)
+#
+# AGGRESSIVE: Maximum throughput for bulk historical data loading
+# - Higher memory usage, longer flush intervals, fewer network calls
+# - Use for: full-registry runs (1000+ tickers), batch processing
+# ohlcv_write_config = BatchWriteConfig(
+#     batch_size=5000,
+#     flush_interval=10000,
+#     jitter_interval=2000,
+#     retry_interval=15000,
+#     max_retries=5,
+#     max_retry_delay=30000,
+#     exponential_base=2,
+# )
 
 
 class OHLCVArgumentHandler(ArgumentHandler):
@@ -186,12 +229,16 @@ class OHLCVArgumentHandler(ArgumentHandler):
             f"and period {period_type.value}={period_value}"
         )
 
-        # Initialize MarketHandler and ThreadManager
+        # Initialize MarketHandler, ThreadManager, and InfluxDB client
         market_handler = MarketHandler()
         thread_manager = ThreadManager()  # Uses config from environment
+        influx_client = MarketDataInflux(
+            database="algo-trader-database", write_config=ohlcv_write_config
+        )  # Uses INFLUXDB_DATABASE env var
 
         max_threads = thread_manager.config.max_threads
         self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
+        self.logger.info(f"InfluxDB client initialized for database: {influx_client.database}")
 
         # Check if batching will be needed
         if len(tickers) > max_threads:
@@ -202,13 +249,13 @@ class OHLCVArgumentHandler(ArgumentHandler):
             )
 
         def fetch_ticker_data(ticker: str) -> dict:
-            """Thread target function to fetch and calculate statistics for a ticker.
+            """Thread target function to fetch OHLCV data and write to InfluxDB.
 
             Args:
                 ticker: Stock symbol to fetch data for.
 
             Returns:
-                Dictionary with 'success' boolean and optional 'stats' or 'error'.
+                Dictionary with 'success' boolean and optional 'error' message.
             """
             try:
                 self.logger.debug(f"Fetching price history for {ticker}")
@@ -236,42 +283,17 @@ class OHLCVArgumentHandler(ArgumentHandler):
                     self.logger.warning(f"{ticker}: Candles list is empty")
                     return {"success": False, "error": "Empty candles list"}
 
-                # Calculate statistics
-                closes = [c["close"] for c in candles]
-                highs = [c["high"] for c in candles]
-                lows = [c["low"] for c in candles]
-                volumes = [c["volume"] for c in candles]
-                ranges = [c["high"] - c["low"] for c in candles]
+                # Write data to InfluxDB
+                write_success = influx_client.write(data=candles, ticker=ticker, table="ohlcv")
 
-                stats = {
-                    "ticker": ticker,
-                    "count": len(candles),
-                    "price_range": {"min": min(lows), "max": max(highs)},
-                    "avg_close": statistics.mean(closes),
-                    "net_change": closes[-1] - closes[0],
-                    "net_change_pct": ((closes[-1] - closes[0]) / closes[0]) * 100,
-                    "total_volume": sum(volumes),
-                    "avg_volume": statistics.mean(volumes),
-                    "avg_range": statistics.mean(ranges),
-                }
-
-                # Print formatted statistics to console
-                print(f"\n=== {ticker} Statistics ===")
-                print(f"Data Points: {stats['count']}")
-                price_min = stats["price_range"]["min"]
-                price_max = stats["price_range"]["max"]
-                print(f"Price Range: ${price_min:.2f} - ${price_max:.2f}")
-                print(f"Average Close: ${stats['avg_close']:.2f}")
-                print(
-                    f"Net Change: {'+' if stats['net_change'] >= 0 else ''}"
-                    f"${stats['net_change']:.2f} "
-                    f"({'+' if stats['net_change_pct'] >= 0 else ''}{stats['net_change_pct']:.2f}%)"
-                )
-                print(f"Total Volume: {stats['total_volume']:,}")
-                print(f"Average Volume: {stats['avg_volume']:,.0f}")
-                print(f"Average Daily Range: ${stats['avg_range']:.2f}")
-
-                return {"success": True, "stats": stats}
+                if write_success:
+                    self.logger.debug(
+                        f"{ticker}: Successfully wrote {len(candles)} candles to InfluxDB"
+                    )
+                    return {"success": True}
+                else:
+                    self.logger.error(f"{ticker}: Failed to write data to InfluxDB")
+                    return {"success": False, "error": "InfluxDB write failed"}
 
             except Exception as e:
                 self.logger.error(f"{ticker}: Exception during processing: {e}")
@@ -279,7 +301,6 @@ class OHLCVArgumentHandler(ArgumentHandler):
 
         # Batch processing loop
         remaining_tickers = list(tickers)
-        processed_count = 0
         last_log_time = time.time()
 
         self.logger.info("Starting batch processing...")
@@ -310,17 +331,19 @@ class OHLCVArgumentHandler(ArgumentHandler):
             # Wait briefly for threads to complete
             time.sleep(0.5)
 
-            # Clean up dead threads periodically
-            cleaned = thread_manager.cleanup_dead_threads()
-            if cleaned > 0:
-                processed_count += cleaned
-                self.logger.debug(f"Cleaned up {cleaned} threads")
-
             # Log progress periodically (every 10 seconds)
+            # Note: We don't cleanup dead threads here to preserve results for final summary
             current_time = time.time()
             if current_time - last_log_time >= 10:
+                with thread_manager.lock:
+                    completed_count = sum(
+                        1
+                        for status in thread_manager.threads.values()
+                        if not status.thread.is_alive() and status.status in ("stopped", "error")
+                    )
+                started_count = len(tickers) - len(remaining_tickers)
                 self.logger.info(
-                    f"Progress: {processed_count}/{len(tickers)} tickers processed, "
+                    f"Progress: {started_count} started, {completed_count} completed, "
                     f"{len(remaining_tickers)} remaining, {active_count} active threads"
                 )
                 last_log_time = current_time
@@ -329,15 +352,29 @@ class OHLCVArgumentHandler(ArgumentHandler):
         self.logger.info("Waiting for all threads to complete...")
         thread_manager.wait_for_all_threads(timeout=300)
 
-        # Final cleanup
-        thread_manager.cleanup_dead_threads()
-
-        # Get results summary
+        # Get results summary BEFORE cleanup (cleanup removes threads from registry!)
         summary = thread_manager.get_results_summary()
         self.logger.info(
             f"Batch processing complete: {summary['successful']} successful, "
             f"{summary['failed']} failed out of {len(tickers)} total tickers"
         )
+
+        # Final cleanup
+        thread_manager.cleanup_dead_threads()
+
+        # Wait for all batch writes to complete using closed-loop monitoring
+        # This tracks the actual pending batch count rather than using fixed sleep time
+        self.logger.info("Waiting for all batch writes to complete...")
+        batch_timeout = 30  # seconds
+        batches_complete = influx_client.wait_for_batches(timeout=batch_timeout)
+
+        if batches_complete:
+            self.logger.info("All OHLCV data batches written successfully to InfluxDB.")
+        else:
+            self.logger.warning(
+                f"Some batches may still be pending after {batch_timeout}s timeout. "
+                "Data may still be written in background."
+            )
 
         # Print final summary
         print(f"\n{'=' * 50}")

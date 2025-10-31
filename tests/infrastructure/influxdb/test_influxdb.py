@@ -104,36 +104,98 @@ class TestBatchingCallback:
     @pytest.fixture
     def callback(self):
         """Fixture to create a BatchingCallback instance."""
-        return BatchingCallback()
+        with patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger:
+            mock_logger_instance = MagicMock()
+            mock_logger.return_value = mock_logger_instance
+            callback = BatchingCallback()
+            callback.logger = mock_logger_instance
+            return callback
 
-    def test_success_callback(self, callback, capsys):
-        """Test success callback prints confirmation."""
+    def test_initialization(self):
+        """Test BatchingCallback initialization."""
+        with patch("infrastructure.influxdb.influxdb.get_logger"):
+            callback = BatchingCallback()
+            assert callback._pending_batches == 0
+            assert hasattr(callback, "_lock")
+            assert hasattr(callback, "logger")
+
+    def test_increment_pending(self, callback):
+        """Test increment_pending increases counter."""
+        assert callback._pending_batches == 0
+        callback.increment_pending()
+        assert callback._pending_batches == 1
+        callback.increment_pending()
+        assert callback._pending_batches == 2
+
+    def test_get_pending_count(self, callback):
+        """Test get_pending_count returns correct count."""
+        assert callback.get_pending_count() == 0
+        callback.increment_pending()
+        assert callback.get_pending_count() == 1
+
+    def test_success_callback_logs_debug(self, callback):
+        """Test success callback logs debug message and decrements counter."""
+        callback.increment_pending()
         callback.success("batch_config", "test_data")
 
-        captured = capsys.readouterr()
-        assert "Written batch: batch_config" in captured.out
+        callback.logger.debug.assert_called_once()
+        assert "Written batch: batch_config" in callback.logger.debug.call_args[0][0]
+        assert callback._pending_batches == 0
 
-    def test_error_callback(self, callback, capsys):
-        """Test error callback prints error details."""
+    def test_error_callback_logs_error(self, callback):
+        """Test error callback logs error details and decrements counter."""
         with patch("influxdb_client_3.InfluxDBError"):
             mock_error_instance = Mock()
             mock_error_instance.__str__ = Mock(return_value="Test error")
 
+            callback.increment_pending()
             callback.error("batch_config", "test_data", mock_error_instance)
 
-            captured = capsys.readouterr()
-            assert "Cannot write batch: batch_config" in captured.out
+            callback.logger.error.assert_called_once()
+            assert "Cannot write batch: batch_config" in callback.logger.error.call_args[0][0]
+            assert callback._pending_batches == 0
 
-    def test_retry_callback(self, callback, capsys):
-        """Test retry callback prints retry information."""
+    def test_error_callback_handles_bytes_data(self, callback):
+        """Test error callback handles bytes data properly."""
+        with patch("influxdb_client_3.InfluxDBError"):
+            mock_error_instance = Mock()
+            mock_error_instance.__str__ = Mock(return_value="Test error")
+
+            callback.increment_pending()
+            callback.error("batch_config", b"test_bytes_data", mock_error_instance)
+
+            callback.logger.error.assert_called_once()
+            assert "test_bytes_data" in callback.logger.error.call_args[0][0]
+            assert callback._pending_batches == 0
+
+    def test_retry_callback_logs_warning(self, callback):
+        """Test retry callback logs warning and does not decrement counter."""
         with patch("influxdb_client_3.InfluxDBError"):
             mock_error_instance = Mock()
             mock_error_instance.__str__ = Mock(return_value="Retryable error")
 
+            callback.increment_pending()
             callback.retry("batch_config", "test_data", mock_error_instance)
 
-            captured = capsys.readouterr()
-            assert "Retryable error occurs for batch: batch_config" in captured.out
+            callback.logger.warning.assert_called_once()
+            assert (
+                "Retryable error occurs for batch: batch_config"
+                in callback.logger.warning.call_args[0][0]
+            )
+            # Counter should not be decremented on retry
+            assert callback._pending_batches == 1
+
+    def test_retry_callback_handles_bytes_data(self, callback):
+        """Test retry callback handles bytes data properly."""
+        with patch("influxdb_client_3.InfluxDBError"):
+            mock_error_instance = Mock()
+            mock_error_instance.__str__ = Mock(return_value="Retryable error")
+
+            callback.increment_pending()
+            callback.retry("batch_config", b"test_bytes_data", mock_error_instance)
+
+            callback.logger.warning.assert_called_once()
+            assert "test_bytes_data" in callback.logger.warning.call_args[0][0]
 
 
 class TestInfluxDBClientInitialization:
@@ -397,6 +459,150 @@ class TestInfluxDBClientClose:
 
         # Should not raise exception
         client.close()
+
+
+class TestInfluxDBClientWaitForBatches:
+    """Test wait_for_batches functionality."""
+
+    @pytest.fixture
+    def mock_influx_dependencies(self):
+        """Fixture to mock InfluxDB dependencies."""
+        with (
+            patch("infrastructure.influxdb.influxdb.get_logger") as mock_logger,
+            patch("infrastructure.influxdb.influxdb.InfluxDBClient3") as mock_client_class,
+            patch("infrastructure.influxdb.influxdb.write_client_options") as mock_wco,
+        ):
+            mock_logger_instance = MagicMock()
+            mock_logger.return_value = mock_logger_instance
+
+            mock_client = MagicMock()
+            mock_client_class.return_value = mock_client
+
+            mock_wco.return_value = MagicMock()
+
+            yield {
+                "logger": mock_logger,
+                "logger_instance": mock_logger_instance,
+                "client_class": mock_client_class,
+                "client": mock_client,
+                "wco": mock_wco,
+            }
+
+    def test_wait_for_batches_immediate_completion(self, mock_influx_dependencies):
+        """Test wait_for_batches when no batches are pending."""
+        client = ConcreteInfluxDBClient(database="test_db")
+        client._callback._pending_batches = 0
+
+        result = client.wait_for_batches(timeout=5)
+
+        assert result is True
+        mock_influx_dependencies["logger_instance"].info.assert_called()
+
+    def test_wait_for_batches_completes_successfully(self, mock_influx_dependencies):
+        """Test wait_for_batches when batches complete within timeout."""
+        with patch("infrastructure.influxdb.influxdb.time") as mock_time:
+            client = ConcreteInfluxDBClient(database="test_db")
+            client._callback._pending_batches = 2
+
+            # Mock sleep to not actually sleep
+            mock_time.sleep = MagicMock()
+
+            # Simulate batches completing after 2 polls
+            call_count = [0]
+
+            def mock_time_time():
+                call_count[0] += 1
+                if call_count[0] == 1:  # start_time
+                    return 0.0
+                elif call_count[0] == 2:  # last_log_time
+                    return 0.0
+                elif call_count[0] == 3:  # first iteration
+                    client._callback._pending_batches = 1
+                    return 0.5
+                elif call_count[0] == 4:  # check for logging
+                    return 0.5
+                else:  # second iteration
+                    client._callback._pending_batches = 0
+                    return 1.0
+
+            mock_time.time.side_effect = mock_time_time
+
+            result = client.wait_for_batches(timeout=30)
+
+            assert result is True
+
+    def test_wait_for_batches_timeout(self, mock_influx_dependencies):
+        """Test wait_for_batches times out if batches don't complete."""
+        with patch("infrastructure.influxdb.influxdb.time") as mock_time:
+            client = ConcreteInfluxDBClient(database="test_db")
+            client._callback._pending_batches = 5
+
+            # Mock time.time() to simulate timeout
+            # Call 1: start_time = 0.0
+            # Call 2: elapsed = 31.0 - 0.0 = 31.0 >= 30, triggers timeout
+            mock_time.time.side_effect = [0.0, 31.0]
+            # Mock sleep to not actually sleep
+            mock_time.sleep = MagicMock()
+
+            result = client.wait_for_batches(timeout=30)
+
+            assert result is False
+            mock_influx_dependencies["logger_instance"].warning.assert_called()
+            warning_call = mock_influx_dependencies["logger_instance"].warning.call_args[0][0]
+            assert "Timeout waiting for batches" in warning_call
+            assert "5 batches still pending" in warning_call
+
+    def test_wait_for_batches_custom_poll_interval(self, mock_influx_dependencies):
+        """Test wait_for_batches respects custom poll interval."""
+        with patch("infrastructure.influxdb.influxdb.time") as mock_time:
+            client = ConcreteInfluxDBClient(database="test_db")
+            client._callback._pending_batches = 0
+
+            mock_time.time.return_value = 0.0
+
+            client.wait_for_batches(timeout=10, poll_interval=0.25)
+
+            # Should have called sleep with custom interval (if not already complete)
+            # Since batches are 0, it returns immediately
+
+    def test_wait_for_batches_logs_progress(self, mock_influx_dependencies):
+        """Test wait_for_batches logs progress every 5 seconds."""
+        with patch("infrastructure.influxdb.influxdb.time") as mock_time:
+            client = ConcreteInfluxDBClient(database="test_db")
+            client._callback._pending_batches = 3
+
+            # Mock sleep to not actually sleep
+            mock_time.sleep = MagicMock()
+
+            # Simulate 6 seconds passing to trigger progress log
+            call_count = [0]
+
+            def mock_time_time():
+                call_count[0] += 1
+                if call_count[0] <= 2:  # start_time and last_log_time
+                    return 0.0
+                elif call_count[0] == 3:  # first check
+                    return 0.5
+                elif call_count[0] == 4:  # check for logging (0.5 < 5, no log)
+                    return 0.5
+                elif call_count[0] == 5:  # second check
+                    return 6.0
+                elif call_count[0] == 6:  # check for logging (6.0 >= 5, should log)
+                    return 6.0
+                else:  # complete
+                    client._callback._pending_batches = 0
+                    return 6.5
+
+            mock_time.time.side_effect = mock_time_time
+
+            client.wait_for_batches(timeout=30)
+
+            # Should have logged progress
+            info_calls = [
+                str(call)
+                for call in mock_influx_dependencies["logger_instance"].info.call_args_list
+            ]
+            assert any("pending batches" in call.lower() for call in info_calls)
 
 
 class TestInfluxDBClientAbstractMethods:
