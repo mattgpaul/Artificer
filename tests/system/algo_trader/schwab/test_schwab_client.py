@@ -488,3 +488,193 @@ class TestSchwabClientUtilityMethods:
             mock_dependencies["logger_instance"].info.assert_called_with(
                 "User confirmed token copied"
             )
+
+
+class TestSchwabClientDistributedLocking:
+    """Test distributed locking for token refresh in multi-threaded scenarios."""
+
+    @pytest.fixture
+    def mock_env_vars(self):
+        """Fixture to mock required environment variables."""
+        with patch.dict(
+            os.environ,
+            {
+                "SCHWAB_API_KEY": "test_api_key",
+                "SCHWAB_SECRET": "test_secret",
+                "SCHWAB_APP_NAME": "test_app_name",
+            },
+        ):
+            yield
+
+    @pytest.fixture
+    def mock_dependencies(self, mock_env_vars):
+        """Fixture to mock all external dependencies."""
+        with (
+            patch("system.algo_trader.schwab.schwab_client.get_logger") as mock_logger,
+            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.schwab.schwab_client.requests") as mock_requests,
+        ):
+            mock_logger_instance = MagicMock()
+            mock_logger.return_value = mock_logger_instance
+
+            mock_broker = MagicMock()
+            mock_broker_class.return_value = mock_broker
+
+            yield {
+                "logger": mock_logger,
+                "logger_instance": mock_logger_instance,
+                "broker_class": mock_broker_class,
+                "broker": mock_broker,
+                "requests": mock_requests,
+            }
+
+    def test_get_valid_access_token_acquires_lock_for_refresh(self, mock_dependencies):
+        """Test that token refresh acquires lock before refreshing."""
+        # Simulate cache miss - no access token in Redis
+        mock_dependencies["broker"].get_access_token.side_effect = [None, None, "refreshed_token"]
+        mock_dependencies["broker"].get_refresh_token.return_value = "refresh_token"
+        mock_dependencies["broker"].acquire_lock.return_value = True
+
+        # Mock successful refresh response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "access_token": "refreshed_token",
+            "refresh_token": "refresh_token",
+        }
+        mock_dependencies["requests"].post.return_value = mock_response
+
+        client = SchwabClient()
+        token = client.get_valid_access_token()
+
+        assert token == "refreshed_token"
+        # Verify lock was acquired
+        mock_dependencies["broker"].acquire_lock.assert_called_once_with(
+            "token-refresh", ttl=10, retry_interval=0.1, max_retries=50
+        )
+        # Verify lock was released
+        mock_dependencies["broker"].release_lock.assert_called_once_with("token-refresh")
+
+    def test_get_valid_access_token_releases_lock_on_success(self, mock_dependencies):
+        """Test that lock is released after successful token refresh."""
+        mock_dependencies["broker"].get_access_token.side_effect = [None, None, "new_token"]
+        mock_dependencies["broker"].get_refresh_token.return_value = "refresh_token"
+        mock_dependencies["broker"].acquire_lock.return_value = True
+
+        # Mock successful refresh
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"access_token": "new_token"}
+        mock_dependencies["requests"].post.return_value = mock_response
+
+        client = SchwabClient()
+        token = client.get_valid_access_token()
+
+        assert token == "new_token"
+        mock_dependencies["broker"].release_lock.assert_called_once_with("token-refresh")
+
+    def test_get_valid_access_token_releases_lock_on_failure(self, mock_dependencies):
+        """Test that lock is released even when refresh fails."""
+        mock_dependencies["broker"].get_access_token.side_effect = [None, None, None, None]
+        mock_dependencies["broker"].get_refresh_token.return_value = None
+        mock_dependencies["broker"].acquire_lock.return_value = True
+        mock_dependencies["broker"].load_token.return_value = False
+
+        client = SchwabClient()
+
+        # Mock authenticate() to return None (OAuth flow fails)
+        with patch.object(client, "authenticate", return_value=None):
+            # Expect exception since all refresh attempts fail
+            with pytest.raises(Exception, match="Unable to obtain valid access token"):
+                client.get_valid_access_token()
+
+        # Lock should still be released in finally block
+        mock_dependencies["broker"].release_lock.assert_called_once_with("token-refresh")
+
+    def test_get_valid_access_token_waits_when_lock_not_acquired(self, mock_dependencies):
+        """Test that thread waits when another thread holds the lock."""
+        # Simulate lock acquisition failure (another thread is refreshing)
+        mock_dependencies["broker"].acquire_lock.return_value = False
+        # After waiting, token is available (other thread refreshed it)
+        mock_dependencies["broker"].get_access_token.side_effect = [None, "token_from_other_thread"]
+
+        with patch("system.algo_trader.schwab.schwab_client.time.sleep") as mock_sleep:
+            client = SchwabClient()
+            token = client.get_valid_access_token()
+
+            assert token == "token_from_other_thread"
+            # Verify thread waited
+            mock_sleep.assert_called_once_with(0.5)
+            # Verify lock was never released (we never acquired it)
+            mock_dependencies["broker"].release_lock.assert_not_called()
+
+    def test_get_valid_access_token_double_check_after_lock(self, mock_dependencies):
+        """Test double-check pattern: recheck Redis after acquiring lock."""
+        # First check: no token (triggers lock acquisition)
+        # Second check (after lock acquired): token exists (another thread just refreshed)
+        mock_dependencies["broker"].get_access_token.side_effect = [
+            None,
+            "token_from_other_thread",
+        ]
+        mock_dependencies["broker"].acquire_lock.return_value = True
+
+        client = SchwabClient()
+        token = client.get_valid_access_token()
+
+        assert token == "token_from_other_thread"
+        # Lock was acquired
+        mock_dependencies["broker"].acquire_lock.assert_called_once()
+        # But refresh_token() should not be called (token already exists)
+        mock_dependencies["broker"].get_refresh_token.assert_not_called()
+        # Lock was released
+        mock_dependencies["broker"].release_lock.assert_called_once()
+
+    def test_get_valid_access_token_fails_when_other_thread_refresh_fails(self, mock_dependencies):
+        """Test exception when lock not acquired and other thread's refresh fails."""
+        # Lock acquisition fails (another thread is refreshing)
+        mock_dependencies["broker"].acquire_lock.return_value = False
+        # After waiting, still no token (other thread's refresh failed)
+        mock_dependencies["broker"].get_access_token.side_effect = [None, None]
+
+        with patch("system.algo_trader.schwab.schwab_client.time.sleep") as mock_sleep:
+            client = SchwabClient()
+
+            with pytest.raises(Exception, match="Token refresh by another thread failed"):
+                client.get_valid_access_token()
+
+            mock_sleep.assert_called_once_with(0.5)
+
+    def test_get_valid_access_token_multiple_threads_scenario(self, mock_dependencies):
+        """Test realistic scenario with multiple threads racing to refresh."""
+        # Thread 1: Gets lock, refreshes token
+        # Thread 2-10: Wait for lock, then retrieve refreshed token
+
+        # Simulate Thread 1 (this thread)
+        mock_dependencies["broker"].get_access_token.side_effect = [
+            None,  # Initial check
+            None,  # Double-check after acquiring lock
+            "newly_refreshed_token",  # After successful refresh
+        ]
+        mock_dependencies["broker"].get_refresh_token.return_value = "refresh_token"
+        mock_dependencies["broker"].acquire_lock.return_value = True
+
+        # Mock successful refresh
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "access_token": "newly_refreshed_token",
+            "refresh_token": "refresh_token",
+        }
+        mock_dependencies["requests"].post.return_value = mock_response
+
+        client = SchwabClient()
+        token = client.get_valid_access_token()
+
+        assert token == "newly_refreshed_token"
+
+        # Verify only ONE refresh request was made (preventing thundering herd)
+        mock_dependencies["requests"].post.assert_called_once()
+
+        # Verify lock was properly acquired and released
+        mock_dependencies["broker"].acquire_lock.assert_called_once()
+        mock_dependencies["broker"].release_lock.assert_called_once()

@@ -6,6 +6,7 @@ types including strings, hashes, JSON, and sets.
 """
 
 import json
+import time
 from abc import abstractmethod
 from typing import Any
 
@@ -633,6 +634,67 @@ class BaseRedisClient(Client):
             return bool(result)
         except Exception as e:
             self.logger.error(f"Error flushing database: {e}")
+            return False
+
+    def acquire_lock(
+        self, lock_name: str, ttl: int = 10, retry_interval: float = 0.1, max_retries: int = 30
+    ) -> bool:
+        """Acquire a distributed lock using Redis SETNX with TTL.
+
+        Uses atomic SET with NX (not exists) and EX (expiration) flags to implement
+        a distributed lock. This prevents multiple processes/threads from executing
+        the same critical section simultaneously.
+
+        Arguments:
+            lock_name: Name of the lock (will be namespaced automatically with 'lock:' prefix)
+            ttl: Time to live for the lock in seconds (default: 10s)
+            retry_interval: Time to wait between retries in seconds (default: 0.1s)
+            max_retries: Maximum number of retry attempts (default: 30)
+
+        Returns:
+            True if lock was acquired, False otherwise
+        """
+        try:
+            lock_key = f"lock:{lock_name}"
+            namespaced_key = self._build_key(lock_key)
+
+            for attempt in range(max_retries):
+                # Use SET with NX (not exists) and EX (expiration) flags
+                # This is atomic in Redis
+                result = self.client.set(namespaced_key, "1", ex=ttl, nx=True)
+
+                if result:
+                    self.logger.debug(f"LOCK ACQUIRED {namespaced_key} (ttl: {ttl}s)")
+                    return True
+
+                # Lock is held by another process, wait and retry
+                if attempt < max_retries - 1:
+                    time.sleep(retry_interval)
+
+            self.logger.debug(f"LOCK FAILED {namespaced_key} after {max_retries} attempts")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error acquiring lock '{lock_name}': {e}")
+            return False
+
+    def release_lock(self, lock_name: str) -> bool:
+        """Release a distributed lock by deleting the lock key.
+
+        Arguments:
+            lock_name: Name of the lock to release (will be namespaced automatically
+                       with 'lock:' prefix)
+
+        Returns:
+            True if lock was released, False otherwise
+        """
+        try:
+            lock_key = f"lock:{lock_name}"
+            namespaced_key = self._build_key(lock_key)
+            result = self.client.delete(namespaced_key)
+            self.logger.debug(f"LOCK RELEASED {namespaced_key} -> {bool(result)}")
+            return bool(result)
+        except Exception as e:
+            self.logger.error(f"Error releasing lock '{lock_name}': {e}")
             return False
 
     def pipeline_execute(self, operations: list) -> bool:
