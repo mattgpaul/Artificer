@@ -12,6 +12,7 @@ Token Flow:
 
 import base64
 import os
+import time
 from typing import Any
 
 import requests
@@ -55,11 +56,13 @@ class SchwabClient(Client):
     def get_valid_access_token(self) -> str:
         """Get a valid access token, refreshing if necessary.
 
-        This method implements the complete token lifecycle:
+        This method implements the complete token lifecycle with distributed locking
+        to prevent multiple threads from refreshing simultaneously:
         1. Check Redis for valid access token
-        2. If expired/missing, attempt refresh using Redis refresh token
-        3. If refresh token missing, load from env file and store in Redis
-        4. If refresh token expired, initiate OAuth2 flow
+        2. If expired/missing, acquire lock and attempt refresh
+        3. If lock not acquired, wait for other thread to complete refresh
+        4. If refresh token missing, load from env file and store in Redis
+        5. If refresh token expired, initiate OAuth2 flow
 
         Returns:
             str: Valid access token
@@ -77,32 +80,61 @@ class SchwabClient(Client):
 
         self.logger.info("No valid access token in Redis, attempting refresh")
 
-        # Step 2: Try to refresh using Redis refresh token
-        if self.refresh_token():
-            access_token = self.account_broker.get_access_token()
-            if access_token:
-                self.logger.info("Successfully refreshed access token from Redis")
-                return access_token
-
-        self.logger.info("Redis refresh failed, checking environment file")
-
-        # Step 3: Load refresh token from env file and store in Redis
-        if self.load_token():
-            if self.refresh_token():
+        # Step 2: Try to acquire lock for token refresh
+        lock_name = "token-refresh"
+        if self.account_broker.acquire_lock(lock_name, ttl=10, retry_interval=0.1, max_retries=50):
+            try:
+                # Double-check pattern: another thread might have refreshed while we waited
                 access_token = self.account_broker.get_access_token()
                 if access_token:
-                    self.logger.info("Successfully refreshed access token from env file")
+                    self.logger.info("Access token was refreshed by another thread")
                     return access_token
 
-        self.logger.warning("All refresh attempts failed, initiating OAuth2 flow")
+                # We have the lock, proceed with refresh
+                self.logger.info("Lock acquired, refreshing token")
 
-        # Step 4: Perform complete OAuth2 flow
-        tokens = self.authenticate()
-        if tokens and tokens.get("access_token"):
-            self.logger.info("OAuth2 flow completed successfully")
-            return tokens["access_token"]
+                # Try to refresh using Redis refresh token
+                if self.refresh_token():
+                    access_token = self.account_broker.get_access_token()
+                    if access_token:
+                        self.logger.info("Successfully refreshed access token from Redis")
+                        return access_token
 
-        raise Exception("Unable to obtain valid access token after all attempts")
+                self.logger.info("Redis refresh failed, checking environment file")
+
+                # Load refresh token from env file and store in Redis
+                if self.load_token():
+                    if self.refresh_token():
+                        access_token = self.account_broker.get_access_token()
+                        if access_token:
+                            self.logger.info("Successfully refreshed access token from env file")
+                            return access_token
+
+                self.logger.warning("All refresh attempts failed, initiating OAuth2 flow")
+
+                # Perform complete OAuth2 flow
+                tokens = self.authenticate()
+                if tokens and tokens.get("access_token"):
+                    self.logger.info("OAuth2 flow completed successfully")
+                    return tokens["access_token"]
+
+                raise Exception("Unable to obtain valid access token after all attempts")
+            finally:
+                # Always release the lock
+                self.account_broker.release_lock(lock_name)
+        else:
+            # Lock acquisition failed - another thread is refreshing
+            # Wait a bit and check Redis again
+            self.logger.info("Another thread is refreshing token, waiting...")
+            time.sleep(0.5)  # Wait 500ms for the other thread to complete
+
+            access_token = self.account_broker.get_access_token()
+            if access_token:
+                self.logger.info("Successfully retrieved access token refreshed by another thread")
+                return access_token
+
+            # If still no token, something went wrong with the other thread
+            raise Exception("Token refresh by another thread failed")
 
     def refresh_token(self) -> bool:
         """Refresh access token using stored refresh token.
