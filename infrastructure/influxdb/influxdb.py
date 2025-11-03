@@ -81,18 +81,87 @@ class BatchingCallback:
 
     Provides success, error, and retry callback methods for monitoring
     batch write operations. Tracks pending batches for graceful shutdown.
+    Includes timeout safety monitor to prevent batches from hanging indefinitely.
     """
 
-    def __init__(self):
-        """Initialize callback with logger and batch tracking."""
+    def __init__(self, max_batch_age: int | None = None):
+        """Initialize callback with logger and batch tracking.
+
+        Args:
+            max_batch_age: Maximum age in seconds before a batch is considered stale.
+                If None, defaults to 300 seconds (5 minutes). Should be set based on
+                write config: max_retries * retry_interval * 2 + buffer.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self._pending_batches = 0
         self._lock = threading.Lock()
+        self._batch_timestamps: list[float] = []  # FIFO queue of batch start times
+        self._max_batch_age = max_batch_age or 300  # Default 5 minutes
+        self._monitor_thread: threading.Thread | None = None
+        self._stop_monitor = threading.Event()
+        self._start_monitor()
+
+    def _start_monitor(self) -> None:
+        """Start the background monitoring thread for stale batches."""
+        self._stop_monitor.clear()
+        self._monitor_thread = threading.Thread(
+            target=self._monitor_stale_batches, daemon=True, name="batch-monitor"
+        )
+        self._monitor_thread.start()
+        self.logger.debug(f"Started batch monitor thread (max_age={self._max_batch_age}s)")
+
+    def _monitor_stale_batches(self) -> None:
+        """Background thread that monitors and cleans up stale batches."""
+        check_interval = min(30, self._max_batch_age / 4)  # Check every 30s or 1/4 max age
+
+        while not self._stop_monitor.is_set():
+            try:
+                current_time = time.time()
+                stale_count = 0
+
+                with self._lock:
+                    # Check oldest batch (FIFO) to see if it's stale
+                    while (
+                        self._batch_timestamps
+                        and (current_time - self._batch_timestamps[0]) > self._max_batch_age
+                    ):
+                        # Remove stale batch from tracking
+                        stale_timestamp = self._batch_timestamps.pop(0)
+                        age = current_time - stale_timestamp
+                        self._pending_batches -= 1
+                        stale_count += 1
+                        self.logger.warning(
+                            f"Force-resolved stale batch after {age:.1f}s "
+                            f"(max_age={self._max_batch_age}s). This indicates the InfluxDB "
+                            f"client failed to call success/error callbacks. "
+                            f"Pending batches: {self._pending_batches}"
+                        )
+
+                if stale_count > 0:
+                    self.logger.error(
+                        f"Cleaned up {stale_count} stale batches. "
+                        f"This may indicate InfluxDB client or server issues."
+                    )
+
+            except Exception as e:
+                self.logger.error(f"Error in batch monitor thread: {e}")
+
+            # Sleep with check for stop event
+            self._stop_monitor.wait(timeout=check_interval)
+
+    def stop_monitor(self) -> None:
+        """Stop the background monitoring thread."""
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            self._stop_monitor.set()
+            self._monitor_thread.join(timeout=5)
+            self.logger.debug("Stopped batch monitor thread")
 
     def increment_pending(self) -> None:
         """Increment the pending batch counter (called before write)."""
         with self._lock:
+            self._batch_timestamps.append(time.time())
             self._pending_batches += 1
+            self.logger.debug(f"Incremented pending batch, total pending: {self._pending_batches}")
 
     def get_pending_count(self) -> int:
         """Get the current number of pending batches."""
@@ -108,6 +177,9 @@ class BatchingCallback:
         """
         with self._lock:
             self._pending_batches -= 1
+            # Remove oldest timestamp (FIFO)
+            if self._batch_timestamps:
+                self._batch_timestamps.pop(0)
         self.logger.debug(f"Written batch: {conf}, pending: {self._pending_batches}")
 
     def error(self, conf: str, data: str, exception: InfluxDBError) -> None:
@@ -121,6 +193,9 @@ class BatchingCallback:
         # Decrement pending count - batch is complete (even though it failed)
         with self._lock:
             self._pending_batches -= 1
+            # Remove oldest timestamp (FIFO)
+            if self._batch_timestamps:
+                self._batch_timestamps.pop(0)
 
         # Convert bytes to string if needed, then truncate to avoid massive log output
         try:
@@ -195,7 +270,15 @@ class BaseInfluxDBClient(Client):
         # Use provided write config or default
         self.write_config = write_config or self._get_write_config()
         self._write_options = self.write_config._to_write_options()
-        self._callback = BatchingCallback()
+
+        # Calculate max batch age from write config
+        # Formula: (max_retries * retry_interval) + flush_interval + buffer
+        max_batch_age = (
+            (self.write_config.max_retries * (self.write_config.retry_interval / 1000))
+            + (self.write_config.flush_interval / 1000)
+            + 60  # 60s buffer
+        )
+        self._callback = BatchingCallback(max_batch_age=int(max_batch_age))
         self._wco = write_client_options(
             success_callback=self._callback.success,
             error_callback=self._callback.error,
@@ -235,18 +318,34 @@ class BaseInfluxDBClient(Client):
             self.logger.debug(f"InfluxDB ping failed with exception: {e}")
             return False
 
-    def wait_for_batches(self, timeout: int = 30, poll_interval: float = 0.5) -> bool:
+    def wait_for_batches(self, timeout: int | None = None, poll_interval: float = 0.5) -> bool:
         """Wait for all pending batch writes to complete.
 
         Polls the batch callback's pending counter until it reaches zero or timeout occurs.
+        If timeout is not provided, calculates it dynamically from write config.
 
         Args:
-            timeout: Maximum time to wait in seconds (default: 30).
+            timeout: Maximum time to wait in seconds. If None, calculates from write config:
+                (max_retries * retry_interval) + flush_interval + 60s buffer.
             poll_interval: Time between polls in seconds (default: 0.5).
 
         Returns:
             True if all batches completed, False if timeout occurred.
         """
+        # Calculate dynamic timeout from write config if not provided
+        if timeout is None:
+            timeout = int(
+                (self.write_config.max_retries * (self.write_config.retry_interval / 1000))
+                + (self.write_config.flush_interval / 1000)
+                + 60  # 60s buffer
+            )
+            self.logger.debug(
+                f"Using dynamic timeout of {timeout}s based on write config "
+                f"(max_retries={self.write_config.max_retries}, "
+                f"retry_interval={self.write_config.retry_interval}ms, "
+                f"flush_interval={self.write_config.flush_interval}ms)"
+            )
+
         start_time = time.time()
         last_log_time = start_time
 

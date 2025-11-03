@@ -431,19 +431,34 @@ class ThreadManager(Client):
 
         Returns:
             Dictionary with counts of successful, failed, and running threads:
-            - 'successful': Threads that completed without exception
-            - 'failed': Threads that raised an exception
+            - 'successful': Threads that completed without exception and returned success=True
+            - 'failed': Threads that raised an exception or returned success=False
             - 'running': Threads still executing
             - 'total': Total number of threads
         """
         with self.lock:
-            successful = sum(
-                1
-                for status in self.threads.values()
-                if status.status == "stopped" and status.exception is None
-            )
-            failed = sum(1 for status in self.threads.values() if status.status == "error")
-            running = sum(1 for status in self.threads.values() if status.status == "running")
+            successful = 0
+            failed = 0
+            running = 0
+
+            for status in self.threads.values():
+                if status.status == "running":
+                    running += 1
+                elif status.status == "error":
+                    # Thread raised an exception
+                    failed += 1
+                elif status.status == "stopped" and status.exception is None:
+                    # Thread completed without exception - check result
+                    result = status.result
+                    if isinstance(result, dict) and "success" in result:
+                        # Result has success field - use it for counting
+                        if result["success"]:
+                            successful += 1
+                        else:
+                            failed += 1
+                    else:
+                        # No success field - count as successful (backward compatible)
+                        successful += 1
 
             return {
                 "successful": successful,

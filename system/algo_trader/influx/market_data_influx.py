@@ -69,13 +69,18 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             True if write succeeded, False otherwise.
         """
-        # Format data (works for any table - stock, ohlcv, etc.)
-        df = self._format_stock_data(data, ticker)
-
-        # Add ticker as a tag column
-        df["ticker"] = ticker
-
         try:
+            # Format data (works for any table - stock, ohlcv, etc.)
+            df = self._format_stock_data(data, ticker)
+
+            # Add ticker as a tag column
+            df["ticker"] = ticker
+
+            num_rows = len(df)
+            self.logger.debug(
+                f"Attempting to write {num_rows} rows for {ticker} to table '{table}'"
+            )
+
             # Increment pending batch counter before write
             self._callback.increment_pending()
 
@@ -87,9 +92,15 @@ class MarketDataInflux(BaseInfluxDBClient):
             return True
         except Exception as e:
             # Decrement on exception since write failed
+            # Must also remove timestamp from FIFO queue to match increment
             with self._callback._lock:
                 self._callback._pending_batches -= 1
-            self.logger.error(f"Failed to write data for {ticker}: {e}")
+                if self._callback._batch_timestamps:
+                    self._callback._batch_timestamps.pop(0)
+
+            self.logger.error(
+                f"Failed to write data for {ticker} to table '{table}': {type(e).__name__}: {e}"
+            )
             return False
 
     def query(self, query: str):

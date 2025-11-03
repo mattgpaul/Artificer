@@ -131,6 +131,16 @@ def failing_task():
     raise ValueError("Test exception")
 
 
+def task_returning_success():
+    """Task that returns a success dict."""
+    return {"success": True, "data": "some data"}
+
+
+def task_returning_failure():
+    """Task that returns a failure dict."""
+    return {"success": False, "error": "something went wrong"}
+
+
 class TestThreadExceptionHandling:
     """Test exception handling in threads."""
 
@@ -367,3 +377,97 @@ class TestThreadResultTracking:
         assert all_status["thread_0"]["result"] == 0
         assert "result" in all_status["thread_1"]
         assert all_status["thread_1"]["result"] == 2
+
+
+class TestThreadResultBasedCounting:
+    """Test result-based success/failure counting in get_results_summary."""
+
+    def test_summary_with_success_dict_results(self):
+        """Test that threads returning {"success": True} are counted as successful."""
+        config = ThreadConfig(daemon_threads=True, max_threads=10, thread_timeout=2)
+        manager = ThreadManager(config=config)
+
+        threads = []
+        for i in range(3):
+            thread = manager.start_thread(target=task_returning_success, name=f"success_thread_{i}")
+            threads.append(thread)
+
+        for thread in threads:
+            thread.join(timeout=2.0)
+
+        time.sleep(0.1)
+        summary = manager.get_results_summary()
+
+        assert summary["successful"] == 3
+        assert summary["failed"] == 0
+        assert summary["running"] == 0
+        assert summary["total"] == 3
+
+    def test_summary_with_failure_dict_results(self):
+        """Test that threads returning {"success": False} are counted as failed."""
+        config = ThreadConfig(daemon_threads=True, max_threads=10, thread_timeout=2)
+        manager = ThreadManager(config=config)
+
+        threads = []
+        for i in range(3):
+            thread = manager.start_thread(target=task_returning_failure, name=f"failure_thread_{i}")
+            threads.append(thread)
+
+        for thread in threads:
+            thread.join(timeout=2.0)
+
+        time.sleep(0.1)
+        summary = manager.get_results_summary()
+
+        assert summary["successful"] == 0
+        assert summary["failed"] == 3
+        assert summary["running"] == 0
+        assert summary["total"] == 3
+
+    def test_summary_with_mixed_dict_results(self):
+        """Test summary with mix of success and failure dict results."""
+        config = ThreadConfig(daemon_threads=True, max_threads=10, thread_timeout=2)
+        manager = ThreadManager(config=config)
+
+        # 2 successful
+        for i in range(2):
+            manager.start_thread(target=task_returning_success, name=f"success_{i}")
+
+        # 2 failed
+        for i in range(2):
+            manager.start_thread(target=task_returning_failure, name=f"failure_{i}")
+
+        # 1 exception
+        manager.start_thread(target=failing_task, name="exception")
+
+        time.sleep(0.5)
+        summary = manager.get_results_summary()
+
+        assert summary["successful"] == 2
+        assert summary["failed"] == 3  # 2 from dict results + 1 from exception
+        assert summary["running"] == 0
+        assert summary["total"] == 5
+
+    def test_backward_compatibility_non_dict_results(self):
+        """Test that non-dict return values are still counted as successful (backward compat)."""
+        config = ThreadConfig(daemon_threads=True, max_threads=10, thread_timeout=2)
+        manager = ThreadManager(config=config)
+
+        # Task returning True (not a dict)
+        event = threading.Event()
+        event.set()
+        thread1 = manager.start_thread(target=dummy_task, name="bool_task", kwargs={"event": event})
+
+        # Task returning an integer (not a dict)
+        thread2 = manager.start_thread(target=task_with_return_value, name="int_task", args=(5,))
+
+        thread1.join(timeout=2.0)
+        thread2.join(timeout=2.0)
+        time.sleep(0.1)
+
+        summary = manager.get_results_summary()
+
+        # Both should be counted as successful (backward compatibility)
+        assert summary["successful"] == 2
+        assert summary["failed"] == 0
+        assert summary["total"] == 2

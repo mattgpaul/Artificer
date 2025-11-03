@@ -203,7 +203,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             "period_value": args.period_value,
         }
 
-    def execute(self, context: dict) -> None:  # noqa: PLR0915
+    def execute(self, context: dict) -> None:  # noqa: PLR0915, C901
         """Execute OHLCV data population with multi-threaded data fetching.
 
         Uses ThreadManager to fetch historical market data concurrently for multiple
@@ -240,6 +240,9 @@ class OHLCVArgumentHandler(ArgumentHandler):
         self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
         self.logger.info(f"InfluxDB client initialized for database: {influx_client.database}")
 
+        # Track failed tickers with reasons for detailed reporting
+        failed_tickers: list[tuple[str, str]] = []  # List of (ticker, reason) tuples
+
         # Check if batching will be needed
         if len(tickers) > max_threads:
             self.logger.info(
@@ -271,17 +274,23 @@ class OHLCVArgumentHandler(ArgumentHandler):
 
                 # Check for empty or invalid response
                 if not response:
-                    self.logger.error(f"{ticker}: Empty response from API")
-                    return {"success": False, "error": "Empty response"}
+                    error_msg = "Empty response from API"
+                    self.logger.error(f"{ticker}: {error_msg}")
+                    failed_tickers.append((ticker, error_msg))
+                    return {"success": False, "error": error_msg}
 
                 if "candles" not in response:
-                    self.logger.error(f"{ticker}: No candles data in response")
-                    return {"success": False, "error": "No candles data"}
+                    error_msg = "No candles data in response"
+                    self.logger.error(f"{ticker}: {error_msg}")
+                    failed_tickers.append((ticker, error_msg))
+                    return {"success": False, "error": error_msg}
 
                 candles = response["candles"]
                 if not candles:
-                    self.logger.warning(f"{ticker}: Candles list is empty")
-                    return {"success": False, "error": "Empty candles list"}
+                    error_msg = "No data available (empty candles list)"
+                    self.logger.warning(f"{ticker}: {error_msg}")
+                    failed_tickers.append((ticker, error_msg))
+                    return {"success": False, "error": error_msg}
 
                 # Write data to InfluxDB
                 write_success = influx_client.write(data=candles, ticker=ticker, table="ohlcv")
@@ -292,11 +301,15 @@ class OHLCVArgumentHandler(ArgumentHandler):
                     )
                     return {"success": True}
                 else:
-                    self.logger.error(f"{ticker}: Failed to write data to InfluxDB")
-                    return {"success": False, "error": "InfluxDB write failed"}
+                    error_msg = "InfluxDB write failed"
+                    self.logger.error(f"{ticker}: {error_msg}")
+                    failed_tickers.append((ticker, error_msg))
+                    return {"success": False, "error": error_msg}
 
             except Exception as e:
-                self.logger.error(f"{ticker}: Exception during processing: {e}")
+                error_msg = f"Exception: {type(e).__name__}: {e!s}"
+                self.logger.error(f"{ticker}: {error_msg}")
+                failed_tickers.append((ticker, error_msg))
                 return {"success": False, "error": str(e)}
 
         # Batch processing loop
@@ -365,14 +378,14 @@ class OHLCVArgumentHandler(ArgumentHandler):
         # Wait for all batch writes to complete using closed-loop monitoring
         # This tracks the actual pending batch count rather than using fixed sleep time
         self.logger.info("Waiting for all batch writes to complete...")
-        batch_timeout = 30  # seconds
-        batches_complete = influx_client.wait_for_batches(timeout=batch_timeout)
+        # Use dynamic timeout calculated from write config (None = auto-calculate)
+        batches_complete = influx_client.wait_for_batches(timeout=None)
 
         if batches_complete:
             self.logger.info("All OHLCV data batches written successfully to InfluxDB.")
         else:
             self.logger.warning(
-                f"Some batches may still be pending after {batch_timeout}s timeout. "
+                "Some batches may still be pending after timeout. "
                 "Data may still be written in background."
             )
 
@@ -383,4 +396,13 @@ class OHLCVArgumentHandler(ArgumentHandler):
         print(f"Total Tickers: {len(tickers)}")
         print(f"Successful: {summary['successful']}")
         print(f"Failed: {summary['failed']}")
-        print(f"{'=' * 50}\n")
+        print(f"{'=' * 50}")
+
+        # Print detailed failure information if any tickers failed
+        if failed_tickers:
+            print(f"\nFailed Tickers ({len(failed_tickers)}):")
+            print(f"{'-' * 50}")
+            for ticker, reason in failed_tickers:
+                print(f"  {ticker:10s} - {reason}")
+            print(f"{'-' * 50}")
+        print()
