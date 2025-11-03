@@ -1,4 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
@@ -20,6 +21,15 @@ py_library(
         "//system/algo_trader/redis:redis_services",
         requirement("requests"),
     ],
+)
+
+# OAuth2 authentication binary
+py_binary(
+    name = "authenticate",
+    srcs = ["authenticate.py"],
+    main = "authenticate.py",
+    visibility = ["//visibility:public"],
+    deps = [":schwab_services"],
 )
 
 # Test for SchwabClient - OAuth2 and Token Management
