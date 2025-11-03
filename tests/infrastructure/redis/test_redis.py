@@ -903,6 +903,118 @@ class TestRedisClientPipelineOperations:
         mock_logger.error.assert_called()
 
 
+class TestRedisClientLockOperations:
+    """Test distributed lock operations (acquire_lock, release_lock)."""
+
+    @pytest.fixture
+    def mock_redis(self):
+        """Fixture to mock Redis connection."""
+        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+            mock_pool = MagicMock()
+            mock_client = MagicMock()
+
+            mock_redis_module.ConnectionPool.return_value = mock_pool
+            mock_redis_module.Redis.return_value = mock_client
+
+            yield {"module": mock_redis_module, "pool": mock_pool, "client": mock_client}
+
+    @pytest.fixture
+    def mock_logger(self):
+        """Fixture to mock logger."""
+        with patch("infrastructure.redis.redis.get_logger") as mock_get_logger:
+            mock_logger_instance = MagicMock()
+            mock_get_logger.return_value = mock_logger_instance
+            yield mock_logger_instance
+
+    def test_acquire_lock_success(self, mock_redis, mock_logger):
+        """Test successful lock acquisition."""
+        mock_redis["client"].set.return_value = True
+
+        client = ConcreteRedisClient()
+        result = client.acquire_lock("token-refresh", ttl=10)
+
+        assert result is True
+        mock_redis["client"].set.assert_called_once_with(
+            "test_namespace:lock:token-refresh", "1", ex=10, nx=True
+        )
+
+    def test_acquire_lock_already_held(self, mock_redis, mock_logger):
+        """Test lock acquisition when lock is already held."""
+        # Lock is already held by another process
+        mock_redis["client"].set.return_value = False
+
+        client = ConcreteRedisClient()
+        # Set max_retries=2 to speed up test
+        result = client.acquire_lock("token-refresh", ttl=10, max_retries=2, retry_interval=0.01)
+
+        assert result is False
+        # Should retry 2 times
+        assert mock_redis["client"].set.call_count == 2
+
+    def test_acquire_lock_retry_then_success(self, mock_redis, mock_logger):
+        """Test lock acquisition succeeds on retry."""
+        # First call fails (lock held), second succeeds (lock released)
+        mock_redis["client"].set.side_effect = [False, True]
+
+        client = ConcreteRedisClient()
+        result = client.acquire_lock("token-refresh", ttl=10, max_retries=3, retry_interval=0.01)
+
+        assert result is True
+        # Should have tried twice (failed once, succeeded once)
+        assert mock_redis["client"].set.call_count == 2
+
+    def test_acquire_lock_custom_ttl(self, mock_redis, mock_logger):
+        """Test lock acquisition with custom TTL."""
+        mock_redis["client"].set.return_value = True
+
+        client = ConcreteRedisClient()
+        result = client.acquire_lock("my-lock", ttl=30)
+
+        assert result is True
+        mock_redis["client"].set.assert_called_once_with(
+            "test_namespace:lock:my-lock", "1", ex=30, nx=True
+        )
+
+    def test_acquire_lock_exception(self, mock_redis, mock_logger):
+        """Test lock acquisition handles exceptions."""
+        mock_redis["client"].set.side_effect = Exception("Redis connection error")
+
+        client = ConcreteRedisClient()
+        result = client.acquire_lock("token-refresh")
+
+        assert result is False
+        mock_logger.error.assert_called()
+
+    def test_release_lock_success(self, mock_redis, mock_logger):
+        """Test successful lock release."""
+        mock_redis["client"].delete.return_value = 1
+
+        client = ConcreteRedisClient()
+        result = client.release_lock("token-refresh")
+
+        assert result is True
+        mock_redis["client"].delete.assert_called_once_with("test_namespace:lock:token-refresh")
+
+    def test_release_lock_not_exists(self, mock_redis, mock_logger):
+        """Test releasing a lock that doesn't exist."""
+        mock_redis["client"].delete.return_value = 0
+
+        client = ConcreteRedisClient()
+        result = client.release_lock("nonexistent-lock")
+
+        assert result is False
+
+    def test_release_lock_exception(self, mock_redis, mock_logger):
+        """Test lock release handles exceptions."""
+        mock_redis["client"].delete.side_effect = Exception("Redis error")
+
+        client = ConcreteRedisClient()
+        result = client.release_lock("token-refresh")
+
+        assert result is False
+        mock_logger.error.assert_called()
+
+
 class TestRedisClientIntegration:
     """Test integration scenarios with multiple operations."""
 
