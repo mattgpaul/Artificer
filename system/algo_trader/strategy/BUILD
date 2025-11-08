@@ -3,8 +3,12 @@ load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "base",
-    srcs = ["base.py"],
+    name = "strategies",
+    srcs = [
+        "base.py",
+        "journal.py",
+        "sma_crossover.py",
+    ],
     visibility = [
         "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
         "//tests/system/algo_trader/strategy:__pkg__",  # Allow test access
@@ -15,21 +19,7 @@ py_library(
         "//infrastructure/logging:logger",
         "//infrastructure/threads:thread_manager",
         "//system/algo_trader/influx:market_data_influx",
-        requirement("pandas"),
         requirement("numpy"),
-    ],
-)
-
-py_library(
-    name = "sma_crossover",
-    srcs = ["sma_crossover.py"],
-    visibility = [
-        "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
-        "//tests/system/algo_trader/strategy:__pkg__",  # Allow test access
-    ],
-    deps = [
-        ":base",
-        "//infrastructure/influxdb",
         requirement("pandas"),
     ],
 )
@@ -53,7 +43,7 @@ py_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":cli_utils",
-        ":sma_crossover",
+        ":strategies",
         "//infrastructure/logging:logger",
     ],
 )

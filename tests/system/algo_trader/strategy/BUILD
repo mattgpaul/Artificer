@@ -9,7 +9,7 @@ py_library(
     deps = [
         "//infrastructure/influxdb",
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy:base",
+        "//system/algo_trader/strategy:strategies",
         requirement("pandas"),
         requirement("pytest"),
     ],
@@ -23,10 +23,9 @@ py_library(
     deps = [
         "//infrastructure/influxdb",
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy:base",
-        "//system/algo_trader/strategy:sma_crossover",
-        requirement("pandas"),
+        "//system/algo_trader/strategy:strategies",
         requirement("numpy"),
+        requirement("pandas"),
         requirement("pytest"),
     ],
 )
