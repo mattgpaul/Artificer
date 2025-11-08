@@ -91,103 +91,116 @@ class SMACrossoverStrategy(BaseStrategy):
             f"long={long_window}, min_confidence={min_confidence}"
         )
 
-    def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
-        """Generate buy/sell signals from SMA crossover analysis.
+    def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        sma_short, sma_long, current_diff = self._calculate_smas(ohlcv_data, ticker)
+        if sma_short is None:
+            return pd.DataFrame()
 
-        Calculates short and long-period SMAs on close prices, detects crossover
-        points, and generates signals with confidence scores based on crossover strength.
+        # Detect bullish crossovers: short crosses above long
+        previous_diff = (sma_short - sma_long).shift(1)
+        bullish_crossover = (previous_diff < 0) & (current_diff > 0)
 
-        Args:
-            ohlcv_data: DataFrame with OHLCV data indexed by datetime.
-                       Must contain 'close' column and at least long_window rows.
-            ticker: Stock ticker symbol being analyzed.
+        # Extract buy signals
+        buy_signals = []
+        for idx in ohlcv_data.index:
+            if bullish_crossover.loc[idx]:
+                signal = self._create_signal(
+                    idx, ohlcv_data, sma_short, sma_long, current_diff
+                )
+                if signal:
+                    buy_signals.append(signal)
 
-        Returns:
-            DataFrame with columns:
-                - signal_type: 'buy' (bullish crossover) or 'sell' (bearish crossover)
-                - price: Close price at the crossover point
-                - confidence: Normalized crossover strength (0.0-1.0)
-                - metadata: JSON string containing SMA values and crossover details
+        if not buy_signals:
+            self.logger.debug(f"No buy signals detected for {ticker}")
+            return pd.DataFrame()
 
-            Indexed by datetime of signal generation. Returns empty DataFrame if:
-            - Insufficient data for long_window calculation
-            - No crossovers detected
-            - All signals below min_confidence threshold
+        # Convert to DataFrame with datetime index
+        signals_df = pd.DataFrame(buy_signals)
+        signals_df = signals_df.set_index("timestamp")
+        signals_df.index.name = None
 
-        Example:
-            >>> signals = strategy.generate_signals(ohlcv_df, 'AAPL')
-            >>> # Typical output:
-            >>> #                      signal_type   price  confidence metadata
-            >>> # 2024-01-15 10:00:00  buy          150.25  0.75       {...}
-            >>> # 2024-02-20 14:30:00  sell         148.50  0.82       {...}
-        """
+        self.logger.info(f"Generated {len(signals_df)} buy signals for {ticker}")
+        return signals_df
+
+    def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        sma_short, sma_long, current_diff = self._calculate_smas(ohlcv_data, ticker)
+        if sma_short is None:
+            return pd.DataFrame()
+
+        # Detect bearish crossovers: short crosses below long
+        previous_diff = (sma_short - sma_long).shift(1)
+        bearish_crossover = (previous_diff > 0) & (current_diff < 0)
+
+        # Extract sell signals
+        sell_signals = []
+        for idx in ohlcv_data.index:
+            if bearish_crossover.loc[idx]:
+                signal = self._create_signal(
+                    idx, ohlcv_data, sma_short, sma_long, current_diff
+                )
+                if signal:
+                    sell_signals.append(signal)
+
+        if not sell_signals:
+            self.logger.debug(f"No sell signals detected for {ticker}")
+            return pd.DataFrame()
+
+        # Convert to DataFrame with datetime index
+        signals_df = pd.DataFrame(sell_signals)
+        signals_df = signals_df.set_index("timestamp")
+        signals_df.index.name = None
+
+        self.logger.info(f"Generated {len(signals_df)} sell signals for {ticker}")
+        return signals_df
+
+    def add_strategy_arguments(self, parser):
+        parser.add_argument(
+            "--short",
+            type=int,
+            default=10,
+            help="Short-term SMA window period (default: 10)",
+        )
+        parser.add_argument(
+            "--long",
+            type=int,
+            default=20,
+            help="Long-term SMA window period (default: 20)",
+        )
+        parser.add_argument(
+            "--min-confidence",
+            type=float,
+            default=0.0,
+            help="Minimum confidence threshold for signal generation (default: 0.0)",
+        )
+
+    def _calculate_smas(
+        self, ohlcv_data: pd.DataFrame, ticker: str
+    ) -> tuple[pd.Series, pd.Series, pd.Series] | tuple[None, None, None]:
         if ohlcv_data is None or ohlcv_data.empty:
             self.logger.warning(f"No OHLCV data provided for {ticker}")
-            return pd.DataFrame()
+            return None, None, None
 
         if "close" not in ohlcv_data.columns:
             self.logger.error(f"OHLCV data for {ticker} missing 'close' column")
-            return pd.DataFrame()
+            return None, None, None
 
         if len(ohlcv_data) < self.long_window:
             self.logger.warning(
                 f"Insufficient data for {ticker}: {len(ohlcv_data)} rows "
                 f"(need at least {self.long_window} for SMA calculation)"
             )
-            return pd.DataFrame()
+            return None, None, None
 
         # Calculate simple moving averages
         sma_short = ohlcv_data["close"].rolling(window=self.short_window).mean()
         sma_long = ohlcv_data["close"].rolling(window=self.long_window).mean()
-
-        # Detect crossovers by comparing current and previous positions
-        # bullish: short crosses above long (was below, now above)
-        # bearish: short crosses below long (was above, now below)
-        previous_diff = (sma_short - sma_long).shift(1)
         current_diff = sma_short - sma_long
 
-        bullish_crossover = (previous_diff < 0) & (current_diff > 0)
-        bearish_crossover = (previous_diff > 0) & (current_diff < 0)
-
-        # Extract crossover points
-        signals = []
-
-        for idx in ohlcv_data.index:
-            if bullish_crossover.loc[idx]:
-                signal = self._create_signal(
-                    idx, "buy", ohlcv_data, sma_short, sma_long, current_diff
-                )
-                if signal:
-                    signals.append(signal)
-
-            elif bearish_crossover.loc[idx]:
-                signal = self._create_signal(
-                    idx, "sell", ohlcv_data, sma_short, sma_long, current_diff
-                )
-                if signal:
-                    signals.append(signal)
-
-        if not signals:
-            self.logger.info(f"No crossover signals detected for {ticker}")
-            return pd.DataFrame()
-
-        # Convert to DataFrame with datetime index
-        signals_df = pd.DataFrame(signals)
-        signals_df = signals_df.set_index("timestamp")
-        signals_df.index.name = None  # Remove index name for consistency
-
-        self.logger.info(
-            f"Generated {len(signals_df)} signals for {ticker}: "
-            f"{(signals_df['signal_type'] == 'buy').sum()} buys, "
-            f"{(signals_df['signal_type'] == 'sell').sum()} sells"
-        )
-
-        return signals_df
+        return sma_short, sma_long, current_diff
 
     def _create_signal(  # noqa: PLR0913
         self,
         timestamp: pd.Timestamp,
-        signal_type: str,
         ohlcv_data: pd.DataFrame,
         sma_short: pd.Series,
         sma_long: pd.Series,
@@ -197,7 +210,6 @@ class SMACrossoverStrategy(BaseStrategy):
 
         Args:
             timestamp: Datetime of the crossover event.
-            signal_type: 'buy' or 'sell'.
             ohlcv_data: Original OHLCV DataFrame.
             sma_short: Short-period SMA series.
             sma_long: Long-period SMA series.
@@ -230,7 +242,6 @@ class SMACrossoverStrategy(BaseStrategy):
 
         return {
             "timestamp": timestamp,
-            "signal_type": signal_type,
             "price": round(price, 4),
             "confidence": round(confidence, 4),
             "metadata": json.dumps(metadata),
