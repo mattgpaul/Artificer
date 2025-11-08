@@ -34,13 +34,25 @@ py_library(
     ],
 )
 
-# Demo binary to test and demonstrate SMA crossover strategy
+py_library(
+    name = "cli_utils",
+    srcs = ["cli_utils.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/strategy:__pkg__",
+    ],
+    deps = [
+        "//system/algo_trader/datasource/sec:tickers_lib",
+    ],
+)
+
 py_binary(
-    name = "sma_crossover_demo",
-    srcs = ["sma_crossover_demo.py"],
-    main = "sma_crossover_demo.py",
+    name = "main",
+    srcs = ["main.py"],
+    main = "main.py",
     visibility = ["//visibility:public"],
     deps = [
+        ":cli_utils",
         ":sma_crossover",
         "//infrastructure/logging:logger",
     ],
