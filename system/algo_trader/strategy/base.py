@@ -75,34 +75,15 @@ class BaseStrategy(Client):
         )
 
     @abstractmethod
-    def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
-        """Generate buy/sell signals from OHLCV data.
+    def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        pass
 
-        Subclasses must implement this method to define their specific trading logic.
-        The method receives OHLCV data for a single ticker and should return a
-        DataFrame containing generated signals.
+    @abstractmethod
+    def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        pass
 
-        Args:
-            ohlcv_data: DataFrame with OHLCV data indexed by datetime.
-                       Columns: open, high, low, close, volume, ticker
-            ticker: Stock ticker symbol being analyzed.
-
-        Returns:
-            DataFrame with columns:
-                - signal_type: 'buy' or 'sell'
-                - price: Price at signal generation
-                - confidence: Optional confidence score (0.0-1.0)
-                - metadata: Optional JSON string with strategy-specific data
-
-            The DataFrame should be indexed by datetime (timestamp of signal).
-            Empty DataFrame if no signals generated.
-
-        Example:
-            >>> def generate_signals(self, ohlcv_data, ticker):
-            ...     signals = []
-            ...     # Strategy logic here
-            ...     return pd.DataFrame(signals, columns=['signal_type', 'price'])
-        """
+    @abstractmethod
+    def add_strategy_arguments(self, parser):
         pass
 
     def query_ohlcv(
@@ -262,16 +243,30 @@ class BaseStrategy(Client):
             self.logger.warning(f"No OHLCV data available for {ticker}")
             return pd.DataFrame()
 
-        # Generate signals using strategy-specific logic
+        # Generate buy and sell signals using strategy-specific logic
         try:
-            signals = self.generate_signals(ohlcv_data, ticker)
+            buy_signals = self.buy(ohlcv_data, ticker)
+            sell_signals = self.sell(ohlcv_data, ticker)
         except Exception as e:
             self.logger.error(f"Signal generation failed for {ticker}: {e}")
             return pd.DataFrame()
 
-        if signals.empty:
+        # Add signal_type to each DataFrame
+        if not buy_signals.empty:
+            buy_signals["signal_type"] = "buy"
+        if not sell_signals.empty:
+            sell_signals["signal_type"] = "sell"
+
+        # Combine buy and sell signals
+        if buy_signals.empty and sell_signals.empty:
             self.logger.info(f"No signals generated for {ticker}")
             return pd.DataFrame()
+        elif buy_signals.empty:
+            signals = sell_signals
+        elif sell_signals.empty:
+            signals = buy_signals
+        else:
+            signals = pd.concat([buy_signals, sell_signals]).sort_index()
 
         # Write signals to InfluxDB
         write_success = self.write_signals(signals, ticker)
