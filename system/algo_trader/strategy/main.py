@@ -4,7 +4,13 @@ import sys
 from datetime import datetime, timedelta
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.strategy.cli_utils import format_signal_summary, resolve_tickers
+from system.algo_trader.strategy.cli_utils import (
+    format_journal_summary,
+    format_signal_summary,
+    format_trade_details,
+    resolve_tickers,
+)
+from system.algo_trader.strategy.journal import TradeJournal
 from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
 
@@ -52,6 +58,32 @@ def parse_args():
         type=int,
         default=None,
         help="Limit OHLCV records to fetch (default: no limit)",
+    )
+
+    parser.add_argument(
+        "--journal",
+        action="store_true",
+        help="Generate trading journal after strategy execution (default: False)",
+    )
+
+    parser.add_argument(
+        "--capital",
+        type=float,
+        default=10000.0,
+        help="Capital per trade for journal calculations (default: 10000)",
+    )
+
+    parser.add_argument(
+        "--risk-free-rate",
+        type=float,
+        default=0.04,
+        help="Risk-free rate for Sharpe ratio calculation (default: 0.04)",
+    )
+
+    parser.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Show detailed trade-by-trade P&L in journal (default: False)",
     )
 
     subparsers = parser.add_subparsers(
@@ -119,6 +151,7 @@ def main():
                 ticker=tickers[0],
                 start_time=start_time_str,
                 limit=args.limit,
+                write_signals=args.write,
             )
         else:
             logger.info(f"Running strategy for {len(tickers)} tickers")
@@ -126,6 +159,7 @@ def main():
                 tickers=tickers,
                 start_time=start_time_str,
                 limit=args.limit,
+                write_signals=args.write,
             )
 
         if signals.empty:
@@ -144,6 +178,31 @@ def main():
                 logger.info("To persist signals, run with --write flag")
             else:
                 logger.info("Signals have been written to InfluxDB strategy table")
+
+            # Generate trading journal if requested
+            if args.journal:
+                logger.info("Generating trading journal...")
+
+                # Process journal per ticker if multiple tickers
+                unique_tickers = signals["ticker"].unique()
+
+                for ticker in unique_tickers:
+                    ticker_signals = signals[signals["ticker"] == ticker]
+
+                    journal = TradeJournal(
+                        signals=ticker_signals,
+                        capital_per_trade=args.capital,
+                        risk_free_rate=args.risk_free_rate,
+                    )
+
+                    metrics, trades = journal.generate_report()
+
+                    # Display journal summary
+                    print(format_journal_summary(metrics, ticker, args.strategy))
+
+                    # Display detailed trades if requested
+                    if args.detailed:
+                        print(format_trade_details(trades))
 
     except ValueError as e:
         logger.error(f"Strategy initialization failed: {e}")
