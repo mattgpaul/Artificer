@@ -28,97 +28,98 @@ class TradeJournal:
     def __init__(
         self,
         signals: pd.DataFrame,
+        strategy_name: str,
+        ohlcv_data: pd.DataFrame = None,
         capital_per_trade: float = 10000.0,
         risk_free_rate: float = 0.04,
     ):
         """Initialize trade journal with signals and configuration.
 
         Args:
-            signals: DataFrame with columns: signal_type, price, signal_time, ticker.
+            signals: DataFrame with columns: signal_type, price, signal_time, ticker, side.
+            strategy_name: Name of the strategy that generated signals.
+            ohlcv_data: Optional OHLCV data for efficiency calculation.
             capital_per_trade: Fixed capital amount per trade (default: 10000).
             risk_free_rate: Annual risk-free rate for Sharpe calculation (default: 0.04).
         """
         self.signals = signals.copy()
+        self.strategy_name = strategy_name
+        self.ohlcv_data = ohlcv_data
         self.capital_per_trade = capital_per_trade
         self.risk_free_rate = risk_free_rate
         self.logger = get_logger(self.__class__.__name__)
 
         self.logger.info(
-            f"TradeJournal initialized: capital={capital_per_trade}, "
-            f"risk_free_rate={risk_free_rate:.2%}"
+            f"TradeJournal initialized: strategy={strategy_name}, "
+            f"capital={capital_per_trade}, risk_free_rate={risk_free_rate:.2%}"
         )
 
     def match_trades(self) -> pd.DataFrame:
         """Match buy and sell signals into completed trades using FIFO.
 
-        For each ticker, maintains a queue of unmatched buy signals and matches
-        them with sell signals in chronological order.
+        For LONG strategies: Match buy entry with sell exit
+        For SHORT strategies: Match sell entry with buy exit
 
         Returns:
             DataFrame with matched trades containing columns:
-                - ticker: Stock symbol
-                - entry_time: Buy signal timestamp
-                - entry_price: Buy price
-                - exit_time: Sell signal timestamp
-                - exit_price: Sell price
-                - shares: Number of shares (capital_per_trade / entry_price)
-                - gross_pnl: Gross profit/loss in dollars
-                - gross_pnl_pct: Gross profit/loss as percentage
-
-        Example:
-            >>> journal = TradeJournal(signals_df)
-            >>> trades = journal.match_trades()
+                - ticker, entry_time, entry_price, exit_time, exit_price
+                - shares, gross_pnl, gross_pnl_pct, side, status, strategy, efficiency
         """
         if self.signals.empty:
             self.logger.warning("No signals to match")
             return pd.DataFrame()
 
-        # Sort by ticker and time to ensure chronological processing
         signals = self.signals.sort_values(["ticker", "signal_time"])
-
         matched_trades = []
-        open_positions = {}  # ticker -> list of unmatched buys
+        open_positions = {}
 
         for _, signal in signals.iterrows():
             ticker = signal["ticker"]
             signal_type = signal["signal_type"]
             price = signal["price"]
             timestamp = signal["signal_time"]
+            side = signal.get("side", "LONG")
 
             if ticker not in open_positions:
                 open_positions[ticker] = []
 
-            if signal_type == "buy":
-                # Add to open positions queue
+            # LONG: buy entry, sell exit | SHORT: sell entry, buy exit
+            is_entry = (side == "LONG" and signal_type == "buy") or (side == "SHORT" and signal_type == "sell")
+            is_exit = (side == "LONG" and signal_type == "sell") or (side == "SHORT" and signal_type == "buy")
+
+            if is_entry:
                 open_positions[ticker].append(
-                    {"entry_time": timestamp, "entry_price": price}
+                    {"entry_time": timestamp, "entry_price": price, "side": side}
                 )
-            elif signal_type == "sell":
-                # Match with oldest unmatched buy (FIFO)
+            elif is_exit:
                 if open_positions[ticker]:
-                    buy = open_positions[ticker].pop(0)
-                    shares = self.capital_per_trade / buy["entry_price"]
-                    gross_pnl = shares * (price - buy["entry_price"])
-                    gross_pnl_pct = ((price - buy["entry_price"]) / buy["entry_price"]) * 100
+                    entry = open_positions[ticker].pop(0)
+                    shares = self.capital_per_trade / entry["entry_price"]
 
-                    matched_trades.append(
-                        {
-                            "ticker": ticker,
-                            "entry_time": buy["entry_time"],
-                            "entry_price": buy["entry_price"],
-                            "exit_time": timestamp,
-                            "exit_price": price,
-                            "shares": shares,
-                            "gross_pnl": gross_pnl,
-                            "gross_pnl_pct": gross_pnl_pct,
-                        }
-                    )
-                else:
-                    self.logger.debug(
-                        f"Unmatched sell signal for {ticker} at {timestamp} - no open position"
-                    )
+                    # Calculate P&L based on side
+                    if entry["side"] == "LONG":
+                        gross_pnl = shares * (price - entry["entry_price"])
+                    else:  # SHORT
+                        gross_pnl = shares * (entry["entry_price"] - price)
 
-        # Log unmatched positions
+                    gross_pnl_pct = (gross_pnl / self.capital_per_trade) * 100
+                    efficiency = self._calculate_efficiency(ticker, entry["entry_time"], timestamp, entry["entry_price"], price)
+
+                    matched_trades.append({
+                        "ticker": ticker,
+                        "entry_time": entry["entry_time"],
+                        "entry_price": entry["entry_price"],
+                        "exit_time": timestamp,
+                        "exit_price": price,
+                        "shares": shares,
+                        "gross_pnl": gross_pnl,
+                        "gross_pnl_pct": gross_pnl_pct,
+                        "side": entry["side"],
+                        "status": "CLOSED",
+                        "strategy": self.strategy_name,
+                        "efficiency": efficiency,
+                    })
+
         total_unmatched = sum(len(positions) for positions in open_positions.values())
         if total_unmatched > 0:
             self.logger.info(f"{total_unmatched} open positions remain unmatched")
@@ -129,28 +130,14 @@ class TradeJournal:
 
         trades_df = pd.DataFrame(matched_trades)
         self.logger.info(f"Matched {len(trades_df)} completed trades")
-
         return trades_df
 
     def calculate_metrics(self, trades: pd.DataFrame) -> dict:
         """Calculate aggregate performance metrics from matched trades.
 
-        Metrics computed:
-            - total_trades: Number of completed trades
-            - total_profit: Sum of all gross P&L
-            - total_profit_pct: Total profit as percentage of capital deployed
-            - max_drawdown: Maximum peak-to-trough decline in portfolio value
-            - sharpe_ratio: Annualized Sharpe ratio (assumes daily returns)
-
-        Args:
-            trades: DataFrame with matched trades from match_trades().
-
         Returns:
-            Dictionary with performance metrics.
-
-        Example:
-            >>> metrics = journal.calculate_metrics(trades_df)
-            >>> print(f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
+            Dictionary with performance metrics including total_trades, total_profit,
+            total_profit_pct, max_drawdown, sharpe_ratio, avg_efficiency.
         """
         if trades.empty:
             self.logger.warning("No trades to analyze")
@@ -160,20 +147,17 @@ class TradeJournal:
                 "total_profit_pct": 0.0,
                 "max_drawdown": 0.0,
                 "sharpe_ratio": 0.0,
+                "avg_efficiency": 0.0,
             }
 
         total_trades = len(trades)
         total_profit = trades["gross_pnl"].sum()
-
-        # Total capital deployed = number of trades * capital per trade
         total_capital = total_trades * self.capital_per_trade
         total_profit_pct = (total_profit / total_capital) * 100 if total_capital > 0 else 0.0
 
-        # Calculate max drawdown
         max_drawdown = self._calculate_max_drawdown(trades)
-
-        # Calculate Sharpe ratio
         sharpe_ratio = self._calculate_sharpe_ratio(trades)
+        avg_efficiency = trades["efficiency"].mean() if "efficiency" in trades.columns else 0.0
 
         metrics = {
             "total_trades": total_trades,
@@ -181,12 +165,14 @@ class TradeJournal:
             "total_profit_pct": total_profit_pct,
             "max_drawdown": max_drawdown,
             "sharpe_ratio": sharpe_ratio,
+            "avg_efficiency": avg_efficiency,
         }
 
         self.logger.info(
             f"Metrics calculated: {total_trades} trades, "
             f"${total_profit:.2f} profit ({total_profit_pct:.2f}%), "
-            f"{max_drawdown:.2f}% drawdown, {sharpe_ratio:.2f} Sharpe"
+            f"{max_drawdown:.2f}% drawdown, {sharpe_ratio:.2f} Sharpe, "
+            f"{avg_efficiency:.1f}% efficiency"
         )
 
         return metrics
@@ -258,6 +244,51 @@ class TradeJournal:
         sharpe = (mean_excess / std_excess) * np.sqrt(252)
 
         return sharpe if not pd.isna(sharpe) else 0.0
+
+    def _calculate_efficiency(
+        self,
+        ticker: str,
+        entry_time: pd.Timestamp,
+        exit_time: pd.Timestamp,
+        entry_price: float,
+        exit_price: float,
+    ) -> float:
+        """Calculate trade efficiency as actual P&L vs potential P&L.
+
+        Efficiency = (actual_pnl / potential_pnl) * 100
+        where potential_pnl is the maximum favorable movement during the trade.
+
+        Returns:
+            Efficiency percentage. Returns 0 if OHLCV data unavailable.
+        """
+        if self.ohlcv_data is None or self.ohlcv_data.empty:
+            return 0.0
+
+        try:
+            # Filter OHLCV data for the trade period
+            trade_data = self.ohlcv_data[
+                (self.ohlcv_data.index >= entry_time) & (self.ohlcv_data.index <= exit_time)
+            ]
+
+            if trade_data.empty:
+                return 0.0
+
+            # Calculate actual P&L
+            actual_pnl = exit_price - entry_price
+
+            # Calculate potential P&L (best case scenario during trade)
+            max_price = trade_data["high"].max()
+            potential_pnl = max_price - entry_price
+
+            if potential_pnl <= 0:
+                return 0.0
+
+            efficiency = (actual_pnl / potential_pnl) * 100
+            return max(0.0, min(100.0, efficiency))  # Clamp to 0-100%
+
+        except Exception as e:
+            self.logger.debug(f"Failed to calculate efficiency for {ticker}: {e}")
+            return 0.0
 
     def generate_report(self) -> tuple[dict, pd.DataFrame]:
         """Generate complete trading journal report.
