@@ -15,27 +15,8 @@ from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
-# InfluxDB batch write configurations for OHLCV data population
-# Choose based on your use case:
-#
-# CONSERVATIVE: Best for multi-threaded safety with many concurrent threads
-# - Lower memory footprint, more frequent flushes
-# - Use for: High thread counts, limited memory environments
-# ohlcv_write_config = BatchWriteConfig(
-#     batch_size=500,
-#     flush_interval=3000,
-#     jitter_interval=500,
-#     retry_interval=10000,
-#     max_retries=3,
-#     max_retry_delay=30000,
-#     exponential_base=2,
-# )
-#
-# BALANCED (RECOMMENDED): Good compromise between throughput and resource usage
-# - Moderate memory usage, reasonable flush intervals
-# - Use for: Most scenarios, 100-1000 tickers
 ohlcv_write_config = BatchWriteConfig(
-    batch_size=2000,
+    batch_size=300000,
     flush_interval=5000,
     jitter_interval=1000,
     retry_interval=10000,
@@ -43,19 +24,6 @@ ohlcv_write_config = BatchWriteConfig(
     max_retry_delay=30000,
     exponential_base=2,
 )
-#
-# AGGRESSIVE: Maximum throughput for bulk historical data loading
-# - Higher memory usage, longer flush intervals, fewer network calls
-# - Use for: full-registry runs (1000+ tickers), batch processing
-# ohlcv_write_config = BatchWriteConfig(
-#     batch_size=5000,
-#     flush_interval=10000,
-#     jitter_interval=2000,
-#     retry_interval=15000,
-#     max_retries=5,
-#     max_retry_delay=30000,
-#     exponential_base=2,
-# )
 
 
 class OHLCVArgumentHandler(ArgumentHandler):

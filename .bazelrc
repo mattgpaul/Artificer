@@ -23,6 +23,16 @@ build --cxxopt=-Wpedantic
 # Performance and Caching Optimizations
 # ==============================================================================
 
+# Optional: Share output base across all worktrees for better performance
+# WARNING: This can cause issues if worktrees use different Bazel versions or configurations.
+# Only enable if all worktrees use the same Bazel version and similar configurations.
+# 
+# To enable, uncomment and set an absolute path (Bazel doesn't expand $HOME or ~):
+# startup --output_base=/home/matthew/.cache/bazel/output_base
+#
+# Or use per-command: bazel --output_base=~/.cache/bazel/output_base build //...
+# Or set environment: export BAZEL_OUTPUT_BASE=~/.cache/bazel/output_base
+
 # Use all available CPU cores
 build --jobs=auto
 

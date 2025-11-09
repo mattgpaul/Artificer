@@ -53,6 +53,7 @@ exclude = [
 "tests/**/*.py" = [
     "D100",   # Missing docstring in public module
     "D103",   # Missing docstring in public function
+    "PLR0913",  # Too many arguments (common in test functions with mocks
 ]
 
 [lint.mccabe]
