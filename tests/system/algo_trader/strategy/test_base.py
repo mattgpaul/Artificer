@@ -405,6 +405,12 @@ class TestRunStrategyMulti:
         ].query.return_value = sample_ohlcv_data.reset_index().rename(columns={"index": "time"})
         mock_dependencies["influx_instance"].write.return_value = True
 
+        # Mock ThreadManager config with max_threads
+        mock_config = MagicMock()
+        mock_config.max_threads = 10
+        mock_dependencies["thread_instance"].config = mock_config
+        mock_dependencies["thread_instance"].get_active_thread_count.return_value = 0
+
         # Mock ThreadManager behavior
         def mock_get_all_results():
             return {
@@ -478,6 +484,11 @@ class TestRunStrategyMulti:
 
     def test_run_strategy_multi_threaded_with_failures(self, mock_dependencies):
         """Test threaded multi-ticker with some thread failures."""
+        # Mock ThreadManager config with max_threads
+        mock_config = MagicMock()
+        mock_config.max_threads = 10
+        mock_dependencies["thread_instance"].config = mock_config
+        mock_dependencies["thread_instance"].get_active_thread_count.return_value = 0
 
         def mock_get_all_results():
             return {

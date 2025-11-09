@@ -385,6 +385,63 @@ class TestGenerateJournal:
             assert call.kwargs["capital_per_trade"] == 50000.0
             assert call.kwargs["risk_free_rate"] == 0.05
 
+    @patch("system.algo_trader.strategy.executor.format_group_summary")
+    @patch("system.algo_trader.strategy.executor.format_journal_summary")
+    @patch("system.algo_trader.strategy.executor.TradeJournal")
+    @patch("builtins.print")
+    def test_generate_journal_excludes_tickers_with_no_trades(
+        self,
+        mock_print,
+        mock_journal_class,
+        mock_format_summary,
+        mock_format_group,
+        mock_args,
+        mock_logger,
+        sample_signals,
+    ):
+        """Test that tickers with signals but no trades are excluded from output."""
+        call_count = [0]  # Use list to allow modification in nested function
+
+        def create_mock_journal(*args, **kwargs):
+            """Create a mock journal that returns different results per ticker."""
+            mock_journal = MagicMock()
+            call_count[0] += 1
+
+            # First call (AAPL) - has trades
+            if call_count[0] == 1:
+                mock_journal.generate_report.return_value = (
+                    {"total_trades": 1, "total_profit": 500.0},
+                    pd.DataFrame({"entry_price": [150.0], "exit_price": [155.0]}),
+                )
+            # Second call (MSFT) - no trades
+            else:
+                mock_journal.generate_report.return_value = (
+                    {"total_trades": 0},
+                    pd.DataFrame(),
+                )
+            return mock_journal
+
+        mock_journal_class.side_effect = create_mock_journal
+        mock_strategy = MagicMock()
+        mock_strategy.strategy_name = "test_strategy"
+        mock_strategy.query_ohlcv.return_value = None
+        mock_format_summary.return_value = "Formatted journal summary"
+        mock_format_group.return_value = "Formatted group summary"
+
+        generate_journal(sample_signals, mock_args, mock_logger, mock_strategy)
+
+        # Verify TradeJournal was created for both tickers + group summary
+        assert mock_journal_class.call_count == 3  # AAPL, MSFT, and group summary
+
+        # Verify format_journal_summary was only called for AAPL (has trades)
+        assert mock_format_summary.call_count == 1
+
+        # Verify group summary was generated (multiple tickers, even if only one has trades)
+        assert mock_format_group.call_count == 1
+
+        # Verify print was called twice (AAPL summary + group summary)
+        assert mock_print.call_count == 2
+
 
 class TestExecuteStrategy:
     """Test complete strategy execution workflow."""

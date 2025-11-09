@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Bazel, Monorepo, and Python Development Rules
 
 ## Industry Best Practices Foundation
