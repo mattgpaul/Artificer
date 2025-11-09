@@ -7,6 +7,7 @@ InfluxDB and persist signals back to the database.
 
 from __future__ import annotations
 
+import time
 from abc import abstractmethod
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -402,7 +403,12 @@ class BaseStrategy(Client):
         limit: int | None,
         write_signals: bool,
     ) -> pd.DataFrame:
-        """Execute strategy in parallel using ThreadManager."""
+        """Execute strategy in parallel using ThreadManager with batching support.
+
+        Processes tickers in batches when the number of tickers exceeds max_threads.
+        Automatically manages thread capacity and processes all tickers sequentially
+        in batches until complete.
+        """
 
         def process_ticker(ticker: str) -> dict:
             """Thread target for processing a single ticker."""
@@ -413,16 +419,67 @@ class BaseStrategy(Client):
                 self.logger.error(f"Thread failed for {ticker}: {e}")
                 return {"success": False, "error": str(e)}
 
-        # Start threads for all tickers (ThreadManager handles batching)
-        for ticker in tickers:
-            try:
-                self.thread_manager.start_thread(
-                    target=process_ticker, name=f"strategy-{ticker}", args=(ticker,)
-                )
-            except RuntimeError as e:
-                self.logger.error(f"Failed to start thread for {ticker}: {e}")
+        max_threads = self.thread_manager.config.max_threads
+        self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
 
-        # Wait for all threads to complete
+        # Check if batching will be needed
+        if len(tickers) > max_threads:
+            self.logger.info(
+                f"Ticker count ({len(tickers)}) exceeds max_threads ({max_threads}). "
+                f"Batching will be used. Consider increasing THREAD_MAX_THREADS "
+                f"for faster processing."
+            )
+
+        # Batch processing loop
+        remaining_tickers = list(tickers)
+        last_log_time = time.time()
+
+        self.logger.info("Starting batch processing...")
+
+        while remaining_tickers:
+            # Check available thread capacity
+            active_count = self.thread_manager.get_active_thread_count()
+            available_slots = max_threads - active_count
+
+            # Start new threads up to available capacity
+            if available_slots > 0 and remaining_tickers:
+                batch_size = min(available_slots, len(remaining_tickers))
+                batch = remaining_tickers[:batch_size]
+                remaining_tickers = remaining_tickers[batch_size:]
+
+                for ticker in batch:
+                    try:
+                        self.thread_manager.start_thread(
+                            target=process_ticker,
+                            name=f"strategy-{ticker}",
+                            args=(ticker,),
+                        )
+                        self.logger.debug(f"Started thread for {ticker}")
+                    except RuntimeError as e:
+                        self.logger.error(f"Failed to start thread for {ticker}: {e}")
+                        remaining_tickers.append(ticker)  # Re-add to queue
+
+            # Wait briefly for threads to complete
+            time.sleep(0.5)
+
+            # Log progress periodically (every 10 seconds)
+            # Note: We don't cleanup dead threads here to preserve results for final summary
+            current_time = time.time()
+            if current_time - last_log_time >= 10:
+                with self.thread_manager.lock:
+                    completed_count = sum(
+                        1
+                        for status in self.thread_manager.threads.values()
+                        if not status.thread.is_alive() and status.status in ("stopped", "error")
+                    )
+                started_count = len(tickers) - len(remaining_tickers)
+                self.logger.info(
+                    f"Progress: {started_count} started, {completed_count} completed, "
+                    f"{len(remaining_tickers)} remaining, {active_count} active threads"
+                )
+                last_log_time = current_time
+
+        # Wait for all remaining threads to complete
         self.logger.info("Waiting for all strategy threads to complete...")
         self.thread_manager.wait_for_all_threads(timeout=300)
 

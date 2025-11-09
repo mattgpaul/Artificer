@@ -197,12 +197,14 @@ def generate_journal(signals, args, logger, strategy):
         )
 
         metrics, trades = journal.generate_report()
-        print(format_journal_summary(metrics, ticker, strategy.strategy_name))
 
-        if args.detailed:
-            print(format_trade_details(trades))
-
+        # Only display journal summary if there are trades
         if not trades.empty:
+            print(format_journal_summary(metrics, ticker, strategy.strategy_name))
+
+            if args.detailed:
+                print(format_trade_details(trades))
+
             all_trades.append(trades)
 
     # Generate group summary if multiple tickers
