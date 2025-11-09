@@ -137,7 +137,8 @@ class TradeJournal:
 
         Returns:
             Dictionary with performance metrics including total_trades, total_profit,
-            total_profit_pct, max_drawdown, sharpe_ratio, avg_efficiency.
+            total_profit_pct, max_drawdown, sharpe_ratio, avg_efficiency, avg_return_pct,
+            avg_time_held, win_rate.
         """
         if trades.empty:
             self.logger.warning("No trades to analyze")
@@ -148,6 +149,9 @@ class TradeJournal:
                 "max_drawdown": 0.0,
                 "sharpe_ratio": 0.0,
                 "avg_efficiency": 0.0,
+                "avg_return_pct": 0.0,
+                "avg_time_held": 0.0,
+                "win_rate": 0.0,
             }
 
         total_trades = len(trades)
@@ -159,6 +163,15 @@ class TradeJournal:
         sharpe_ratio = self._calculate_sharpe_ratio(trades)
         avg_efficiency = trades["efficiency"].mean() if "efficiency" in trades.columns else 0.0
 
+        # New metrics
+        avg_return_pct = trades["gross_pnl_pct"].mean()
+        winning_trades = (trades["gross_pnl"] > 0).sum()
+        win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0.0
+
+        # Calculate average time held in hours
+        time_deltas = trades["exit_time"] - trades["entry_time"]
+        avg_time_held = time_deltas.mean().total_seconds() / 3600  # Convert to hours
+
         metrics = {
             "total_trades": total_trades,
             "total_profit": total_profit,
@@ -166,13 +179,16 @@ class TradeJournal:
             "max_drawdown": max_drawdown,
             "sharpe_ratio": sharpe_ratio,
             "avg_efficiency": avg_efficiency,
+            "avg_return_pct": avg_return_pct,
+            "avg_time_held": avg_time_held,
+            "win_rate": win_rate,
         }
 
         self.logger.info(
             f"Metrics calculated: {total_trades} trades, "
             f"${total_profit:.2f} profit ({total_profit_pct:.2f}%), "
             f"{max_drawdown:.2f}% drawdown, {sharpe_ratio:.2f} Sharpe, "
-            f"{avg_efficiency:.1f}% efficiency"
+            f"{avg_efficiency:.1f}% efficiency, {win_rate:.1f}% win rate"
         )
 
         return metrics
