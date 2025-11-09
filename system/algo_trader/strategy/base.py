@@ -42,7 +42,10 @@ class BaseStrategy(Client):
         strategy_name: Unique identifier for this strategy.
         influx_client: MarketDataInflux client for database operations.
         thread_manager: Optional ThreadManager for parallel processing.
+        strategy_type: Strategy type - 'LONG' or 'SHORT'. Subclasses must set this.
     """
+
+    strategy_type: str = None  # Subclasses must set to "LONG" or "SHORT"
 
     def __init__(
         self,
@@ -253,11 +256,13 @@ class BaseStrategy(Client):
             self.logger.error(f"Signal generation failed for {ticker}: {e}")
             return pd.DataFrame()
 
-        # Add signal_type to each DataFrame
+        # Add signal_type and side to each DataFrame
         if not buy_signals.empty:
             buy_signals["signal_type"] = "buy"
+            buy_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
         if not sell_signals.empty:
             sell_signals["signal_type"] = "sell"
+            sell_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
 
         # Combine buy and sell signals
         if buy_signals.empty and sell_signals.empty:
