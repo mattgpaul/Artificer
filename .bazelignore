@@ -1,0 +1,4 @@
+# Git worktrees - separate Bazel workspaces
+# This prevents Bazel from discovering nested MODULE.bazel and BUILD files
+worktrees/
+

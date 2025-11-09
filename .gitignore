@@ -214,3 +214,8 @@ bazel*
 # Environment files
 *.env
 *tokens*
+
+# Git worktrees (if created inside repo)
+# Worktrees are separate checkouts that share the same .git directory
+# They should be ignored to prevent accidental commits of nested workspaces
+worktrees/

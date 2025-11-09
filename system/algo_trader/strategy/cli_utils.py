@@ -1,7 +1,35 @@
+"""CLI utility functions for strategy execution.
+
+This module provides utility functions for ticker resolution, signal formatting,
+and journal formatting used by the strategy execution CLI.
+"""
+
 from system.algo_trader.datasource.sec.tickers import Tickers
 
 
 def resolve_tickers(tickers_arg, logger):
+    """Resolve ticker symbols from command-line arguments.
+
+    Handles two cases:
+    1. Specific tickers: Returns the provided list as-is
+    2. 'full-registry': Fetches all tickers from SEC datasource
+
+    Args:
+        tickers_arg: List of ticker symbols or ['full-registry'].
+        logger: Logger instance for logging resolution progress.
+
+    Returns:
+        List of resolved ticker symbols. Empty list if full-registry
+        returns no data.
+
+    Raises:
+        ValueError: If full-registry fails to retrieve data from SEC.
+
+    Example:
+        >>> tickers = resolve_tickers(['AAPL', 'MSFT'], logger)
+        >>> assert tickers == ['AAPL', 'MSFT']
+        >>> all_tickers = resolve_tickers(['full-registry'], logger)
+    """
     if tickers_arg == ["full-registry"]:
         logger.info("full-registry specified, fetching all tickers from SEC datasource...")
         ticker_source = Tickers()
@@ -24,6 +52,19 @@ def resolve_tickers(tickers_arg, logger):
 
 
 def format_signal_summary(signals):
+    """Format trading signals into a human-readable summary string.
+
+    Args:
+        signals: DataFrame containing trading signals with 'signal_type' column.
+
+    Returns:
+        Formatted string with signal summary including total count and
+        breakdown by buy/sell signals. Returns "No signals generated" if empty.
+
+    Example:
+        >>> summary = format_signal_summary(signals_df)
+        >>> print(summary)
+    """
     if signals.empty:
         return "No signals generated"
 
@@ -42,6 +83,28 @@ def format_signal_summary(signals):
 
 
 def format_journal_summary(metrics, ticker, strategy):
+    """Format trading journal metrics into a human-readable summary string.
+
+    Args:
+        metrics: Dictionary containing performance metrics:
+            - total_trades: Number of completed trades
+            - total_profit: Total profit/loss in dollars
+            - total_profit_pct: Total profit/loss percentage
+            - max_drawdown: Maximum drawdown percentage
+            - win_rate: Win rate percentage (optional)
+            - avg_return_pct: Average return percentage (optional)
+            - avg_time_held: Average time held in hours (optional)
+            - avg_efficiency: Average efficiency percentage (optional)
+        ticker: Stock ticker symbol for the journal.
+        strategy: Strategy name for the journal.
+
+    Returns:
+        Formatted string with journal summary including all metrics.
+
+    Example:
+        >>> metrics = {'total_trades': 10, 'total_profit': 500.0, ...}
+        >>> summary = format_journal_summary(metrics, 'AAPL', 'sma-crossover')
+    """
     output = []
     output.append(f"\n{'=' * 80}")
     output.append(f"Trading Journal Summary: {ticker} - {strategy}")
@@ -55,7 +118,7 @@ def format_journal_summary(metrics, ticker, strategy):
     output.append(f"Avg Return %:      {metrics.get('avg_return_pct', 0.0):.2f}%")
 
     # Format avg_time_held
-    avg_time_held_hours = metrics.get('avg_time_held', 0.0)
+    avg_time_held_hours = metrics.get("avg_time_held", 0.0)
     if avg_time_held_hours < 24:
         time_held_str = f"{avg_time_held_hours:.1f} hours"
     else:
@@ -72,6 +135,20 @@ def format_journal_summary(metrics, ticker, strategy):
 
 
 def format_group_summary(metrics, strategy):
+    """Format aggregate trading journal metrics across multiple tickers.
+
+    Args:
+        metrics: Dictionary containing aggregate performance metrics
+            (same structure as format_journal_summary).
+        strategy: Strategy name for the group summary.
+
+    Returns:
+        Formatted string with group summary including aggregate metrics.
+
+    Example:
+        >>> group_metrics = {'total_trades': 50, 'total_profit': 2500.0, ...}
+        >>> summary = format_group_summary(group_metrics, 'sma-crossover')
+    """
     output = []
     output.append(f"\n{'#' * 80}")
     output.append(f"GROUP SUMMARY: ALL TICKERS - {strategy}")
@@ -85,7 +162,7 @@ def format_group_summary(metrics, strategy):
     output.append(f"Avg Return %:      {metrics.get('avg_return_pct', 0.0):.2f}%")
 
     # Format avg_time_held
-    avg_time_held_hours = metrics.get('avg_time_held', 0.0)
+    avg_time_held_hours = metrics.get("avg_time_held", 0.0)
     if avg_time_held_hours < 24:
         time_held_str = f"{avg_time_held_hours:.1f} hours"
     else:
@@ -102,6 +179,31 @@ def format_group_summary(metrics, strategy):
 
 
 def format_trade_details(trades):
+    """Format detailed trade history into a human-readable table.
+
+    Args:
+        trades: DataFrame containing trade details with columns:
+            - entry_time: Entry timestamp
+            - exit_time: Exit timestamp
+            - entry_price: Entry price
+            - exit_price: Exit price
+            - shares: Number of shares
+            - gross_pnl: Gross profit/loss in dollars
+            - gross_pnl_pct: Gross profit/loss percentage
+            - ticker: Stock symbol (optional)
+            - side: Trade side 'LONG' or 'SHORT' (optional)
+            - strategy: Strategy name (optional)
+            - status: Trade status (optional, default: 'CLOSED')
+            - efficiency: Trade efficiency percentage (optional)
+
+    Returns:
+        Formatted string with detailed trade history table.
+        Returns "No completed trades to display" if empty.
+
+    Example:
+        >>> details = format_trade_details(trades_df)
+        >>> print(details)
+    """
     if trades.empty:
         return "No completed trades to display"
 

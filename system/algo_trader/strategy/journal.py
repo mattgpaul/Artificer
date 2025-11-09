@@ -84,8 +84,12 @@ class TradeJournal:
                 open_positions[ticker] = []
 
             # LONG: buy entry, sell exit | SHORT: sell entry, buy exit
-            is_entry = (side == "LONG" and signal_type == "buy") or (side == "SHORT" and signal_type == "sell")
-            is_exit = (side == "LONG" and signal_type == "sell") or (side == "SHORT" and signal_type == "buy")
+            is_entry = (side == "LONG" and signal_type == "buy") or (
+                side == "SHORT" and signal_type == "sell"
+            )
+            is_exit = (side == "LONG" and signal_type == "sell") or (
+                side == "SHORT" and signal_type == "buy"
+            )
 
             if is_entry:
                 open_positions[ticker].append(
@@ -103,22 +107,26 @@ class TradeJournal:
                         gross_pnl = shares * (entry["entry_price"] - price)
 
                     gross_pnl_pct = (gross_pnl / self.capital_per_trade) * 100
-                    efficiency = self._calculate_efficiency(ticker, entry["entry_time"], timestamp, entry["entry_price"], price)
+                    efficiency = self._calculate_efficiency(
+                        ticker, entry["entry_time"], timestamp, entry["entry_price"], price
+                    )
 
-                    matched_trades.append({
-                        "ticker": ticker,
-                        "entry_time": entry["entry_time"],
-                        "entry_price": entry["entry_price"],
-                        "exit_time": timestamp,
-                        "exit_price": price,
-                        "shares": shares,
-                        "gross_pnl": gross_pnl,
-                        "gross_pnl_pct": gross_pnl_pct,
-                        "side": entry["side"],
-                        "status": "CLOSED",
-                        "strategy": self.strategy_name,
-                        "efficiency": efficiency,
-                    })
+                    matched_trades.append(
+                        {
+                            "ticker": ticker,
+                            "entry_time": entry["entry_time"],
+                            "entry_price": entry["entry_price"],
+                            "exit_time": timestamp,
+                            "exit_price": price,
+                            "shares": shares,
+                            "gross_pnl": gross_pnl,
+                            "gross_pnl_pct": gross_pnl_pct,
+                            "side": entry["side"],
+                            "status": "CLOSED",
+                            "strategy": self.strategy_name,
+                            "efficiency": efficiency,
+                        }
+                    )
 
         total_unmatched = sum(len(positions) for positions in open_positions.values())
         if total_unmatched > 0:

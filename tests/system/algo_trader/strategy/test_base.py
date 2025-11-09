@@ -18,6 +18,8 @@ from system.algo_trader.strategy.base import BaseStrategy, strategy_write_config
 class ConcreteStrategy(BaseStrategy):
     """Concrete implementation for testing BaseStrategy."""
 
+    strategy_type = "LONG"
+
     def __init__(
         self,
         strategy_name: str = "test_strategy",
@@ -29,21 +31,31 @@ class ConcreteStrategy(BaseStrategy):
         """Initialize concrete strategy for testing."""
         super().__init__(strategy_name, database, write_config, use_threading, config)
 
-    def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
-        """Mock signal generation that returns simple buy/sell signals."""
-        # Return simple signals based on data length
+    def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Mock buy signal generation."""
         if len(ohlcv_data) < 2:
             return pd.DataFrame()
-
-        signals = pd.DataFrame(
+        return pd.DataFrame(
             {
-                "signal_type": ["buy", "sell"],
-                "price": [ohlcv_data["close"].iloc[0], ohlcv_data["close"].iloc[-1]],
-                "confidence": [0.85, 0.92],
+                "price": [ohlcv_data["close"].iloc[0]],
             },
-            index=[ohlcv_data.index[0], ohlcv_data.index[-1]],
+            index=[ohlcv_data.index[0]],
         )
-        return signals
+
+    def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Mock sell signal generation."""
+        if len(ohlcv_data) < 2:
+            return pd.DataFrame()
+        return pd.DataFrame(
+            {
+                "price": [ohlcv_data["close"].iloc[-1]],
+            },
+            index=[ohlcv_data.index[-1]],
+        )
+
+    def add_strategy_arguments(self, parser):
+        """Add strategy-specific arguments to parser."""
+        pass
 
 
 @pytest.fixture
@@ -330,8 +342,8 @@ class TestRunStrategy:
         ].query.return_value = sample_ohlcv_data.reset_index().rename(columns={"index": "time"})
 
         strategy = ConcreteStrategy()
-        # Patch generate_signals to raise exception
-        with patch.object(strategy, "generate_signals", side_effect=Exception("Generation failed")):
+        # Patch buy method to raise exception (since generate_signals doesn't exist)
+        with patch.object(strategy, "buy", side_effect=Exception("Generation failed")):
             result = strategy.run_strategy("AAPL")
 
         assert isinstance(result, pd.DataFrame)

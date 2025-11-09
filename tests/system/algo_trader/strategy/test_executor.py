@@ -6,7 +6,7 @@ InfluxDB, TradeJournal, SMACrossoverStrategy) are mocked.
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -79,6 +79,7 @@ class TestCreateStrategy:
             long_window=20,
             database="test-database",
             use_threading=False,
+            thread_config=None,
         )
         mock_logger.info.assert_called_once()
 
@@ -89,13 +90,14 @@ class TestCreateStrategy:
         mock_strategy_instance = MagicMock()
         mock_sma_class.return_value = mock_strategy_instance
 
-        result = create_strategy(mock_args, mock_logger)
+        create_strategy(mock_args, mock_logger)
 
         mock_sma_class.assert_called_once_with(
             short_window=10,
             long_window=20,
             database="test-database",
             use_threading=True,
+            thread_config=ANY,  # ThreadConfig instance when threading is enabled
         )
 
     def test_create_strategy_unknown_type(self, mock_args, mock_logger):
@@ -242,11 +244,19 @@ class TestDisplaySignals:
 class TestGenerateJournal:
     """Test trading journal generation."""
 
+    @patch("system.algo_trader.strategy.executor.format_group_summary")
     @patch("system.algo_trader.strategy.executor.format_journal_summary")
     @patch("system.algo_trader.strategy.executor.TradeJournal")
     @patch("builtins.print")
     def test_generate_journal_success(
-        self, mock_print, mock_journal_class, mock_format, mock_args, mock_logger, sample_signals
+        self,
+        mock_print,
+        mock_journal_class,
+        mock_format_summary,
+        mock_format_group,
+        mock_args,
+        mock_logger,
+        sample_signals,
     ):
         """Test successful journal generation with trades."""
         mock_journal = MagicMock()
@@ -263,17 +273,30 @@ class TestGenerateJournal:
             {"entry_price": [150.0], "exit_price": [155.0], "gross_pnl": [500.0]}
         )
         mock_journal.generate_report.return_value = (mock_metrics, mock_trades)
-        mock_format.return_value = "Formatted journal summary"
+        # Mock calculate_metrics for group summary (called when multiple tickers)
+        mock_journal.calculate_metrics.return_value = {
+            "total_trades": 2,
+            "total_profit": 500.0,
+            "total_profit_pct": 5.0,
+            "max_drawdown": -2.5,
+        }
+        mock_format_summary.return_value = "Formatted journal summary"
+        mock_format_group.return_value = "Formatted group summary"
+        mock_strategy = MagicMock()
+        mock_strategy.strategy_name = "test_strategy"
+        mock_strategy.query_ohlcv.return_value = None
 
-        generate_journal(sample_signals, mock_args, mock_logger)
+        generate_journal(sample_signals, mock_args, mock_logger, mock_strategy)
 
-        # Verify TradeJournal was created for each ticker
-        assert mock_journal_class.call_count == 2  # AAPL and MSFT
+        # Verify TradeJournal was created for each ticker + group summary
+        assert mock_journal_class.call_count == 3  # AAPL, MSFT, and group summary
 
-        # Verify format and print calls
-        assert mock_format.call_count == 2
-        assert mock_print.call_count == 2
+        # Verify format and print calls (2 for individual tickers + 1 for group summary)
+        assert mock_format_summary.call_count == 2
+        assert mock_format_group.call_count == 1  # Group summary for multiple tickers
+        assert mock_print.call_count >= 3  # 2 individual + 1 group summary
 
+    @patch("system.algo_trader.strategy.executor.format_group_summary")
     @patch("system.algo_trader.strategy.executor.format_journal_summary")
     @patch("system.algo_trader.strategy.executor.format_trade_details")
     @patch("system.algo_trader.strategy.executor.TradeJournal")
@@ -284,6 +307,7 @@ class TestGenerateJournal:
         mock_journal_class,
         mock_format_details,
         mock_format_summary,
+        mock_format_group,
         mock_args,
         mock_logger,
         sample_signals,
@@ -296,22 +320,35 @@ class TestGenerateJournal:
         mock_metrics = {"total_trades": 1}
         mock_trades = pd.DataFrame({"entry_price": [150.0]})
         mock_journal.generate_report.return_value = (mock_metrics, mock_trades)
+        # Mock calculate_metrics for group summary (called when multiple tickers)
+        mock_journal.calculate_metrics.return_value = {
+            "total_trades": 1,
+            "total_profit": 0.0,
+            "total_profit_pct": 0.0,
+            "max_drawdown": 0.0,
+        }
 
         mock_format_summary.return_value = "Summary"
         mock_format_details.return_value = "Details"
+        mock_format_group.return_value = "Group Summary"
+        mock_strategy = MagicMock()
+        mock_strategy.strategy_name = "test_strategy"
+        mock_strategy.query_ohlcv.return_value = None
 
-        generate_journal(sample_signals, mock_args, mock_logger)
+        generate_journal(sample_signals, mock_args, mock_logger, mock_strategy)
 
         # Verify detailed format was called
-        assert mock_format_details.call_count == 2  # Once per ticker
+        assert mock_format_details.call_count >= 2  # Per ticker + group summary
         assert mock_format_summary.call_count == 2
 
     @patch("builtins.print")
     def test_generate_journal_empty_signals(self, mock_print, mock_args, mock_logger):
         """Test journal generation with empty signals."""
         empty_signals = pd.DataFrame()
+        mock_strategy = MagicMock()
+        mock_strategy.strategy_name = "test_strategy"
 
-        generate_journal(empty_signals, mock_args, mock_logger)
+        generate_journal(empty_signals, mock_args, mock_logger, mock_strategy)
 
         mock_logger.info.assert_called_once()
         assert mock_print.call_count == 3  # Three print calls for the "no signals" message
@@ -336,8 +373,11 @@ class TestGenerateJournal:
             },
             pd.DataFrame(),
         )
+        mock_strategy = MagicMock()
+        mock_strategy.strategy_name = "test_strategy"
+        mock_strategy.query_ohlcv.return_value = None
 
-        generate_journal(sample_signals, mock_args, mock_logger)
+        generate_journal(sample_signals, mock_args, mock_logger, mock_strategy)
 
         # Verify TradeJournal was created with custom parameters
         journal_calls = mock_journal_class.call_args_list
@@ -446,7 +486,9 @@ class TestExecuteStrategy:
         result = execute_strategy(mock_args, ["AAPL"], mock_logger)
 
         assert result == 0
-        mock_generate_journal.assert_called_once_with(sample_signals, mock_args, mock_logger)
+        mock_generate_journal.assert_called_once_with(
+            sample_signals, mock_args, mock_logger, mock_strategy
+        )
         mock_strategy.close.assert_called_once()
 
     @patch("system.algo_trader.strategy.executor.create_strategy")

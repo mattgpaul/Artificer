@@ -5,8 +5,11 @@ trading strategies that generate buy/sell signals from OHLCV data stored in
 InfluxDB and persist signals back to the database.
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -15,6 +18,9 @@ from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
+
+if TYPE_CHECKING:
+    from infrastructure.config import ThreadConfig
 
 strategy_write_config = BatchWriteConfig(
     batch_size=50000,
@@ -47,13 +53,14 @@ class BaseStrategy(Client):
 
     strategy_type: str = None  # Subclasses must set to "LONG" or "SHORT"
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         strategy_name: str,
         database: str = "algo-trader-database",
         write_config: BatchWriteConfig = strategy_write_config,
         use_threading: bool = False,
         config=None,
+        thread_config: ThreadConfig | None = None,
     ):
         """Initialize strategy with InfluxDB connection and optional threading.
 
@@ -63,6 +70,8 @@ class BaseStrategy(Client):
             write_config: Batch write configuration for signal persistence.
             use_threading: Enable ThreadManager for parallel ticker processing.
             config: Optional InfluxDB config. If None, reads from environment.
+            thread_config: Optional ThreadConfig for thread management.
+                If None and use_threading=True, ThreadManager will auto-create from environment.
         """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
@@ -70,23 +79,49 @@ class BaseStrategy(Client):
         self.influx_client = MarketDataInflux(
             database=database, write_config=write_config, config=config
         )
-        self.thread_manager = ThreadManager() if use_threading else None
+        self.thread_manager = ThreadManager(config=thread_config) if use_threading else None
+
+        threading_info = f"threading={use_threading}"
+        if use_threading and thread_config:
+            threading_info += f", max_threads={thread_config.max_threads}"
 
         self.logger.info(
-            f"Strategy '{strategy_name}' initialized (database={database}, "
-            f"threading={use_threading})"
+            f"Strategy '{strategy_name}' initialized (database={database}, {threading_info})"
         )
 
     @abstractmethod
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate buy signals from OHLCV data.
+
+        Args:
+            ohlcv_data: DataFrame with OHLCV data indexed by datetime.
+            ticker: Stock ticker symbol.
+
+        Returns:
+            DataFrame with buy signals indexed by timestamp.
+        """
         pass
 
     @abstractmethod
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate sell signals from OHLCV data.
+
+        Args:
+            ohlcv_data: DataFrame with OHLCV data indexed by datetime.
+            ticker: Stock ticker symbol.
+
+        Returns:
+            DataFrame with sell signals indexed by timestamp.
+        """
         pass
 
     @abstractmethod
     def add_strategy_arguments(self, parser):
+        """Add strategy-specific arguments to argument parser.
+
+        Args:
+            parser: argparse.ArgumentParser instance to add arguments to.
+        """
         pass
 
     def query_ohlcv(
@@ -279,7 +314,9 @@ class BaseStrategy(Client):
         if write_signals:
             write_success = self.write_signals(signals, ticker)
             if not write_success:
-                self.logger.warning(f"Failed to write signals for {ticker}, returning summary anyway")
+                self.logger.warning(
+                    f"Failed to write signals for {ticker}, returning summary anyway"
+                )
 
         # Build summary DataFrame
         summary = signals.copy()
