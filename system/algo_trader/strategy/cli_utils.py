@@ -30,28 +30,12 @@ def format_signal_summary(signals):
     output = []
     output.append(f"\n{'=' * 80}")
     output.append(f"Generated {len(signals)} trading signals")
-    output.append(f"{'=' * 80}\n")
-
-    for _, row in signals.iterrows():
-        signal_time = row["signal_time"].strftime("%Y-%m-%d %H:%M:%S")
-        signal_type = row["signal_type"].upper()
-        price = row["price"]
-        confidence = row.get("confidence", 0.0)
-        ticker = row.get("ticker", "N/A")
-
-        output.append(
-            f"[{signal_time}] {ticker} - {signal_type:4s} @ ${price:.2f} "
-            f"(confidence: {confidence:.2%})"
-        )
-
-    output.append(f"\n{'=' * 80}")
+    output.append(f"{'=' * 80}")
 
     buy_count = (signals["signal_type"] == "buy").sum()
     sell_count = (signals["signal_type"] == "sell").sum()
-    avg_confidence = signals.get("confidence", 0.0).mean()
 
     output.append(f"Summary: {buy_count} BUY signals, {sell_count} SELL signals")
-    output.append(f"Average confidence: {avg_confidence:.2%}")
     output.append(f"{'=' * 80}\n")
 
     return "\n".join(output)
@@ -68,6 +52,7 @@ def format_journal_summary(metrics, ticker, strategy):
     output.append(f"Total Profit %:    {metrics['total_profit_pct']:.2f}%")
     output.append(f"Max Drawdown:      {metrics['max_drawdown']:.2f}%")
     output.append(f"Sharpe Ratio:      {metrics['sharpe_ratio']:.2f}")
+    output.append(f"Avg Efficiency:    {metrics.get('avg_efficiency', 0.0):.1f}%")
 
     output.append(f"\n{'=' * 80}\n")
 
@@ -79,31 +64,42 @@ def format_trade_details(trades):
         return "No completed trades to display"
 
     output = []
-    output.append(f"\n{'=' * 80}")
+    output.append(f"\n{'=' * 120}")
     output.append("Detailed Trade History")
-    output.append(f"{'=' * 80}\n")
+    output.append(f"{'=' * 120}\n")
 
-    # Header
+    # Header with all columns matching user's requirement
     output.append(
-        f"{'Entry Time':<20} {'Exit Time':<20} {'Entry $':<10} {'Exit $':<10} "
-        f"{'P&L $':<12} {'P&L %':<10}"
+        f"{'STATUS':<8} {'ENTRY DATE':<11} {'ENTRY TIME':<9} {'EXIT DATE':<11} {'EXIT TIME':<9} "
+        f"{'SYMBOL':<8} {'ENTRY':<10} {'EXIT':<10} {'SIZE':<10} {'SIDE':<6} "
+        f"{'RETURN $':<12} {'RETURN %':<10} {'STRATEGY':<20} {'EFFICIENCY':<10}"
     )
-    output.append("-" * 80)
+    output.append("-" * 120)
 
     # Rows
     for _, trade in trades.iterrows():
-        entry_time = trade["entry_time"].strftime("%Y-%m-%d %H:%M:%S")
-        exit_time = trade["exit_time"].strftime("%Y-%m-%d %H:%M:%S")
+        entry_date = trade["entry_time"].strftime("%Y-%m-%d")
+        entry_time = trade["entry_time"].strftime("%H:%M:%S")
+        exit_date = trade["exit_time"].strftime("%Y-%m-%d")
+        exit_time = trade["exit_time"].strftime("%H:%M:%S")
+
+        status = trade.get("status", "CLOSED")
+        symbol = trade.get("ticker", "")
         entry_price = trade["entry_price"]
         exit_price = trade["exit_price"]
-        gross_pnl = trade["gross_pnl"]
-        gross_pnl_pct = trade["gross_pnl_pct"]
+        size = trade["shares"]
+        side = trade.get("side", "LONG")
+        return_dollar = trade["gross_pnl"]
+        return_pct = trade["gross_pnl_pct"]
+        strategy = trade.get("strategy", "")
+        efficiency = trade.get("efficiency", 0.0)
 
         output.append(
-            f"{entry_time:<20} {exit_time:<20} {entry_price:<10.2f} {exit_price:<10.2f} "
-            f"{gross_pnl:<12.2f} {gross_pnl_pct:<10.2f}%"
+            f"{status:<8} {entry_date:<11} {entry_time:<9} {exit_date:<11} {exit_time:<9} "
+            f"{symbol:<8} {entry_price:<10.2f} {exit_price:<10.2f} {size:<10.2f} {side:<6} "
+            f"{return_dollar:<12.2f} {return_pct:<10.2f}% {strategy:<20} {efficiency:<10.1f}%"
         )
 
-    output.append(f"\n{'=' * 80}\n")
+    output.append(f"\n{'=' * 120}\n")
 
     return "\n".join(output)
