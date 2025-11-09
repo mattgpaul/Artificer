@@ -71,6 +71,36 @@ def format_journal_summary(metrics, ticker, strategy):
     return "\n".join(output)
 
 
+def format_group_summary(metrics, strategy):
+    output = []
+    output.append(f"\n{'#' * 80}")
+    output.append(f"GROUP SUMMARY: ALL TICKERS - {strategy}")
+    output.append(f"{'#' * 80}\n")
+
+    output.append(f"Total Trades:      {metrics['total_trades']}")
+    output.append(f"Total Profit:      ${metrics['total_profit']:.2f}")
+    output.append(f"Total Profit %:    {metrics['total_profit_pct']:.2f}%")
+    output.append(f"Max Drawdown:      {metrics['max_drawdown']:.2f}%")
+    output.append(f"Win Rate:          {metrics.get('win_rate', 0.0):.2f}%")
+    output.append(f"Avg Return %:      {metrics.get('avg_return_pct', 0.0):.2f}%")
+
+    # Format avg_time_held
+    avg_time_held_hours = metrics.get('avg_time_held', 0.0)
+    if avg_time_held_hours < 24:
+        time_held_str = f"{avg_time_held_hours:.1f} hours"
+    else:
+        days = int(avg_time_held_hours // 24)
+        hours = int(avg_time_held_hours % 24)
+        time_held_str = f"{days} days {hours} hours"
+
+    output.append(f"Avg Time Held:     {time_held_str}")
+    output.append(f"Avg Efficiency:    {metrics.get('avg_efficiency', 0.0):.1f}%")
+
+    output.append(f"\n{'#' * 80}\n")
+
+    return "\n".join(output)
+
+
 def format_trade_details(trades):
     if trades.empty:
         return "No completed trades to display"

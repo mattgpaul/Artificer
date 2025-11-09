@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.cli_utils import (
+    format_group_summary,
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
@@ -74,6 +75,7 @@ def generate_journal(signals, args, logger, strategy):
 
     logger.info("Generating trading journal...")
     unique_tickers = signals["ticker"].unique()
+    all_trades = []
 
     for ticker in unique_tickers:
         ticker_signals = signals[signals["ticker"] == ticker]
@@ -102,6 +104,34 @@ def generate_journal(signals, args, logger, strategy):
 
         if args.detailed:
             print(format_trade_details(trades))
+
+        if not trades.empty:
+            all_trades.append(trades)
+
+    # Generate group summary if multiple tickers
+    if len(unique_tickers) > 1 and all_trades:
+        _generate_group_summary(all_trades, args, logger, strategy)
+
+
+def _generate_group_summary(all_trades, args, logger, strategy):
+    import pandas as pd
+
+    logger.info("Generating group summary across all tickers...")
+    combined_trades = pd.concat(all_trades, ignore_index=True)
+
+    # Create a temporary journal for metrics calculation
+    group_journal = TradeJournal(
+        signals=pd.DataFrame(),
+        strategy_name=strategy.strategy_name,
+        capital_per_trade=args.capital,
+        risk_free_rate=args.risk_free_rate,
+    )
+
+    group_metrics = group_journal.calculate_metrics(combined_trades)
+    print(format_group_summary(group_metrics, strategy.strategy_name))
+
+    if args.detailed:
+        print(format_trade_details(combined_trades))
 
 
 def execute_strategy(args, tickers, logger):
