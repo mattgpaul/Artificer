@@ -26,20 +26,17 @@ class SMACrossoverStrategy(BaseStrategy):
     - Buy signal: Short-period SMA crosses above long-period SMA (bullish)
     - Sell signal: Short-period SMA crosses below long-period SMA (bearish)
 
-    Confidence scores are calculated based on the strength of the crossover,
-    measured by the percentage difference between the two SMAs at the crossover point.
-
     Attributes:
         short_window: Number of periods for the short-term SMA (default: 10).
         long_window: Number of periods for the long-term SMA (default: 20).
-        min_confidence: Minimum crossover strength to generate a signal (default: 0.0).
     """
+
+    strategy_type = "LONG"
 
     def __init__(  # noqa: PLR0913
         self,
         short_window: int = 10,
         long_window: int = 20,
-        min_confidence: float = 0.0,
         database: str = "algo-trader-database",
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
@@ -50,7 +47,6 @@ class SMACrossoverStrategy(BaseStrategy):
         Args:
             short_window: Period for short-term SMA (must be less than long_window).
             long_window: Period for long-term SMA (must be greater than short_window).
-            min_confidence: Minimum confidence threshold for signal generation (0.0-1.0).
             database: InfluxDB database name for signal persistence.
             write_config: Optional batch write configuration for InfluxDB.
             use_threading: Enable parallel processing for multiple tickers.
@@ -65,8 +61,6 @@ class SMACrossoverStrategy(BaseStrategy):
             )
         if short_window < 2:
             raise ValueError(f"short_window must be at least 2, got {short_window}")
-        if min_confidence < 0.0 or min_confidence > 1.0:
-            raise ValueError(f"min_confidence must be in [0.0, 1.0], got {min_confidence}")
 
         strategy_name = f"sma_crossover_{short_window}_{long_window}"
 
@@ -84,11 +78,9 @@ class SMACrossoverStrategy(BaseStrategy):
 
         self.short_window = short_window
         self.long_window = long_window
-        self.min_confidence = min_confidence
 
         self.logger.info(
-            f"SMA Crossover initialized: short={short_window}, "
-            f"long={long_window}, min_confidence={min_confidence}"
+            f"SMA Crossover initialized: short={short_window}, long={long_window}"
         )
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -107,8 +99,7 @@ class SMACrossoverStrategy(BaseStrategy):
                 signal = self._create_signal(
                     idx, ohlcv_data, sma_short, sma_long, current_diff
                 )
-                if signal:
-                    buy_signals.append(signal)
+                buy_signals.append(signal)
 
         if not buy_signals:
             self.logger.debug(f"No buy signals detected for {ticker}")
@@ -138,8 +129,7 @@ class SMACrossoverStrategy(BaseStrategy):
                 signal = self._create_signal(
                     idx, ohlcv_data, sma_short, sma_long, current_diff
                 )
-                if signal:
-                    sell_signals.append(signal)
+                sell_signals.append(signal)
 
         if not sell_signals:
             self.logger.debug(f"No sell signals detected for {ticker}")
@@ -165,12 +155,6 @@ class SMACrossoverStrategy(BaseStrategy):
             type=int,
             default=20,
             help="Long-term SMA window period (default: 20)",
-        )
-        parser.add_argument(
-            "--min-confidence",
-            type=float,
-            default=0.0,
-            help="Minimum confidence threshold for signal generation (default: 0.0)",
         )
 
     def _calculate_smas(
@@ -205,8 +189,8 @@ class SMACrossoverStrategy(BaseStrategy):
         sma_short: pd.Series,
         sma_long: pd.Series,
         diff: pd.Series,
-    ) -> dict[str, Any] | None:
-        """Create a signal dictionary with confidence and metadata.
+    ) -> dict[str, Any]:
+        """Create a signal dictionary with metadata.
 
         Args:
             timestamp: Datetime of the crossover event.
@@ -216,19 +200,12 @@ class SMACrossoverStrategy(BaseStrategy):
             diff: Difference between short and long SMAs.
 
         Returns:
-            Dictionary with signal data, or None if below confidence threshold.
+            Dictionary with signal data.
         """
         price = ohlcv_data.loc[timestamp, "close"]
         sma_short_val = sma_short.loc[timestamp]
         sma_long_val = sma_long.loc[timestamp]
         diff_val = diff.loc[timestamp]
-
-        # Calculate confidence based on crossover strength
-        # Higher absolute difference indicates stronger signal
-        confidence = self._calculate_confidence(diff_val, sma_long_val)
-
-        if confidence < self.min_confidence:
-            return None
 
         # Build metadata with strategy context
         metadata = {
@@ -243,34 +220,5 @@ class SMACrossoverStrategy(BaseStrategy):
         return {
             "timestamp": timestamp,
             "price": round(price, 4),
-            "confidence": round(confidence, 4),
             "metadata": json.dumps(metadata),
         }
-
-    def _calculate_confidence(self, diff: float, sma_long: float) -> float:
-        """Calculate confidence score from crossover strength.
-
-        Confidence is based on the percentage difference between the two SMAs.
-        A larger gap indicates a stronger, more reliable crossover signal.
-
-        Args:
-            diff: Absolute difference between short and long SMAs.
-            sma_long: Long-period SMA value (used for normalization).
-
-        Returns:
-            Confidence score between 0.0 and 1.0.
-            Returns 0.0 if sma_long is zero to avoid division errors.
-        """
-        if sma_long == 0:
-            return 0.0
-
-        # Percentage difference between SMAs
-        pct_diff = abs(diff / sma_long)
-
-        # Normalize to 0-1 range using sigmoid-like scaling
-        # 0.5% difference -> ~0.5 confidence
-        # 1.0% difference -> ~0.76 confidence
-        # 2.0% difference -> ~0.95 confidence
-        confidence = min(1.0, pct_diff / 0.01)
-
-        return confidence
