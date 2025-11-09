@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from datetime import datetime, timedelta
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.strategy.cli_utils import (
-    format_journal_summary,
-    format_signal_summary,
-    format_trade_details,
-    resolve_tickers,
-)
-from system.algo_trader.strategy.journal import TradeJournal
+from system.algo_trader.strategy.cli_utils import resolve_tickers
+from system.algo_trader.strategy.executor import execute_strategy
 from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
 
@@ -50,76 +44,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def process_journal(signals, args, logger):
-    """Generate trading journal from signals."""
-    if signals.empty:
-        logger.warning("No trades to journal - signals are empty")
-        return
-
-    unique_tickers = signals["ticker"].unique()
-    for ticker in unique_tickers:
-        ticker_signals = signals[signals["ticker"] == ticker]
-        journal = TradeJournal(
-            signals=ticker_signals,
-            capital_per_trade=args.capital,
-            risk_free_rate=args.risk_free_rate,
-        )
-        metrics, trades = journal.generate_report()
-        print(format_journal_summary(metrics, ticker, args.strategy))
-        if args.detailed:
-            print(format_trade_details(trades))
-
-
-def execute_strategy(strategy, tickers, args, logger):
-    """Execute strategy for single or multiple tickers."""
-    start_time = (datetime.now() - timedelta(days=args.lookback)).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    if len(tickers) == 1:
-        logger.info(f"Running strategy for single ticker: {tickers[0]}")
-        return strategy.run_strategy(
-            ticker=tickers[0],
-            start_time=start_time,
-            limit=args.limit,
-            write_signals=args.write,
-        )
-
-    logger.info(f"Running strategy for {len(tickers)} tickers")
-    return strategy.run_strategy_multi(
-        tickers=tickers,
-        start_time=start_time,
-        limit=args.limit,
-        write_signals=args.write,
-    )
-
-
-def handle_empty_signals(logger):
-    """Display helpful message when no signals generated."""
-    logger.warning("No trading signals were generated")
-    logger.info("Possible reasons:")
-    logger.info("  - Insufficient OHLCV data in InfluxDB")
-    logger.info("  - No signal conditions detected in the time range")
-    logger.info("  - All signals below min_confidence threshold")
-    logger.info("\nTo populate OHLCV data, run:")
-    logger.info("  bazel run //system/algo_trader/datasource/populate:main")
-
-
-def create_strategy(args, logger):
-    """Create strategy instance based on args."""
-    if args.strategy == "sma-crossover":
-        logger.info(
-            f"Initializing SMA Crossover: short={args.short}, long={args.long}, "
-            f"min_confidence={args.min_confidence}"
-        )
-        return SMACrossoverStrategy(
-            short_window=args.short,
-            long_window=args.long,
-            min_confidence=args.min_confidence,
-            database=args.database,
-            use_threading=args.threading,
-        )
-    raise ValueError(f"Unknown strategy: {args.strategy}")
-
-
 def main():
     args = parse_args()
     logger = get_logger("StrategyMain")
@@ -134,47 +58,7 @@ def main():
         logger.error(f"Failed to resolve tickers: {e}")
         return 1
 
-    start_time = datetime.now() - timedelta(days=args.lookback)
-    logger.info(f"Strategy: {args.strategy}")
-    logger.info(f"Tickers: {len(tickers)} ticker(s)")
-    logger.info(f"Time range: {start_time.strftime('%Y-%m-%dT%H:%M:%SZ')} to now ({args.lookback} days)")
-    logger.info(f"Threading: {'enabled' if args.threading else 'disabled'}")
-    logger.info(f"Database: {args.database}")
-    logger.info(f"Write to DB: {args.write}")
-
-    strategy = None
-    try:
-        strategy = create_strategy(args, logger)
-        signals = execute_strategy(strategy, tickers, args, logger)
-
-        if signals.empty:
-            handle_empty_signals(logger)
-        else:
-            print(format_signal_summary(signals))
-            if args.write:
-                logger.info("Signals have been written to InfluxDB strategy table")
-            else:
-                logger.info("NOTE: Signals were NOT written to InfluxDB")
-                logger.info("To persist signals, run with --write flag")
-
-        if args.journal:
-            logger.info("Generating trading journal...")
-            process_journal(signals, args, logger)
-
-    except ValueError as e:
-        logger.error(f"Strategy initialization failed: {e}")
-        return 1
-    except Exception as e:
-        logger.error(f"Strategy execution failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return 1
-    finally:
-        if strategy:
-            strategy.close()
-            logger.info("Strategy execution complete")
-
-    return 0
+    return execute_strategy(args, tickers, logger)
 
 
 if __name__ == "__main__":
