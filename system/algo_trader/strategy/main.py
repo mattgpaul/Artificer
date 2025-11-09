@@ -7,6 +7,8 @@ the complete strategy execution workflow.
 """
 
 import argparse
+import logging
+import os
 import sys
 
 from infrastructure.logging.logger import get_logger
@@ -93,6 +95,11 @@ def parse_args():
         action="store_true",
         help="Show detailed trade-by-trade P&L in journal (default: False)",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Reduce verbosity by suppressing INFO level logs (default: False)",
+    )
 
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to execute"
@@ -123,6 +130,16 @@ def main():
         ...     sys.exit(main())
     """
     args = parse_args()
+
+    # Set logging level to WARNING if quiet mode is enabled
+    # This sets the environment variable so all loggers created via get_logger() will respect it
+    if args.quiet:
+        os.environ["LOG_LEVEL"] = "WARNING"
+        # Also set level on root logger and all existing loggers
+        logging.getLogger().setLevel(logging.WARNING)
+        for name in logging.root.manager.loggerDict:
+            logging.getLogger(name).setLevel(logging.WARNING)
+
     logger = get_logger("StrategyMain")
 
     logger.info("=" * 80)
