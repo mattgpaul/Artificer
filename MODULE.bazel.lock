@@ -712,7 +712,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "LK2FAPoEJAYKf+35mu6bJe/4XnwBiGjQt/m3Cxrqqj8=",
-        "usagesDigest": "YrFabBuqx+ZAV6xhmwE62uVLRsjIDjyHhleXnAqpsYI=",
+        "usagesDigest": "z+wg6zaOFKRzPuimqVQFadcXxiXJVh4biit3iTHH6Q8=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -801,6 +801,35 @@
                 "@@platforms//cpu:x86_64": "@grafana_linux_amd64"
               },
               "bzlmod_repository": "grafana",
+              "reproducible": true
+            }
+          },
+          "python_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/python",
+              "identifier": "sha256:e4676722fba839e2e5cdb844a52262b43e90e56dbd55b7ad953ee3615ad7534f",
+              "platform": "linux/amd64",
+              "target_name": "python_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "python": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "python",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/python",
+              "identifier": "sha256:e4676722fba839e2e5cdb844a52262b43e90e56dbd55b7ad953ee3615ad7534f",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@python_linux_amd64"
+              },
+              "bzlmod_repository": "python",
               "reproducible": true
             }
           },
@@ -925,7 +954,9 @@
             "redis",
             "redis_linux_amd64",
             "grafana",
-            "grafana_linux_amd64"
+            "grafana_linux_amd64",
+            "python",
+            "python_linux_amd64"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

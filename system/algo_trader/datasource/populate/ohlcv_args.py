@@ -7,23 +7,16 @@ data population with validation against Schwab API timescale requirements.
 import argparse
 import time
 
-from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
-from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
-ohlcv_write_config = BatchWriteConfig(
-    batch_size=300000,
-    flush_interval=5000,
-    jitter_interval=1000,
-    retry_interval=10000,
-    max_retries=3,
-    max_retry_delay=30000,
-    exponential_base=2,
-)
+OHLCV_QUEUE_NAME = "ohlcv_queue"
+OHLCV_REDIS_TTL = 3600
+MAX_THREADS = 4
 
 
 class OHLCVArgumentHandler(ArgumentHandler):
@@ -197,16 +190,18 @@ class OHLCVArgumentHandler(ArgumentHandler):
             f"and period {period_type.value}={period_value}"
         )
 
-        # Initialize MarketHandler, ThreadManager, and InfluxDB client
+        # Initialize MarketHandler, ThreadManager (hard-coded to 4 threads), and QueueBroker
         market_handler = MarketHandler()
-        thread_manager = ThreadManager()  # Uses config from environment
-        influx_client = MarketDataInflux(
-            database="algo-trader-database", write_config=ohlcv_write_config
-        )  # Uses INFLUXDB_DATABASE env var
 
-        max_threads = thread_manager.config.max_threads
+        from infrastructure.config import ThreadConfig
+        thread_config = ThreadConfig(max_threads=MAX_THREADS)
+        thread_manager = ThreadManager(config=thread_config)
+
+        queue_broker = QueueBroker(namespace="queue")
+
+        max_threads = MAX_THREADS
         self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
-        self.logger.info(f"InfluxDB client initialized for database: {influx_client.database}")
+        self.logger.info(f"QueueBroker initialized for queue: {OHLCV_QUEUE_NAME}")
 
         # Check if batching will be needed
         if len(tickers) > max_threads:
@@ -217,7 +212,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             )
 
         def fetch_ticker_data(ticker: str) -> dict:
-            """Thread target function to fetch OHLCV data and write to InfluxDB.
+            """Thread target function to fetch OHLCV data and write to Redis queue.
 
             Args:
                 ticker: Stock symbol to fetch data for.
@@ -251,17 +246,31 @@ class OHLCVArgumentHandler(ArgumentHandler):
                     self.logger.warning(f"{ticker}: Candles list is empty")
                     return {"success": False, "error": "Empty candles list"}
 
-                # Write data to InfluxDB
-                write_success = influx_client.write(data=candles, ticker=ticker, table="ohlcv")
+                # Write data to Redis queue
+                queue_data = {
+                    "ticker": ticker,
+                    "candles": candles,
+                    "frequency_type": frequency_type.value,
+                    "frequency_value": frequency_value,
+                    "period_type": period_type.value,
+                    "period_value": period_value,
+                }
 
-                if write_success:
+                enqueue_success = queue_broker.enqueue(
+                    queue_name=OHLCV_QUEUE_NAME,
+                    item_id=ticker,
+                    data=queue_data,
+                    ttl=OHLCV_REDIS_TTL,
+                )
+
+                if enqueue_success:
                     self.logger.debug(
-                        f"{ticker}: Successfully wrote {len(candles)} candles to InfluxDB"
+                        f"{ticker}: Successfully enqueued {len(candles)} candles to Redis"
                     )
                     return {"success": True}
                 else:
-                    self.logger.error(f"{ticker}: Failed to write data to InfluxDB")
-                    return {"success": False, "error": "InfluxDB write failed"}
+                    self.logger.error(f"{ticker}: Failed to enqueue data to Redis")
+                    return {"success": False, "error": "Redis enqueue failed"}
 
             except Exception as e:
                 self.logger.error(f"{ticker}: Exception during processing: {e}")
@@ -330,25 +339,14 @@ class OHLCVArgumentHandler(ArgumentHandler):
         # Final cleanup
         thread_manager.cleanup_dead_threads()
 
-        # Wait for all batch writes to complete using closed-loop monitoring
-        # This tracks the actual pending batch count rather than using fixed sleep time
-        self.logger.info("Waiting for all batch writes to complete...")
-        batch_timeout = 30  # seconds
-        batches_complete = influx_client.wait_for_batches(timeout=batch_timeout)
-
-        if batches_complete:
-            self.logger.info("All OHLCV data batches written successfully to InfluxDB.")
-        else:
-            self.logger.warning(
-                f"Some batches may still be pending after {batch_timeout}s timeout. "
-                "Data may still be written in background."
-            )
-
         # Print final summary
         print(f"\n{'=' * 50}")
-        print("OHLCV Data Population Summary")
+        print("OHLCV Data Fetching Summary")
         print(f"{'=' * 50}")
         print(f"Total Tickers: {len(tickers)}")
-        print(f"Successful: {summary['successful']}")
+        print(f"Successfully Enqueued: {summary['successful']}")
         print(f"Failed: {summary['failed']}")
+        print(f"Queue: {OHLCV_QUEUE_NAME}")
+        print(f"Redis TTL: {OHLCV_REDIS_TTL}s")
+        print(f"\nData will be published to InfluxDB by the influx-publisher service.")
         print(f"{'=' * 50}\n")
