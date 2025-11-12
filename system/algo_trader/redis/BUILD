@@ -7,6 +7,7 @@ py_library(
         "account.py",
         "historical_market.py",
         "live_market.py",
+        "queue_broker.py",
         "watchlist.py",
     ],
     visibility = [
