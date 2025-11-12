@@ -325,7 +325,7 @@ class Tickers:
             "sic": str(sic) if sic else None,
         }
 
-    def get_company_facts(self, ticker: str) -> dict | None:
+    def get_company_facts(self, ticker: str, years_back: int = 10) -> dict | None:
         """Retrieve company facts data for a given ticker.
 
         Fetches company facts from SEC API and processes them into static
@@ -333,6 +333,7 @@ class Tickers:
 
         Args:
             ticker: Stock ticker symbol to retrieve facts for.
+            years_back: Number of years back to include data. Default: 10.
 
         Returns:
             Dictionary with 'static' and 'time_series' keys, or None if data
@@ -348,6 +349,6 @@ class Tickers:
             return None
 
         static_info = self._extract_static_info(facts, ticker.upper())
-        time_series_df = self._build_time_series_dataframe(facts, ticker.upper())
+        time_series_df = self._build_time_series_dataframe(facts, ticker.upper(), years_back)
 
         return {"static": static_info, "time_series": time_series_df}

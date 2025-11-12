@@ -18,6 +18,21 @@ py_library(
 )
 
 py_library(
+    name = "fundamentals_client",
+    srcs = ["fundamentals_client.py"],
+    visibility = [
+        "//system:__pkg__",
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/sqlite:__pkg__",
+    ],
+    deps = [
+        "//infrastructure:config",
+        "//infrastructure/logging:logger",
+        "//infrastructure/sqlite",
+    ],
+)
+
+py_library(
     name = "bad_ticker_daemon_lib",
     srcs = ["bad_ticker_daemon.py"],
     visibility = [
@@ -32,12 +47,35 @@ py_library(
     ],
 )
 
+py_library(
+    name = "fundamentals_daemon_lib",
+    srcs = ["fundamentals_daemon.py"],
+    visibility = [
+        "//system:__pkg__",
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/sqlite:__pkg__",
+    ],
+    deps = [
+        ":fundamentals_client",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/redis:redis_services",
+    ],
+)
+
 py_binary(
     name = "bad_ticker_daemon",
     srcs = ["bad_ticker_daemon.py"],
     main = "bad_ticker_daemon.py",
     visibility = ["//visibility:public"],
     deps = [":bad_ticker_daemon_lib"],
+)
+
+py_binary(
+    name = "fundamentals_daemon",
+    srcs = ["fundamentals_daemon.py"],
+    main = "fundamentals_daemon.py",
+    visibility = ["//visibility:public"],
+    deps = [":fundamentals_daemon_lib"],
 )
 
 # Test for BadTickerClient - Bad Ticker Tracking

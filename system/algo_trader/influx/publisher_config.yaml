@@ -10,5 +10,16 @@ queues:
     max_retry_delay: 30000
     exponential_base: 2
     poll_interval: 2
+  - name: fundamentals_queue
+    table: fundamentals
+    namespace: queue
+    batch_size: 300000
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
 
 database: algo-trader-database
