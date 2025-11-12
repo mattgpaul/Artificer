@@ -117,3 +117,24 @@ class ThreadConfig(BaseSettings):
         env_prefix="THREAD_",
         env_file=None,
     )
+
+
+class SQLiteConfig(BaseSettings):
+    """SQLite connection configuration with environment variable support.
+
+    Reads from SQLITE_* environment variables automatically.
+
+    Attributes:
+        db_path: Path to SQLite database file (use :memory: for in-memory database).
+        timeout: Connection timeout in seconds.
+        isolation_level: Transaction isolation level (DEFERRED, IMMEDIATE, EXCLUSIVE).
+    """
+
+    db_path: str = Field(default=":memory:")
+    timeout: int = Field(default=30)
+    isolation_level: str = Field(default="DEFERRED")
+
+    model_config = SettingsConfigDict(
+        env_prefix="SQLITE_",
+        env_file=None,
+    )
