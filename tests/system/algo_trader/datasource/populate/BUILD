@@ -1,5 +1,6 @@
 """Build file for populate datasource tests."""
 
+load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
@@ -33,5 +34,21 @@ py_library(
     deps = [
         "//system/algo_trader/datasource/populate:main",
         "//system/algo_trader/datasource/populate:populate_lib",
+    ],
+)
+
+# Test library for market_cap utils
+py_library(
+    name = "test_market_cap_lib",
+    testonly = True,
+    srcs = [
+        "utils/conftest.py",
+        "utils/test_market_cap.py",
+    ],
+    visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
+    deps = [
+        "//system/algo_trader/datasource/populate:utils",
+        requirement("pandas"),
+        requirement("pytest"),
     ],
 )

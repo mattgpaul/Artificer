@@ -1,3 +1,4 @@
+load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
 
@@ -20,6 +21,20 @@ py_library(
         "//system/algo_trader/influx:influx_services",
         "//system/algo_trader/schwab:schwab_services",
         "//system/algo_trader/sqlite:bad_ticker_client",
+    ],
+)
+
+py_library(
+    name = "utils",
+    srcs = ["utils/market_cap.py"],
+    visibility = [
+        "//system/algo_trader/datasource:__subpackages__",
+        "//tests/system/algo_trader/datasource/populate:__pkg__",
+    ],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/influx:market_data_influx",
+        requirement("pandas"),
     ],
 )
 
@@ -57,4 +72,12 @@ pytest_test(
     coverage_path = "system.algo_trader.datasource.populate.main",
     tags = ["integration"],
     test_lib = "//tests/system/algo_trader/datasource/populate:test_main_lib",
+)
+
+pytest_test(
+    name = "test_market_cap",
+    size = "small",
+    coverage_path = "system.algo_trader.datasource.populate.utils.market_cap",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/datasource/populate:test_market_cap_lib",
 )

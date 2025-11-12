@@ -3,7 +3,11 @@ load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "tickers_lib",
-    srcs = ["tickers.py"],
+    srcs = [
+        "company_facts_config.py",
+        "tickers.py",
+    ],
+    data = ["company_facts.yaml"],
     visibility = [
         "//system:__pkg__",
         "//system/algo_trader:__subpackages__",
@@ -13,6 +17,8 @@ py_library(
     deps = [
         "//infrastructure/logging:logger",
         requirement("requests"),
+        requirement("pandas"),
+        requirement("pyyaml"),
     ],
 )
 
@@ -23,4 +29,13 @@ pytest_test(
     coverage_path = "system.algo_trader.datasource.sec",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/datasource/sec:test_tickers_lib",
+)
+
+# Test for Company Facts Config
+pytest_test(
+    name = "test_company_facts_config",
+    size = "small",
+    coverage_path = "system.algo_trader.datasource.sec.company_facts_config",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/datasource/sec:test_company_facts_config_lib",
 )
