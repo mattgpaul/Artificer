@@ -20,10 +20,17 @@ py_library(
     ],
 )
 
-# Test target
+# Test targets
 pytest_test(
     name = "test_client",
     coverage_path = "infrastructure",
     tags = ["unit"],
     test_lib = "//tests/infrastructure:test_client_lib",
+)
+
+pytest_test(
+    name = "test_config",
+    coverage_path = "infrastructure.config",
+    tags = ["unit"],
+    test_lib = "//tests/infrastructure:test_config_lib",
 )

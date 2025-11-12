@@ -712,7 +712,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "LK2FAPoEJAYKf+35mu6bJe/4XnwBiGjQt/m3Cxrqqj8=",
-        "usagesDigest": "z+wg6zaOFKRzPuimqVQFadcXxiXJVh4biit3iTHH6Q8=",
+        "usagesDigest": "0n4En1mzpPYZLi9dcEkwRIvFmnWy4G9nPJCIaFqoVLs=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -830,6 +830,35 @@
                 "@@platforms//cpu:x86_64": "@python_linux_amd64"
               },
               "bzlmod_repository": "python",
+              "reproducible": true
+            }
+          },
+          "sqlite_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/alpine",
+              "identifier": "sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+              "platform": "linux/amd64",
+              "target_name": "sqlite_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "sqlite": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "sqlite",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/alpine",
+              "identifier": "sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@sqlite_linux_amd64"
+              },
+              "bzlmod_repository": "sqlite",
               "reproducible": true
             }
           },
@@ -956,7 +985,9 @@
             "grafana",
             "grafana_linux_amd64",
             "python",
-            "python_linux_amd64"
+            "python_linux_amd64",
+            "sqlite",
+            "sqlite_linux_amd64"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

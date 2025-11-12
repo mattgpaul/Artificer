@@ -200,6 +200,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorindexingignore
 .cursor/plans/
+.cursor/worktrees.json
 # Note: .cursor/rules contains project standards and should be tracked
 # Note: .cursorignore is a configuration file and should be tracked (like .gitignore)
 
