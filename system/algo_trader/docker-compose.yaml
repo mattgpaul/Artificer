@@ -83,8 +83,34 @@ services:
       - redis
       - influxdb
 
+  sqlite-bad-ticker-daemon:
+    image: artificer-sqlite-daemon:latest
+    container_name: algo_trader-sqlite-bad-ticker-daemon
+    restart: always
+    networks:
+      - algo_trader-net
+    volumes:
+      - ../../:/workspace
+      - sqlite-data:/data
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - |
+        pip install --no-cache-dir -q redis pydantic pydantic-settings && \
+        python -m system.algo_trader.sqlite.bad_ticker_daemon
+    environment:
+      - PYTHONPATH=/workspace
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=${REDIS_DB}
+      - SQLITE_DB_PATH=/data/bad_tickers.db
+    depends_on:
+      - redis
+
 volumes:
   influxdb-data:
   influxdb-plugins:
   grafana-data:
   redis-data:
+  sqlite-data:
