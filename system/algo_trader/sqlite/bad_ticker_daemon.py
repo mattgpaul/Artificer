@@ -43,7 +43,14 @@ class BadTickerDaemon:
             if not item_id:
                 break
 
-            data = self.queue_broker.get_data(BAD_TICKER_QUEUE_NAME, item_id)
+            try:
+                data = self.queue_broker.get_data(BAD_TICKER_QUEUE_NAME, item_id)
+            except Exception as e:
+                self.logger.error(f"Error retrieving data for {item_id}: {e}")
+                self.queue_broker.delete_data(BAD_TICKER_QUEUE_NAME, item_id)
+                failed_count += 1
+                continue
+
             if not data:
                 self.logger.error(f"No data found for {item_id}, skipping")
                 failed_count += 1

@@ -14,6 +14,7 @@ py_library(
         "//system:__pkg__",  # Allow system package access
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/redis:__pkg__",  # Allow test access
+        "//tests/system/algo_trader/sqlite:__pkg__",  # Allow sqlite test access
     ],
     deps = [
         "//infrastructure/logging:logger",

@@ -61,21 +61,7 @@ class TestPopulateCLIRun:
     """Test run method execution."""
 
     def test_run_with_valid_command(self, mock_dependencies):
-        """Test run with valid ohlcv command."""
-        cli = PopulateCLI()
-
-        with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
-            with patch("builtins.exit"):
-                try:
-                    cli.run()
-                except SystemExit:
-                    pass
-
-        # Test passes if no exception is raised
-        assert True
-
-    def test_run_processes_handler_successfully(self, mock_dependencies):
-        """Test run processes handler successfully."""
+        """Test run with valid ohlcv command processes and executes handler."""
         cli = PopulateCLI()
 
         with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
@@ -103,40 +89,12 @@ class TestPopulateCLIRun:
         # Should have attempted to parse and failed
         assert True
 
-    def test_run_calls_execute_with_context(self, mock_dependencies):
-        """Test run calls execute with correct context."""
-        cli = PopulateCLI()
-
-        with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
-            with patch("builtins.exit"):
-                try:
-                    cli.run()
-                except SystemExit:
-                    pass
-
-        # Verify workflow completed (logs show execution)
-        assert mock_dependencies["logger_instance"].info.call_count > 0
-
-    def test_run_handles_execute_error(self, mock_dependencies):
-        """Test run handles execution errors."""
-        cli = PopulateCLI()
-
-        with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
-            with patch("builtins.exit"):
-                try:
-                    cli.run()
-                except SystemExit:
-                    pass
-
-        # Should complete without crashing
-        assert True
-
 
 class TestPopulateCLIOrchestration:
     """Test handler orchestration and context management."""
 
-    def test_run_collects_all_handler_results(self, mock_dependencies):
-        """Test run collects results from all applicable handlers."""
+    def test_run_orchestrates_handler_workflow(self, mock_dependencies):
+        """Test run collects results and executes all applicable handlers."""
         cli = PopulateCLI()
 
         with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
@@ -146,35 +104,7 @@ class TestPopulateCLIOrchestration:
                 except SystemExit:
                     pass
 
-        # Verify workflow executed (logs show processing)
-        assert mock_dependencies["logger_instance"].info.call_count > 0
-
-    def test_run_executes_all_applicable_handlers(self, mock_dependencies):
-        """Test run executes all applicable handlers."""
-        cli = PopulateCLI()
-
-        with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
-            with patch("builtins.exit"):
-                try:
-                    cli.run()
-                except SystemExit:
-                    pass
-
-        # Verify execution completed successfully
-        assert mock_dependencies["logger_instance"].info.call_count > 0
-
-    def test_run_logs_completion(self, mock_dependencies):
-        """Test run logs completion message."""
-        cli = PopulateCLI()
-
-        with patch("sys.argv", ["main.py", "ohlcv", "--tickers", "AAPL"]):
-            with patch("builtins.exit"):
-                try:
-                    cli.run()
-                except SystemExit:
-                    pass
-
-        # Verify completion was logged - check that some info log was called
+        # Verify workflow executed (logs show processing and completion)
         assert mock_dependencies["logger_instance"].info.call_count > 0
 
 
@@ -195,17 +125,8 @@ class TestPopulateCLIErrorHandling:
         # Should handle missing subcommand gracefully
         assert True
 
-    def test_run_with_invalid_arguments(self, mock_dependencies):
-        """Test run handles invalid arguments."""
-        cli = PopulateCLI()
-
-        # Missing required subcommand
-        with patch("sys.argv", ["main.py"]):
-            with pytest.raises(SystemExit):
-                cli.run()
-
-    def test_run_with_no_arguments(self, mock_dependencies):
-        """Test run handles no arguments."""
+    def test_run_with_missing_subcommand(self, mock_dependencies):
+        """Test run handles missing subcommand."""
         cli = PopulateCLI()
 
         # No subcommand provided

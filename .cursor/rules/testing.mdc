@@ -2,11 +2,32 @@
 globs: *test*.py
 alwaysApply: false
 ---
+## Test Count Standards
+
+### Industry Standard Guidelines
+
+**Target:** 5-15 tests per module for unit tests
+
+- **Simple modules** (< 5 public methods): 5-8 tests
+- **Medium modules** (5-15 public methods): 8-12 tests
+- **Complex modules** (> 15 public methods): 12-15 tests
+- **Integration tests**: 2-5 tests per integration scenario
+
+### Principles
+
+1. **Focus on critical paths** - Test what matters, not everything
+2. **One test per public method minimum** - Ensure all public APIs are tested
+3. **Combine related cases** - Use parameterized tests for similar scenarios
+4. **Quality over quantity** - Better to have fewer, well-designed tests than many redundant ones
+5. **Avoid redundant tests** - Don't test the same behavior multiple ways
+
+---
+
 ## Test Organization
 
 ### File Structure
 
-Each test file should follow this structure:
+Each test file should follow this minimal structure:
 
 ```python
 """
@@ -46,20 +67,17 @@ class Test[Component][AnotherAspect]:
 
 ### Test Class Organization
 
-Group tests into logical classes based on functionality:
+Keep test classes minimal and focused. Prefer fewer, more comprehensive classes:
 
 ```python
-class TestComponentInitialization:
-    """Test component initialization and configuration"""
-
-class TestComponentCoreFunctionality:
-    """Test primary operations"""
-
-class TestComponentErrorHandling:
-    """Test error scenarios and edge cases"""
+class TestComponent:
+    """Test component core functionality"""
+    # Combine initialization, core operations, and error handling
+    # Use parameterized tests for similar scenarios
 
 class TestComponentIntegration:
-    """Test integration scenarios with multiple operations"""
+    """Test integration scenarios"""
+    # Only if integration tests are needed
 ```
 
 ---
@@ -178,104 +196,200 @@ py_library(
 
 ---
 
+## Reusable Fixtures
+
+### Using conftest.py
+
+**Rule:** Create `conftest.py` files at package level for shared fixtures. This eliminates duplicate fixture definitions across test files.
+
+### Fixture Organization
+
+```
+tests/
+  conftest.py                    # Project-wide fixtures
+  infrastructure/
+    conftest.py                  # Infrastructure-specific fixtures
+    redis/
+      conftest.py                # Redis-specific fixtures (if needed)
+      test_redis.py
+```
+
+### Example: Project-wide conftest.py
+
+**File:** `tests/conftest.py`
+
+```python
+"""Shared fixtures for all tests."""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+
+@pytest.fixture
+def mock_logger():
+    """Mock logger for all tests."""
+    with patch('infrastructure.logging.logger.get_logger') as mock_get_logger:
+        mock_logger_instance = MagicMock()
+        mock_get_logger.return_value = mock_logger_instance
+        yield mock_logger_instance
+```
+
+### Example: Package-specific conftest.py
+
+**File:** `tests/infrastructure/redis/conftest.py`
+
+```python
+"""Shared fixtures for Redis tests."""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+
+@pytest.fixture
+def mock_redis_client():
+    """Mock Redis client for Redis tests."""
+    with patch('infrastructure.redis.redis.redis') as mock_redis_module:
+        mock_pool = MagicMock()
+        mock_client = MagicMock()
+        mock_redis_module.ConnectionPool.return_value = mock_pool
+        mock_redis_module.Redis.return_value = mock_client
+        yield {
+            'module': mock_redis_module,
+            'pool': mock_pool,
+            'client': mock_client
+        }
+
+
+@pytest.fixture(autouse=True)
+def auto_mock_external_calls():
+    """Automatically mock external calls to prevent hangs."""
+    with patch('infrastructure.redis.redis.get_logger'):
+        yield
+```
+
+### Fixture Scoping
+
+- **`function`** (default): Created fresh for each test
+- **`class`**: Created once per test class
+- **`module`**: Created once per test module
+- **`session`**: Created once per test session
+
+Use `autouse=True` for fixtures that should always be active (e.g., preventing network calls).
+
+---
+
 ## Test Patterns
 
-### 1. Comprehensive Mocking
+### 1. Minimal Mocking
 
-**Rule:** Mock ALL external dependencies - no real databases, APIs, or services.
+**Rule:** Mock ALL external dependencies - no real databases, APIs, or services. Use shared fixtures from `conftest.py` instead of defining mocks in each test class.
 
 ```python
+# ✅ GOOD: Use shared fixture from conftest.py
+def test_operation(self, mock_redis_client, mock_logger):
+    """Test operation with shared mocks"""
+    # Test code here
+
+# ❌ BAD: Define mocks in each test class
 @pytest.fixture
 def mock_dependencies(self):
-    """Fixture to mock all external dependencies"""
-    with patch('module.get_logger') as mock_logger, \
-         patch('module.RedisClient') as mock_redis, \
-         patch('module.requests') as mock_requests:
-        
-        mock_logger_instance = MagicMock()
-        mock_logger.return_value = mock_logger_instance
-        
-        mock_redis_instance = MagicMock()
-        mock_redis.return_value = mock_redis_instance
-        
-        yield {
-            'logger': mock_logger,
-            'logger_instance': mock_logger_instance,
-            'redis': mock_redis,
-            'redis_instance': mock_redis_instance,
-            'requests': mock_requests
-        }
+    # Duplicate fixture definition
 ```
 
-### 2. Test Success and Failure Paths
+### 2. Combine Success and Failure Paths
 
-**Rule:** Test both happy paths and error scenarios.
-
-```python
-def test_operation_success(self, mock_dependencies):
-    """Test successful operation"""
-    mock_dependencies['service'].call.return_value = "success"
-    result = component.operation()
-    assert result is True
-
-def test_operation_failure(self, mock_dependencies):
-    """Test operation handles failures gracefully"""
-    mock_dependencies['service'].call.side_effect = Exception("Error")
-    result = component.operation()
-    assert result is False
-
-def test_operation_logs_error(self, mock_dependencies):
-    """Test operation logs errors appropriately"""
-    mock_dependencies['service'].call.side_effect = Exception("Error")
-    component.operation()
-    mock_dependencies['logger_instance'].error.assert_called()
-```
-
-### 3. Test Edge Cases
-
-**Rule:** Include tests for edge cases, empty data, None values, etc.
+**Rule:** Use parameterized tests to combine similar scenarios. Test both happy paths and error scenarios efficiently.
 
 ```python
-def test_with_empty_input(self):
-    """Test handling of empty input"""
-    result = component.process([])
-    assert result == []
-
-def test_with_none_value(self):
-    """Test handling of None value"""
-    result = component.process(None)
-    assert result is None
-
-def test_with_invalid_type(self):
-    """Test handling of invalid input type"""
-    with pytest.raises(TypeError):
-        component.process("invalid")
-```
-
-### 4. Integration Tests
-
-**Rule:** Include integration scenarios testing multiple operations.
-
-```python
-class TestComponentIntegration:
-    """Test integration scenarios"""
+@pytest.mark.parametrize("input_value,expected_result,should_log", [
+    ("valid", True, False),
+    (None, False, True),
+    ("", False, True),
+])
+def test_operation_handles_inputs(self, mock_dependencies, input_value, expected_result, should_log):
+    """Test operation handles various inputs"""
+    if should_log:
+        mock_dependencies['service'].call.side_effect = Exception("Error")
     
-    def test_complete_workflow(self, mock_dependencies):
-        """Test complete workflow: init -> process -> cleanup"""
-        component = Component()
-        
-        # Step 1: Initialize
-        assert component.initialize() is True
-        
-        # Step 2: Process data
-        result = component.process(data)
-        assert result is not None
-        
-        # Step 3: Cleanup
-        assert component.cleanup() is True
+    result = component.operation(input_value)
+    assert result == expected_result
+    
+    if should_log:
+        mock_dependencies['logger'].error.assert_called()
 ```
 
-### 5. Descriptive Test Names
+### 3. Minimal Edge Case Testing
+
+**Rule:** Test critical edge cases, but combine similar ones. Don't create separate tests for every edge case.
+
+```python
+@pytest.mark.parametrize("input_value,expected", [
+    ([], []),
+    (None, None),
+    ("invalid", TypeError),
+])
+def test_process_handles_edge_cases(self, input_value, expected):
+    """Test handling of edge cases"""
+    if expected == TypeError:
+        with pytest.raises(TypeError):
+            component.process(input_value)
+    else:
+        result = component.process(input_value)
+        assert result == expected
+```
+
+### 4. Focused Integration Tests
+
+**Rule:** Include 1-2 integration tests per component, not exhaustive workflows.
+
+```python
+def test_complete_workflow(self, mock_dependencies):
+    """Test complete workflow: init -> process -> cleanup"""
+    component = Component()
+    assert component.initialize() is True
+    result = component.process(data)
+    assert result is not None
+    assert component.cleanup() is True
+```
+
+### 5. Thread Test Timeouts
+
+**Rule:** ALL thread-related tests MUST use `@pytest.mark.timeout(10)` to prevent Bazel from hanging.
+
+```python
+import pytest
+import threading
+from infrastructure.threads.thread_manager import ThreadManager
+
+
+@pytest.mark.timeout(10)
+def test_thread_operation():
+    """Test thread operation with timeout protection"""
+    manager = ThreadManager()
+    thread = manager.start_thread(target=some_task, name="test_thread")
+    thread.join(timeout=2.0)
+    assert thread.is_alive() is False
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.parametrize("thread_count", [1, 3, 5])
+def test_multiple_threads(thread_count):
+    """Test multiple threads with timeout"""
+    manager = ThreadManager()
+    threads = []
+    for i in range(thread_count):
+        thread = manager.start_thread(target=task, name=f"thread_{i}")
+        threads.append(thread)
+    
+    for thread in threads:
+        thread.join(timeout=2.0)
+    
+    assert manager.get_active_thread_count() == 0
+```
+
+**Important:** The `pytest-timeout` plugin is automatically included via `pytest_test.bzl`. Always use `@pytest.mark.timeout(10)` for any test that involves threads, async operations, or network calls.
+
+### 6. Descriptive Test Names
 
 **Rule:** Test names should clearly describe what is being tested.
 
@@ -324,58 +438,43 @@ def test_write_edge_case(self):
 
 ## Test Coverage Requirements
 
-### Minimum Coverage
+### Coverage Philosophy
 
-Each module should have tests covering:
-
-1. **Initialization** (5-10% of tests)
-   - Default configuration
-   - Custom configuration
-   - Environment variable handling
-   - Configuration validation
-
-2. **Core Functionality** (40-50% of tests)
-   - Primary operations
-   - Data transformations
-   - Business logic
-   - Return values
-
-3. **Error Handling** (20-30% of tests)
-   - Exception handling
-   - Error logging
-   - Graceful degradation
-   - Invalid inputs
-
-4. **Edge Cases** (10-20% of tests)
-   - Empty data
-   - None values
-   - Boundary conditions
-   - Special characters/unicode
-
-5. **Integration** (10-20% of tests)
-   - Multi-step workflows
-   - Component interactions
-   - State management
+**Focus on quality over quantity.** Test critical paths thoroughly, not every possible scenario.
 
 ### Coverage Metrics
 
-- **Target:** 100% statement coverage for critical paths
+- **Target:** 80% overall coverage with focus on critical paths
 - **Minimum:** 80% overall coverage
-- **Required:** All public methods must have tests
+- **Required:** All public methods must have at least one test
+- **Critical paths:** 100% coverage for business-critical logic
+
+### What to Test
+
+1. **All public methods/functions** - Minimum one test per public API
+2. **Critical business logic** - Ensure core functionality works correctly
+3. **Error handling** - Test that errors are handled gracefully
+4. **Edge cases** - Test important edge cases (empty data, None values, boundaries)
+5. **Integration** - 1-2 integration tests per component
+
+### What NOT to Test
+
+- Private methods (unless they contain critical logic)
+- Trivial getters/setters
+- Framework code (e.g., standard library usage)
+- Every possible input combination (use parameterized tests instead)
 
 ### Example Coverage
 
 ```
 Module: market_data_influx.py
-Total Tests: 31
+Total Tests: 8-12 (focused on critical paths)
 
-Breakdown:
-- Initialization:        5 tests (16%)
-- Data Formatting:       5 tests (16%)
-- Write Operations:      7 tests (23%)
-- Query Operations:      8 tests (26%)
-- Integration:           3 tests (10%)
-- Config Validation:     3 tests (10%)
+Coverage: 80%+
+- Initialization:        1-2 tests
+- Write Operations:      2-3 tests (success, failure, edge cases)
+- Query Operations:      2-3 tests (success, failure, edge cases)
+- Integration:           1-2 tests
 ```
 
 ---
@@ -451,11 +550,11 @@ class Client(ABC):
 """
 Unit tests for Client - Abstract Base Class
 
-Tests cover abstract class enforcement and inheritance patterns.
+Tests cover abstract class enforcement and inheritance.
 """
 
 import pytest
-from abc import ABC
+from abc import ABCMeta
 
 from infrastructure.client import Client
 
@@ -465,16 +564,12 @@ class ConcreteClient(Client):
     pass
 
 
-class TestClientAbstractClass:
+class TestClient:
     """Test Client abstract base class"""
 
-    def test_client_is_abstract(self):
-        """Test Client is an abstract base class"""
-        from abc import ABCMeta
+    def test_is_abstract_and_subclassable(self):
+        """Test Client is abstract and can be subclassed"""
         assert isinstance(Client, ABCMeta)
-
-    def test_client_can_be_subclassed(self):
-        """Test Client can be subclassed"""
         client = ConcreteClient()
         assert isinstance(client, Client)
 ```
@@ -509,16 +604,28 @@ pytest_test(
 )
 ```
 
-### Example 2: Complex Component with Dependencies
+### Example 2: Component with Dependencies and Shared Fixtures
 
-**Implementation:** `system/algo_trader/influx/market_data_influx.py`
+**conftest.py:** `tests/system/algo_trader/influx/conftest.py`
 ```python
-from infrastructure.influxdb.influxdb import BaseInfluxDBClient
+"""Shared fixtures for MarketDataInflux tests."""
 
-class MarketDataInflux(BaseInfluxDBClient):
-    def write(self, data, ticker, table):
-        # Implementation
-        pass
+import pytest
+from unittest.mock import MagicMock, patch
+
+
+@pytest.fixture(autouse=True)
+def mock_influx_dependencies():
+    """Auto-mock all InfluxDB dependencies."""
+    with (
+        patch('system.algo_trader.influx.market_data_influx.get_logger'),
+        patch('infrastructure.influxdb.influxdb.get_logger'),
+        patch('infrastructure.influxdb.influxdb.InfluxDBClient3') as mock_client_class,
+        patch('infrastructure.influxdb.influxdb.write_client_options'),
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        yield {'client': mock_client}
 ```
 
 **Test:** `tests/system/algo_trader/influx/test_market_data_influx.py`
@@ -526,32 +633,94 @@ class MarketDataInflux(BaseInfluxDBClient):
 """
 Unit tests for MarketDataInflux
 
-Tests cover initialization, write operations, and query operations.
-All InfluxDB operations are mocked.
+Tests cover initialization, write, and query operations.
+All InfluxDB operations are mocked via conftest.py.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 
-class TestMarketDataInfluxWrite:
-    """Test write operations"""
+class TestMarketDataInflux:
+    """Test MarketDataInflux operations"""
 
-    @pytest.fixture
-    def mock_dependencies(self):
-        """Fixture to mock dependencies"""
-        with patch('system.algo_trader.influx.market_data_influx.get_logger'), \
-             patch('infrastructure.influxdb.influxdb.InfluxDBClient3') as mock_client:
-            mock_client.return_value = MagicMock()
-            yield {'client': mock_client}
-
-    def test_write_success(self, mock_dependencies):
-        """Test successful write operation"""
+    def test_initialization(self, mock_influx_dependencies):
+        """Test initialization with defaults"""
         client = MarketDataInflux()
+        assert client.database == "historical_market_data"
+
+    @pytest.mark.parametrize("success,expected", [
+        (True, True),
+        (False, False),
+    ])
+    def test_write_operations(self, mock_influx_dependencies, success, expected):
+        """Test write operations (success and failure)"""
+        client = MarketDataInflux()
+        mock_influx_dependencies['client'].write.return_value = success
+        if not success:
+            mock_influx_dependencies['client'].write.side_effect = Exception("Error")
+        
         result = client.write({'data': [1, 2, 3]}, 'AAPL', 'stock')
-        assert result is True
+        assert result == expected
+```
+
+### Example 3: Thread Test with Timeout
+
+**Test:** `tests/infrastructure/threads/test_thread_manager.py`
+```python
+"""
+Unit tests for ThreadManager
+
+Tests cover thread lifecycle and management.
+All tests use timeout to prevent hangs.
+"""
+
+import threading
+import pytest
+from infrastructure.threads.thread_manager import ThreadManager, ThreadConfig
+
+
+def dummy_task(event=None):
+    """Simple task for testing."""
+    if event:
+        event.wait(timeout=1.0)
+    return True
+
+
+class TestThreadManager:
+    """Test ThreadManager operations"""
+
+    @pytest.mark.timeout(10)
+    def test_start_and_join_thread(self):
+        """Test starting and joining a thread"""
+        config = ThreadConfig(daemon_threads=True, max_threads=5, thread_timeout=2)
+        manager = ThreadManager(config=config)
+        
+        event = threading.Event()
+        event.set()  # Immediate completion
+        thread = manager.start_thread(target=dummy_task, name="test_thread", kwargs={"event": event})
+        thread.join(timeout=2.0)
+        
+        assert thread.name == "test_thread"
+        assert manager.get_active_thread_count() == 0
+
+    @pytest.mark.timeout(10)
+    def test_thread_exception_handling(self):
+        """Test thread exception handling"""
+        def failing_task():
+            raise ValueError("Test exception")
+        
+        config = ThreadConfig(daemon_threads=True, max_threads=5, thread_timeout=2)
+        manager = ThreadManager(config=config)
+        
+        thread = manager.start_thread(target=failing_task, name="failing_thread")
+        thread.join(timeout=2.0)
+        
+        status = manager.get_thread_status("failing_thread")
+        assert status is not None
+        assert status["status"] == "error"
 ```
 
 ---
@@ -565,11 +734,12 @@ When creating tests, verify:
 - [ ] Test BUILD file defines `py_library` with `testonly = True`
 - [ ] Implementation BUILD file defines `pytest_test` target
 - [ ] Implementation grants visibility to test package
+- [ ] Shared fixtures defined in `conftest.py` (not duplicated in test files)
 - [ ] All external dependencies are mocked
-- [ ] Tests cover success, failure, and edge cases
+- [ ] Thread tests use `@pytest.mark.timeout(10)`
+- [ ] Test count is 5-15 per module (not excessive)
+- [ ] Tests use parameterized tests for similar scenarios
 - [ ] Test names are descriptive and follow conventions
-- [ ] Fixtures are used for repeated setup
-- [ ] Integration tests validate workflows
 - [ ] Tests pass when run with `bazel test`
 
 ---
@@ -607,16 +777,18 @@ When creating tests, verify:
 
 ## Appendix: Test Statistics
 
-Current test coverage across the project:
+Target test coverage across the project (after optimization):
 
-| Module | Tests | Coverage |
-|--------|-------|----------|
-| infrastructure/client | 19 | 100% |
-| infrastructure/logging | 29 | 100% |
-| infrastructure/redis | 69 | 100% |
-| infrastructure/influxdb | 36 | 100% |
-| system/algo_trader/schwab | 4 suites | ~95% |
-| system/algo_trader/influx | 31 | 100% |
+| Module | Target Tests | Coverage Goal |
+|--------|--------------|---------------|
+| infrastructure/client | 5-8 | 80%+ |
+| infrastructure/logging | 8-12 | 80%+ |
+| infrastructure/redis | 10-15 | 80%+ |
+| infrastructure/influxdb | 8-12 | 80%+ |
+| system/algo_trader/schwab | 8-12 | 80%+ |
+| system/algo_trader/influx | 8-12 | 80%+ |
 
-**Total:** 200+ tests across all modules
+**Target Total:** 150-300 tests across all modules (down from 200+)
+
+**Note:** Focus on test quality and critical path coverage rather than exhaustive testing.
 
