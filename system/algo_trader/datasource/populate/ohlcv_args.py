@@ -5,6 +5,7 @@ data population with validation against Schwab API timescale requirements.
 """
 
 import argparse
+import datetime
 import time
 
 from infrastructure.config import ThreadConfig
@@ -16,7 +17,9 @@ from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
 
 OHLCV_QUEUE_NAME = "ohlcv_queue"
+BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"
 OHLCV_REDIS_TTL = 3600
+BAD_TICKER_REDIS_TTL = 3600
 MAX_THREADS = 4
 
 
@@ -203,6 +206,20 @@ class OHLCVArgumentHandler(ArgumentHandler):
         self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
         self.logger.info(f"QueueBroker initialized for queue: {OHLCV_QUEUE_NAME}")
 
+        def enqueue_bad_ticker(ticker: str, reason: str) -> None:
+            timestamp = datetime.datetime.utcnow().isoformat()
+            bad_ticker_data = {
+                "ticker": ticker,
+                "timestamp": timestamp,
+                "reason": reason,
+            }
+            queue_broker.enqueue(
+                queue_name=BAD_TICKER_QUEUE_NAME,
+                item_id=ticker,
+                data=bad_ticker_data,
+                ttl=BAD_TICKER_REDIS_TTL,
+            )
+
         # Check if batching will be needed
         if len(tickers) > max_threads:
             self.logger.info(
@@ -235,15 +252,18 @@ class OHLCVArgumentHandler(ArgumentHandler):
                 # Check for empty or invalid response
                 if not response:
                     self.logger.error(f"{ticker}: Empty response from API")
+                    enqueue_bad_ticker(ticker, "Empty response")
                     return {"success": False, "error": "Empty response"}
 
                 if "candles" not in response:
                     self.logger.error(f"{ticker}: No candles data in response")
+                    enqueue_bad_ticker(ticker, "No candles data")
                     return {"success": False, "error": "No candles data"}
 
                 candles = response["candles"]
                 if not candles:
                     self.logger.warning(f"{ticker}: Candles list is empty")
+                    enqueue_bad_ticker(ticker, "Empty candles list")
                     return {"success": False, "error": "Empty candles list"}
 
                 # Write data to Redis queue
