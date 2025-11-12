@@ -31,6 +31,7 @@ def pytest_test(name, test_lib, coverage_path = None, **kwargs):
         requirement("pytest"),
         requirement("pytest-mock"),
         requirement("pytest-cov"),
+        requirement("pytest-timeout"),
         requirement("pytest-bazel"),
     ]
 

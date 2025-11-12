@@ -1,5 +1,6 @@
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 load("@rules_python//python:defs.bzl", "py_binary")
+load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "bad_ticker_client",
@@ -7,6 +8,7 @@ py_library(
     visibility = [
         "//system:__pkg__",
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/sqlite:__pkg__",
     ],
     deps = [
         "//infrastructure:config",
@@ -15,16 +17,45 @@ py_library(
     ],
 )
 
-py_binary(
-    name = "bad_ticker_daemon",
+py_library(
+    name = "bad_ticker_daemon_lib",
     srcs = ["bad_ticker_daemon.py"],
-    main = "bad_ticker_daemon.py",
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//system:__pkg__",
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/sqlite:__pkg__",
+    ],
     deps = [
         ":bad_ticker_client",
         "//infrastructure/logging:logger",
         "//system/algo_trader/redis:redis_services",
     ],
+)
+
+py_binary(
+    name = "bad_ticker_daemon",
+    srcs = ["bad_ticker_daemon.py"],
+    main = "bad_ticker_daemon.py",
+    visibility = ["//visibility:public"],
+    deps = [":bad_ticker_daemon_lib"],
+)
+
+# Test for BadTickerClient - Bad Ticker Tracking
+pytest_test(
+    name = "test_bad_ticker_client",
+    size = "small",
+    coverage_path = "system.algo_trader.sqlite",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/sqlite:test_bad_ticker_client_lib",
+)
+
+# Test for BadTickerDaemon - Queue Processing Daemon
+pytest_test(
+    name = "test_bad_ticker_daemon",
+    size = "small",
+    coverage_path = "system.algo_trader.sqlite",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/sqlite:test_bad_ticker_daemon_lib",
 )
 
 oci_image(
