@@ -104,7 +104,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=${REDIS_DB}
-      - SQLITE_DB_PATH=/data/bad_tickers.db
+      - SQLITE_DB_PATH=/data/algo_trader.db
     depends_on:
       - redis
 

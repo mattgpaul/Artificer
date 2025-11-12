@@ -19,6 +19,7 @@ py_library(
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/influx:influx_services",
         "//system/algo_trader/schwab:schwab_services",
+        "//system/algo_trader/sqlite:bad_ticker_client",
     ],
 )
 

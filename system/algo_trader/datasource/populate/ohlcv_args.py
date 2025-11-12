@@ -15,6 +15,7 @@ from system.algo_trader.datasource.sec.tickers import Tickers
 from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.sqlite.bad_ticker_client import BadTickerClient
 
 OHLCV_QUEUE_NAME = "ohlcv_queue"
 BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"
@@ -59,9 +60,10 @@ class OHLCVArgumentHandler(ArgumentHandler):
         parser.add_argument(
             "--tickers",
             nargs="+",
-            required=True,
+            required=False,
             help='List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-            'Use "full-registry" to fetch all tickers from SEC datasource.',
+            'Use "full-registry" to fetch all tickers from SEC datasource. '
+            "Required unless --verify-bad-tickers is used.",
         )
         parser.add_argument(
             "--frequency",
@@ -88,6 +90,11 @@ class OHLCVArgumentHandler(ArgumentHandler):
             type=int,
             default=10,
             help="Period value (e.g., 1 for 1 day, 12 for 12 months). Default: 10",
+        )
+        parser.add_argument(
+            "--verify-bad-tickers",
+            action="store_true",
+            help="Verify bad tickers in SQLite and remove them if they are no longer bad",
         )
 
     def is_applicable(self, args: argparse.Namespace) -> bool:
@@ -117,7 +124,16 @@ class OHLCVArgumentHandler(ArgumentHandler):
         Raises:
             ValueError: If argument validation fails or ticker retrieval fails.
         """
+        verify_bad_tickers = getattr(args, "verify_bad_tickers", False)
         tickers = args.tickers
+
+        # If only verification is requested, tickers can be None
+        if not tickers and not verify_bad_tickers:
+            raise ValueError("--tickers is required unless --verify-bad-tickers is used")
+
+        # If no tickers provided but verification is requested, set to empty list
+        if not tickers:
+            tickers = []
 
         # Check if user requested full registry fetch
         if tickers == ["full-registry"]:
@@ -160,15 +176,98 @@ class OHLCVArgumentHandler(ArgumentHandler):
             f"period: {period_type.value}={args.period_value}"
         )
 
+        # Filter out bad tickers from SQLite (only if tickers were provided)
+        if tickers:
+            bad_ticker_client = BadTickerClient()
+            original_count = len(tickers)
+            filtered_tickers = [
+                ticker for ticker in tickers if not bad_ticker_client.is_bad_ticker(ticker)
+            ]
+            filtered_count = original_count - len(filtered_tickers)
+            if filtered_count > 0:
+                self.logger.info(f"Filtered out {filtered_count} bad tickers from SQLite")
+            tickers = filtered_tickers
+
         return {
             "tickers": tickers,
             "frequency_type": frequency_type,
             "frequency_value": args.frequency_value,
             "period_type": period_type,
             "period_value": args.period_value,
+            "verify_bad_tickers": getattr(args, "verify_bad_tickers", False),
         }
 
-    def execute(self, context: dict) -> None:  # noqa: PLR0915
+    def _verify_bad_tickers(
+        self,
+        frequency_type: FrequencyType,
+        frequency_value: int,
+        period_type: PeriodType,
+        period_value: int,
+    ) -> None:
+        """Verify bad tickers in SQLite and remove them if they are no longer bad."""
+        self.logger.info("Starting verification of bad tickers in SQLite...")
+        bad_ticker_client = BadTickerClient()
+        market_handler = MarketHandler()
+
+        try:
+            bad_tickers = bad_ticker_client.get_bad_tickers(limit=10000)
+            if not bad_tickers:
+                self.logger.info("No bad tickers found in SQLite")
+                return
+
+            self.logger.info(f"Found {len(bad_tickers)} bad tickers to verify")
+            removed_count = 0
+            still_bad_count = 0
+            error_count = 0
+
+            for bad_ticker_record in bad_tickers:
+                ticker = bad_ticker_record.get("ticker")
+                if not ticker:
+                    continue
+
+                try:
+                    response = market_handler.get_price_history(
+                        ticker=ticker,
+                        period_type=period_type,
+                        period=period_value,
+                        frequency_type=frequency_type,
+                        frequency=frequency_value,
+                    )
+
+                    # Check if response has valid candles
+                    if (
+                        response
+                        and "candles" in response
+                        and response["candles"]
+                        and len(response["candles"]) > 0
+                    ):
+                        # Ticker is no longer bad, remove from SQLite
+                        if bad_ticker_client.remove_bad_ticker(ticker):
+                            self.logger.info(
+                                f"Removed {ticker} from bad_tickers (now has valid data)"
+                            )
+                            removed_count += 1
+                        else:
+                            self.logger.error(f"Failed to remove {ticker} from bad_tickers")
+                            error_count += 1
+                    else:
+                        # Ticker is still bad
+                        still_bad_count += 1
+                        self.logger.debug(f"{ticker} is still bad")
+
+                except Exception as e:
+                    self.logger.error(f"Error verifying ticker {ticker}: {e}")
+                    error_count += 1
+
+            self.logger.info(
+                f"Verification complete: {removed_count} removed, "
+                f"{still_bad_count} still bad, {error_count} errors"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error during bad ticker verification: {e}")
+
+    def execute(self, context: dict) -> None:  # noqa: PLR0915, C901
         """Execute OHLCV data population with multi-threaded data fetching.
 
         Uses ThreadManager to fetch historical market data concurrently for multiple
@@ -178,15 +277,21 @@ class OHLCVArgumentHandler(ArgumentHandler):
         Args:
             context: Dictionary containing processed results from all handlers.
         """
-        tickers = context.get("tickers")
-        if tickers is None:
-            self.logger.error("No tickers found in context")
-            return
-
         frequency_type = context.get("frequency_type")
         frequency_value = context.get("frequency_value")
         period_type = context.get("period_type")
         period_value = context.get("period_value")
+        verify_bad_tickers = context.get("verify_bad_tickers", False)
+
+        # Verify bad tickers if flag is set
+        if verify_bad_tickers:
+            self._verify_bad_tickers(frequency_type, frequency_value, period_type, period_value)
+
+        tickers = context.get("tickers")
+        if tickers is None:
+            if not verify_bad_tickers:
+                self.logger.error("No tickers found in context")
+            return
 
         self.logger.info(
             f"Executing OHLCV data population for {len(tickers)} tickers with "
