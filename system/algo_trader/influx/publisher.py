@@ -1,3 +1,9 @@
+"""InfluxDB Publisher service.
+
+Publishes market data from Redis queues to InfluxDB databases.
+Monitors configured queues and processes items in batches.
+"""
+
 import os
 import signal
 import sys
@@ -14,7 +20,21 @@ from system.algo_trader.redis.queue_broker import QueueBroker
 
 
 class InfluxPublisher:
-    def __init__(self, config_path: str):
+    """Publisher service for writing market data to InfluxDB.
+
+    Reads data from Redis queues and writes to InfluxDB tables based on
+    configuration. Supports multiple queues with independent batch configurations.
+
+    Args:
+        config_path: Path to YAML configuration file.
+    """
+
+    def __init__(self, config_path: str) -> None:
+        """Initialize InfluxDB publisher with configuration.
+
+        Args:
+            config_path: Path to YAML configuration file.
+        """
         self.logger = get_logger(self.__class__.__name__)
         self.running = False
         self.config = self._load_config(config_path)
@@ -117,9 +137,7 @@ class InfluxPublisher:
                 success = influx_client.write_sync(data=candles, ticker=ticker, table=table_name)
 
                 if success:
-                    self.logger.info(
-                        f"Successfully wrote {len(candles)} candles for {ticker}"
-                    )
+                    self.logger.info(f"Successfully wrote {len(candles)} candles for {ticker}")
                     processed_count += 1
                 else:
                     self.logger.error(f"Failed to write data for {ticker} to InfluxDB")
@@ -138,13 +156,16 @@ class InfluxPublisher:
         )
 
     def run(self) -> None:
+        """Run the publisher daemon.
+
+        Continuously monitors configured queues and processes items.
+        Handles graceful shutdown on SIGTERM/SIGINT signals.
+        """
         self.logger.info("Starting InfluxDB Publisher daemon...")
         self.logger.info(f"Monitoring {len(self.config.get('queues', []))} queues")
 
         for queue_config in self.config.get("queues", []):
-            self.logger.info(
-                f"  - {queue_config['name']} -> table '{queue_config['table']}'"
-            )
+            self.logger.info(f"  - {queue_config['name']} -> table '{queue_config['table']}'")
 
         self.running = True
 
@@ -178,7 +199,12 @@ class InfluxPublisher:
                 self.logger.warning(f"Error closing client for '{queue_name}': {e}")
 
 
-def main():
+def main() -> None:
+    """Main entry point for InfluxDB publisher service.
+
+    Loads configuration from environment variable or default path,
+    initializes publisher, and runs the daemon.
+    """
     config_path = os.getenv(
         "PUBLISHER_CONFIG",
         "/app/system/algo_trader/influx/publisher_config.yaml",

@@ -7,6 +7,7 @@ data population with validation against Schwab API timescale requirements.
 import argparse
 import time
 
+from infrastructure.config import ThreadConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
@@ -193,7 +194,6 @@ class OHLCVArgumentHandler(ArgumentHandler):
         # Initialize MarketHandler, ThreadManager (hard-coded to 4 threads), and QueueBroker
         market_handler = MarketHandler()
 
-        from infrastructure.config import ThreadConfig
         thread_config = ThreadConfig(max_threads=MAX_THREADS)
         thread_manager = ThreadManager(config=thread_config)
 
@@ -348,5 +348,5 @@ class OHLCVArgumentHandler(ArgumentHandler):
         print(f"Failed: {summary['failed']}")
         print(f"Queue: {OHLCV_QUEUE_NAME}")
         print(f"Redis TTL: {OHLCV_REDIS_TTL}s")
-        print(f"\nData will be published to InfluxDB by the influx-publisher service.")
+        print("\nData will be published to InfluxDB by the influx-publisher service.")
         print(f"{'=' * 50}\n")
