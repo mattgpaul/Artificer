@@ -92,6 +92,33 @@ class MarketDataInflux(BaseInfluxDBClient):
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
 
+    def write_sync(self, data: dict, ticker: str, table: str) -> bool:
+        """Write market data to InfluxDB and wait for completion.
+
+        Unlike write(), this method doesn't use the pending counter system.
+        It writes the data and returns. The batch system will flush in background.
+
+        Args:
+            data: Dictionary containing market data with datetime and OHLCV fields.
+            ticker: Stock ticker symbol to tag data with.
+            table: Target measurement/table name in InfluxDB.
+
+        Returns:
+            True if write succeeded, False otherwise.
+        """
+        df = self._format_stock_data(data, ticker)
+        df["ticker"] = ticker
+
+        try:
+            self.client.write(
+                df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
+            )
+            self.logger.debug(f"Wrote {len(data)} records for {ticker}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to write data for {ticker}: {e}")
+            return False
+
     def query(self, query: str):
         """Query market data from InfluxDB using SQL.
 
