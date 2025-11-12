@@ -9,7 +9,7 @@ py_library(
         "//system/algo_trader:__subpackages__",
     ],
     deps = [
-        "//infrastructure/config",
+        "//infrastructure:config",
         "//infrastructure/logging:logger",
         "//infrastructure/sqlite",
     ],
