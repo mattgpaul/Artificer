@@ -1,4 +1,4 @@
-"""SQLite client for fundamentals data storage.
+"""MySQL client for fundamentals data storage.
 
 This module provides database operations for storing and retrieving
 company fundamentals static data (sector, industry, entity name, SIC).
@@ -6,35 +6,32 @@ company fundamentals static data (sector, industry, entity name, SIC).
 
 import os
 
-from infrastructure.config import SQLiteConfig
-from infrastructure.sqlite.sqlite import BaseSQLiteClient
+from infrastructure.config import MySQLConfig
+from infrastructure.mysql.mysql import BaseMySQLClient
 
 
-class FundamentalsClient(BaseSQLiteClient):
-    """Client for fundamentals table operations in SQLite.
+class FundamentalsClient(BaseMySQLClient):
+    """Client for fundamentals table operations in MySQL.
 
     Handles creation and upsert operations for company fundamentals static data.
     """
 
     def __init__(self, config=None) -> None:
-        """Initialize FundamentalsClient with SQLite configuration.
+        """Initialize FundamentalsClient with MySQL configuration.
 
         Args:
-            config: Optional SQLiteConfig instance. If None, creates default config
-                with database path from environment or default location.
+            config: Optional MySQLConfig instance. If None, creates default config
+                with database connection details from environment variables.
         """
         if config is None:
-            config = SQLiteConfig()
-            db_path_env = os.getenv("SQLITE_DB_PATH")
-            if db_path_env:
-                config.db_path = db_path_env
-            else:
-                config.db_path = "./data/algo_trader.db"
-
-            if config.db_path != ":memory:":
-                db_dir = os.path.dirname(os.path.abspath(config.db_path))
-                if db_dir:
-                    os.makedirs(db_dir, exist_ok=True)
+            config = MySQLConfig()
+            # Read MySQL connection details from environment variables
+            config.host = os.getenv("MYSQL_HOST") or "localhost"
+            port_str = os.getenv("MYSQL_PORT") or "3306"
+            config.port = int(port_str)
+            config.user = os.getenv("MYSQL_USER") or "root"
+            config.password = os.getenv("MYSQL_PASSWORD") or ""
+            config.database = os.getenv("MYSQL_DATABASE") or "algo_trader"
 
         super().__init__(config=config)
         self.create_table()
@@ -47,7 +44,7 @@ class FundamentalsClient(BaseSQLiteClient):
         """
         query = """
         CREATE TABLE IF NOT EXISTS fundamentals (
-            ticker TEXT PRIMARY KEY,
+            ticker VARCHAR(255) PRIMARY KEY,
             sector TEXT,
             industry TEXT,
             entity_name TEXT,
@@ -72,8 +69,13 @@ class FundamentalsClient(BaseSQLiteClient):
             True if upsert succeeded, False otherwise.
         """
         query = """
-        INSERT OR REPLACE INTO fundamentals (ticker, sector, industry, entity_name, sic)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO fundamentals (ticker, sector, industry, entity_name, sic)
+        VALUES (%s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            sector = VALUES(sector),
+            industry = VALUES(industry),
+            entity_name = VALUES(entity_name),
+            sic = VALUES(sic)
         """
         try:
             self.execute(
