@@ -7,6 +7,7 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "exec",
     srcs = ["grafana_cli.sh"],

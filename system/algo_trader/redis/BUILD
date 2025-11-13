@@ -1,6 +1,7 @@
 load("@pip//:requirements.bzl", "requirement")  # @unused
 load("//:pytest_test.bzl", "pytest_test")
 
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "exec",
     srcs = ["redis_cli.sh"],

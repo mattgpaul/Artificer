@@ -71,12 +71,14 @@ oci_load(
     repo_tags = ["artificer-influx-publisher:latest"],
 )
 
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "exec",
     srcs = ["influx_cli.sh"],
     visibility = ["//visibility:public"],
 )
 
+# buildifier: disable=native-sh-binary
 sh_binary(
     name = "publisher-exec",
     srcs = ["publisher_cli.sh"],
