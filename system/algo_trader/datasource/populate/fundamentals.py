@@ -5,6 +5,7 @@ data from SEC company facts API into Redis queues and MySQL database.
 """
 
 import argparse
+import io
 import time
 
 import pandas as pd
@@ -219,6 +220,31 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                 if time_series_df.empty:
                     self.logger.warning(f"{ticker}: Time series DataFrame is empty")
                     return {"success": False, "error": "Empty time series"}
+
+                # Log final dataframe details for debugging
+                self.logger.debug(f"\n{'=' * 80}")
+                self.logger.debug(f"{ticker}: FINAL DATAFRAME DETAILS")
+                self.logger.debug(f"{'=' * 80}")
+                self.logger.debug(f"{ticker}: DataFrame shape: {time_series_df.shape}")
+                self.logger.debug(f"{ticker}: DataFrame columns: {list(time_series_df.columns)}")
+                self.logger.debug(f"{ticker}: DataFrame index type: {type(time_series_df.index).__name__}")
+                if isinstance(time_series_df.index, pd.DatetimeIndex):
+                    self.logger.debug(
+                        f"{ticker}: Date range: {time_series_df.index.min()} to {time_series_df.index.max()}"
+                    )
+                self.logger.debug(f"\n{ticker}: DataFrame head (first 10 rows):")
+                self.logger.debug(f"\n{time_series_df.head(10).to_string()}")
+                self.logger.debug(f"\n{ticker}: DataFrame tail (last 10 rows):")
+                self.logger.debug(f"\n{time_series_df.tail(10).to_string()}")
+                self.logger.debug(f"\n{ticker}: DataFrame info:")
+                buf = io.StringIO()
+                time_series_df.info(buf=buf)
+                self.logger.debug(f"\n{buf.getvalue()}")
+                self.logger.debug(f"\n{ticker}: DataFrame statistics:")
+                self.logger.debug(f"\n{time_series_df.describe().to_string()}")
+                self.logger.debug(f"\n{ticker}: Complete DataFrame content:")
+                self.logger.debug(f"\n{time_series_df.to_string()}")
+                self.logger.debug(f"\n{'=' * 80}\n")
 
                 # Count market_cap rows (market_cap is already in DataFrame
                 # from SEC data extraction)
