@@ -4,20 +4,20 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from system.algo_trader.datasource.sec.tickers import Tickers
+from system.algo_trader.datasource.sec.tickers.main import Tickers
 
 
 @pytest.fixture(autouse=True)
 def auto_mock_external_calls():
     """Automatically mock external calls to prevent hangs."""
-    with patch("system.algo_trader.datasource.sec.tickers.requests.get"):
-        yield
+    # Don't auto-mock requests.get - let each test control it
+    yield
 
 
 @pytest.fixture
 def mock_logger():
     """Fixture to mock logger for Tickers."""
-    with patch("system.algo_trader.datasource.sec.tickers.get_logger") as mock_get_logger:
+    with patch("system.algo_trader.datasource.sec.tickers.main.get_logger") as mock_get_logger:
         mock_logger_instance = MagicMock()
         mock_get_logger.return_value = mock_logger_instance
         yield mock_logger_instance
@@ -32,7 +32,7 @@ def tickers(mock_logger):
 @pytest.fixture
 def tickers_with_mocked_time(mock_logger):
     """Fixture to create a Tickers instance with mocked logger and time."""
-    with patch("system.algo_trader.datasource.sec.tickers.time") as mock_time:
+    with patch("system.algo_trader.datasource.sec.tickers.main.time") as mock_time:
         mock_time.time.return_value = 1000000.0
         yield Tickers()
 
@@ -52,3 +52,10 @@ def mock_http_response():
         return response
 
     return _create_response
+
+
+@pytest.fixture
+def mock_requests_get():
+    """Fixture to provide a mock requests.get for patching."""
+    with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
+        yield mock_get

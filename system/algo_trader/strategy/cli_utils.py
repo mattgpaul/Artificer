@@ -4,7 +4,7 @@ This module provides utility functions for ticker resolution, signal formatting,
 and journal formatting used by the strategy execution CLI.
 """
 
-from system.algo_trader.datasource.sec.tickers import Tickers
+from system.algo_trader.datasource.sec.tickers.main import Tickers
 
 
 def resolve_tickers(tickers_arg, logger):

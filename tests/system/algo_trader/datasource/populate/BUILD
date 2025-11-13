@@ -17,12 +17,16 @@ py_library(
 py_library(
     name = "test_ohlcv_args_lib",
     testonly = True,
-    srcs = ["test_ohlcv_args.py"],
+    srcs = [
+        "conftest.py",
+        "test_ohlcv_args.py",
+    ],
     visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
     deps = [
         "//infrastructure/logging:logger",
         "//system/algo_trader/datasource/populate:populate_lib",
         "//system/algo_trader/schwab:schwab_services",
+        requirement("pytest"),
     ],
 )
 
