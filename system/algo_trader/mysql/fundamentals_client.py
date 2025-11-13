@@ -26,11 +26,12 @@ class FundamentalsClient(BaseMySQLClient):
         if config is None:
             config = MySQLConfig()
             # Read MySQL connection details from environment variables
-            config.host = os.getenv("MYSQL_HOST", "localhost")
-            config.port = int(os.getenv("MYSQL_PORT", "3306"))
-            config.user = os.getenv("MYSQL_USER", "root")
-            config.password = os.getenv("MYSQL_PASSWORD", "")
-            config.database = os.getenv("MYSQL_DATABASE", "algo_trader")
+            config.host = os.getenv("MYSQL_HOST") or "localhost"
+            port_str = os.getenv("MYSQL_PORT") or "3306"
+            config.port = int(port_str)
+            config.user = os.getenv("MYSQL_USER") or "root"
+            config.password = os.getenv("MYSQL_PASSWORD") or ""
+            config.database = os.getenv("MYSQL_DATABASE") or "algo_trader"
 
         super().__init__(config=config)
         self.create_table()
