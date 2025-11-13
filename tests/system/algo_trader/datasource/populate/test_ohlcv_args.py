@@ -338,7 +338,7 @@ class TestOHLCVArgumentHandlerProcess:
         assert result["verify_bad_tickers"] is False
 
     def test_process_filters_bad_tickers(self, mock_dependencies):
-        """Test process filters out bad tickers from SQLite."""
+        """Test process filters out bad tickers from MySQL."""
         handler = OHLCVArgumentHandler()
 
         # Mock BadTickerClient to mark MSFT as bad

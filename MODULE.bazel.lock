@@ -712,7 +712,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "LK2FAPoEJAYKf+35mu6bJe/4XnwBiGjQt/m3Cxrqqj8=",
-        "usagesDigest": "U9LTLMrTg4KWqirY8iQQPxGB7serd5ccZjja7bYPvro=",
+        "usagesDigest": "BQbPRWywkuCRmuns8iM4smfSWFMwNcJwsHpgqwQqKs0=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -869,7 +869,7 @@
               "scheme": "https",
               "registry": "index.docker.io",
               "repository": "library/mysql",
-              "identifier": "sha256:3d7f2c07d5e5c3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d",
+              "identifier": "sha256:52cc603981fda056aa44422b192a0c01e1dd0331465330157abb8795484c99a5",
               "platform": "linux/amd64",
               "target_name": "mysql_linux_amd64",
               "bazel_tags": []
@@ -883,7 +883,7 @@
               "scheme": "https",
               "registry": "index.docker.io",
               "repository": "library/mysql",
-              "identifier": "sha256:3d7f2c07d5e5c3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d",
+              "identifier": "sha256:52cc603981fda056aa44422b192a0c01e1dd0331465330157abb8795484c99a5",
               "platforms": {
                 "@@platforms//cpu:x86_64": "@mysql_linux_amd64"
               },

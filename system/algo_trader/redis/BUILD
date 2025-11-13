@@ -1,6 +1,13 @@
 load("@pip//:requirements.bzl", "requirement")  # @unused
 load("//:pytest_test.bzl", "pytest_test")
 
+# buildifier: disable=native-sh-binary
+sh_binary(
+    name = "exec",
+    srcs = ["redis_cli.sh"],
+    visibility = ["//visibility:public"],
+)
+
 py_library(
     name = "redis_services",
     srcs = [
@@ -14,8 +21,8 @@ py_library(
         "//system:__pkg__",  # Allow system package access
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/datasource/populate:__pkg__",  # Allow populate test access
+        "//tests/system/algo_trader/mysql:__pkg__",  # Allow mysql test access
         "//tests/system/algo_trader/redis:__pkg__",  # Allow test access
-        "//tests/system/algo_trader/sqlite:__pkg__",  # Allow sqlite test access
     ],
     deps = [
         "//infrastructure/logging:logger",

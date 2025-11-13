@@ -1,6 +1,6 @@
-"""Unified SQLite daemon for processing multiple Redis queues.
+"""MySQL daemon for processing multiple Redis queues.
 
-This daemon monitors multiple Redis queues and writes data to SQLite database.
+This daemon monitors multiple Redis queues and writes data to MySQL database.
 Currently handles bad_ticker_queue and fundamentals_static_queue.
 """
 
@@ -8,24 +8,24 @@ import signal
 import time
 
 from infrastructure.logging.logger import get_logger
+from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
+from system.algo_trader.mysql.fundamentals_client import FundamentalsClient
 from system.algo_trader.redis.queue_broker import QueueBroker
-from system.algo_trader.sqlite.bad_ticker_client import BadTickerClient
-from system.algo_trader.sqlite.fundamentals_client import FundamentalsClient
 
 BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"
 FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
 POLL_INTERVAL = 2
 
 
-class UnifiedSQLiteDaemon:
-    """Daemon that processes multiple SQLite queues.
+class MySQLDaemon:
+    """Daemon that processes multiple MySQL queues.
 
-    Continuously monitors Redis queues for data and writes to SQLite database.
+    Continuously monitors Redis queues for data and writes to MySQL database.
     Handles graceful shutdown on SIGTERM/SIGINT signals.
     """
 
     def __init__(self) -> None:
-        """Initialize unified SQLite daemon with queue broker and SQLite clients."""
+        """Initialize MySQL daemon with queue broker and MySQL clients."""
         self.logger = get_logger(self.__class__.__name__)
         self.running = False
         self.queue_broker = QueueBroker(namespace="queue")
@@ -92,7 +92,7 @@ class UnifiedSQLiteDaemon:
                     self.logger.info(f"Successfully logged bad ticker: {ticker} - {reason}")
                     processed_count += 1
                 else:
-                    self.logger.error(f"Failed to log bad ticker {ticker} to SQLite")
+                    self.logger.error(f"Failed to log bad ticker {ticker} to MySQL")
                     failed_count += 1
 
                 self.queue_broker.delete_data(BAD_TICKER_QUEUE_NAME, item_id)
@@ -154,7 +154,7 @@ class UnifiedSQLiteDaemon:
                     self.logger.info(f"Successfully upserted fundamentals for ticker: {ticker}")
                     processed_count += 1
                 else:
-                    self.logger.error(f"Failed to upsert fundamentals for {ticker} to SQLite")
+                    self.logger.error(f"Failed to upsert fundamentals for {ticker} to MySQL")
                     failed_count += 1
 
                 self.queue_broker.delete_data(FUNDAMENTALS_STATIC_QUEUE_NAME, item_id)
@@ -176,7 +176,7 @@ class UnifiedSQLiteDaemon:
         Continuously polls Redis queues for data and processes items until
         shutdown signal is received.
         """
-        self.logger.info("Starting Unified SQLite Daemon...")
+        self.logger.info("Starting MySQL Daemon...")
         self.logger.info(
             f"Monitoring queues: {BAD_TICKER_QUEUE_NAME}, {FUNDAMENTALS_STATIC_QUEUE_NAME}"
         )
@@ -200,8 +200,8 @@ class UnifiedSQLiteDaemon:
         self._cleanup()
 
     def _cleanup(self) -> None:
-        """Clean up all SQLite connections."""
-        self.logger.info("Closing SQLite connections...")
+        """Clean up all MySQL connections."""
+        self.logger.info("Closing MySQL connections...")
         try:
             self.bad_ticker_client.close()
             self.logger.info("Closed BadTickerClient")
@@ -216,8 +216,8 @@ class UnifiedSQLiteDaemon:
 
 
 def main() -> None:
-    """Main entry point for unified SQLite daemon."""
-    daemon = UnifiedSQLiteDaemon()
+    """Main entry point for MySQL daemon."""
+    daemon = MySQLDaemon()
     daemon.run()
 
 

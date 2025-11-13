@@ -1,36 +1,31 @@
-"""SQLite client for bad ticker tracking."""
+"""MySQL client for bad ticker tracking."""
 
 import os
 from typing import Any
 
-from infrastructure.config import SQLiteConfig
-from infrastructure.sqlite.sqlite import BaseSQLiteClient
+from infrastructure.config import MySQLConfig
+from infrastructure.mysql.mysql import BaseMySQLClient
 
 
-class BadTickerClient(BaseSQLiteClient):
-    """Client for logging and querying bad tickers in SQLite."""
+class BadTickerClient(BaseMySQLClient):
+    """Client for logging and querying bad tickers in MySQL."""
 
     def __init__(self, config=None) -> None:
         """Initialize bad ticker client.
 
-        Uses shared SQLite database (default: ./data/algo_trader.db) so that
-        bad_tickers table is accessible across all components. All algo_trader
-        SQLite clients should use the same database file to share tables.
+        Uses shared MySQL database so that bad_tickers table is accessible
+        across all components. All algo_trader MySQL clients should use the
+        same database to share tables.
         """
         if config is None:
-            config = SQLiteConfig()
-            db_path_env = os.getenv("SQLITE_DB_PATH")
-            if db_path_env:
-                config.db_path = db_path_env
-            else:
-                # Default to shared algo_trader database
-                config.db_path = "./data/algo_trader.db"
-
-            # Ensure database directory exists
-            if config.db_path != ":memory:":
-                db_dir = os.path.dirname(os.path.abspath(config.db_path))
-                if db_dir:
-                    os.makedirs(db_dir, exist_ok=True)
+            config = MySQLConfig()
+            # Read MySQL connection details from environment variables
+            config.host = os.getenv("MYSQL_HOST") or "localhost"
+            port_str = os.getenv("MYSQL_PORT") or "3306"
+            config.port = int(port_str)
+            config.user = os.getenv("MYSQL_USER") or "root"
+            config.password = os.getenv("MYSQL_PASSWORD") or ""
+            config.database = os.getenv("MYSQL_DATABASE") or "algo_trader"
 
         super().__init__(config=config)
         self.create_table()
@@ -39,8 +34,8 @@ class BadTickerClient(BaseSQLiteClient):
         """Create bad_tickers table if it doesn't exist."""
         query = """
         CREATE TABLE IF NOT EXISTS bad_tickers (
-            ticker TEXT PRIMARY KEY,
-            timestamp TEXT NOT NULL,
+            ticker VARCHAR(255) PRIMARY KEY,
+            timestamp VARCHAR(255) NOT NULL,
             reason TEXT NOT NULL
         )
         """
@@ -54,8 +49,11 @@ class BadTickerClient(BaseSQLiteClient):
     def log_bad_ticker(self, ticker: str, timestamp: str, reason: str) -> bool:
         """Log or update a bad ticker record."""
         query = """
-        INSERT OR REPLACE INTO bad_tickers (ticker, timestamp, reason)
-        VALUES (?, ?, ?)
+        INSERT INTO bad_tickers (ticker, timestamp, reason)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            timestamp = VALUES(timestamp),
+            reason = VALUES(reason)
         """
         try:
             self.execute(query, (ticker, timestamp, reason))
@@ -67,7 +65,7 @@ class BadTickerClient(BaseSQLiteClient):
 
     def get_bad_tickers(self, limit: int = 100) -> list[dict[str, Any]]:
         """Get list of bad tickers ordered by timestamp."""
-        query = "SELECT ticker, timestamp, reason FROM bad_tickers ORDER BY timestamp DESC LIMIT ?"
+        query = "SELECT ticker, timestamp, reason FROM bad_tickers ORDER BY timestamp DESC LIMIT %s"
         try:
             results = self.fetchall(query, (limit,))
             return results
@@ -77,7 +75,7 @@ class BadTickerClient(BaseSQLiteClient):
 
     def is_bad_ticker(self, ticker: str) -> bool:
         """Check if a ticker is marked as bad."""
-        query = "SELECT 1 FROM bad_tickers WHERE ticker = ?"
+        query = "SELECT 1 FROM bad_tickers WHERE ticker = %s"
         try:
             result = self.fetchone(query, (ticker,))
             return result is not None
@@ -87,7 +85,7 @@ class BadTickerClient(BaseSQLiteClient):
 
     def remove_bad_ticker(self, ticker: str) -> bool:
         """Remove a ticker from bad_tickers table."""
-        query = "DELETE FROM bad_tickers WHERE ticker = ?"
+        query = "DELETE FROM bad_tickers WHERE ticker = %s"
         try:
             self.execute(query, (ticker,))
             self.logger.debug(f"Removed bad ticker: {ticker}")
