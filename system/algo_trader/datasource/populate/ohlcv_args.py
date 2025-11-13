@@ -176,7 +176,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             f"period: {period_type.value}={args.period_value}"
         )
 
-        # Filter out bad tickers from SQLite (only if tickers were provided)
+        # Filter out bad tickers from MySQL (only if tickers were provided)
         if tickers:
             bad_ticker_client = BadTickerClient()
             original_count = len(tickers)
