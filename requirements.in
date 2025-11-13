@@ -21,3 +21,4 @@ pyyaml>=6.0.0
 requests>=2.31.0
 redis>=4.3.4
 influxdb3-python>=0.15.0
+pymysql>=1.1.0

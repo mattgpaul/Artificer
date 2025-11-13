@@ -97,3 +97,11 @@ oci.pull(
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "sqlite", "sqlite_linux_amd64")
+
+oci.pull(
+    name = "mysql",
+    digest = "sha256:3d7f2c07d5e5c3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d",
+    image = "docker.io/library/mysql:8.0",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "mysql", "mysql_linux_amd64")

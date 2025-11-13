@@ -712,7 +712,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "LK2FAPoEJAYKf+35mu6bJe/4XnwBiGjQt/m3Cxrqqj8=",
-        "usagesDigest": "0n4En1mzpPYZLi9dcEkwRIvFmnWy4G9nPJCIaFqoVLs=",
+        "usagesDigest": "U9LTLMrTg4KWqirY8iQQPxGB7serd5ccZjja7bYPvro=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -862,6 +862,35 @@
               "reproducible": true
             }
           },
+          "mysql_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "sha256:3d7f2c07d5e5c3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d",
+              "platform": "linux/amd64",
+              "target_name": "mysql_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "mysql": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "mysql",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/mysql",
+              "identifier": "sha256:3d7f2c07d5e5c3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d3e3f3a3b3c3d",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@mysql_linux_amd64"
+              },
+              "bzlmod_repository": "mysql",
+              "reproducible": true
+            }
+          },
           "oci_crane_darwin_amd64": {
             "repoRuleId": "@@rules_oci+//oci:repositories.bzl%crane_repositories",
             "attributes": {
@@ -987,7 +1016,9 @@
             "python",
             "python_linux_amd64",
             "sqlite",
-            "sqlite_linux_amd64"
+            "sqlite_linux_amd64",
+            "mysql",
+            "mysql_linux_amd64"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",
