@@ -57,7 +57,7 @@ services:
 
   influx-publisher-historical:
     image: artificer-influx-publisher:latest
-    container_name: algo_trader-influx-publisher-historical
+    container_name: algo_trader-influx-publisher
     restart: always
     networks:
       - algo_trader-net
@@ -83,9 +83,9 @@ services:
       - redis
       - influxdb
 
-  sqlite-bad-ticker-daemon:
+  sqlite-daemon:
     image: artificer-sqlite-daemon:latest
-    container_name: algo_trader-sqlite-bad-ticker-daemon
+    container_name: algo_trader-sqlite-daemon
     restart: always
     networks:
       - algo_trader-net
@@ -98,12 +98,12 @@ services:
       - -c
       - |
         pip install --no-cache-dir -q redis pydantic pydantic-settings && \
-        python -m system.algo_trader.sqlite.bad_ticker_daemon
+        python -m system.algo_trader.sqlite.unified_sqlite_daemon
     environment:
       - PYTHONPATH=/workspace
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=${REDIS_DB}
+      - REDIS_DB=${REDIS_DB:-0}
       - SQLITE_DB_PATH=/data/algo_trader.db
     depends_on:
       - redis

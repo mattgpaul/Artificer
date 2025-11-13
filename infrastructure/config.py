@@ -138,3 +138,34 @@ class SQLiteConfig(BaseSettings):
         env_prefix="SQLITE_",
         env_file=None,
     )
+
+
+class MySQLConfig(BaseSettings):
+    """MySQL connection configuration with environment variable support.
+
+    Reads from MYSQL_* environment variables automatically.
+
+    Attributes:
+        host: MySQL server hostname.
+        port: MySQL server port.
+        user: MySQL username.
+        password: MySQL password.
+        database: Target database name.
+        charset: Connection charset.
+        connect_timeout: Connection timeout in seconds.
+        autocommit: Autocommit mode.
+    """
+
+    host: str = Field(default="localhost")
+    port: int = Field(default=3306)
+    user: str = Field(default="root")
+    password: str = Field(default="")
+    database: str = Field(default="")
+    charset: str = Field(default="utf8mb4")
+    connect_timeout: int = Field(default=10)
+    autocommit: bool = Field(default=False)
+
+    model_config = SettingsConfigDict(
+        env_prefix="MYSQL_",
+        env_file=None,
+    )
