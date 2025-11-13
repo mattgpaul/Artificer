@@ -30,7 +30,7 @@ class TestGetTickersSuccess:
             "1": {"cik_str": 789019, "ticker": "MSFT", "title": "Microsoft Corporation"},
         }
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="application/json", json_data=mock_response_data
             )
@@ -47,7 +47,7 @@ class TestGetTickersSuccess:
 
     def test_get_tickers_returns_none_on_exception(self, tickers):
         """Test get_tickers returns None when an exception occurs."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_get.side_effect = Exception("Network error")
 
             result = tickers.get_tickers()
@@ -70,7 +70,7 @@ class TestGetTickersErrorHandling:
         self, tickers, mock_http_response, status_code, content_type, text_content, should_log_info
     ):
         """Test get_tickers handles various HTTP error status codes."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=status_code, content_type=content_type, text=text_content
             )
@@ -85,7 +85,7 @@ class TestGetTickersErrorHandling:
 
     def test_get_tickers_non_200_status_code(self, tickers, mock_http_response):
         """Test get_tickers handles non-200 HTTP status codes."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(status_code=404, text="Not Found")
             mock_get.return_value = mock_response
 
@@ -102,7 +102,7 @@ class TestGetTickersErrorHandling:
         """Test get_tickers handles HTML response (e.g., rate limiting page)."""
         html_content = "<html><body>Rate Limit Exceeded</body></html>"
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="text/html", text=html_content
             )
@@ -121,7 +121,7 @@ class TestGetTickersErrorHandling:
         """Test get_tickers handles missing Content-Type header."""
         mock_response_data = {"test": "data"}
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             # Create response with empty headers
             mock_response = mock_http_response(
                 status_code=200, content_type="", json_data=mock_response_data
@@ -136,7 +136,7 @@ class TestGetTickersErrorHandling:
 
     def test_get_tickers_json_decode_error(self, tickers):
         """Test get_tickers handles JSON decode errors."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.headers = {"Content-Type": "application/json"}
@@ -160,7 +160,7 @@ class TestGetTickersRateLimiting:
             "<body><h1>Automated access to our sites...</h1></body></html>"
         )
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="text/html", text=rate_limit_html
             )
@@ -178,7 +178,7 @@ class TestGetTickersRateLimiting:
         """Test that proper headers are sent to SEC API."""
         mock_response_data = {"test": "data"}
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="application/json", json_data=mock_response_data
             )
@@ -216,7 +216,7 @@ class TestGetTickersResponseValidation:
         self, tickers, mock_http_response, content_type, should_succeed
     ):
         """Test that content type validation works correctly."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             if should_succeed:
                 mock_response = mock_http_response(
                     status_code=200, content_type=content_type, json_data={"data": "test"}
@@ -238,7 +238,7 @@ class TestGetTickersEdgeCases:
 
     def test_empty_response(self, tickers, mock_http_response):
         """Test handling of empty response."""
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="application/json", json_data={}
             )
@@ -252,7 +252,7 @@ class TestGetTickersEdgeCases:
         """Test that only first 500 characters of error response are logged."""
         large_response = "x" * 1000
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(status_code=500, text=large_response)
             mock_get.return_value = mock_response
 
@@ -320,7 +320,7 @@ class TestFetchCompanyFacts:
         cik = "0000320193"
         mock_facts = {"entityName": "Apple Inc.", "facts": {}}
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="application/json", json_data=mock_facts
             )
@@ -353,7 +353,7 @@ class TestFetchCompanyFacts:
         # Cache is 25 hours old
         tickers._company_facts_cache[cik] = (old_facts, 1000000.0 - 25 * 3600)
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(
                 status_code=200, content_type="application/json", json_data=new_facts
             )
@@ -367,7 +367,7 @@ class TestFetchCompanyFacts:
         """Test company facts handles HTTP errors."""
         cik = "0000320193"
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_response = mock_http_response(status_code=404)
             mock_get.return_value = mock_response
 
@@ -380,7 +380,7 @@ class TestFetchCompanyFacts:
         """Test company facts handles exceptions."""
         cik = "0000320193"
 
-        with patch("system.algo_trader.datasource.sec.tickers.requests.get") as mock_get:
+        with patch("system.algo_trader.datasource.sec.tickers.main.requests.get") as mock_get:
             mock_get.side_effect = Exception("Network error")
 
             result = tickers._fetch_company_facts(cik)
@@ -413,7 +413,7 @@ class TestExtractAllPeriodsForFact:
             }
         }
 
-        periods = tickers._extract_all_periods_for_fact(
+        periods = tickers._dataframe_builder._extract_all_periods_for_fact(
             facts, "Revenues", years_back=10, require_quarterly=True
         )
 
@@ -425,7 +425,7 @@ class TestExtractAllPeriodsForFact:
         """Test period extraction when namespace not found."""
         facts = {"facts": {}}
 
-        periods = tickers._extract_all_periods_for_fact(
+        periods = tickers._dataframe_builder._extract_all_periods_for_fact(
             facts, "Revenues", years_back=10, require_quarterly=True
         )
 
@@ -436,7 +436,7 @@ class TestExtractAllPeriodsForFact:
         """Test period extraction when fact not found."""
         facts = {"facts": {"us-gaap": {}}}
 
-        periods = tickers._extract_all_periods_for_fact(
+        periods = tickers._dataframe_builder._extract_all_periods_for_fact(
             facts, "Revenues", years_back=10, require_quarterly=True
         )
 
@@ -467,7 +467,7 @@ class TestExtractAllPeriodsForFact:
             }
         }
 
-        periods = tickers._extract_all_periods_for_fact(
+        periods = tickers._dataframe_builder._extract_all_periods_for_fact(
             facts, "Revenues", years_back=10, require_quarterly=True
         )
 
@@ -492,7 +492,7 @@ class TestExtractAllPeriodsForFact:
             }
         }
 
-        periods = tickers._extract_all_periods_for_fact(
+        periods = tickers._dataframe_builder._extract_all_periods_for_fact(
             facts, "Revenues", years_back=10, require_quarterly=True
         )
 
@@ -520,7 +520,7 @@ class TestBuildTimeSeriesDataframe:
             }
         }
 
-        df = tickers._build_time_series_dataframe(facts, "AAPL", years_back=10)
+        df = tickers._dataframe_builder.build_time_series_dataframe(facts, "AAPL", years_back=10)
 
         assert isinstance(df, pd.DataFrame)
         assert "ticker" in df.columns
@@ -530,7 +530,7 @@ class TestBuildTimeSeriesDataframe:
         """Test time series DataFrame building with no data."""
         facts = {"facts": {}}
 
-        df = tickers._build_time_series_dataframe(facts, "AAPL", years_back=10)
+        df = tickers._dataframe_builder.build_time_series_dataframe(facts, "AAPL", years_back=10)
 
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 0
@@ -547,7 +547,7 @@ class TestExtractStaticInfo:
             "sicDescription": "Electronic Computers",
         }
 
-        static_info = tickers._extract_static_info(facts, "AAPL")
+        static_info = tickers._static_extractor.extract_static_info(facts, "AAPL")
 
         assert static_info["ticker"] == "AAPL"
         assert static_info["entity_name"] == "Apple Inc."
@@ -558,7 +558,7 @@ class TestExtractStaticInfo:
         """Test static info extraction with missing fields."""
         facts = {"entityName": "Apple Inc."}
 
-        static_info = tickers._extract_static_info(facts, "AAPL")
+        static_info = tickers._static_extractor.extract_static_info(facts, "AAPL")
 
         assert static_info["ticker"] == "AAPL"
         assert static_info["entity_name"] == "Apple Inc."

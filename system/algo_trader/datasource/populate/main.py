@@ -8,10 +8,10 @@ import argparse
 from typing import ClassVar
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.datasource.populate.fundamentals import (
+from system.algo_trader.datasource.populate.fundamentals.handler import (
     FundamentalsArgumentHandler,
 )
-from system.algo_trader.datasource.populate.ohlcv_args import (
+from system.algo_trader.datasource.populate.ohlcv.handler import (
     OHLCVArgumentHandler,
 )
 
