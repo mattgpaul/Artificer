@@ -6,7 +6,6 @@ Currently handles bad_ticker_queue and fundamentals_static_queue.
 
 import signal
 import time
-from typing import Any
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.queue_broker import QueueBroker
@@ -50,9 +49,7 @@ class UnifiedSQLiteDaemon:
         if queue_size == 0:
             return
 
-        self.logger.info(
-            f"Processing queue '{BAD_TICKER_QUEUE_NAME}' ({queue_size} items pending)"
-        )
+        self.logger.info(f"Processing queue '{BAD_TICKER_QUEUE_NAME}' ({queue_size} items pending)")
 
         processed_count = 0
         failed_count = 0
@@ -180,7 +177,9 @@ class UnifiedSQLiteDaemon:
         shutdown signal is received.
         """
         self.logger.info("Starting Unified SQLite Daemon...")
-        self.logger.info(f"Monitoring queues: {BAD_TICKER_QUEUE_NAME}, {FUNDAMENTALS_STATIC_QUEUE_NAME}")
+        self.logger.info(
+            f"Monitoring queues: {BAD_TICKER_QUEUE_NAME}, {FUNDAMENTALS_STATIC_QUEUE_NAME}"
+        )
 
         self.running = True
 
@@ -224,4 +223,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
