@@ -52,3 +52,24 @@ py_library(
         requirement("pytest"),
     ],
 )
+
+# Test library for fundamentals
+py_library(
+    name = "test_fundamentals_lib",
+    testonly = True,
+    srcs = [
+        "conftest.py",
+        "test_fundamentals.py",
+    ],
+    visibility = ["//system/algo_trader/datasource/populate:__pkg__"],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//infrastructure/threads:thread_manager",
+        "//system/algo_trader/datasource/populate:populate_lib",
+        "//system/algo_trader/datasource/sec:tickers_lib",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/sqlite:bad_ticker_client",
+        requirement("pandas"),
+        requirement("pytest"),
+    ],
+)

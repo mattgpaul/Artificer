@@ -6,6 +6,7 @@ py_library(
     name = "populate_lib",
     srcs = [
         "argument_base.py",
+        "fundamentals.py",
         "main.py",
         "ohlcv_args.py",
     ],
@@ -17,10 +18,14 @@ py_library(
         "//infrastructure/logging:logger",
         "//infrastructure/threads:thread_manager",
         "//system/algo_trader:config",
+        "//system/algo_trader/datasource/populate:utils",
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/influx:influx_services",
+        "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
         "//system/algo_trader/sqlite:bad_ticker_client",
+        "//system/algo_trader/sqlite:fundamentals_client",
+        requirement("pandas"),
     ],
 )
 
@@ -80,4 +85,12 @@ pytest_test(
     coverage_path = "system.algo_trader.datasource.populate.utils.market_cap",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/datasource/populate:test_market_cap_lib",
+)
+
+pytest_test(
+    name = "test_fundamentals",
+    size = "medium",
+    coverage_path = "system.algo_trader.datasource.populate.fundamentals",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/datasource/populate:test_fundamentals_lib",
 )

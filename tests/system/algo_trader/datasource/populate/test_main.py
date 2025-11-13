@@ -53,8 +53,10 @@ class TestPopulateCLIInitialization:
         """Test handlers are registered."""
         cli = PopulateCLI()
 
-        assert len(cli.ARGUMENT_HANDLERS) == 1
-        assert cli.ARGUMENT_HANDLERS[0].__name__ == "OHLCVArgumentHandler"
+        assert len(cli.ARGUMENT_HANDLERS) == 2
+        handler_names = [handler.__name__ for handler in cli.ARGUMENT_HANDLERS]
+        assert "OHLCVArgumentHandler" in handler_names
+        assert "FundamentalsArgumentHandler" in handler_names
 
 
 class TestPopulateCLIRun:
