@@ -13,8 +13,8 @@ from infrastructure.config import ThreadConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
-from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
+from system.algo_trader.redis.queue_broker import QueueBroker
 
 FUNDAMENTALS_QUEUE_NAME = "fundamentals_queue"
 FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"

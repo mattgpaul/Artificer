@@ -12,10 +12,10 @@ from infrastructure.config import ThreadConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
+from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 
 OHLCV_QUEUE_NAME = "ohlcv_queue"
 BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"

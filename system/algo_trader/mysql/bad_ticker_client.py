@@ -93,4 +93,3 @@ class BadTickerClient(BaseMySQLClient):
         except Exception as e:
             self.logger.error(f"Error removing bad ticker {ticker}: {e}")
             return False
-

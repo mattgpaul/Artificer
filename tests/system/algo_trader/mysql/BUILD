@@ -49,4 +49,3 @@ py_library(
         "//system/algo_trader/redis:redis_services",
     ],
 )
-

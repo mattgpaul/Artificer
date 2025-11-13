@@ -106,4 +106,3 @@ oci_load(
     image = ":mysql_daemon_image_lib",
     repo_tags = ["artificer-mysql-daemon:latest"],
 )
-

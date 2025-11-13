@@ -266,4 +266,3 @@ class TestFundamentalsClientOperations:
             result = client.upsert_fundamentals(static_data)
 
             assert result is True
-

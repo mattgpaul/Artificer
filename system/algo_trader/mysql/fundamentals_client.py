@@ -93,4 +93,3 @@ class FundamentalsClient(BaseMySQLClient):
         except Exception as e:
             self.logger.error(f"Error upserting fundamentals: {e}")
             return False
-

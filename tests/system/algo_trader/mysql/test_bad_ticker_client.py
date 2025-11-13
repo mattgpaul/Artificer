@@ -4,7 +4,7 @@ Tests cover initialization, table creation, logging, querying, and removal
 of bad tickers. All MySQL operations are mocked to avoid requiring a database.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -187,4 +187,3 @@ class TestBadTickerClientOperations:
 
         assert result is False
         mock_logger.error.assert_called()
-

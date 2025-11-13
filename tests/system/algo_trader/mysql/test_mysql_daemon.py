@@ -6,11 +6,7 @@ All Redis and MySQL operations are mocked. Thread tests use timeouts.
 
 import signal
 
-import pytest
-
 from system.algo_trader.mysql.mysql_daemon import (
-    BAD_TICKER_QUEUE_NAME,
-    FUNDAMENTALS_STATIC_QUEUE_NAME,
     MySQLDaemon,
 )
 
@@ -115,11 +111,15 @@ class TestMySQLDaemonQueueProcessing:
             "sector": "Technology",
             "industry": "Consumer Electronics",
         }
-        mock_mysql_daemon_dependencies["fundamentals_client"].upsert_fundamentals.return_value = True
+        mock_mysql_daemon_dependencies[
+            "fundamentals_client"
+        ].upsert_fundamentals.return_value = True
 
         daemon._process_fundamentals_queue()
 
-        mock_mysql_daemon_dependencies["fundamentals_client"].upsert_fundamentals.assert_called_once()
+        mock_mysql_daemon_dependencies[
+            "fundamentals_client"
+        ].upsert_fundamentals.assert_called_once()
         mock_mysql_daemon_dependencies["queue_broker"].delete_data.assert_called()
 
 
@@ -139,11 +139,12 @@ class TestMySQLDaemonCleanup:
     def test_cleanup_handles_errors(self, mock_mysql_daemon_dependencies):
         """Test cleanup handles client close errors gracefully."""
         daemon = MySQLDaemon()
-        mock_mysql_daemon_dependencies["bad_ticker_client"].close.side_effect = Exception("Close error")
+        mock_mysql_daemon_dependencies["bad_ticker_client"].close.side_effect = Exception(
+            "Close error"
+        )
 
         daemon._cleanup()
 
         # Should still attempt to close fundamentals client
         mock_mysql_daemon_dependencies["fundamentals_client"].close.assert_called_once()
         mock_mysql_daemon_dependencies["logger"].warning.assert_called()
-
