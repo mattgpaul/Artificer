@@ -76,15 +76,15 @@ def mock_mysql_config():
 
 
 @pytest.fixture
-def mock_unified_mysql_daemon_dependencies():
-    """Fixture to mock all unified MySQL daemon dependencies."""
+def mock_mysql_daemon_dependencies():
+    """Fixture to mock all MySQL daemon dependencies."""
     with (
-        patch("system.algo_trader.mysql.unified_mysql_daemon.QueueBroker") as mock_queue_broker_class,
-        patch("system.algo_trader.mysql.unified_mysql_daemon.BadTickerClient") as mock_bad_ticker_client_class,
-        patch("system.algo_trader.mysql.unified_mysql_daemon.FundamentalsClient") as mock_fundamentals_client_class,
-        patch("system.algo_trader.mysql.unified_mysql_daemon.get_logger") as mock_get_logger,
-        patch("system.algo_trader.mysql.unified_mysql_daemon.signal.signal") as mock_signal,
-        patch("system.algo_trader.mysql.unified_mysql_daemon.time.sleep") as mock_sleep,
+        patch("system.algo_trader.mysql.mysql_daemon.QueueBroker") as mock_queue_broker_class,
+        patch("system.algo_trader.mysql.mysql_daemon.BadTickerClient") as mock_bad_ticker_client_class,
+        patch("system.algo_trader.mysql.mysql_daemon.FundamentalsClient") as mock_fundamentals_client_class,
+        patch("system.algo_trader.mysql.mysql_daemon.get_logger") as mock_get_logger,
+        patch("system.algo_trader.mysql.mysql_daemon.signal.signal") as mock_signal,
+        patch("system.algo_trader.mysql.mysql_daemon.time.sleep") as mock_sleep,
     ):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger

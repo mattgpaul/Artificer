@@ -34,18 +34,18 @@ py_library(
     ],
 )
 
-# Test library for UnifiedMySQLDaemon
+# Test library for MySQLDaemon
 py_library(
-    name = "test_unified_mysql_daemon_lib",
+    name = "test_mysql_daemon_lib",
     testonly = True,
     srcs = [
         "conftest.py",
-        "test_unified_mysql_daemon.py",
+        "test_mysql_daemon.py",
     ],
     visibility = ["//system/algo_trader/mysql:__pkg__"],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/mysql:unified_mysql_daemon_lib",
+        "//system/algo_trader/mysql:mysql_daemon_lib",
         "//system/algo_trader/redis:redis_services",
     ],
 )

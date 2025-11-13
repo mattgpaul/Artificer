@@ -34,8 +34,8 @@ py_library(
 )
 
 py_library(
-    name = "unified_mysql_daemon_lib",
-    srcs = ["unified_mysql_daemon.py"],
+    name = "mysql_daemon_lib",
+    srcs = ["mysql_daemon.py"],
     visibility = [
         "//system:__pkg__",
         "//system/algo_trader:__subpackages__",
@@ -51,10 +51,10 @@ py_library(
 
 py_binary(
     name = "mysql-daemon",
-    srcs = ["unified_mysql_daemon.py"],
-    main = "unified_mysql_daemon.py",
+    srcs = ["mysql_daemon.py"],
+    main = "mysql_daemon.py",
     visibility = ["//visibility:public"],
-    deps = [":unified_mysql_daemon_lib"],
+    deps = [":mysql_daemon_lib"],
 )
 
 # Test for BadTickerClient - Bad Ticker Tracking
@@ -75,13 +75,13 @@ pytest_test(
     test_lib = "//tests/system/algo_trader/mysql:test_fundamentals_client_lib",
 )
 
-# Test for UnifiedMySQLDaemon - Unified MySQL Daemon
+# Test for MySQLDaemon - MySQL Daemon
 pytest_test(
-    name = "test_unified_mysql_daemon",
+    name = "test_mysql_daemon",
     size = "small",
-    coverage_path = "system.algo_trader.mysql.unified_mysql_daemon",
+    coverage_path = "system.algo_trader.mysql.mysql_daemon",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/mysql:test_unified_mysql_daemon_lib",
+    test_lib = "//tests/system/algo_trader/mysql:test_mysql_daemon_lib",
 )
 
 oci_image(

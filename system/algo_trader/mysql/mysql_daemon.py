@@ -1,4 +1,4 @@
-"""Unified MySQL daemon for processing multiple Redis queues.
+"""MySQL daemon for processing multiple Redis queues.
 
 This daemon monitors multiple Redis queues and writes data to MySQL database.
 Currently handles bad_ticker_queue and fundamentals_static_queue.
@@ -17,7 +17,7 @@ FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
 POLL_INTERVAL = 2
 
 
-class UnifiedMySQLDaemon:
+class MySQLDaemon:
     """Daemon that processes multiple MySQL queues.
 
     Continuously monitors Redis queues for data and writes to MySQL database.
@@ -25,7 +25,7 @@ class UnifiedMySQLDaemon:
     """
 
     def __init__(self) -> None:
-        """Initialize unified MySQL daemon with queue broker and MySQL clients."""
+        """Initialize MySQL daemon with queue broker and MySQL clients."""
         self.logger = get_logger(self.__class__.__name__)
         self.running = False
         self.queue_broker = QueueBroker(namespace="queue")
@@ -176,7 +176,7 @@ class UnifiedMySQLDaemon:
         Continuously polls Redis queues for data and processes items until
         shutdown signal is received.
         """
-        self.logger.info("Starting Unified MySQL Daemon...")
+        self.logger.info("Starting MySQL Daemon...")
         self.logger.info(
             f"Monitoring queues: {BAD_TICKER_QUEUE_NAME}, {FUNDAMENTALS_STATIC_QUEUE_NAME}"
         )
@@ -216,8 +216,8 @@ class UnifiedMySQLDaemon:
 
 
 def main() -> None:
-    """Main entry point for unified MySQL daemon."""
-    daemon = UnifiedMySQLDaemon()
+    """Main entry point for MySQL daemon."""
+    daemon = MySQLDaemon()
     daemon.run()
 
 

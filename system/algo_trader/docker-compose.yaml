@@ -113,7 +113,7 @@ services:
       - -c
       - |
         pip install --no-cache-dir -q redis pydantic pydantic-settings pymysql && \
-        python -m system.algo_trader.mysql.unified_mysql_daemon
+        python -m system.algo_trader.mysql.mysql_daemon
     environment:
       - PYTHONPATH=/workspace
       - REDIS_HOST=redis
