@@ -204,14 +204,24 @@ class Tickers:
             "datetime": datetime_ms,
         }
 
-    def _extract_all_periods_for_fact(
-        self, facts: dict, fact_name: str, years_back: int = 10, require_quarterly: bool = True
+    def _extract_periods_for_single_fact(
+        self,
+        facts_data: dict,
+        namespace: str,
+        fact_name: str,
+        unit_preference: list[str],
+        years_back: int,
+        require_quarterly: bool,
     ) -> list[dict]:
-        """Extract all periods for a given fact from company facts data.
+        """Extract periods for a single fact name.
+
+        Helper method to extract periods for a specific fact name.
 
         Args:
-            facts: Company facts dictionary from SEC API.
+            facts_data: The facts data dictionary.
+            namespace: The namespace to check.
             fact_name: Name of the fact to extract.
+            unit_preference: List of preferred unit names.
             years_back: Number of years back to include data.
             require_quarterly: Whether to require quarterly periods only.
 
@@ -219,10 +229,6 @@ class Tickers:
             List of dictionaries containing period data with value, period_end, datetime, and unit.
         """
         periods = []
-        facts_data = facts.get("facts", {})
-        config = self.METRICS_CONFIG.get(fact_name, {})
-        namespace = config.get("namespace", "us-gaap")
-        unit_preference = config.get("unit_preference", [])
 
         if not self._validate_fact_exists(facts_data, namespace, fact_name):
             return periods
@@ -249,6 +255,72 @@ class Tickers:
                 if period:
                     period["unit"] = unit
                     periods.append(period)
+
+        return periods
+
+    def _extract_all_periods_for_fact(
+        self, facts: dict, fact_name: str, years_back: int = 10, require_quarterly: bool = True
+    ) -> list[dict]:
+        """Extract all periods for a given fact from company facts data.
+
+        If the primary fact name is not found or has no valid periods, tries alternative
+        fact names from the configuration in order until one with valid periods is found.
+
+        Args:
+            facts: Company facts dictionary from SEC API.
+            fact_name: Name of the fact to extract.
+            years_back: Number of years back to include data.
+            require_quarterly: Whether to require quarterly periods only.
+
+        Returns:
+            List of dictionaries containing period data with value, period_end, datetime, and unit.
+        """
+        facts_data = facts.get("facts", {})
+        config = self.METRICS_CONFIG.get(fact_name, {})
+        namespace = config.get("namespace", "us-gaap")
+        unit_preference = config.get("unit_preference", [])
+        alternatives = config.get("alternatives", [])
+
+        # Try primary fact name first
+        periods = self._extract_periods_for_single_fact(
+            facts_data, namespace, fact_name, unit_preference, years_back, require_quarterly
+        )
+
+        # If primary fact yielded no periods and alternatives exist, try alternatives
+        if not periods and alternatives:
+            self.logger.info(
+                f"Fact {fact_name} has no valid periods in namespace {namespace}, trying alternatives: {alternatives}"
+            )
+            self.logger.debug(
+                f"Fact {fact_name} has no valid periods in namespace {namespace}, trying alternatives: {alternatives}"
+            )
+
+            for alt_fact_name in alternatives:
+                alt_periods = self._extract_periods_for_single_fact(
+                    facts_data,
+                    namespace,
+                    alt_fact_name,
+                    unit_preference,
+                    years_back,
+                    require_quarterly,
+                )
+                if alt_periods:
+                    periods = alt_periods
+                    self.logger.info(
+                        f"Using alternative fact name '{alt_fact_name}' instead of '{fact_name}' "
+                        f"(found {len(periods)} periods)"
+                    )
+                    self.logger.debug(
+                        f"Using alternative fact name '{alt_fact_name}' instead of '{fact_name}' "
+                        f"(found {len(periods)} periods)"
+                    )
+                    break
+
+            if not periods:
+                self.logger.debug(
+                    f"Fact {fact_name} and all alternatives {alternatives} yielded no valid periods "
+                    f"in namespace {namespace}"
+                )
 
         return periods
 
