@@ -2,6 +2,18 @@ load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
+sh_binary(
+    name = "exec",
+    srcs = ["mysql_cli.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "daemon-exec",
+    srcs = ["mysql_daemon_cli.sh"],
+    visibility = ["//visibility:public"],
+)
+
 py_library(
     name = "bad_ticker_client",
     srcs = ["bad_ticker_client.py"],

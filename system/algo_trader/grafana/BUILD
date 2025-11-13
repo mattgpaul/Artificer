@@ -6,3 +6,9 @@ filegroup(
     ]),
     visibility = ["//visibility:public"],
 )
+
+sh_binary(
+    name = "exec",
+    srcs = ["grafana_cli.sh"],
+    visibility = ["//visibility:public"],
+)

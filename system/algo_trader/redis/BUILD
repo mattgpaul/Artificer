@@ -1,6 +1,12 @@
 load("@pip//:requirements.bzl", "requirement")  # @unused
 load("//:pytest_test.bzl", "pytest_test")
 
+sh_binary(
+    name = "exec",
+    srcs = ["redis_cli.sh"],
+    visibility = ["//visibility:public"],
+)
+
 py_library(
     name = "redis_services",
     srcs = [
