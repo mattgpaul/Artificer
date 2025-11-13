@@ -8,6 +8,9 @@ import argparse
 from typing import ClassVar
 
 from infrastructure.logging.logger import get_logger
+from system.algo_trader.datasource.populate.fundamentals import (
+    FundamentalsArgumentHandler,
+)
 from system.algo_trader.datasource.populate.ohlcv_args import (
     OHLCVArgumentHandler,
 )
@@ -24,7 +27,10 @@ class PopulateCLI:
     """
 
     # Registry of all argument handlers
-    ARGUMENT_HANDLERS: ClassVar[list[type]] = [OHLCVArgumentHandler]
+    ARGUMENT_HANDLERS: ClassVar[list[type]] = [
+        OHLCVArgumentHandler,
+        FundamentalsArgumentHandler,
+    ]
 
     def __init__(self) -> None:
         """Initialize the populate CLI."""

@@ -122,22 +122,29 @@ class InfluxPublisher:
                 continue
 
             ticker = data.get("ticker")
-            candles = data.get("candles")
+            time_series_data = data.get("candles") or data.get("data")
 
-            if not ticker or not candles:
+            if not ticker or not time_series_data:
                 self.logger.error(
                     f"Invalid data structure for {item_id} (ticker={ticker}, "
-                    f"candles={'present' if candles else 'missing'})"
+                    f"data={'present' if time_series_data else 'missing'})"
                 )
                 self.queue_broker.delete_data(queue_name, item_id)
                 failed_count += 1
                 continue
 
             try:
-                success = influx_client.write_sync(data=candles, ticker=ticker, table=table_name)
+                success = influx_client.write_sync(
+                    data=time_series_data, ticker=ticker, table=table_name
+                )
 
                 if success:
-                    self.logger.info(f"Successfully wrote {len(candles)} candles for {ticker}")
+                    data_count = (
+                        len(time_series_data)
+                        if isinstance(time_series_data, list)
+                        else len(time_series_data.get("datetime", []))
+                    )
+                    self.logger.info(f"Successfully wrote {data_count} records for {ticker}")
                     processed_count += 1
                 else:
                     self.logger.error(f"Failed to write data for {ticker} to InfluxDB")

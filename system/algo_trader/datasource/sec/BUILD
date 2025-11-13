@@ -11,6 +11,7 @@ py_library(
     visibility = [
         "//system:__pkg__",
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/datasource/populate:__pkg__",  # Allow populate tests to access tickers
         "//tests/system/algo_trader/datasource/sec:__pkg__",
         "//tests/system/algo_trader/strategy:__pkg__",  # Allow strategy tests to access tickers
     ],

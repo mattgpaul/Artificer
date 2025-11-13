@@ -13,6 +13,7 @@ py_library(
     visibility = [
         "//system:__pkg__",  # Allow system package access
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/datasource/populate:__pkg__",  # Allow populate test access
         "//tests/system/algo_trader/redis:__pkg__",  # Allow test access
         "//tests/system/algo_trader/sqlite:__pkg__",  # Allow sqlite test access
     ],

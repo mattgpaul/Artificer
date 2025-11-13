@@ -14,6 +14,12 @@ EntityCommonStockSharesOutstanding:
   unit_preference:
     - shares
 
+EntityPublicFloat:
+  column: market_cap
+  namespace: dei
+  unit_preference:
+    - USD
+
 Assets:
   column: total_assets
   namespace: us-gaap
