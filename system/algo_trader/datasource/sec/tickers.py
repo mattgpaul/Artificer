@@ -252,15 +252,20 @@ class Tickers:
 
         return periods
 
-    def _build_time_series_dataframe(
+    def _build_time_series_dataframe(  # noqa: C901, PLR0912
         self, facts: dict, ticker: str, years_back: int = 10
     ) -> pd.DataFrame:
         all_data = {}
         shares_outstanding_data = {}
+        market_cap_data = {}
 
         for fact_name, config in self.METRICS_CONFIG.items():
             column_name = config["column"]
-            require_quarterly = fact_name != "EntityCommonStockSharesOutstanding"
+            # EntityCommonStockSharesOutstanding and EntityPublicFloat are annual, not quarterly
+            require_quarterly = fact_name not in [
+                "EntityCommonStockSharesOutstanding",
+                "EntityPublicFloat",
+            ]
             periods = self._extract_all_periods_for_fact(
                 facts, fact_name, years_back, require_quarterly
             )
@@ -269,6 +274,10 @@ class Tickers:
                 for period in periods:
                     datetime_ms = period["datetime"]
                     shares_outstanding_data[datetime_ms] = period["value"]
+            elif fact_name == "EntityPublicFloat":
+                for period in periods:
+                    datetime_ms = period["datetime"]
+                    market_cap_data[datetime_ms] = period["value"]
             else:
                 for period in periods:
                     datetime_ms = period["datetime"]
@@ -304,6 +313,39 @@ class Tickers:
                     closest_shares = shares_df.loc[shares_df["datetime"] <= idx]
                     if len(closest_shares) > 0:
                         df.loc[idx, "shares_outstanding"] = closest_shares.iloc[-1]["shares"]
+
+        # Handle EntityPublicFloat (market_cap) - annual data forward-filled to quarterly periods
+        if market_cap_data:
+            market_cap_df = pd.DataFrame.from_dict(
+                {
+                    "datetime_ms": list(market_cap_data.keys()),
+                    "market_cap": list(market_cap_data.values()),
+                }
+            )
+            market_cap_df["datetime"] = pd.to_datetime(
+                market_cap_df["datetime_ms"], unit="ms", utc=True
+            )
+            market_cap_df = market_cap_df.set_index("datetime")
+            market_cap_df = market_cap_df.sort_index()
+
+            # Initialize market_cap column in main DataFrame as float64
+            df["market_cap"] = pd.NA
+
+            # Map annual market_cap values to quarterly periods
+            for idx in df.index:
+                # Find the most recent market_cap value on or before this quarterly period
+                market_cap_on_or_before = market_cap_df[market_cap_df.index <= idx]
+                if not market_cap_on_or_before.empty:
+                    df.loc[idx, "market_cap"] = float(
+                        market_cap_on_or_before["market_cap"].iloc[-1]
+                    )
+
+            # Convert to numeric and forward-fill market_cap to handle any gaps
+            df["market_cap"] = pd.to_numeric(df["market_cap"], errors="coerce")
+            df["market_cap"] = df["market_cap"].ffill()
+        else:
+            # Initialize market_cap column even if no data available
+            df["market_cap"] = pd.NA
 
         return df
 

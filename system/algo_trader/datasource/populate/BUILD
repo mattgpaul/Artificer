@@ -86,3 +86,11 @@ pytest_test(
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/datasource/populate:test_market_cap_lib",
 )
+
+pytest_test(
+    name = "test_fundamentals",
+    size = "medium",
+    coverage_path = "system.algo_trader.datasource.populate.fundamentals",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/datasource/populate:test_fundamentals_lib",
+)

@@ -144,9 +144,7 @@ class InfluxPublisher:
                         if isinstance(time_series_data, list)
                         else len(time_series_data.get("datetime", []))
                     )
-                    self.logger.info(
-                        f"Successfully wrote {data_count} records for {ticker}"
-                    )
+                    self.logger.info(f"Successfully wrote {data_count} records for {ticker}")
                     processed_count += 1
                 else:
                     self.logger.error(f"Failed to write data for {ticker} to InfluxDB")

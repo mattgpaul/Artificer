@@ -1,3 +1,9 @@
+"""Fundamentals data population handler.
+
+This module provides argument handling and execution for populating fundamentals
+data from SEC company facts API into Redis queues and SQLite database.
+"""
+
 import argparse
 import time
 
@@ -6,23 +12,33 @@ import pandas as pd
 from infrastructure.config import ThreadConfig
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
-from system.algo_trader.datasource.populate.utils.market_cap import calculate_market_cap
 from system.algo_trader.datasource.sec.tickers import Tickers
-from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.sqlite.bad_ticker_client import BadTickerClient
 
 FUNDAMENTALS_QUEUE_NAME = "fundamentals_queue"
 FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
 FUNDAMENTALS_REDIS_TTL = 3600
-MAX_THREADS = 100
+MAX_THREADS = 4
 
 
 class FundamentalsArgumentHandler(ArgumentHandler):
+    """Handler for fundamentals data population arguments and execution.
+
+    Processes command-line arguments for fetching company fundamentals data
+    from SEC API and enqueuing it to Redis for downstream processing.
+    """
+
     def __init__(self) -> None:
+        """Initialize FundamentalsArgumentHandler with 'fundamentals' command name."""
         super().__init__("fundamentals")
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Add command-line arguments for fundamentals data population.
+
+        Args:
+            parser: ArgumentParser instance to add arguments to.
+        """
         parser.add_argument(
             "--tickers",
             nargs="+",
@@ -45,14 +61,34 @@ class FundamentalsArgumentHandler(ArgumentHandler):
         parser.add_argument(
             "--max-threads",
             type=int,
-            default=100,
-            help="Maximum number of threads for concurrent processing. Default: 100",
+            default=4,
+            help="Maximum number of threads for concurrent processing. Default: 4",
         )
 
     def is_applicable(self, args: argparse.Namespace) -> bool:
+        """Check if this handler applies to the given arguments.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            True if command is 'fundamentals', False otherwise.
+        """
         return hasattr(args, "command") and args.command == "fundamentals"
 
     def process(self, args: argparse.Namespace) -> dict:
+        """Process command-line arguments and prepare execution context.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Dictionary containing processed tickers, lookback period, write flag,
+            and max_threads configuration.
+
+        Raises:
+            ValueError: If tickers are not provided or SEC datasource fails.
+        """
         tickers = args.tickers
 
         if not tickers:
@@ -94,7 +130,19 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             "max_threads": args.max_threads,
         }
 
-    def execute(self, context: dict) -> None:
+    def execute(self, context: dict) -> None:  # noqa: C901, PLR0915
+        """Execute fundamentals data population for given tickers.
+
+        Fetches company facts data from SEC API and enqueues to Redis queues
+        for downstream processing. Uses thread pool for concurrent processing.
+
+        Args:
+            context: Dictionary containing:
+                - tickers: List of ticker symbols to process
+                - lookback_period: Years of historical data to fetch (default: 10)
+                - write: Whether to write to Redis (default: False)
+                - max_threads: Maximum concurrent threads (default: 4)
+        """
         tickers = context.get("tickers")
         lookback_period = context.get("lookback_period", 10)
         write = context.get("write", False)
@@ -111,11 +159,13 @@ class FundamentalsArgumentHandler(ArgumentHandler):
 
         tickers_source = Tickers()
         queue_broker = None
-        influx_client = MarketDataInflux(database="algo-trader-database")
 
         if write:
             queue_broker = QueueBroker(namespace="queue")
-            self.logger.info(f"QueueBroker initialized for queues: {FUNDAMENTALS_QUEUE_NAME}, {FUNDAMENTALS_STATIC_QUEUE_NAME}")
+            self.logger.info(
+                f"QueueBroker initialized for queues: {FUNDAMENTALS_QUEUE_NAME}, "
+                f"{FUNDAMENTALS_STATIC_QUEUE_NAME}"
+            )
 
         thread_config = ThreadConfig(max_threads=max_threads)
         thread_manager = ThreadManager(config=thread_config)
@@ -133,10 +183,10 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             "failed": 0,
             "static_rows": 0,
             "time_series_rows": 0,
-            "market_cap_calculated": 0,
+            "market_cap_rows": 0,
         }
 
-        def fetch_ticker_fundamentals(ticker: str) -> dict:
+        def fetch_ticker_fundamentals(ticker: str) -> dict:  # noqa: PLR0911
             try:
                 self.logger.debug(f"Fetching company facts for {ticker}")
 
@@ -156,8 +206,14 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                     self.logger.warning(f"{ticker}: Time series DataFrame is empty")
                     return {"success": False, "error": "Empty time series"}
 
-                time_series_df = calculate_market_cap(time_series_df, ticker, influx_client)
-                summary_stats["market_cap_calculated"] += 1
+                # Count market_cap rows (market_cap is already in DataFrame
+                # from SEC data extraction)
+                market_cap_count = (
+                    time_series_df["market_cap"].notna().sum()
+                    if "market_cap" in time_series_df.columns
+                    else 0
+                )
+                summary_stats["market_cap_rows"] += market_cap_count
 
                 if write:
                     if queue_broker:
@@ -170,7 +226,9 @@ class FundamentalsArgumentHandler(ArgumentHandler):
 
                         if static_enqueue_success:
                             summary_stats["static_rows"] += 1
-                            self.logger.debug(f"{ticker}: Successfully enqueued static data to Redis")
+                            self.logger.debug(
+                                f"{ticker}: Successfully enqueued static data to Redis"
+                            )
                         else:
                             self.logger.error(f"{ticker}: Failed to enqueue static data to Redis")
                             return {"success": False, "error": "Redis static enqueue failed"}
@@ -189,12 +247,15 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                         )
 
                         if enqueue_success:
-                            summary_stats["time_series_rows"] += len(time_series_dict.get("datetime", []))
+                            time_series_len = len(time_series_dict.get("datetime", []))
+                            summary_stats["time_series_rows"] += time_series_len
                             self.logger.debug(
-                                f"{ticker}: Successfully enqueued {len(time_series_dict.get('datetime', []))} rows to Redis"
+                                f"{ticker}: Successfully enqueued {time_series_len} rows to Redis"
                             )
                         else:
-                            self.logger.error(f"{ticker}: Failed to enqueue time series data to Redis")
+                            self.logger.error(
+                                f"{ticker}: Failed to enqueue time series data to Redis"
+                            )
                             return {"success": False, "error": "Redis time series enqueue failed"}
                 else:
                     summary_stats["static_rows"] += 1
@@ -266,14 +327,10 @@ class FundamentalsArgumentHandler(ArgumentHandler):
         if isinstance(df_copy.index, pd.DatetimeIndex):
             datetime_ms = (df_copy.index.astype("int64") // 10**6).tolist()
         elif "time" in df_copy.columns:
-            datetime_ms = (
-                pd.to_datetime(df_copy["time"]).astype("int64") // 10**6
-            ).tolist()
+            datetime_ms = (pd.to_datetime(df_copy["time"]).astype("int64") // 10**6).tolist()
             df_copy = df_copy.drop("time", axis=1)
         else:
-            datetime_ms = (
-                pd.to_datetime(df_copy.index).astype("int64") // 10**6
-            ).tolist()
+            datetime_ms = (pd.to_datetime(df_copy.index).astype("int64") // 10**6).tolist()
 
         df_copy = df_copy.reset_index(drop=True)
         result = df_copy.to_dict("list")
@@ -290,14 +347,15 @@ class FundamentalsArgumentHandler(ArgumentHandler):
         print(f"Failed: {stats['failed']}")
         print(f"Static Data Rows: {stats['static_rows']}")
         print(f"Time Series Rows: {stats['time_series_rows']}")
-        print(f"Market Cap Calculations: {stats['market_cap_calculated']}")
+        print(f"Market Cap Rows: {stats['market_cap_rows']}")
         if write:
             print(f"Time Series Queue: {FUNDAMENTALS_QUEUE_NAME}")
             print(f"Static Data Queue: {FUNDAMENTALS_STATIC_QUEUE_NAME}")
             print(f"Redis TTL: {FUNDAMENTALS_REDIS_TTL}s")
-            print("\nTime series data will be published to InfluxDB by the influx-publisher service.")
+            print(
+                "\nTime series data will be published to InfluxDB by the influx-publisher service."
+            )
             print("Static data will be written to SQLite by the fundamentals-daemon service.")
         else:
             print("\nDry-run mode: No data was written to SQLite or Redis.")
         print(f"{'=' * 50}\n")
-

@@ -1,3 +1,9 @@
+"""Fundamentals daemon for processing Redis queue and writing to SQLite.
+
+This daemon monitors the fundamentals_static_queue Redis queue and writes
+static fundamentals data to SQLite database.
+"""
+
 import signal
 import time
 
@@ -10,7 +16,14 @@ POLL_INTERVAL = 2
 
 
 class FundamentalsDaemon:
+    """Daemon for processing fundamentals static data from Redis to SQLite.
+
+    Continuously monitors Redis queue for fundamentals static data and writes
+    it to SQLite database. Handles graceful shutdown on SIGTERM/SIGINT.
+    """
+
     def __init__(self) -> None:
+        """Initialize FundamentalsDaemon with queue broker and SQLite client."""
         self.logger = get_logger(self.__class__.__name__)
         self.running = False
         self.queue_broker = QueueBroker(namespace="queue")
@@ -84,6 +97,11 @@ class FundamentalsDaemon:
         )
 
     def run(self) -> None:
+        """Run the daemon main loop.
+
+        Continuously polls Redis queue for fundamentals static data and processes
+        items until shutdown signal is received.
+        """
         self.logger.info("Starting Fundamentals Daemon...")
         self.logger.info(f"Monitoring queue: {FUNDAMENTALS_STATIC_QUEUE_NAME}")
 
@@ -112,10 +130,10 @@ class FundamentalsDaemon:
 
 
 def main() -> None:
+    """Entry point for fundamentals daemon."""
     daemon = FundamentalsDaemon()
     daemon.run()
 
 
 if __name__ == "__main__":
     main()
-

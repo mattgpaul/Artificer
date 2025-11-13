@@ -1,3 +1,9 @@
+"""SQLite client for fundamentals data storage.
+
+This module provides database operations for storing and retrieving
+company fundamentals static data (sector, industry, entity name, SIC).
+"""
+
 import os
 
 from infrastructure.config import SQLiteConfig
@@ -5,7 +11,18 @@ from infrastructure.sqlite.sqlite import BaseSQLiteClient
 
 
 class FundamentalsClient(BaseSQLiteClient):
+    """Client for fundamentals table operations in SQLite.
+
+    Handles creation and upsert operations for company fundamentals static data.
+    """
+
     def __init__(self, config=None) -> None:
+        """Initialize FundamentalsClient with SQLite configuration.
+
+        Args:
+            config: Optional SQLiteConfig instance. If None, creates default config
+                with database path from environment or default location.
+        """
         if config is None:
             config = SQLiteConfig()
             db_path_env = os.getenv("SQLITE_DB_PATH")
@@ -23,6 +40,11 @@ class FundamentalsClient(BaseSQLiteClient):
         self.create_table()
 
     def create_table(self) -> None:
+        """Create fundamentals table if it doesn't exist.
+
+        Raises:
+            Exception: If table creation fails.
+        """
         query = """
         CREATE TABLE IF NOT EXISTS fundamentals (
             ticker TEXT PRIMARY KEY,
@@ -40,6 +62,15 @@ class FundamentalsClient(BaseSQLiteClient):
             raise
 
     def upsert_fundamentals(self, static_data: dict) -> bool:
+        """Upsert fundamentals data for a ticker.
+
+        Args:
+            static_data: Dictionary containing ticker, sector, industry,
+                entity_name, and sic fields.
+
+        Returns:
+            True if upsert succeeded, False otherwise.
+        """
         query = """
         INSERT OR REPLACE INTO fundamentals (ticker, sector, industry, entity_name, sic)
         VALUES (?, ?, ?, ?, ?)
@@ -60,4 +91,3 @@ class FundamentalsClient(BaseSQLiteClient):
         except Exception as e:
             self.logger.error(f"Error upserting fundamentals: {e}")
             return False
-

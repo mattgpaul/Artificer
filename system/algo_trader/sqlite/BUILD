@@ -8,6 +8,7 @@ py_library(
     visibility = [
         "//system:__pkg__",
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/datasource/populate:__pkg__",  # Allow populate test access
         "//tests/system/algo_trader/sqlite:__pkg__",
     ],
     deps = [
@@ -94,6 +95,24 @@ pytest_test(
     coverage_path = "system.algo_trader.sqlite",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/sqlite:test_bad_ticker_daemon_lib",
+)
+
+# Test for FundamentalsClient - Fundamentals Data Storage
+pytest_test(
+    name = "test_fundamentals_client",
+    size = "small",
+    coverage_path = "system.algo_trader.sqlite.fundamentals_client",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/sqlite:test_fundamentals_client_lib",
+)
+
+# Test for FundamentalsDaemon - Queue Processing Daemon
+pytest_test(
+    name = "test_fundamentals_daemon",
+    size = "small",
+    coverage_path = "system.algo_trader.sqlite.fundamentals_daemon",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/sqlite:test_fundamentals_daemon_lib",
 )
 
 oci_image(
