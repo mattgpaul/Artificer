@@ -23,8 +23,8 @@ py_library(
         "//system/algo_trader/influx:influx_services",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
-        "//system/algo_trader/sqlite:bad_ticker_client",
-        "//system/algo_trader/sqlite:fundamentals_client",
+        "//system/algo_trader/mysql:bad_ticker_client",
+        "//system/algo_trader/mysql:fundamentals_client",
         requirement("pandas"),
     ],
 )

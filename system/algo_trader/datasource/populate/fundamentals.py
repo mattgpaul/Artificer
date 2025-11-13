@@ -1,7 +1,7 @@
 """Fundamentals data population handler.
 
 This module provides argument handling and execution for populating fundamentals
-data from SEC company facts API into Redis queues and SQLite database.
+data from SEC company facts API into Redis queues and MySQL database.
 """
 
 import argparse
@@ -14,7 +14,7 @@ from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.sec.tickers import Tickers
 from system.algo_trader.redis.queue_broker import QueueBroker
-from system.algo_trader.sqlite.bad_ticker_client import BadTickerClient
+from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 
 FUNDAMENTALS_QUEUE_NAME = "fundamentals_queue"
 FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
@@ -56,7 +56,7 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             "--write",
             action="store_true",
             default=False,
-            help="If set, write data to SQLite and Redis. If not set, dry-run mode (no writes).",
+            help="If set, write data to MySQL and Redis. If not set, dry-run mode (no writes).",
         )
         parser.add_argument(
             "--max-threads",
@@ -120,7 +120,7 @@ class FundamentalsArgumentHandler(ArgumentHandler):
         ]
         filtered_count = original_count - len(filtered_tickers)
         if filtered_count > 0:
-            self.logger.info(f"Filtered out {filtered_count} bad tickers from SQLite")
+            self.logger.info(f"Filtered out {filtered_count} bad tickers from MySQL")
         tickers = filtered_tickers
 
         return {
@@ -355,7 +355,7 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             print(
                 "\nTime series data will be published to InfluxDB by the influx-publisher service."
             )
-            print("Static data will be written to SQLite by the fundamentals-daemon service.")
+            print("Static data will be written to MySQL by the mysql-daemon service.")
         else:
-            print("\nDry-run mode: No data was written to SQLite or Redis.")
+            print("\nDry-run mode: No data was written to MySQL or Redis.")
         print(f"{'=' * 50}\n")

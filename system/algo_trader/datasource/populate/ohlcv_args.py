@@ -15,7 +15,7 @@ from system.algo_trader.datasource.sec.tickers import Tickers
 from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.schwab.market_handler import MarketHandler
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.algo_trader.sqlite.bad_ticker_client import BadTickerClient
+from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 
 OHLCV_QUEUE_NAME = "ohlcv_queue"
 BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"
@@ -94,7 +94,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
         parser.add_argument(
             "--verify-bad-tickers",
             action="store_true",
-            help="Verify bad tickers in SQLite and remove them if they are no longer bad",
+            help="Verify bad tickers in MySQL and remove them if they are no longer bad",
         )
 
     def is_applicable(self, args: argparse.Namespace) -> bool:
@@ -185,7 +185,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             ]
             filtered_count = original_count - len(filtered_tickers)
             if filtered_count > 0:
-                self.logger.info(f"Filtered out {filtered_count} bad tickers from SQLite")
+                self.logger.info(f"Filtered out {filtered_count} bad tickers from MySQL")
             tickers = filtered_tickers
 
         return {
@@ -204,15 +204,15 @@ class OHLCVArgumentHandler(ArgumentHandler):
         period_type: PeriodType,
         period_value: int,
     ) -> None:
-        """Verify bad tickers in SQLite and remove them if they are no longer bad."""
-        self.logger.info("Starting verification of bad tickers in SQLite...")
+        """Verify bad tickers in MySQL and remove them if they are no longer bad."""
+        self.logger.info("Starting verification of bad tickers in MySQL...")
         bad_ticker_client = BadTickerClient()
         market_handler = MarketHandler()
 
         try:
             bad_tickers = bad_ticker_client.get_bad_tickers(limit=10000)
             if not bad_tickers:
-                self.logger.info("No bad tickers found in SQLite")
+                self.logger.info("No bad tickers found in MySQL")
                 return
 
             self.logger.info(f"Found {len(bad_tickers)} bad tickers to verify")
@@ -241,7 +241,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
                         and response["candles"]
                         and len(response["candles"]) > 0
                     ):
-                        # Ticker is no longer bad, remove from SQLite
+                        # Ticker is no longer bad, remove from MySQL
                         if bad_ticker_client.remove_bad_ticker(ticker):
                             self.logger.info(
                                 f"Removed {ticker} from bad_tickers (now has valid data)"
