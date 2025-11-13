@@ -83,34 +83,54 @@ services:
       - redis
       - influxdb
 
-  sqlite-daemon:
-    image: artificer-sqlite-daemon:latest
-    container_name: algo_trader-sqlite-daemon
+  mysql:
+    image: artificer-mysql:latest
+    container_name: algo_trader-mysql
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"  # Bind to localhost only
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - algo_trader-net
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-algo_trader}
+      - MYSQL_USER=${MYSQL_USER:-algo_trader}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+  mysql-daemon:
+    image: artificer-mysql-daemon:latest
+    container_name: algo_trader-mysql-daemon
     restart: always
     networks:
       - algo_trader-net
     volumes:
       - ../../:/workspace
-      - sqlite-data:/data
     working_dir: /workspace
     command:
       - /bin/sh
       - -c
       - |
-        pip install --no-cache-dir -q redis pydantic pydantic-settings && \
-        python -m system.algo_trader.sqlite.unified_sqlite_daemon
+        pip install --no-cache-dir -q redis pydantic pydantic-settings pymysql && \
+        python -m system.algo_trader.mysql.unified_mysql_daemon
     environment:
       - PYTHONPATH=/workspace
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=${REDIS_DB:-0}
-      - SQLITE_DB_PATH=/data/algo_trader.db
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-algo_trader}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-algo_trader}
     depends_on:
       - redis
+      - mysql
 
 volumes:
   influxdb-data:
   influxdb-plugins:
   grafana-data:
   redis-data:
-  sqlite-data:
+  mysql-data:
