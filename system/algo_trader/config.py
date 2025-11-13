@@ -11,12 +11,18 @@ import os
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-from infrastructure.config import InfluxDBConfig, RedisConfig, SQLiteConfig
+from infrastructure.config import InfluxDBConfig, MySQLConfig, RedisConfig
 
 
-def _default_sqlite_config() -> SQLiteConfig:
-    """Create default SQLite config for algo_trader with shared database."""
-    return SQLiteConfig(db_path="./data/algo_trader.db")
+def _default_mysql_config() -> MySQLConfig:
+    """Create default MySQL config for algo_trader with shared database."""
+    return MySQLConfig(
+        host=os.getenv("MYSQL_HOST", "localhost"),
+        port=int(os.getenv("MYSQL_PORT", "3306")),
+        user=os.getenv("MYSQL_USER", "root"),
+        password=os.getenv("MYSQL_PASSWORD", ""),
+        database=os.getenv("MYSQL_DATABASE", "algo_trader"),
+    )
 
 
 class SchwabConfig(BaseSettings):
@@ -52,14 +58,14 @@ class AlgoTraderConfig(BaseSettings):
         redis: Redis configuration.
         influxdb: InfluxDB configuration.
         schwab: Schwab API configuration.
-        sqlite: SQLite configuration.
+        mysql: MySQL configuration.
         log_level: Logging level.
     """
 
     redis: RedisConfig = Field(default_factory=RedisConfig)
     influxdb: InfluxDBConfig = Field(default_factory=InfluxDBConfig.from_env)
     schwab: SchwabConfig = Field(default_factory=SchwabConfig)
-    sqlite: SQLiteConfig = Field(default_factory=_default_sqlite_config)
+    mysql: MySQLConfig = Field(default_factory=_default_mysql_config)
     log_level: str = Field(default="INFO")
 
     @classmethod
@@ -69,13 +75,17 @@ class AlgoTraderConfig(BaseSettings):
         Returns:
             AlgoTraderConfig with all sub-configs populated from environment.
         """
-        sqlite_config = SQLiteConfig()
-        if not os.getenv("SQLITE_DB_PATH"):
-            sqlite_config.db_path = "./data/algo_trader.db"
+        mysql_config = MySQLConfig(
+            host=os.getenv("MYSQL_HOST", "localhost"),
+            port=int(os.getenv("MYSQL_PORT", "3306")),
+            user=os.getenv("MYSQL_USER", "root"),
+            password=os.getenv("MYSQL_PASSWORD", ""),
+            database=os.getenv("MYSQL_DATABASE", "algo_trader"),
+        )
 
         return cls(
             redis=RedisConfig(),
             influxdb=InfluxDBConfig.from_env(),
             schwab=SchwabConfig(),
-            sqlite=sqlite_config,
+            mysql=mysql_config,
         )
