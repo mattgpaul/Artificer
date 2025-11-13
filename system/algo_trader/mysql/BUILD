@@ -75,6 +75,15 @@ pytest_test(
     test_lib = "//tests/system/algo_trader/mysql:test_fundamentals_client_lib",
 )
 
+# Test for UnifiedMySQLDaemon - Unified MySQL Daemon
+pytest_test(
+    name = "test_unified_mysql_daemon",
+    size = "small",
+    coverage_path = "system.algo_trader.mysql.unified_mysql_daemon",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/mysql:test_unified_mysql_daemon_lib",
+)
+
 oci_image(
     name = "mysql_daemon_image_lib",
     base = "@python//:python",
