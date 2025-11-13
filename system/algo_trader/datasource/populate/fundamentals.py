@@ -113,15 +113,21 @@ class FundamentalsArgumentHandler(ArgumentHandler):
         else:
             self.logger.info(f"Processing {len(tickers)} specific tickers: {tickers}")
 
-        bad_ticker_client = BadTickerClient()
-        original_count = len(tickers)
-        filtered_tickers = [
-            ticker for ticker in tickers if not bad_ticker_client.is_bad_ticker(ticker)
-        ]
-        filtered_count = original_count - len(filtered_tickers)
-        if filtered_count > 0:
-            self.logger.info(f"Filtered out {filtered_count} bad tickers from MySQL")
-        tickers = filtered_tickers
+        write = getattr(args, "write", False)
+        if write:
+            try:
+                bad_ticker_client = BadTickerClient()
+                original_count = len(tickers)
+                filtered_tickers = [
+                    ticker for ticker in tickers if not bad_ticker_client.is_bad_ticker(ticker)
+                ]
+                filtered_count = original_count - len(filtered_tickers)
+                if filtered_count > 0:
+                    self.logger.info(f"Filtered out {filtered_count} bad tickers from MySQL")
+                tickers = filtered_tickers
+            except Exception as e:
+                self.logger.warning(f"Could not connect to MySQL for bad ticker filtering: {e}")
+                self.logger.warning("Continuing without bad ticker filtering")
 
         return {
             "tickers": tickers,
@@ -197,10 +203,18 @@ class FundamentalsArgumentHandler(ArgumentHandler):
 
                 static_data = company_facts.get("static")
                 time_series_df = company_facts.get("time_series")
+                
+                self.logger.debug(f"{ticker}: Retrieved company facts - static keys: {list(static_data.keys()) if static_data else 'None'}")
+                self.logger.debug(f"{ticker}: Time series DataFrame shape: {time_series_df.shape if time_series_df is not None else 'None'}")
+                if time_series_df is not None and not time_series_df.empty:
+                    self.logger.debug(f"{ticker}: Time series columns: {list(time_series_df.columns)}")
+                    self.logger.debug(f"{ticker}: Time series date range: {time_series_df.index.min()} to {time_series_df.index.max()}")
 
                 if static_data is None or time_series_df is None:
                     self.logger.error(f"{ticker}: Missing static or time_series data")
                     return {"success": False, "error": "Missing data"}
+                
+                self.logger.debug(f"{ticker}: Static data extracted - ticker: {static_data.get('ticker')}, sector: {static_data.get('sector')}, industry: {static_data.get('industry')}, sic: {static_data.get('sic')}, entity_name: {static_data.get('entity_name')}")
 
                 if time_series_df.empty:
                     self.logger.warning(f"{ticker}: Time series DataFrame is empty")
