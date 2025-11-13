@@ -1,155 +1,57 @@
-"""Fundamentals data population handler.
+"""Fundamentals data processor.
 
-This module provides argument handling and execution for populating fundamentals
-data from SEC company facts API into Redis queues and MySQL database.
+This module provides processing logic for fetching and storing company
+fundamentals data from SEC company facts API.
 """
 
-import argparse
 import time
 
-import pandas as pd
-
 from infrastructure.config import ThreadConfig
+from infrastructure.logging.logger import get_logger
 from infrastructure.threads.thread_manager import ThreadManager
-from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
-from system.algo_trader.datasource.sec.tickers import Tickers
-from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
+from system.algo_trader.datasource.populate.fundamentals.utils import (
+    FUNDAMENTALS_QUEUE_NAME,
+    FUNDAMENTALS_REDIS_TTL,
+    FUNDAMENTALS_STATIC_QUEUE_NAME,
+    dataframe_to_dict,
+    print_summary,
+)
+from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.redis.queue_broker import QueueBroker
 
-FUNDAMENTALS_QUEUE_NAME = "fundamentals_queue"
-FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
-FUNDAMENTALS_REDIS_TTL = 3600
-MAX_THREADS = 4
 
+class FundamentalsProcessor:
+    """Processor for fundamentals data fetching and storage.
 
-class FundamentalsArgumentHandler(ArgumentHandler):
-    """Handler for fundamentals data population arguments and execution.
-
-    Processes command-line arguments for fetching company fundamentals data
-    from SEC API and enqueuing it to Redis for downstream processing.
+    Handles concurrent fetching of company facts data and publishing to
+    Redis queues for downstream processing.
     """
 
-    def __init__(self) -> None:
-        """Initialize FundamentalsArgumentHandler with 'fundamentals' command name."""
-        super().__init__("fundamentals")
-
-    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
-        """Add command-line arguments for fundamentals data population.
+    def __init__(self, logger=None):
+        """Initialize fundamentals processor.
 
         Args:
-            parser: ArgumentParser instance to add arguments to.
+            logger: Optional logger instance. If not provided, creates a new one.
         """
-        parser.add_argument(
-            "--tickers",
-            nargs="+",
-            required=False,
-            help='List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-            'Use "full-registry" to fetch all tickers from SEC datasource.',
-        )
-        parser.add_argument(
-            "--lookback-period",
-            type=int,
-            default=10,
-            help="Number of years to look back for company facts data. Default: 10",
-        )
-        parser.add_argument(
-            "--write",
-            action="store_true",
-            default=False,
-            help="If set, write data to MySQL and Redis. If not set, dry-run mode (no writes).",
-        )
-        parser.add_argument(
-            "--max-threads",
-            type=int,
-            default=4,
-            help="Maximum number of threads for concurrent processing. Default: 4",
-        )
+        self.logger = logger or get_logger(self.__class__.__name__)
 
-    def is_applicable(self, args: argparse.Namespace) -> bool:
-        """Check if this handler applies to the given arguments.
+    def process_tickers(  # noqa: C901, PLR0915
+        self,
+        tickers: list[str],
+        lookback_period: int,
+        write: bool,
+        max_threads: int,
+    ) -> None:
+        """Process tickers to fetch and store fundamentals data.
 
         Args:
-            args: Parsed command-line arguments.
-
-        Returns:
-            True if command is 'fundamentals', False otherwise.
+            tickers: List of ticker symbols to process.
+            lookback_period: Number of years to look back for data.
+            write: If True, write data to Redis queues. If False, dry-run mode.
+            max_threads: Maximum number of concurrent threads for processing.
         """
-        return hasattr(args, "command") and args.command == "fundamentals"
-
-    def process(self, args: argparse.Namespace) -> dict:
-        """Process command-line arguments and prepare execution context.
-
-        Args:
-            args: Parsed command-line arguments.
-
-        Returns:
-            Dictionary containing processed tickers, lookback period, write flag,
-            and max_threads configuration.
-
-        Raises:
-            ValueError: If tickers are not provided or SEC datasource fails.
-        """
-        tickers = args.tickers
-
-        if not tickers:
-            raise ValueError("--tickers is required")
-
-        if tickers == ["full-registry"]:
-            self.logger.info("full-registry specified, fetching all tickers from SEC datasource...")
-            ticker_source = Tickers()
-            all_tickers_data = ticker_source.get_tickers()
-
-            if all_tickers_data is None:
-                self.logger.error("Failed to retrieve tickers from SEC")
-                raise ValueError("Failed to retrieve tickers from SEC datasource")
-
-            ticker_list = []
-            for _key, value in all_tickers_data.items():
-                if isinstance(value, dict) and "ticker" in value:
-                    ticker_list.append(value["ticker"])
-
-            self.logger.info(f"Retrieved {len(ticker_list)} tickers from SEC datasource")
-            tickers = ticker_list
-        else:
-            self.logger.info(f"Processing {len(tickers)} specific tickers: {tickers}")
-
-        bad_ticker_client = BadTickerClient()
-        original_count = len(tickers)
-        filtered_tickers = [
-            ticker for ticker in tickers if not bad_ticker_client.is_bad_ticker(ticker)
-        ]
-        filtered_count = original_count - len(filtered_tickers)
-        if filtered_count > 0:
-            self.logger.info(f"Filtered out {filtered_count} bad tickers from MySQL")
-        tickers = filtered_tickers
-
-        return {
-            "tickers": tickers,
-            "lookback_period": args.lookback_period,
-            "write": getattr(args, "write", False),
-            "max_threads": args.max_threads,
-        }
-
-    def execute(self, context: dict) -> None:  # noqa: C901, PLR0915
-        """Execute fundamentals data population for given tickers.
-
-        Fetches company facts data from SEC API and enqueues to Redis queues
-        for downstream processing. Uses thread pool for concurrent processing.
-
-        Args:
-            context: Dictionary containing:
-                - tickers: List of ticker symbols to process
-                - lookback_period: Years of historical data to fetch (default: 10)
-                - write: Whether to write to Redis (default: False)
-                - max_threads: Maximum concurrent threads (default: 4)
-        """
-        tickers = context.get("tickers")
-        lookback_period = context.get("lookback_period", 10)
-        write = context.get("write", False)
-        max_threads = context.get("max_threads", MAX_THREADS)
-
         if tickers is None:
-            self.logger.error("No tickers found in context")
+            self.logger.error("No tickers found")
             return
 
         self.logger.info(
@@ -206,8 +108,6 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                     self.logger.warning(f"{ticker}: Time series DataFrame is empty")
                     return {"success": False, "error": "Empty time series"}
 
-                # Count market_cap rows (market_cap is already in DataFrame
-                # from SEC data extraction)
                 market_cap_count = (
                     time_series_df["market_cap"].notna().sum()
                     if "market_cap" in time_series_df.columns
@@ -233,7 +133,7 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                             self.logger.error(f"{ticker}: Failed to enqueue static data to Redis")
                             return {"success": False, "error": "Redis static enqueue failed"}
 
-                        time_series_dict = self._dataframe_to_dict(time_series_df)
+                        time_series_dict = dataframe_to_dict(time_series_df)
                         queue_data = {
                             "ticker": ticker,
                             "data": time_series_dict,
@@ -319,43 +219,4 @@ class FundamentalsArgumentHandler(ArgumentHandler):
 
         thread_manager.cleanup_dead_threads()
 
-        self._print_summary(summary_stats, write)
-
-    def _dataframe_to_dict(self, df: pd.DataFrame) -> dict:
-        df_copy = df.copy()
-
-        if isinstance(df_copy.index, pd.DatetimeIndex):
-            datetime_ms = (df_copy.index.astype("int64") // 10**6).tolist()
-        elif "time" in df_copy.columns:
-            datetime_ms = (pd.to_datetime(df_copy["time"]).astype("int64") // 10**6).tolist()
-            df_copy = df_copy.drop("time", axis=1)
-        else:
-            datetime_ms = (pd.to_datetime(df_copy.index).astype("int64") // 10**6).tolist()
-
-        df_copy = df_copy.reset_index(drop=True)
-        result = df_copy.to_dict("list")
-        result["datetime"] = datetime_ms
-
-        return result
-
-    def _print_summary(self, stats: dict, write: bool) -> None:
-        print(f"\n{'=' * 50}")
-        print("Fundamentals Data Fetching Summary")
-        print(f"{'=' * 50}")
-        print(f"Total Tickers: {stats['total']}")
-        print(f"Successful: {stats['successful']}")
-        print(f"Failed: {stats['failed']}")
-        print(f"Static Data Rows: {stats['static_rows']}")
-        print(f"Time Series Rows: {stats['time_series_rows']}")
-        print(f"Market Cap Rows: {stats['market_cap_rows']}")
-        if write:
-            print(f"Time Series Queue: {FUNDAMENTALS_QUEUE_NAME}")
-            print(f"Static Data Queue: {FUNDAMENTALS_STATIC_QUEUE_NAME}")
-            print(f"Redis TTL: {FUNDAMENTALS_REDIS_TTL}s")
-            print(
-                "\nTime series data will be published to InfluxDB by the influx-publisher service."
-            )
-            print("Static data will be written to MySQL by the mysql-daemon service.")
-        else:
-            print("\nDry-run mode: No data was written to MySQL or Redis.")
-        print(f"{'=' * 50}\n")
+        print_summary(summary_stats, write)

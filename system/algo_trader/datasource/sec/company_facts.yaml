@@ -37,6 +37,11 @@ Revenues:
   namespace: us-gaap
   unit_preference:
     - USD
+  alternatives:
+    - SalesRevenueNet
+    - RevenueFromContractWithCustomerExcludingAssessedTax
+    - SalesRevenueServices
+    - SalesRevenueGoodsNet
 
 NetIncomeLoss:
   column: net_income

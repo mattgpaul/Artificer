@@ -3,29 +3,34 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "populate_lib",
-    srcs = [
-        "argument_base.py",
-        "fundamentals.py",
-        "main.py",
-        "ohlcv_args.py",
-    ],
+    name = "argument_base",
+    srcs = ["argument_base.py"],
     visibility = [
         "//system/algo_trader/datasource:__subpackages__",
         "//tests/system/algo_trader/datasource/populate:__pkg__",
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//infrastructure/threads:thread_manager",
-        "//system/algo_trader:config",
-        "//system/algo_trader/datasource/populate:utils",
+    ],
+)
+
+py_library(
+    name = "populate_lib",
+    srcs = [
+        "argument_base.py",
+        "main.py",
+    ],
+    visibility = [
+        "//system/algo_trader/datasource:__subpackages__",
+        "//tests/system/algo_trader/datasource/populate:__pkg__",
+    ],
+    deps = [
+        ":argument_base",
+        ":utils",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/datasource/populate/fundamentals:fundamentals_lib",
+        "//system/algo_trader/datasource/populate/ohlcv:ohlcv_lib",
         "//system/algo_trader/datasource/sec:tickers_lib",
-        "//system/algo_trader/influx:influx_services",
-        "//system/algo_trader/mysql:bad_ticker_client",
-        "//system/algo_trader/mysql:fundamentals_client",
-        "//system/algo_trader/redis:redis_services",
-        "//system/algo_trader/schwab:schwab_services",
-        requirement("pandas"),
     ],
 )
 
@@ -66,7 +71,7 @@ pytest_test(
 pytest_test(
     name = "test_ohlcv_args",
     size = "small",
-    coverage_path = "system.algo_trader.datasource.populate.ohlcv_args",
+    coverage_path = "system.algo_trader.datasource.populate.ohlcv",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/datasource/populate:test_ohlcv_args_lib",
 )
