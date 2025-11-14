@@ -307,9 +307,10 @@ class SMACrossoverStrategy(BaseStrategy):
             return None, None, None
 
         if len(ohlcv_data) < self.long_window:
+            # Only log at debug level - this is expected during early time steps in backtesting
             self.logger.debug(
-                f"Insufficient data for {ticker}: {len(ohlcv_data)} rows "
-                f"(need at least {self.long_window} for SMA calculation)"
+                f"{ticker}: Insufficient data for SMA calculation - {len(ohlcv_data)} rows "
+                f"(need at least {self.long_window} for long_window={self.long_window})"
             )
             return None, None, None
 

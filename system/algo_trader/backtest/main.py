@@ -7,29 +7,19 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.backtest.processor import BacktestProcessor, MAX_THREADS
+from system.algo_trader.backtest.processor import BacktestProcessor
 from system.algo_trader.strategy.cli_utils import resolve_tickers
 from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
 
 def create_strategy(args, logger):
-    from infrastructure.config import ThreadConfig
-
-    thread_config = None
-    if args.threading:
-        thread_config = (
-            ThreadConfig(max_threads=args.max_threads) if args.max_threads else ThreadConfig()
-        )
-        logger.info(f"Threading enabled with max_threads={thread_config.max_threads}")
-
     if args.strategy == "sma-crossover":
         logger.info(f"Initializing SMA Crossover: short={args.short}, long={args.long}")
         return SMACrossoverStrategy(
             short_window=args.short,
             long_window=args.long,
             database=args.database,
-            use_threading=args.threading,
-            thread_config=thread_config,
+            use_threading=False,
         )
     else:
         raise ValueError(f"Unknown strategy: {args.strategy}")
@@ -119,20 +109,15 @@ def parse_args():
         help="Risk-free rate for Sharpe ratio (default: 0.04)",
     )
     parser.add_argument(
-        "--threading",
-        action="store_true",
-        help="Enable multi-threaded processing (default: False)",
-    )
-    parser.add_argument(
-        "--max-threads",
+        "--max-processes",
         type=int,
-        default=MAX_THREADS,
-        help=f"Maximum number of threads for parallel ticker processing (default: {MAX_THREADS})",
+        default=None,
+        help="Maximum number of processes for parallel ticker processing (default: CPU count)",
     )
     parser.add_argument(
-        "--no-threading",
+        "--no-multiprocessing",
         action="store_true",
-        help="Disable threading and process tickers sequentially (default: False)",
+        help="Disable multiprocessing and process tickers sequentially (default: False)",
     )
 
     subparsers = parser.add_subparsers(
@@ -208,8 +193,8 @@ def main():
             train_days=args.train_days if args.walk_forward else None,
             test_days=args.test_days if args.walk_forward else None,
             train_split=args.train_split,
-            max_threads=args.max_threads,
-            use_threading=not args.no_threading,
+            max_processes=args.max_processes,
+            use_multiprocessing=not args.no_multiprocessing,
         )
 
         return 0

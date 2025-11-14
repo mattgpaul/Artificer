@@ -76,7 +76,7 @@ class BacktestEngine:
                     df.index = df.index.tz_convert("UTC")
 
             self.data_cache[ticker] = df
-            self.logger.info(f"Loaded {len(df)} records for {ticker}")
+            self.logger.debug(f"Loaded {len(df)} records for {ticker}")
 
     def _load_ticker_ohlcv_data(self, ticker: str) -> pd.DataFrame | None:
         start_str = self.start_date.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -152,8 +152,10 @@ class BacktestEngine:
     def run_ticker(self, ticker: str) -> BacktestResults:
         ticker_data = self._load_ticker_ohlcv_data(ticker)
         if ticker_data is None or ticker_data.empty:
-            self.logger.warning(f"No OHLCV data for {ticker}, skipping")
+            self.logger.warning(f"{ticker}: No OHLCV data found in date range {self.start_date.date()} to {self.end_date.date()}")
             return BacktestResults()
+        
+        self.logger.info(f"{ticker}: Loaded {len(ticker_data)} OHLCV records")
 
         data_cache = {ticker: ticker_data}
 
@@ -162,6 +164,9 @@ class BacktestEngine:
             self.logger.warning(f"No time steps determined for {ticker}")
             return BacktestResults()
 
+        # SEQUENTIAL EXECUTION: Call run_strategy for each time step to ensure no forward-looking bias.
+        # At each step, the wrapper filters data to only show data <= current_time, ensuring the strategy
+        # only sees historical data up to that point. This simulates how the strategy would run in real-time.
         wrapper = BacktestStrategyWrapper(self.strategy, step_intervals[0], data_cache)
         original_query_ohlcv = self.strategy.query_ohlcv
         self.strategy.query_ohlcv = wrapper.query_ohlcv
@@ -170,11 +175,23 @@ class BacktestEngine:
         collected_signal_keys = set()
         last_collection_time: pd.Timestamp | None = None
 
+        # Process each time step sequentially
+        total_steps = len(step_intervals)
+        log_interval = max(1, total_steps // 20)  # Log progress every 5%
+        self.logger.info(f"{ticker}: Processing {total_steps} time steps sequentially...")
+        
         for idx, current_time in enumerate(step_intervals):
             wrapper.current_time = current_time
             current_time_normalized = pd.Timestamp(current_time).tz_localize("UTC") if current_time.tz is None else current_time.tz_convert("UTC")
 
+            # Log progress periodically
+            if (idx + 1) % log_interval == 0 or idx == total_steps - 1:
+                progress_pct = ((idx + 1) / total_steps) * 100
+                signals_count = len(all_signals)
+                self.logger.info(f"{ticker}: Step {idx + 1}/{total_steps} ({progress_pct:.0f}%) - {signals_count} signals collected so far")
+
             try:
+                # At this time step, strategy only sees data <= current_time
                 signals = self.strategy.run_strategy(ticker=ticker, write_signals=False)
 
                 if not signals.empty:
@@ -184,9 +201,14 @@ class BacktestEngine:
                     else:
                         signals["signal_time"] = signals["signal_time"].dt.tz_convert("UTC")
 
+                    # Only collect signals that occurred at or before current_time
+                    # and haven't been collected in a previous time step
                     mask = signals["signal_time"] <= current_time_normalized
                     if last_collection_time is not None:
                         mask = mask & (signals["signal_time"] > last_collection_time)
+                    else:
+                        # First time collecting - only get signals up to current_time
+                        pass  # mask already set correctly
 
                     current_step_signals = signals[mask]
 
@@ -215,15 +237,19 @@ class BacktestEngine:
                         last_collection_time = current_time_normalized
 
             except Exception as e:
-                self.logger.error(f"Error executing strategy for {ticker} at {current_time}: {e}")
+                self.logger.error(f"Error executing strategy for {ticker} at {current_time}: {e}", exc_info=True)
+                # Continue processing - don't let one failed step stop the entire backtest
 
         self.strategy.query_ohlcv = original_query_ohlcv
 
+        self.logger.info(f"{ticker}: Completed processing {total_steps} steps, collected {len(all_signals)} signals")
+
         if not all_signals:
-            self.logger.debug(f"No signals generated for {ticker}")
+            self.logger.info(f"{ticker}: No signals generated (insufficient data for SMA crossover or no crossovers detected)")
             return BacktestResults()
 
         combined_signals = pd.DataFrame(all_signals).sort_values("signal_time")
+        self.logger.info(f"{ticker}: Generated {len(combined_signals)} unique signals")
 
         results = BacktestResults()
         results.signals = combined_signals

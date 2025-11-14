@@ -133,7 +133,7 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             DataFrame containing query results, or None if query fails.
         """
-        self.logger.info("Getting data")
+        self.logger.debug("Getting data")
         try:
             df = self.client.query(query=query, language="sql", mode="pandas")
         except Exception as e:

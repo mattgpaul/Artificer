@@ -169,3 +169,24 @@ class MySQLConfig(BaseSettings):
         env_prefix="MYSQL_",
         env_file=None,
     )
+
+
+class ProcessConfig(BaseSettings):
+    """Process manager configuration with environment variable support.
+
+    Reads from PROCESS_* environment variables automatically.
+
+    Attributes:
+        max_processes: Maximum number of concurrent processes allowed (None = auto-detect).
+        process_timeout: Default timeout for process operations in seconds.
+        start_method: Process start method (spawn, fork, forkserver).
+    """
+
+    max_processes: int | None = Field(default=None)
+    process_timeout: int = Field(default=600)
+    start_method: str = Field(default="spawn")
+
+    model_config = SettingsConfigDict(
+        env_prefix="PROCESS_",
+        env_file=None,
+    )

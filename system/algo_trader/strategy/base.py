@@ -173,7 +173,7 @@ class BaseStrategy(Client):
                 df["time"] = pd.to_datetime(df["time"])
                 df = df.set_index("time")
 
-            self.logger.info(f"Retrieved {len(df)} OHLCV records for {ticker}")
+            self.logger.debug(f"Retrieved {len(df)} OHLCV records for {ticker}")
             return df
 
         except Exception as e:

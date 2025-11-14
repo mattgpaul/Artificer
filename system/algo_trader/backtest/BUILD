@@ -17,7 +17,7 @@ py_library(
     deps = [
         "//infrastructure:config",
         "//infrastructure/logging:logger",
-        "//infrastructure/threads:thread_manager",
+        "//infrastructure/multiprocess:process_manager",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/strategy:strategies",
