@@ -8,9 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.backtest.processor.processor import BacktestProcessor
-from system.algo_trader.backtest.processor.worker import backtest_ticker_worker
+from system.algo_trader.backtest.execution import ExecutionConfig
+from system.algo_trader.backtest.processor import BacktestProcessor, _backtest_ticker_worker
 
 
 class TestBacktestProcessor:
@@ -61,9 +60,7 @@ class TestBacktestProcessor:
         end_date = pd.Timestamp("2024-01-10", tz="UTC")
         execution_config = ExecutionConfig()
 
-        with patch(
-            "system.algo_trader.backtest.processor.worker.backtest_ticker_worker"
-        ) as mock_worker:
+        with patch("system.algo_trader.backtest.processor._backtest_ticker_worker") as mock_worker:
             mock_worker.return_value = {"success": True, "trades": 5}
 
             processor.process_tickers(
@@ -93,9 +90,7 @@ class TestBacktestProcessor:
         end_date = pd.Timestamp("2024-01-10", tz="UTC")
         execution_config = ExecutionConfig()
 
-        with patch(
-            "system.algo_trader.backtest.processor.parallel.ProcessManager"
-        ) as mock_manager_class:
+        with patch("system.algo_trader.backtest.processor.ProcessManager") as mock_manager_class:
             mock_manager = MagicMock()
             mock_manager.map.return_value = [
                 {"success": True, "trades": 5},
@@ -130,9 +125,7 @@ class TestBacktestProcessor:
         end_date = pd.Timestamp("2024-01-10", tz="UTC")
         execution_config = ExecutionConfig()
 
-        with patch(
-            "system.algo_trader.backtest.processor.parallel.ProcessManager"
-        ) as mock_manager_class:
+        with patch("system.algo_trader.backtest.processor.ProcessManager") as mock_manager_class:
             mock_manager = MagicMock()
             mock_manager.map.return_value = [{"success": True, "trades": 5}]
             mock_manager.close_pool.return_value = None
@@ -164,12 +157,10 @@ class TestBacktestTickerWorker:
         """Test worker function with successful execution."""
         with (
             patch(
-                "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
+                "system.algo_trader.backtest.processor.SMACrossoverStrategy"
             ) as mock_strategy_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch("system.algo_trader.backtest.results.writer.ResultsWriter") as mock_writer_class,
+            patch("system.algo_trader.backtest.processor.BacktestEngine") as mock_engine_class,
+            patch("system.algo_trader.backtest.processor.ResultsWriter") as mock_writer_class,
         ):
             # Setup mocks
             mock_strategy = MagicMock()
@@ -209,7 +200,7 @@ class TestBacktestTickerWorker:
                 None,
             )
 
-            result = backtest_ticker_worker(args)
+            result = _backtest_ticker_worker(args)
 
             assert result["success"] is True
             assert result["trades"] == 2
@@ -218,11 +209,9 @@ class TestBacktestTickerWorker:
         """Test worker function when no trades generated."""
         with (
             patch(
-                "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
+                "system.algo_trader.backtest.processor.SMACrossoverStrategy"
             ) as mock_strategy_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
+            patch("system.algo_trader.backtest.processor.BacktestEngine") as mock_engine_class,
         ):
             mock_strategy = MagicMock()
             mock_strategy.close.return_value = None
@@ -253,7 +242,7 @@ class TestBacktestTickerWorker:
                 None,
             )
 
-            result = backtest_ticker_worker(args)
+            result = _backtest_ticker_worker(args)
 
             assert result["success"] is True
             assert result["trades"] == 0
@@ -261,7 +250,7 @@ class TestBacktestTickerWorker:
     def test_backtest_ticker_worker_exception(self):
         """Test worker function exception handling."""
         with patch(
-            "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
+            "system.algo_trader.backtest.processor.SMACrossoverStrategy"
         ) as mock_strategy_class:
             mock_strategy_class.side_effect = ValueError("Test error")
 
@@ -283,7 +272,7 @@ class TestBacktestTickerWorker:
                 None,
             )
 
-            result = backtest_ticker_worker(args)
+            result = _backtest_ticker_worker(args)
 
             assert result["success"] is False
             assert "error" in result
