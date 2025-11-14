@@ -32,6 +32,7 @@ TRADING_JOURNAL_DATABASE = "algo-trader-trading-journal"
 OHLCV_BATCH_SIZE = 300_000  # Protected constant - do not modify
 FUNDAMENTALS_BATCH_SIZE = 50_000  # Protected constant - ask user before modifying
 TRADING_JOURNAL_BATCH_SIZE = 50_000  # Protected constant - ask user before modifying
+BACKTEST_BATCH_SIZE = 50_000  # Protected constant - ask user before modifying
 
 
 class InfluxPublisher:
@@ -95,6 +96,8 @@ class InfluxPublisher:
             "ohlcv_queue": (OHLCV_DATABASE, OHLCV_BATCH_SIZE),
             "fundamentals_queue": (FUNDAMENTALS_DATABASE, FUNDAMENTALS_BATCH_SIZE),
             "trading_journal_queue": (TRADING_JOURNAL_DATABASE, TRADING_JOURNAL_BATCH_SIZE),
+            "backtest_trades_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
+            "backtest_metrics_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
         }
 
         for queue_config in self.config.get("queues", []):
@@ -180,9 +183,44 @@ class InfluxPublisher:
                 failed_count += 1
                 continue
 
+            dynamic_table_name = table_name
+            tag_columns = ["ticker"]
+
+            if queue_name.startswith("backtest_"):
+                strategy_name = data.get("strategy_name")
+                if strategy_name:
+                    if queue_name == "backtest_trades_queue":
+                        dynamic_table_name = strategy_name
+                    elif queue_name == "backtest_metrics_queue":
+                        dynamic_table_name = f"{strategy_name}_summary"
+
+                backtest_id = data.get("backtest_id")
+                backtest_hash = data.get("backtest_hash")
+
+                data_length = len(time_series_data.get("datetime", []))
+                if data_length == 0:
+                    self.logger.warning(f"Empty datetime array in {item_id}, skipping")
+                    self.queue_broker.delete_data(queue_name, item_id)
+                    failed_count += 1
+                    continue
+
+                if backtest_id:
+                    if "backtest_id" not in time_series_data:
+                        time_series_data["backtest_id"] = [backtest_id] * data_length
+                    tag_columns.append("backtest_id")
+                if backtest_hash:
+                    if "backtest_hash" not in time_series_data:
+                        time_series_data["backtest_hash"] = [backtest_hash] * data_length
+                    tag_columns.append("backtest_hash")
+
+                if strategy_name:
+                    if "strategy" not in time_series_data:
+                        time_series_data["strategy"] = [strategy_name] * data_length
+                    tag_columns.append("strategy")
+
             try:
                 success = influx_client.write_sync(
-                    data=time_series_data, ticker=ticker, table=table_name
+                    data=time_series_data, ticker=ticker, table=dynamic_table_name, tag_columns=tag_columns
                 )
 
                 if success:

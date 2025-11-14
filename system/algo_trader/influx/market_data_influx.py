@@ -92,7 +92,7 @@ class MarketDataInflux(BaseInfluxDBClient):
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
 
-    def write_sync(self, data: dict, ticker: str, table: str) -> bool:
+    def write_sync(self, data: dict, ticker: str, table: str, tag_columns: list[str] | None = None) -> bool:
         """Write market data to InfluxDB and wait for completion.
 
         Unlike write(), this method doesn't use the pending counter system.
@@ -102,6 +102,7 @@ class MarketDataInflux(BaseInfluxDBClient):
             data: Dictionary containing market data with datetime and OHLCV fields.
             ticker: Stock ticker symbol to tag data with.
             table: Target measurement/table name in InfluxDB.
+            tag_columns: List of column names to use as tags. Defaults to ["ticker"].
 
         Returns:
             True if write succeeded, False otherwise.
@@ -109,11 +110,15 @@ class MarketDataInflux(BaseInfluxDBClient):
         df = self._format_stock_data(data, ticker)
         df["ticker"] = ticker
 
+        if tag_columns is None:
+            tag_columns = ["ticker"]
+
         try:
             self.client.write(
-                df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
+                df, data_frame_measurement_name=table, data_frame_tag_columns=tag_columns
             )
-            self.logger.debug(f"Wrote {len(data)} records for {ticker}")
+            data_count = len(data.get("datetime", [])) if isinstance(data, dict) else len(data)
+            self.logger.debug(f"Wrote {data_count} records for {ticker} to {table}")
             return True
         except Exception as e:
             self.logger.error(f"Failed to write data for {ticker}: {e}")

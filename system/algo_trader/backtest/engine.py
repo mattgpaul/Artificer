@@ -78,6 +78,32 @@ class BacktestEngine:
             self.data_cache[ticker] = df
             self.logger.info(f"Loaded {len(df)} records for {ticker}")
 
+    def _load_ticker_ohlcv_data(self, ticker: str) -> pd.DataFrame | None:
+        start_str = self.start_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_str = self.end_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        query = (
+            f"SELECT * FROM ohlcv WHERE ticker = '{ticker}' "
+            f"AND time >= '{start_str}' AND time <= '{end_str}' "
+            f"ORDER BY time ASC"
+        )
+        df = self.influx_client.query(query)
+
+        if df is None or (isinstance(df, bool) and not df) or df.empty:
+            self.logger.warning(f"No OHLCV data found for {ticker}")
+            return None
+
+        if "time" in df.columns:
+            df["time"] = pd.to_datetime(df["time"], utc=True)
+            df = df.set_index("time")
+            if df.index.tz is None:
+                df.index = df.index.tz_localize("UTC")
+            else:
+                df.index = df.index.tz_convert("UTC")
+
+        self.logger.debug(f"Loaded {len(df)} records for {ticker}")
+        return df
+
     def _determine_step_intervals(self) -> pd.DatetimeIndex:
         if self.step_frequency == "auto":
             if not self.data_cache:
@@ -122,6 +148,139 @@ class BacktestEngine:
             return "T"
         else:
             return "S"
+
+    def run_ticker(self, ticker: str) -> BacktestResults:
+        ticker_data = self._load_ticker_ohlcv_data(ticker)
+        if ticker_data is None or ticker_data.empty:
+            self.logger.warning(f"No OHLCV data for {ticker}, skipping")
+            return BacktestResults()
+
+        data_cache = {ticker: ticker_data}
+
+        step_intervals = self._determine_step_intervals_for_data(data_cache)
+        if len(step_intervals) == 0:
+            self.logger.warning(f"No time steps determined for {ticker}")
+            return BacktestResults()
+
+        wrapper = BacktestStrategyWrapper(self.strategy, step_intervals[0], data_cache)
+        original_query_ohlcv = self.strategy.query_ohlcv
+        self.strategy.query_ohlcv = wrapper.query_ohlcv
+
+        all_signals = []
+        collected_signal_keys = set()
+        last_collection_time: pd.Timestamp | None = None
+
+        for idx, current_time in enumerate(step_intervals):
+            wrapper.current_time = current_time
+            current_time_normalized = pd.Timestamp(current_time).tz_localize("UTC") if current_time.tz is None else current_time.tz_convert("UTC")
+
+            try:
+                signals = self.strategy.run_strategy(ticker=ticker, write_signals=False)
+
+                if not signals.empty:
+                    signals["signal_time"] = pd.to_datetime(signals["signal_time"], utc=True)
+                    if signals["signal_time"].dt.tz is None:
+                        signals["signal_time"] = signals["signal_time"].dt.tz_localize("UTC")
+                    else:
+                        signals["signal_time"] = signals["signal_time"].dt.tz_convert("UTC")
+
+                    mask = signals["signal_time"] <= current_time_normalized
+                    if last_collection_time is not None:
+                        mask = mask & (signals["signal_time"] > last_collection_time)
+
+                    current_step_signals = signals[mask]
+
+                    for _, signal in current_step_signals.iterrows():
+                        signal_time_val = signal["signal_time"]
+                        if isinstance(signal_time_val, pd.Timestamp):
+                            signal_time_normalized = signal_time_val.tz_localize("UTC") if signal_time_val.tz is None else signal_time_val.tz_convert("UTC")
+                        else:
+                            signal_time_normalized = pd.Timestamp(signal_time_val, tz="UTC")
+
+                        signal_key = (
+                            ticker,
+                            signal_time_normalized,
+                            signal["signal_type"],
+                            float(signal.get("price", 0)),
+                        )
+                        if signal_key not in collected_signal_keys:
+                            collected_signal_keys.add(signal_key)
+                            all_signals.append(signal.to_dict())
+
+                    if not current_step_signals.empty:
+                        max_signal_time = current_step_signals["signal_time"].max()
+                        if last_collection_time is None or max_signal_time > last_collection_time:
+                            last_collection_time = max_signal_time
+                    elif last_collection_time is None:
+                        last_collection_time = current_time_normalized
+
+            except Exception as e:
+                self.logger.error(f"Error executing strategy for {ticker} at {current_time}: {e}")
+
+        self.strategy.query_ohlcv = original_query_ohlcv
+
+        if not all_signals:
+            self.logger.debug(f"No signals generated for {ticker}")
+            return BacktestResults()
+
+        combined_signals = pd.DataFrame(all_signals).sort_values("signal_time")
+
+        results = BacktestResults()
+        results.signals = combined_signals
+        results.strategy_name = self.strategy.strategy_name
+
+        journal = TradeJournal(
+            signals=combined_signals,
+            strategy_name=self.strategy.strategy_name,
+            ohlcv_data=ticker_data,
+            capital_per_trade=self.capital_per_trade,
+            risk_free_rate=self.risk_free_rate,
+        )
+
+        metrics, trades = journal.generate_report()
+
+        if not trades.empty:
+            executed_trades = self.execution_simulator.apply_execution(trades, data_cache)
+            results.metrics = metrics
+            results.trades = executed_trades
+        else:
+            results.metrics = metrics
+
+        return results
+
+    def _determine_step_intervals_for_data(self, data_cache: dict[str, pd.DataFrame]) -> pd.DatetimeIndex:
+        if self.step_frequency == "auto":
+            if not data_cache:
+                return pd.DatetimeIndex([])
+
+            all_timestamps = []
+            for df in data_cache.values():
+                all_timestamps.extend(df.index.tolist())
+
+            if not all_timestamps:
+                return pd.DatetimeIndex([])
+
+            timestamps_series = pd.Series(all_timestamps).sort_values()
+            diffs = timestamps_series.diff().dropna()
+            most_common_diff = diffs.mode()[0] if not diffs.empty else pd.Timedelta(days=1)
+
+            freq_str = self._timedelta_to_freq(most_common_diff)
+
+        elif self.step_frequency == "daily":
+            freq_str = "D"
+        elif self.step_frequency == "hourly":
+            freq_str = "H"
+        elif self.step_frequency == "minute":
+            freq_str = "T"
+        else:
+            freq_str = self.step_frequency
+
+        try:
+            intervals = pd.date_range(start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC")
+            return intervals
+        except Exception as e:
+            self.logger.error(f"Invalid frequency '{freq_str}': {e}")
+            return pd.date_range(start=self.start_date, end=self.end_date, freq="D", tz="UTC")
 
     def run(self) -> BacktestResults:
         self._load_ohlcv_data()

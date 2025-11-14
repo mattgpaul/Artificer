@@ -1,119 +1,250 @@
+import hashlib
+import json
 from datetime import datetime, timezone
+from typing import Any
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from system.algo_trader.backtest.execution import ExecutionConfig
+from system.algo_trader.redis.queue_broker import QueueBroker
+from system.algo_trader.backtest.utils import (
+    BACKTEST_TRADES_QUEUE_NAME,
+    BACKTEST_METRICS_QUEUE_NAME,
+    BACKTEST_REDIS_TTL,
+    dataframe_to_dict,
+)
 
 
 class ResultsWriter:
-    def __init__(self, database: str = "algo-trader-trading-journal"):
-        self.database = database
-        self.influx_client = MarketDataInflux(database=database)
+    def __init__(self, namespace: str = "queue"):
+        self.namespace = namespace
+        self.queue_broker = QueueBroker(namespace=namespace)
         self.logger = get_logger(self.__class__.__name__)
+
+    def _compute_backtest_hash(
+        self,
+        strategy_params: dict[str, Any],
+        execution_config: ExecutionConfig,
+        start_date: pd.Timestamp,
+        end_date: pd.Timestamp,
+        step_frequency: str,
+        database: str,
+        tickers: list[str],
+        capital_per_trade: float,
+        risk_free_rate: float,
+        walk_forward: bool = False,
+        train_days: int | None = None,
+        test_days: int | None = None,
+        train_split: float | None = None,
+    ) -> str:
+        args_dict = {
+            "strategy_params": strategy_params,
+            "execution": {
+                "slippage_bps": execution_config.slippage_bps,
+                "commission_per_share": execution_config.commission_per_share,
+                "use_limit_orders": execution_config.use_limit_orders,
+                "fill_delay_minutes": execution_config.fill_delay_minutes,
+            },
+            "backtest": {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "step_frequency": step_frequency,
+                "database": database,
+            },
+            "tickers": sorted(tickers),
+            "capital_per_trade": capital_per_trade,
+            "risk_free_rate": risk_free_rate,
+            "walk_forward": walk_forward,
+            "train_days": train_days,
+            "test_days": test_days,
+            "train_split": train_split,
+        }
+        args_json = json.dumps(args_dict, sort_keys=True, default=str)
+        return hashlib.sha256(args_json.encode()).hexdigest()[:16]
+
 
     def write_trades(
         self,
         trades: pd.DataFrame,
         strategy_name: str,
+        ticker: str,
         backtest_id: str | None = None,
+        strategy_params: dict[str, Any] | None = None,
+        execution_config: ExecutionConfig | None = None,
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        step_frequency: str | None = None,
+        database: str | None = None,
+        tickers: list[str] | None = None,
+        capital_per_trade: float | None = None,
+        risk_free_rate: float | None = None,
+        walk_forward: bool = False,
+        train_days: int | None = None,
+        test_days: int | None = None,
+        train_split: float | None = None,
     ) -> bool:
         if trades.empty:
-            self.logger.warning("No trades to write")
+            self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
 
-        table_name = strategy_name
-
-        records = []
-        for _, trade in trades.iterrows():
-            status = "WIN" if trade.get("gross_pnl", 0) > 0 else "LOSS"
-            net_pnl = trade.get("net_pnl", trade.get("gross_pnl", 0))
-            net_pnl_pct = trade.get("net_pnl_pct", trade.get("gross_pnl_pct", 0))
-
-            record = {
-                "datetime": int(trade["exit_time"].timestamp() * 1000),
-                "status": status,
-                "date": trade["exit_time"].strftime("%b %d, %Y").upper(),
-                "symbol": trade["ticker"],
-                "entry": round(trade["entry_price"], 2),
-                "exit": round(trade["exit_price"], 2),
-                "size": round(trade["shares"], 4),
-                "side": trade["side"],
-                "return_dollar": round(net_pnl, 2),
-                "return_pct": round(net_pnl_pct, 2),
-                "setups": strategy_name,
-                "efficiency": round(trade.get("efficiency", 0.0), 2),
-                "entry_time": int(trade["entry_time"].timestamp() * 1000),
-                "gross_pnl": round(trade.get("gross_pnl", 0), 2),
-                "gross_pnl_pct": round(trade.get("gross_pnl_pct", 0), 2),
-                "commission": round(trade.get("commission", 0), 2),
-                "strategy": strategy_name,
-            }
-
-            if backtest_id:
-                record["backtest_id"] = backtest_id
-
-            records.append(record)
-
-        try:
-            df = pd.DataFrame(records)
-            df["datetime"] = pd.to_datetime(df["datetime"], unit="ms", utc=True)
-            df = df.set_index("datetime")
-
-            df["ticker"] = df["symbol"]
-
-            self.influx_client.client.write(
-                df, data_frame_measurement_name=table_name, data_frame_tag_columns=["ticker", "strategy"]
+        backtest_hash = None
+        if all(
+            [
+                strategy_params is not None,
+                execution_config is not None,
+                start_date is not None,
+                end_date is not None,
+                step_frequency is not None,
+                database is not None,
+                tickers is not None,
+                capital_per_trade is not None,
+                risk_free_rate is not None,
+            ]
+        ):
+            backtest_hash = self._compute_backtest_hash(
+                strategy_params=strategy_params,
+                execution_config=execution_config,
+                start_date=start_date,
+                end_date=end_date,
+                step_frequency=step_frequency,
+                database=database,
+                tickers=tickers,
+                capital_per_trade=capital_per_trade,
+                risk_free_rate=risk_free_rate,
+                walk_forward=walk_forward,
+                train_days=train_days,
+                test_days=test_days,
+                train_split=train_split,
             )
 
-            self.logger.info(f"Wrote {len(records)} trades to {self.database}.{table_name}")
-            return True
+        trades_dict = dataframe_to_dict(trades)
+
+        queue_data = {
+            "ticker": ticker,
+            "strategy_name": strategy_name,
+            "backtest_id": backtest_id,
+            "backtest_hash": backtest_hash,
+            "data": trades_dict,
+        }
+
+        item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}"
+
+        try:
+            success = self.queue_broker.enqueue(
+                queue_name=BACKTEST_TRADES_QUEUE_NAME,
+                item_id=item_id,
+                data=queue_data,
+                ttl=BACKTEST_REDIS_TTL,
+            )
+
+            if success:
+                self.logger.debug(f"Enqueued {len(trades)} trades for {ticker} to {BACKTEST_TRADES_QUEUE_NAME}")
+                return True
+            else:
+                self.logger.error(f"Failed to enqueue trades for {ticker} to Redis")
+                return False
 
         except Exception as e:
-            self.logger.error(f"Failed to write trades: {e}")
+            self.logger.error(f"Error enqueueing trades for {ticker}: {e}")
             return False
 
     def write_metrics(
         self,
         metrics: dict,
         strategy_name: str,
+        ticker: str,
         backtest_id: str | None = None,
+        strategy_params: dict[str, Any] | None = None,
+        execution_config: ExecutionConfig | None = None,
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        step_frequency: str | None = None,
+        database: str | None = None,
+        tickers: list[str] | None = None,
+        capital_per_trade: float | None = None,
+        risk_free_rate: float | None = None,
+        walk_forward: bool = False,
+        train_days: int | None = None,
+        test_days: int | None = None,
+        train_split: float | None = None,
     ) -> bool:
-        table_name = f"{strategy_name}_summary"
+        backtest_hash = None
+        if all(
+            [
+                strategy_params is not None,
+                execution_config is not None,
+                start_date is not None,
+                end_date is not None,
+                step_frequency is not None,
+                database is not None,
+                tickers is not None,
+                capital_per_trade is not None,
+                risk_free_rate is not None,
+            ]
+        ):
+            backtest_hash = self._compute_backtest_hash(
+                strategy_params=strategy_params,
+                execution_config=execution_config,
+                start_date=start_date,
+                end_date=end_date,
+                step_frequency=step_frequency,
+                database=database,
+                tickers=tickers,
+                capital_per_trade=capital_per_trade,
+                risk_free_rate=risk_free_rate,
+                walk_forward=walk_forward,
+                train_days=train_days,
+                test_days=test_days,
+                train_split=train_split,
+            )
 
-        record = {
-            "datetime": int(datetime.now(timezone.utc).timestamp() * 1000),
-            "total_trades": metrics.get("total_trades", 0),
-            "total_profit": round(metrics.get("total_profit", 0), 2),
-            "total_profit_pct": round(metrics.get("total_profit_pct", 0), 2),
-            "max_drawdown": round(metrics.get("max_drawdown", 0), 2),
-            "sharpe_ratio": round(metrics.get("sharpe_ratio", 0), 4),
-            "avg_efficiency": round(metrics.get("avg_efficiency", 0), 2),
-            "avg_return_pct": round(metrics.get("avg_return_pct", 0), 2),
-            "avg_time_held": round(metrics.get("avg_time_held", 0), 2),
-            "win_rate": round(metrics.get("win_rate", 0), 2),
-            "strategy": strategy_name,
+        datetime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        metrics_data = {
+            "datetime": [datetime_ms],
+            "total_trades": [metrics.get("total_trades", 0)],
+            "total_profit": [round(metrics.get("total_profit", 0), 2)],
+            "total_profit_pct": [round(metrics.get("total_profit_pct", 0), 2)],
+            "max_drawdown": [round(metrics.get("max_drawdown", 0), 2)],
+            "sharpe_ratio": [round(metrics.get("sharpe_ratio", 0), 4)],
+            "avg_efficiency": [round(metrics.get("avg_efficiency", 0), 2)],
+            "avg_return_pct": [round(metrics.get("avg_return_pct", 0), 2)],
+            "avg_time_held": [round(metrics.get("avg_time_held", 0), 2)],
+            "win_rate": [round(metrics.get("win_rate", 0), 2)],
+            "strategy": [strategy_name],
         }
 
         if backtest_id:
-            record["backtest_id"] = backtest_id
+            metrics_data["backtest_id"] = [backtest_id]
+        if backtest_hash:
+            metrics_data["backtest_hash"] = [backtest_hash]
+
+        queue_data = {
+            "ticker": ticker,
+            "strategy_name": strategy_name,
+            "backtest_id": backtest_id,
+            "backtest_hash": backtest_hash,
+            "data": metrics_data,
+        }
+
+        item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}_metrics"
 
         try:
-            df = pd.DataFrame([record])
-            df["datetime"] = pd.to_datetime(df["datetime"], unit="ms", utc=True)
-            df = df.set_index("datetime")
-
-            self.influx_client.client.write(
-                df, data_frame_measurement_name=table_name, data_frame_tag_columns=["strategy"]
+            success = self.queue_broker.enqueue(
+                queue_name=BACKTEST_METRICS_QUEUE_NAME,
+                item_id=item_id,
+                data=queue_data,
+                ttl=BACKTEST_REDIS_TTL,
             )
 
-            self.logger.info(f"Wrote metrics to {self.database}.{table_name}")
-            return True
+            if success:
+                self.logger.debug(f"Enqueued metrics for {ticker} to {BACKTEST_METRICS_QUEUE_NAME}")
+                return True
+            else:
+                self.logger.error(f"Failed to enqueue metrics for {ticker} to Redis")
+                return False
 
         except Exception as e:
-            self.logger.error(f"Failed to write metrics: {e}")
+            self.logger.error(f"Error enqueueing metrics for {ticker}: {e}")
             return False
-
-    def close(self) -> None:
-        self.influx_client.close()
 

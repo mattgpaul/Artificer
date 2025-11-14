@@ -6,15 +6,20 @@ py_library(
     srcs = [
         "engine.py",
         "execution.py",
+        "processor.py",
         "results.py",
         "strategy_wrapper.py",
+        "utils.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",
     ],
     deps = [
+        "//infrastructure:config",
         "//infrastructure/logging:logger",
+        "//infrastructure/threads:thread_manager",
         "//system/algo_trader/influx:market_data_influx",
+        "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy:cli_utils",
         requirement("pandas"),

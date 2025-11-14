@@ -2,15 +2,12 @@
 
 import argparse
 import sys
-from datetime import datetime
-from uuid import uuid4
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.backtest.engine import BacktestEngine
 from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.backtest.results import ResultsWriter
+from system.algo_trader.backtest.processor import BacktestProcessor, MAX_THREADS
 from system.algo_trader.strategy.cli_utils import resolve_tickers
 from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
@@ -129,8 +126,8 @@ def parse_args():
     parser.add_argument(
         "--max-threads",
         type=int,
-        default=None,
-        help="Maximum number of threads (default: 10 or THREAD_MAX_THREADS env var)",
+        default=MAX_THREADS,
+        help=f"Maximum number of threads for parallel ticker processing (default: {MAX_THREADS})",
     )
 
     subparsers = parser.add_subparsers(
@@ -182,77 +179,32 @@ def main():
         commission_per_share=args.commission,
     )
 
-    engine = BacktestEngine(
-        strategy=strategy,
-        tickers=tickers,
-        start_date=start_date,
-        end_date=end_date,
-        step_frequency=args.step_frequency,
-        database=args.database,
-        execution_config=execution_config,
-        capital_per_trade=args.capital,
-        risk_free_rate=args.risk_free_rate,
-    )
+    strategy_params = {}
+    if args.strategy == "sma-crossover":
+        strategy_params = {
+            "short_window": args.short,
+            "long_window": args.long,
+        }
 
     try:
-        results = engine.run()
-
-        if results.trades.empty:
-            logger.warning("No trades generated during backtest")
-            return 0
-
-        backtest_id = str(uuid4())
-        results_writer = ResultsWriter()
-
-        success = results_writer.write_trades(
-            trades=results.trades,
-            strategy_name=results.strategy_name,
-            backtest_id=backtest_id,
+        processor = BacktestProcessor(logger=logger)
+        processor.process_tickers(
+            strategy=strategy,
+            tickers=tickers,
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency=args.step_frequency,
+            database=args.database,
+            execution_config=execution_config,
+            capital_per_trade=args.capital,
+            risk_free_rate=args.risk_free_rate,
+            strategy_params=strategy_params,
+            walk_forward=args.walk_forward,
+            train_days=args.train_days if args.walk_forward else None,
+            test_days=args.test_days if args.walk_forward else None,
+            train_split=args.train_split,
+            max_threads=args.max_threads,
         )
-
-        if success and results.metrics:
-            results_writer.write_metrics(
-                metrics=results.metrics,
-                strategy_name=results.strategy_name,
-                backtest_id=backtest_id,
-            )
-
-        results_writer.close()
-
-        print("\n" + "=" * 80)
-        print("BACKTEST RESULTS")
-        print("=" * 80)
-        print(f"Strategy: {results.strategy_name}")
-        print(f"Tickers: {', '.join(tickers)}")
-        print(f"Date Range: {start_date.date()} to {end_date.date()}")
-        print(f"Total Signals Generated: {len(results.signals)}")
-        print(f"\nPerformance Metrics:")
-        print(f"  Total Trades: {results.metrics.get('total_trades', 0)}")
-        print(f"  Total Profit: ${results.metrics.get('total_profit', 0):.2f}")
-        print(f"  Total Profit %: {results.metrics.get('total_profit_pct', 0):.2f}%")
-        print(f"  Average Return %: {results.metrics.get('avg_return_pct', 0):.2f}%")
-        print(f"  Win Rate: {results.metrics.get('win_rate', 0):.2f}%")
-        print(f"  Max Drawdown: {results.metrics.get('max_drawdown', 0):.2f}%")
-        print(f"  Sharpe Ratio: {results.metrics.get('sharpe_ratio', 0):.4f}")
-        print(f"  Avg Efficiency: {results.metrics.get('avg_efficiency', 0):.1f}%")
-        print(f"  Avg Time Held: {results.metrics.get('avg_time_held', 0):.1f} hours")
-
-        if len(results.trades) > 0:
-            print(f"\nSample Trades (first 5):")
-            sample_trades = results.trades.head(5)
-            for idx, trade in sample_trades.iterrows():
-                status = "WIN" if trade.get("gross_pnl", 0) > 0 else "LOSS"
-                print(
-                    f"  {status:4s} | {trade['ticker']:6s} | "
-                    f"Entry: ${trade['entry_price']:7.2f} | Exit: ${trade['exit_price']:7.2f} | "
-                    f"P&L: ${trade.get('gross_pnl', 0):8.2f} ({trade.get('gross_pnl_pct', 0):6.2f}%)"
-                )
-
-        print(f"\nResults written to InfluxDB:")
-        print(f"  Database: algo-trader-trading-journal")
-        print(f"  Table: {results.strategy_name}")
-        print(f"  Backtest ID: {backtest_id}")
-        print("=" * 80 + "\n")
 
         return 0
 
