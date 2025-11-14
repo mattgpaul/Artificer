@@ -470,7 +470,8 @@
                   "colorMode": "value",
                   "thresholds": [
                     {
-                      "color": "red"
+                      "color": "red",
+                      "value": -999999
                     },
                     {
                       "color": "green",
@@ -498,7 +499,8 @@
                   "colorMode": "value",
                   "thresholds": [
                     {
-                      "color": "red"
+                      "color": "red",
+                      "value": -999999
                     },
                     {
                       "color": "green",
