@@ -6,7 +6,7 @@ journal summary formatting, and trade details formatting. External dependencies
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -15,6 +15,7 @@ from system.algo_trader.strategy.utils.cli_utils import (
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
+    get_influxdb_tickers,
     get_sp500_tickers,
     resolve_tickers,
 )
@@ -44,14 +45,10 @@ class TestResolveTickers:
         assert result == ["AAPL"]
         mock_logger.info.assert_called_once()
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry(self, mock_tickers_class, mock_logger):
         """Test resolving full-registry to fetch all SEC tickers."""
-        mock_tickers = MagicMock()
-        mock_tickers_class.return_value = mock_tickers
-
         # Mock SEC API response
-        mock_tickers.get_tickers.return_value = {
+        mock_tickers_class["instance"].get_tickers.return_value = {
             "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
             "1": {"cik_str": 789019, "ticker": "MSFT", "title": "Microsoft Corp"},
             "2": {"cik_str": 1652044, "ticker": "GOOGL", "title": "Alphabet Inc."},
@@ -69,37 +66,27 @@ class TestResolveTickers:
         assert any("full-registry specified" in msg for msg in info_calls)
         assert any("Retrieved 3 tickers" in msg for msg in info_calls)
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_api_failure(self, mock_tickers_class, mock_logger):
         """Test full-registry when SEC API returns None."""
-        mock_tickers = MagicMock()
-        mock_tickers_class.return_value = mock_tickers
-        mock_tickers.get_tickers.return_value = None
+        mock_tickers_class["instance"].get_tickers.return_value = None
 
         with pytest.raises(ValueError, match="Failed to retrieve tickers from SEC datasource"):
             resolve_tickers(["full-registry"], mock_logger)
 
         mock_logger.error.assert_called_once()
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_empty_response(self, mock_tickers_class, mock_logger):
         """Test full-registry with empty SEC response."""
-        mock_tickers = MagicMock()
-        mock_tickers_class.return_value = mock_tickers
-        mock_tickers.get_tickers.return_value = {}
+        mock_tickers_class["instance"].get_tickers.return_value = {}
 
         result = resolve_tickers(["full-registry"], mock_logger)
 
         assert result == []
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_malformed_data(self, mock_tickers_class, mock_logger):
         """Test full-registry with malformed SEC data."""
-        mock_tickers = MagicMock()
-        mock_tickers_class.return_value = mock_tickers
-
         # Malformed data - missing ticker field
-        mock_tickers.get_tickers.return_value = {
+        mock_tickers_class["instance"].get_tickers.return_value = {
             "0": {"cik_str": 320193, "title": "Apple Inc."},  # Missing ticker
             "1": {"cik_str": 789019, "ticker": "MSFT"},  # Valid
             "2": "invalid_value",  # Not a dict
@@ -110,18 +97,14 @@ class TestResolveTickers:
         # Should only extract MSFT
         assert result == ["MSFT"]
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_large_dataset(self, mock_tickers_class, mock_logger):
         """Test full-registry with large number of tickers."""
-        mock_tickers = MagicMock()
-        mock_tickers_class.return_value = mock_tickers
-
         # Generate 1000 mock tickers
         mock_data = {
             str(i): {"cik_str": i, "ticker": f"TICK{i}", "title": f"Company {i}"}
             for i in range(1000)
         }
-        mock_tickers.get_tickers.return_value = mock_data
+        mock_tickers_class["instance"].get_tickers.return_value = mock_data
 
         result = resolve_tickers(["full-registry"], mock_logger)
 
@@ -129,7 +112,6 @@ class TestResolveTickers:
         assert "TICK0" in result
         assert "TICK999" in result
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
     def test_resolve_sp500(self, mock_get_sp500, mock_logger):
         """Test resolving SP500 to fetch S&P 500 tickers."""
         mock_sp500_tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]
@@ -147,7 +129,6 @@ class TestResolveTickers:
         assert any("SP500 specified" in msg for msg in info_calls)
         assert any("Retrieved 5 S&P 500 tickers" in msg for msg in info_calls)
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
     def test_resolve_sp500_empty_list(self, mock_get_sp500, mock_logger):
         """Test SP500 when get_sp500_tickers returns empty list."""
         mock_get_sp500.return_value = []
@@ -157,7 +138,6 @@ class TestResolveTickers:
 
         mock_logger.error.assert_called_once()
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
     def test_resolve_sp500_large_dataset(self, mock_get_sp500, mock_logger):
         """Test SP500 with large number of tickers."""
         # Generate mock S&P 500 tickers (typically ~500 tickers)
@@ -169,6 +149,133 @@ class TestResolveTickers:
         assert len(result) == 500
         assert "TICK0" in result
         assert "TICK499" in result
+
+    def test_resolve_influx_registry(self, mock_influx_client, mock_logger):
+        """Test resolving influx-registry to fetch all InfluxDB tickers."""
+        # Mock InfluxDB query response
+        mock_df = pd.DataFrame({"ticker": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]})
+        mock_influx_client["instance"].query.return_value = mock_df
+
+        result = resolve_tickers(["influx-registry"], mock_logger)
+
+        assert len(result) == 5
+        assert "AAPL" in result
+        assert "MSFT" in result
+        assert "GOOGL" in result
+        assert "AMZN" in result
+        assert "NVDA" in result
+
+        # Verify InfluxDB client was created with correct database
+        mock_influx_client["class"].assert_called_once_with(database="algo-trader-ohlcv")
+        mock_influx_client["instance"].query.assert_called_once_with(
+            "SELECT DISTINCT ticker FROM ohlcv"
+        )
+        mock_influx_client["instance"].close.assert_called_once()
+
+        # Verify logging
+        info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+        assert any("influx-registry specified" in msg for msg in info_calls)
+        assert any("Retrieved 5 tickers" in msg for msg in info_calls)
+
+    def test_resolve_influx_registry_empty_result(self, mock_influx_client, mock_logger):
+        """Test influx-registry when InfluxDB returns empty result."""
+        mock_influx_client["instance"].query.return_value = pd.DataFrame()
+
+        with pytest.raises(
+            ValueError, match="Failed to retrieve tickers from InfluxDB OHLCV database"
+        ):
+            resolve_tickers(["influx-registry"], mock_logger)
+
+        mock_logger.error.assert_called_once()
+
+    def test_resolve_influx_registry_query_failure(self, mock_influx_client, mock_logger):
+        """Test influx-registry when InfluxDB query fails."""
+        mock_influx_client["instance"].query.return_value = None
+
+        with pytest.raises(
+            ValueError, match="Failed to retrieve tickers from InfluxDB OHLCV database"
+        ):
+            resolve_tickers(["influx-registry"], mock_logger)
+
+        mock_logger.error.assert_called_once()
+
+    def test_resolve_influx_registry_exception(self, mock_influx_client, mock_logger):
+        """Test influx-registry when InfluxDB client raises exception."""
+        mock_influx_client["class"].side_effect = Exception("Connection error")
+
+        with pytest.raises(
+            ValueError, match="Failed to retrieve tickers from InfluxDB OHLCV database"
+        ):
+            resolve_tickers(["influx-registry"], mock_logger)
+
+        mock_logger.error.assert_called_once()
+
+    def test_resolve_influx_registry_large_dataset(self, mock_influx_client, mock_logger):
+        """Test influx-registry with large number of tickers."""
+        # Generate mock tickers
+        mock_tickers = [f"TICK{i}" for i in range(1000)]
+        mock_df = pd.DataFrame({"ticker": mock_tickers})
+        mock_influx_client["instance"].query.return_value = mock_df
+
+        result = resolve_tickers(["influx-registry"], mock_logger)
+
+        assert len(result) == 1000
+        assert "TICK0" in result
+        assert "TICK999" in result
+        # Verify sorted
+        assert result == sorted(result)
+
+    def test_get_influxdb_tickers_success(self, mock_influx_client):
+        """Test get_influxdb_tickers with successful query."""
+        mock_df = pd.DataFrame({"ticker": ["AAPL", "MSFT", "GOOGL"]})
+        mock_influx_client["instance"].query.return_value = mock_df
+
+        result = get_influxdb_tickers()
+
+        assert len(result) == 3
+        assert "AAPL" in result
+        assert "MSFT" in result
+        assert "GOOGL" in result
+        # Verify sorted
+        assert result == sorted(result)
+        mock_influx_client["instance"].close.assert_called_once()
+
+    def test_get_influxdb_tickers_empty_result(self, mock_influx_client):
+        """Test get_influxdb_tickers with empty DataFrame."""
+        mock_influx_client["instance"].query.return_value = pd.DataFrame()
+
+        result = get_influxdb_tickers()
+
+        assert result == []
+        mock_influx_client["instance"].close.assert_called_once()
+
+    def test_get_influxdb_tickers_none_result(self, mock_influx_client):
+        """Test get_influxdb_tickers when query returns None."""
+        mock_influx_client["instance"].query.return_value = None
+
+        result = get_influxdb_tickers()
+
+        assert result == []
+        mock_influx_client["instance"].close.assert_called_once()
+
+    def test_get_influxdb_tickers_missing_column(self, mock_influx_client):
+        """Test get_influxdb_tickers when DataFrame missing ticker column."""
+        mock_influx_client["instance"].query.return_value = pd.DataFrame(
+            {"other_column": ["value1", "value2"]}
+        )
+
+        result = get_influxdb_tickers()
+
+        assert result == []
+        mock_influx_client["instance"].close.assert_called_once()
+
+    def test_get_influxdb_tickers_exception(self, mock_influx_client):
+        """Test get_influxdb_tickers when exception occurs."""
+        mock_influx_client["class"].side_effect = Exception("Connection error")
+
+        result = get_influxdb_tickers()
+
+        assert result == []
 
 
 class TestFormatSignalSummary:
