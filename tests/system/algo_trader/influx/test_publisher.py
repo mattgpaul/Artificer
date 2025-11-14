@@ -386,6 +386,81 @@ class TestInfluxPublisherQueueProcessing:
         call_args = mock_market_data_influx["instance"].write_sync.call_args
         assert call_args[1]["ticker"] == "AAPL"
 
+    def test_process_queue_handles_empty_candles_list(
+        self, publisher, mock_queue_broker, mock_market_data_influx
+    ):
+        """Test processing handles empty candles list for ohlcv_queue."""
+        mock_queue_broker.get_queue_size.return_value = 1
+        mock_queue_broker.dequeue.side_effect = ["item1", None]
+        mock_queue_broker.get_data.return_value = {
+            "ticker": "AAPL",
+            "candles": [],  # Empty list
+        }
+
+        queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
+        processed, failed = process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
+
+        assert processed == 0
+        assert failed == 1
+        mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
+        mock_market_data_influx["instance"].write_sync.assert_not_called()
+
+    def test_process_queue_handles_empty_datetime_array(
+        self, publisher, mock_queue_broker, mock_market_data_influx
+    ):
+        """Test processing handles empty datetime array for ohlcv_queue."""
+        mock_queue_broker.get_queue_size.return_value = 1
+        mock_queue_broker.dequeue.side_effect = ["item1", None]
+        mock_queue_broker.get_data.return_value = {
+            "ticker": "AAPL",
+            "candles": {"datetime": [], "open": [], "close": []},  # Empty datetime array
+        }
+
+        queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
+        processed, failed = process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
+
+        assert processed == 0
+        assert failed == 1
+        mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
+        mock_market_data_influx["instance"].write_sync.assert_not_called()
+
+    def test_process_queue_handles_empty_fundamentals_data(
+        self, publisher, mock_queue_broker, mock_market_data_influx
+    ):
+        """Test processing handles empty data for fundamentals_queue."""
+        mock_queue_broker.get_queue_size.return_value = 1
+        mock_queue_broker.dequeue.side_effect = ["item1", None]
+        mock_queue_broker.get_data.return_value = {
+            "ticker": "AAPL",
+            "data": {"datetime": []},  # Empty datetime array
+        }
+
+        queue_config = {"name": "fundamentals_queue", "table": "fundamentals"}
+        processed, failed = process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["fundamentals_queue"],
+            True,
+            publisher.logger,
+        )
+
+        assert processed == 0
+        assert failed == 1
+        mock_queue_broker.delete_data.assert_called_once_with("fundamentals_queue", "item1")
+        mock_market_data_influx["instance"].write_sync.assert_not_called()
+
 
 class TestInfluxPublisherSignalHandling:
     """Test signal handling."""

@@ -1,5 +1,6 @@
 """MySQL client for bad ticker tracking."""
 
+import datetime
 import os
 from typing import Any
 
@@ -29,6 +30,7 @@ class BadTickerClient(BaseMySQLClient):
 
         super().__init__(config=config)
         self.create_table()
+        self.create_missing_tickers_table()
 
     def create_table(self) -> None:
         """Create bad_tickers table if it doesn't exist."""
@@ -92,4 +94,86 @@ class BadTickerClient(BaseMySQLClient):
             return True
         except Exception as e:
             self.logger.error(f"Error removing bad ticker {ticker}: {e}")
+            return False
+
+    def create_missing_tickers_table(self) -> None:
+        """Create missing_tickers table if it doesn't exist.
+
+        Raises:
+            Exception: If table creation fails.
+        """
+        query = """
+        CREATE TABLE IF NOT EXISTS missing_tickers (
+            ticker VARCHAR(255) PRIMARY KEY,
+            timestamp VARCHAR(255) NOT NULL,
+            source VARCHAR(255) NOT NULL
+        )
+        """
+        try:
+            self.execute(query)
+            self.logger.info("missing_tickers table created or already exists")
+        except Exception as e:
+            self.logger.error(f"Error creating missing_tickers table: {e}")
+            raise
+
+    def store_missing_tickers(self, tickers: list[str], source: str) -> int:
+        """Store missing tickers in missing_tickers table.
+
+        Inserts or updates tickers with current timestamp and source. Handles
+        duplicates using ON DUPLICATE KEY UPDATE.
+
+        Args:
+            tickers: List of ticker symbols to store.
+            source: Source identifier for where missing tickers were detected.
+
+        Returns:
+            Number of tickers successfully stored.
+        """
+        timestamp = datetime.datetime.utcnow().isoformat()
+        stored_count = 0
+        for ticker in tickers:
+            query = """
+            INSERT INTO missing_tickers (ticker, timestamp, source)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                timestamp = VALUES(timestamp),
+                source = VALUES(source)
+            """
+            try:
+                self.execute(query, (ticker, timestamp, source))
+                stored_count += 1
+            except Exception as e:
+                self.logger.error(f"Error storing missing ticker {ticker}: {e}")
+        return stored_count
+
+    def get_missing_tickers(self, limit: int = 10000) -> list[str]:
+        """Get list of missing tickers ordered by timestamp.
+
+        Args:
+            limit: Maximum number of tickers to retrieve. Defaults to 10000.
+
+        Returns:
+            List of ticker symbols, or empty list on error.
+        """
+        query = "SELECT ticker FROM missing_tickers ORDER BY timestamp DESC LIMIT %s"
+        try:
+            results = self.fetchall(query, (limit,))
+            return [r["ticker"] for r in results]
+        except Exception as e:
+            self.logger.error(f"Error fetching missing tickers: {e}")
+            return []
+
+    def clear_missing_tickers(self) -> bool:
+        """Clear all entries from missing_tickers table.
+
+        Returns:
+            True if operation succeeded, False otherwise.
+        """
+        query = "DELETE FROM missing_tickers"
+        try:
+            self.execute(query)
+            self.logger.info("Cleared missing_tickers table")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error clearing missing_tickers: {e}")
             return False

@@ -152,3 +152,79 @@ def mock_check_queues_queue_broker():
         mock_broker.get_data.return_value = None
         mock_queue_broker_class.return_value = mock_broker
         yield mock_broker
+
+
+@pytest.fixture
+def mock_diagnose_mysql():
+    """Fixture to mock MySQL dependencies for diagnose_missing_data tests."""
+    with patch("infrastructure.mysql.mysql.pymysql") as mock_pymysql_module:
+        mock_connection = MagicMock()
+        mock_cursor = MagicMock()
+        mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_cursor.execute.return_value = 0
+        mock_cursor.rowcount = 0
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.fetchone.return_value = None
+        mock_pymysql_module.connect.return_value = mock_connection
+
+        yield {
+            "module": mock_pymysql_module,
+            "connection": mock_connection,
+            "cursor": mock_cursor,
+        }
+
+
+@pytest.fixture
+def mock_diagnose_logger():
+    """Fixture to mock logger for diagnose_missing_data tests."""
+    with patch("infrastructure.logging.logger.get_logger") as mock_get_logger:
+        mock_logger_instance = MagicMock()
+        mock_get_logger.return_value = mock_logger_instance
+        yield mock_logger_instance
+
+
+@pytest.fixture
+def mock_diagnose_mysql_config():
+    """Fixture to mock MySQLConfig for diagnose_missing_data tests."""
+    with patch("infrastructure.config.MySQLConfig") as mock_config_class:
+        mock_config = MagicMock()
+        mock_config.host = "localhost"
+        mock_config.port = 3306
+        mock_config.user = "root"
+        mock_config.password = ""
+        mock_config.database = "algo_trader"
+        mock_config.charset = "utf8mb4"
+        mock_config.connect_timeout = 10
+        mock_config.autocommit = False
+        mock_config_class.return_value = mock_config
+        yield mock_config
+
+
+@pytest.fixture
+def mock_diagnose_bad_ticker_client():
+    """Fixture to mock BadTickerClient for diagnose_missing_data tests."""
+    with patch(
+        "system.algo_trader.influx.diagnose_missing_data.BadTickerClient"
+    ) as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.get_bad_tickers.return_value = []
+        mock_client_class.return_value = mock_client
+        yield mock_client
+
+
+@pytest.fixture
+def mock_diagnose_tickers():
+    """Fixture to mock Tickers class for diagnose_missing_data tests."""
+    with patch("system.algo_trader.influx.diagnose_missing_data.Tickers") as mock_tickers_class:
+        mock_tickers = MagicMock()
+        mock_tickers.get_tickers.return_value = {}
+        mock_tickers_class.return_value = mock_tickers
+        yield mock_tickers
+
+
+@pytest.fixture
+def mock_diagnose_sp500_tickers():
+    """Fixture to mock get_sp500_tickers for diagnose_missing_data tests."""
+    with patch("system.algo_trader.influx.diagnose_missing_data.get_sp500_tickers") as mock_sp500:
+        mock_sp500.return_value = []
+        yield mock_sp500

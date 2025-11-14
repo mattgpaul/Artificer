@@ -40,6 +40,7 @@ py_library(
     ],
     deps = [
         "//system/algo_trader/datasource/sec:tickers_lib",
+        requirement("pandas"),
     ],
 )
 

@@ -69,6 +69,28 @@ def process_queue(
             failed_count += 1
             continue
 
+        # Check for empty candles/data for ohlcv_queue and fundamentals_queue
+        if queue_name in ("ohlcv_queue", "fundamentals_queue"):
+            if isinstance(time_series_data, list):
+                if len(time_series_data) == 0:
+                    logger.warning(
+                        f"Empty {queue_name} data for {item_id} (ticker: {ticker}), skipping"
+                    )
+                    queue_broker.delete_data(queue_name, item_id)
+                    failed_count += 1
+                    continue
+            elif isinstance(time_series_data, dict):
+                # Check if datetime array exists and is empty
+                datetime_array = time_series_data.get("datetime", [])
+                if not datetime_array or len(datetime_array) == 0:
+                    logger.warning(
+                        f"Empty datetime array in {queue_name} for {item_id} "
+                        f"(ticker: {ticker}), skipping"
+                    )
+                    queue_broker.delete_data(queue_name, item_id)
+                    failed_count += 1
+                    continue
+
         dynamic_table_name = table_name
         tag_columns = ["ticker"]
 

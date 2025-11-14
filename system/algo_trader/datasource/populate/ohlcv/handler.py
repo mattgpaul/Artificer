@@ -37,6 +37,7 @@ class OHLCVArgumentHandler(ArgumentHandler):
             required=False,
             help='List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
             'Use "full-registry" to fetch all tickers from SEC datasource. '
+            'Use "missing-tickers" to fetch tickers from missing_tickers table. '
             "Required unless --verify-bad-tickers is used.",
         )
         parser.add_argument(
@@ -121,6 +122,16 @@ class OHLCVArgumentHandler(ArgumentHandler):
 
             self.logger.info(f"Retrieved {len(ticker_list)} tickers from SEC datasource")
             tickers = ticker_list
+        elif tickers == ["missing-tickers"]:
+            self.logger.info(
+                "missing-tickers specified, fetching tickers from missing_tickers table..."
+            )
+            bad_ticker_client = BadTickerClient()
+            tickers = bad_ticker_client.get_missing_tickers(limit=10000)
+            if not tickers:
+                self.logger.warning("No missing tickers found in MySQL")
+                raise ValueError("No missing tickers found in missing_tickers table")
+            self.logger.info(f"Retrieved {len(tickers)} missing tickers from MySQL")
         else:
             self.logger.info(f"Processing {len(tickers)} specific tickers: {tickers}")
 
