@@ -15,7 +15,9 @@ class ExecutionSimulator:
     def __init__(self, config: ExecutionConfig):
         self.config = config
 
-    def apply_execution(self, trades: pd.DataFrame, ohlcv_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    def apply_execution(
+        self, trades: pd.DataFrame, ohlcv_data: dict[str, pd.DataFrame]
+    ) -> pd.DataFrame:
         if trades.empty:
             return trades
 
@@ -31,7 +33,9 @@ class ExecutionSimulator:
                 entry_time = trade["entry_time"]
                 exit_time = trade["exit_time"]
 
-                entry_fill = self._calculate_fill_price(entry_price, entry_time, ticker_data, "entry")
+                entry_fill = self._calculate_fill_price(
+                    entry_price, entry_time, ticker_data, "entry"
+                )
                 exit_fill = self._calculate_fill_price(exit_price, exit_time, ticker_data, "exit")
 
                 executed_trades.at[idx, "entry_price"] = entry_fill
@@ -104,11 +108,10 @@ class ExecutionSimulator:
                 fill_price = bar["open"]
             else:
                 fill_price = bar["open"]
+        elif side == "entry":
+            fill_price = bar["close"]
         else:
-            if side == "entry":
-                fill_price = bar["close"]
-            else:
-                fill_price = bar["close"]
+            fill_price = bar["close"]
 
         slippage_multiplier = 1 + (self.config.slippage_bps / 10000)
         if side == "entry":
@@ -117,4 +120,3 @@ class ExecutionSimulator:
             fill_price = fill_price * (1 - (self.config.slippage_bps / 10000))
 
         return round(fill_price, 4)
-

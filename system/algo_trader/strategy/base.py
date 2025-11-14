@@ -86,7 +86,7 @@ class BaseStrategy(Client):
         if use_threading and thread_config:
             threading_info += f", max_threads={thread_config.max_threads}"
 
-        self.logger.info(
+        self.logger.debug(
             f"Strategy '{strategy_name}' initialized (database={database}, {threading_info})"
         )
 
@@ -580,4 +580,4 @@ class BaseStrategy(Client):
     def close(self) -> None:
         """Close InfluxDB client and cleanup resources."""
         self.influx_client.close()
-        self.logger.info(f"Strategy '{self.strategy_name}' closed")
+        self.logger.debug(f"Strategy '{self.strategy_name}' closed")

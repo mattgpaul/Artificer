@@ -28,4 +28,3 @@ def dataframe_to_dict(df: pd.DataFrame) -> dict:
     result["datetime"] = datetime_ms
 
     return result
-

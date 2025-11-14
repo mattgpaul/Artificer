@@ -7,6 +7,7 @@ py_library(
         "engine.py",
         "execution.py",
         "processor.py",
+        "progress.py",
         "results.py",
         "strategy_wrapper.py",
         "utils.py",
@@ -23,6 +24,7 @@ py_library(
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy:cli_utils",
         requirement("pandas"),
+        requirement("tqdm"),
     ],
 )
 

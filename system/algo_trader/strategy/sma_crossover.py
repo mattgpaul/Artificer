@@ -87,7 +87,7 @@ class SMACrossoverStrategy(BaseStrategy):
         self.long_window = long_window
         self.min_confidence = min_confidence
 
-        self.logger.info(
+        self.logger.debug(
             f"SMA Crossover initialized: short={short_window}, long={long_window}, "
             f"min_confidence={min_confidence}"
         )

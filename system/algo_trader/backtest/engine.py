@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.execution import ExecutionConfig, ExecutionSimulator
+from system.algo_trader.backtest.progress import ticker_progress_bar
 from system.algo_trader.backtest.strategy_wrapper import BacktestStrategyWrapper
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.strategy.journal import TradeJournal
@@ -133,7 +133,9 @@ class BacktestEngine:
             freq_str = self.step_frequency
 
         try:
-            intervals = pd.date_range(start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC")
+            intervals = pd.date_range(
+                start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC"
+            )
             return intervals
         except Exception as e:
             self.logger.error(f"Invalid frequency '{freq_str}': {e}")
@@ -152,10 +154,13 @@ class BacktestEngine:
     def run_ticker(self, ticker: str) -> BacktestResults:
         ticker_data = self._load_ticker_ohlcv_data(ticker)
         if ticker_data is None or ticker_data.empty:
-            self.logger.warning(f"{ticker}: No OHLCV data found in date range {self.start_date.date()} to {self.end_date.date()}")
+            self.logger.warning(
+                f"{ticker}: No OHLCV data found in date range "
+                f"{self.start_date.date()} to {self.end_date.date()}"
+            )
             return BacktestResults()
-        
-        self.logger.info(f"{ticker}: Loaded {len(ticker_data)} OHLCV records")
+
+        self.logger.debug(f"{ticker}: Loaded {len(ticker_data)} OHLCV records")
 
         data_cache = {ticker: ticker_data}
 
@@ -177,79 +182,95 @@ class BacktestEngine:
 
         # Process each time step sequentially
         total_steps = len(step_intervals)
-        log_interval = max(1, total_steps // 20)  # Log progress every 5%
-        self.logger.info(f"{ticker}: Processing {total_steps} time steps sequentially...")
-        
-        for idx, current_time in enumerate(step_intervals):
-            wrapper.current_time = current_time
-            current_time_normalized = pd.Timestamp(current_time).tz_localize("UTC") if current_time.tz is None else current_time.tz_convert("UTC")
 
-            # Log progress periodically
-            if (idx + 1) % log_interval == 0 or idx == total_steps - 1:
-                progress_pct = ((idx + 1) / total_steps) * 100
-                signals_count = len(all_signals)
-                self.logger.info(f"{ticker}: Step {idx + 1}/{total_steps} ({progress_pct:.0f}%) - {signals_count} signals collected so far")
+        with ticker_progress_bar(ticker, total_steps) as pbar:
+            for idx, current_time in enumerate(step_intervals):
+                wrapper.current_time = current_time
+                current_time_normalized = (
+                    pd.Timestamp(current_time).tz_localize("UTC")
+                    if current_time.tz is None
+                    else current_time.tz_convert("UTC")
+                )
 
-            try:
-                # At this time step, strategy only sees data <= current_time
-                signals = self.strategy.run_strategy(ticker=ticker, write_signals=False)
+                try:
+                    # At this time step, strategy only sees data <= current_time
+                    signals = self.strategy.run_strategy(ticker=ticker, write_signals=False)
 
-                if not signals.empty:
-                    signals["signal_time"] = pd.to_datetime(signals["signal_time"], utc=True)
-                    if signals["signal_time"].dt.tz is None:
-                        signals["signal_time"] = signals["signal_time"].dt.tz_localize("UTC")
-                    else:
-                        signals["signal_time"] = signals["signal_time"].dt.tz_convert("UTC")
-
-                    # Only collect signals that occurred at or before current_time
-                    # and haven't been collected in a previous time step
-                    mask = signals["signal_time"] <= current_time_normalized
-                    if last_collection_time is not None:
-                        mask = mask & (signals["signal_time"] > last_collection_time)
-                    else:
-                        # First time collecting - only get signals up to current_time
-                        pass  # mask already set correctly
-
-                    current_step_signals = signals[mask]
-
-                    for _, signal in current_step_signals.iterrows():
-                        signal_time_val = signal["signal_time"]
-                        if isinstance(signal_time_val, pd.Timestamp):
-                            signal_time_normalized = signal_time_val.tz_localize("UTC") if signal_time_val.tz is None else signal_time_val.tz_convert("UTC")
+                    if not signals.empty:
+                        signals["signal_time"] = pd.to_datetime(signals["signal_time"], utc=True)
+                        if signals["signal_time"].dt.tz is None:
+                            signals["signal_time"] = signals["signal_time"].dt.tz_localize("UTC")
                         else:
-                            signal_time_normalized = pd.Timestamp(signal_time_val, tz="UTC")
+                            signals["signal_time"] = signals["signal_time"].dt.tz_convert("UTC")
 
-                        signal_key = (
-                            ticker,
-                            signal_time_normalized,
-                            signal["signal_type"],
-                            float(signal.get("price", 0)),
-                        )
-                        if signal_key not in collected_signal_keys:
-                            collected_signal_keys.add(signal_key)
-                            all_signals.append(signal.to_dict())
+                        # Only collect signals that occurred at or before current_time
+                        # and haven't been collected in a previous time step
+                        mask = signals["signal_time"] <= current_time_normalized
+                        if last_collection_time is not None:
+                            mask = mask & (signals["signal_time"] > last_collection_time)
+                        else:
+                            # First time collecting - only get signals up to current_time
+                            pass  # mask already set correctly
 
-                    if not current_step_signals.empty:
-                        max_signal_time = current_step_signals["signal_time"].max()
-                        if last_collection_time is None or max_signal_time > last_collection_time:
-                            last_collection_time = max_signal_time
-                    elif last_collection_time is None:
-                        last_collection_time = current_time_normalized
+                        current_step_signals = signals[mask]
 
-            except Exception as e:
-                self.logger.error(f"Error executing strategy for {ticker} at {current_time}: {e}", exc_info=True)
-                # Continue processing - don't let one failed step stop the entire backtest
+                        for _, signal in current_step_signals.iterrows():
+                            signal_time_val = signal["signal_time"]
+                            if isinstance(signal_time_val, pd.Timestamp):
+                                signal_time_normalized = (
+                                    signal_time_val.tz_localize("UTC")
+                                    if signal_time_val.tz is None
+                                    else signal_time_val.tz_convert("UTC")
+                                )
+                            else:
+                                signal_time_normalized = pd.Timestamp(signal_time_val, tz="UTC")
+
+                            signal_key = (
+                                ticker,
+                                signal_time_normalized,
+                                signal["signal_type"],
+                                float(signal.get("price", 0)),
+                            )
+                            if signal_key not in collected_signal_keys:
+                                collected_signal_keys.add(signal_key)
+                                all_signals.append(signal.to_dict())
+
+                        if not current_step_signals.empty:
+                            max_signal_time = current_step_signals["signal_time"].max()
+                            if (
+                                last_collection_time is None
+                                or max_signal_time > last_collection_time
+                            ):
+                                last_collection_time = max_signal_time
+                        elif last_collection_time is None:
+                            last_collection_time = current_time_normalized
+
+                except Exception as e:
+                    error_msg = f"Error executing strategy for {ticker} at {current_time}: {e}"
+                    if pbar is not None:
+                        pbar.write(error_msg)
+                    else:
+                        self.logger.error(error_msg, exc_info=True)
+                    # Continue processing - don't let one failed step stop the entire backtest
+
+                # Update progress bar if available (throttled to avoid too frequent updates)
+                if pbar is not None:
+                    pbar.update(1)
+                    # Only update postfix every 10 steps to reduce overhead
+                    if idx % 10 == 0 or idx == total_steps - 1:
+                        pbar.set_postfix({"signals": len(all_signals)})
 
         self.strategy.query_ohlcv = original_query_ohlcv
 
-        self.logger.info(f"{ticker}: Completed processing {total_steps} steps, collected {len(all_signals)} signals")
-
         if not all_signals:
-            self.logger.info(f"{ticker}: No signals generated (insufficient data for SMA crossover or no crossovers detected)")
+            self.logger.debug(
+                f"{ticker}: No signals generated "
+                "(insufficient data for SMA crossover or no crossovers detected)"
+            )
             return BacktestResults()
 
         combined_signals = pd.DataFrame(all_signals).sort_values("signal_time")
-        self.logger.info(f"{ticker}: Generated {len(combined_signals)} unique signals")
+        self.logger.debug(f"{ticker}: Generated {len(combined_signals)} unique signals")
 
         results = BacktestResults()
         results.signals = combined_signals
@@ -274,7 +295,9 @@ class BacktestEngine:
 
         return results
 
-    def _determine_step_intervals_for_data(self, data_cache: dict[str, pd.DataFrame]) -> pd.DatetimeIndex:
+    def _determine_step_intervals_for_data(
+        self, data_cache: dict[str, pd.DataFrame]
+    ) -> pd.DatetimeIndex:
         if self.step_frequency == "auto":
             if not data_cache:
                 return pd.DatetimeIndex([])
@@ -302,7 +325,9 @@ class BacktestEngine:
             freq_str = self.step_frequency
 
         try:
-            intervals = pd.date_range(start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC")
+            intervals = pd.date_range(
+                start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC"
+            )
             return intervals
         except Exception as e:
             self.logger.error(f"Invalid frequency '{freq_str}': {e}")
@@ -320,7 +345,9 @@ class BacktestEngine:
             self.logger.error("No time steps determined")
             return BacktestResults()
 
-        self.logger.info(f"Running backtest with {len(step_intervals)} time steps from {step_intervals[0]} to {step_intervals[-1]}")
+        self.logger.info(
+            f"Running backtest with {len(step_intervals)} time steps from {step_intervals[0]} to {step_intervals[-1]}"
+        )
 
         wrapper = BacktestStrategyWrapper(self.strategy, step_intervals[0], self.data_cache)
         self.strategy.query_ohlcv = wrapper.query_ohlcv
@@ -332,9 +359,13 @@ class BacktestEngine:
 
         for idx, current_time in enumerate(step_intervals):
             wrapper.current_time = current_time
-            
+
             # Normalize current_time to UTC
-            current_time_normalized = pd.Timestamp(current_time).tz_localize("UTC") if current_time.tz is None else current_time.tz_convert("UTC")
+            current_time_normalized = (
+                pd.Timestamp(current_time).tz_localize("UTC")
+                if current_time.tz is None
+                else current_time.tz_convert("UTC")
+            )
 
             for ticker in self.tickers:
                 if ticker not in self.data_cache:
@@ -350,51 +381,64 @@ class BacktestEngine:
                             signals["signal_time"] = signals["signal_time"].dt.tz_localize("UTC")
                         else:
                             signals["signal_time"] = signals["signal_time"].dt.tz_convert("UTC")
-                        
+
                         # Filter signals: only collect signals that occurred at or before current_time
                         # and are new (haven't been collected in a previous time step)
                         mask = signals["signal_time"] <= current_time_normalized
-                        
+
                         # If we've collected signals for this ticker before, only get new ones
                         if ticker in last_collection_time:
                             mask = mask & (signals["signal_time"] > last_collection_time[ticker])
-                        
+
                         current_step_signals = signals[mask]
 
                         # Collect all new unique signals
                         for _, signal in current_step_signals.iterrows():
                             signal_time_val = signal["signal_time"]
                             if isinstance(signal_time_val, pd.Timestamp):
-                                signal_time_normalized = signal_time_val.tz_localize("UTC") if signal_time_val.tz is None else signal_time_val.tz_convert("UTC")
+                                signal_time_normalized = (
+                                    signal_time_val.tz_localize("UTC")
+                                    if signal_time_val.tz is None
+                                    else signal_time_val.tz_convert("UTC")
+                                )
                             else:
                                 signal_time_normalized = pd.Timestamp(signal_time_val, tz="UTC")
-                            
+
                             signal_key = (
                                 ticker,
                                 signal_time_normalized,
                                 signal["signal_type"],
-                                float(signal.get("price", 0)),  # Ensure price is float for consistent comparison
+                                float(
+                                    signal.get("price", 0)
+                                ),  # Ensure price is float for consistent comparison
                             )
                             if signal_key not in collected_signal_keys:
                                 collected_signal_keys.add(signal_key)
                                 all_signals.append(signal.to_dict())
-                        
+
                         # Update last collection time for this ticker to the max signal time collected
                         if not current_step_signals.empty:
                             max_signal_time = current_step_signals["signal_time"].max()
-                            if ticker not in last_collection_time or max_signal_time > last_collection_time[ticker]:
+                            if (
+                                ticker not in last_collection_time
+                                or max_signal_time > last_collection_time[ticker]
+                            ):
                                 last_collection_time[ticker] = max_signal_time
                         elif ticker not in last_collection_time:
                             # First time collecting for this ticker (even if no signals), set to current_time
                             last_collection_time[ticker] = current_time_normalized
 
                 except Exception as e:
-                    self.logger.error(f"Error executing strategy for {ticker} at {current_time}: {e}")
-            
+                    self.logger.error(
+                        f"Error executing strategy for {ticker} at {current_time}: {e}"
+                    )
+
             # Log progress every 10% of time steps
             if (idx + 1) % max(1, len(step_intervals) // 10) == 0 or idx == len(step_intervals) - 1:
                 progress_pct = ((idx + 1) / len(step_intervals)) * 100
-                self.logger.info(f"Backtest progress: {progress_pct:.0f}% ({idx + 1}/{len(step_intervals)} steps, {len(all_signals)} signals collected)")
+                self.logger.info(
+                    f"Backtest progress: {progress_pct:.0f}% ({idx + 1}/{len(step_intervals)} steps, {len(all_signals)} signals collected)"
+                )
 
         if not all_signals:
             self.logger.warning("No signals generated during backtest")
@@ -424,14 +468,16 @@ class BacktestEngine:
                 risk_free_rate=self.risk_free_rate,
             )
 
-            metrics, trades = journal.generate_report()
+            _metrics, trades = journal.generate_report()
 
             if not trades.empty:
                 all_trades.append(trades)
 
         if all_trades:
             combined_trades = pd.concat(all_trades, ignore_index=True)
-            executed_trades = self.execution_simulator.apply_execution(combined_trades, self.data_cache)
+            executed_trades = self.execution_simulator.apply_execution(
+                combined_trades, self.data_cache
+            )
 
             group_journal = TradeJournal(
                 signals=pd.DataFrame(),
@@ -444,4 +490,3 @@ class BacktestEngine:
 
         self.influx_client.close()
         return results
-

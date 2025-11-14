@@ -44,7 +44,7 @@ def _backtest_ticker_worker(args: tuple) -> dict:
     strategy_instance = None
     try:
         logger = get_logger("BacktestWorker")
-        logger.info(f"Starting backtest for {ticker}")
+        logger.debug(f"Starting backtest for {ticker}")
 
         if strategy_type == "SMACrossoverStrategy":
             strategy_instance = SMACrossoverStrategy(
@@ -76,7 +76,7 @@ def _backtest_ticker_worker(args: tuple) -> dict:
         results = engine.run_ticker(ticker)
 
         if results.trades.empty:
-            logger.info(f"{ticker}: No trades generated")
+            logger.debug(f"{ticker}: No trades generated")
             return {"success": True, "trades": 0}
 
         if results.metrics:
@@ -290,7 +290,6 @@ class BacktestProcessor:
         print(f"Failed: {summary['failed']}")
         print(f"Trades Queue: {BACKTEST_TRADES_QUEUE_NAME}")
         print(f"Metrics Queue: {BACKTEST_METRICS_QUEUE_NAME}")
-        print(f"Redis TTL: 3600s")
+        print("Redis TTL: 3600s")
         print("\nResults will be published to InfluxDB by the influx-publisher service.")
         print(f"{'=' * 50}\n")
-

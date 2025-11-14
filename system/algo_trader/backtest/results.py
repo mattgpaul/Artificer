@@ -7,13 +7,13 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.redis.queue_broker import QueueBroker
 from system.algo_trader.backtest.utils import (
-    BACKTEST_TRADES_QUEUE_NAME,
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
+    BACKTEST_TRADES_QUEUE_NAME,
     dataframe_to_dict,
 )
+from system.algo_trader.redis.queue_broker import QueueBroker
 
 
 class ResultsWriter:
@@ -62,7 +62,6 @@ class ResultsWriter:
         }
         args_json = json.dumps(args_dict, sort_keys=True, default=str)
         return hashlib.sha256(args_json.encode()).hexdigest()[:16]
-
 
     def write_trades(
         self,
@@ -139,7 +138,9 @@ class ResultsWriter:
             )
 
             if success:
-                self.logger.debug(f"Enqueued {len(trades)} trades for {ticker} to {BACKTEST_TRADES_QUEUE_NAME}")
+                self.logger.debug(
+                    f"Enqueued {len(trades)} trades for {ticker} to {BACKTEST_TRADES_QUEUE_NAME}"
+                )
                 return True
             else:
                 self.logger.error(f"Failed to enqueue trades for {ticker} to Redis")
@@ -247,4 +248,3 @@ class ResultsWriter:
         except Exception as e:
             self.logger.error(f"Error enqueueing metrics for {ticker}: {e}")
             return False
-
