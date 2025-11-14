@@ -33,3 +33,21 @@ py_library(
         requirement("pyyaml"),
     ],
 )
+
+py_library(
+    name = "test_diagnose_missing_data_lib",
+    testonly = True,
+    srcs = [
+        "conftest.py",
+        "test_diagnose_missing_data.py",
+    ],
+    visibility = ["//system/algo_trader/influx:__pkg__"],
+    deps = [
+        "//infrastructure/influxdb",
+        "//infrastructure/logging:logger",
+        "//infrastructure/mysql",
+        "//system/algo_trader/influx:diagnose_missing_data",
+        "//system/algo_trader/influx:market_data_influx",
+        requirement("pandas"),
+    ],
+)

@@ -172,7 +172,9 @@ class TestBacktestTickerWorker:
             patch(
                 "system.algo_trader.backtest.processor.worker.BacktestEngine"
             ) as mock_engine_class,
-            patch("system.algo_trader.backtest.results.writer.ResultsWriter") as mock_writer_class,
+            patch(
+                "system.algo_trader.backtest.processor.worker.ResultsWriter"
+            ) as mock_writer_class,
         ):
             # Setup mocks
             mock_strategy = MagicMock()

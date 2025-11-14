@@ -15,6 +15,7 @@ from system.algo_trader.strategy.utils.cli_utils import (
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
+    get_sp500_tickers,
     resolve_tickers,
 )
 
@@ -127,6 +128,47 @@ class TestResolveTickers:
         assert len(result) == 1000
         assert "TICK0" in result
         assert "TICK999" in result
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
+    def test_resolve_sp500(self, mock_get_sp500, mock_logger):
+        """Test resolving SP500 to fetch S&P 500 tickers."""
+        mock_sp500_tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]
+        mock_get_sp500.return_value = mock_sp500_tickers
+
+        result = resolve_tickers(["SP500"], mock_logger)
+
+        assert result == mock_sp500_tickers
+        assert len(result) == 5
+        assert "AAPL" in result
+        assert "NVDA" in result
+
+        # Verify logging
+        info_calls = [call.args[0] for call in mock_logger.info.call_args_list]
+        assert any("SP500 specified" in msg for msg in info_calls)
+        assert any("Retrieved 5 S&P 500 tickers" in msg for msg in info_calls)
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
+    def test_resolve_sp500_empty_list(self, mock_get_sp500, mock_logger):
+        """Test SP500 when get_sp500_tickers returns empty list."""
+        mock_get_sp500.return_value = []
+
+        with pytest.raises(ValueError, match="Failed to retrieve S&P 500 tickers"):
+            resolve_tickers(["SP500"], mock_logger)
+
+        mock_logger.error.assert_called_once()
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers")
+    def test_resolve_sp500_large_dataset(self, mock_get_sp500, mock_logger):
+        """Test SP500 with large number of tickers."""
+        # Generate mock S&P 500 tickers (typically ~500 tickers)
+        mock_sp500_tickers = [f"TICK{i}" for i in range(500)]
+        mock_get_sp500.return_value = mock_sp500_tickers
+
+        result = resolve_tickers(["SP500"], mock_logger)
+
+        assert len(result) == 500
+        assert "TICK0" in result
+        assert "TICK499" in result
 
 
 class TestFormatSignalSummary:
@@ -439,6 +481,54 @@ class TestFormatTradeDetails:
         assert "105.99" in result
         assert "500.56" in result
         assert "5.12" in result and "%" in result  # Format has spaces: "5.12      %"
+
+
+class TestGetSP500Tickers:
+    """Test S&P 500 ticker retrieval functionality."""
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    def test_get_sp500_tickers_success(self, mock_read_html):
+        """Test successful retrieval of S&P 500 tickers from Wikipedia."""
+        # Mock pandas read_html to return a DataFrame with Symbol column
+        mock_df = pd.DataFrame({"Symbol": ["AAPL", "MSFT", "GOOGL", "BRK.B", "AMZN"]})
+        mock_read_html.return_value = [mock_df]
+
+        result = get_sp500_tickers()
+
+        assert len(result) == 5
+        assert "AAPL" in result
+        assert "MSFT" in result
+        assert "GOOGL" in result
+        assert "BRK-B" in result  # Dot should be replaced with dash
+        assert "AMZN" in result
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    def test_get_sp500_tickers_wikipedia_failure(self, mock_read_html):
+        """Test fallback to static list when Wikipedia fetch fails."""
+        mock_read_html.side_effect = Exception("Network error")
+
+        result = get_sp500_tickers()
+
+        # Should return fallback list (not empty)
+        assert len(result) > 0
+        assert isinstance(result, list)
+        # Verify fallback list contains expected tickers
+        assert "AAPL" in result
+        assert "MSFT" in result
+
+    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    def test_get_sp500_tickers_symbol_normalization(self, mock_read_html):
+        """Test that ticker symbols with dots are normalized to dashes."""
+        mock_df = pd.DataFrame({"Symbol": ["BRK.B", "BF.B", "BRK.A"]})
+        mock_read_html.return_value = [mock_df]
+
+        result = get_sp500_tickers()
+
+        assert "BRK-B" in result
+        assert "BF-B" in result
+        assert "BRK-A" in result
+        # Ensure dots are replaced
+        assert "BRK.B" not in result
 
 
 class TestEdgeCases:
