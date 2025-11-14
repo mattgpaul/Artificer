@@ -57,7 +57,7 @@ def parse_args():
         "--tickers",
         nargs="+",
         required=True,
-        help='Ticker symbols or "full-registry" for all SEC tickers',
+        help='Ticker symbols, "SP500" for S&P 500 tickers, or "full-registry" for all SEC tickers',
     )
     parser.add_argument(
         "--start-date",

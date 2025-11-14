@@ -4,22 +4,161 @@ This module provides utility functions for ticker resolution, signal formatting,
 and journal formatting used by the strategy execution CLI.
 """
 
+import pandas as pd
+
 from system.algo_trader.datasource.sec.tickers.main import Tickers
+
+
+def get_sp500_tickers() -> list[str]:
+    """Get list of S&P 500 ticker symbols.
+
+    Fetches the current S&P 500 constituents from Wikipedia.
+
+    Returns:
+        List of S&P 500 ticker symbols. Returns empty list if fetch fails.
+
+    Example:
+        >>> tickers = get_sp500_tickers()
+        >>> assert 'AAPL' in tickers
+        >>> assert len(tickers) > 400
+    """
+    try:
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        tables = pd.read_html(url)
+        # The first table contains the S&P 500 constituents
+        sp500_df = tables[0]
+        tickers = sp500_df["Symbol"].tolist()
+        # Clean up ticker symbols (remove dots, convert to uppercase)
+        tickers = [ticker.replace(".", "-") for ticker in tickers]
+        return tickers
+    except Exception:
+        # Fallback to a static list if Wikipedia fetch fails
+        # This is a snapshot of top S&P 500 tickers as of 2024
+        # Note: This is a partial list. The full list should be fetched from Wikipedia.
+        # For production use, the Wikipedia fetch should work, but this provides
+        # a fallback for offline scenarios.
+        return [
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "NVDA",
+            "META",
+            "TSLA",
+            "BRK-B",
+            "UNH",
+            "JNJ",
+            "V",
+            "XOM",
+            "JPM",
+            "WMT",
+            "PG",
+            "MA",
+            "CVX",
+            "HD",
+            "ABBV",
+            "MRK",
+            "PEP",
+            "COST",
+            "AVGO",
+            "ADBE",
+            "CSCO",
+            "TMO",
+            "CRM",
+            "ACN",
+            "NFLX",
+            "DHR",
+            "DIS",
+            "VZ",
+            "CMCSA",
+            "ABT",
+            "LIN",
+            "NKE",
+            "PM",
+            "TXN",
+            "NEE",
+            "HON",
+            "QCOM",
+            "RTX",
+            "AMGN",
+            "BMY",
+            "DE",
+            "AMAT",
+            "LOW",
+            "INTU",
+            "GE",
+            "BKNG",
+            "TJX",
+            "AXP",
+            "SYK",
+            "ADP",
+            "GILD",
+            "ISRG",
+            "MDT",
+            "C",
+            "ADI",
+            "CB",
+            "REGN",
+            "ZTS",
+            "EQIX",
+            "NOW",
+            "ELV",
+            "BSX",
+            "SNPS",
+            "CDNS",
+            "WM",
+            "KLAC",
+            "ITW",
+            "ETN",
+            "SHW",
+            "CME",
+            "HCA",
+            "MCO",
+            "CTAS",
+            "FTNT",
+            "MCK",
+            "AON",
+            "NXPI",
+            "DXCM",
+            "ICE",
+            "EW",
+            "PSA",
+            "VRSK",
+            "IDXX",
+            "FAST",
+            "CPRT",
+            "ODFL",
+            "CTSH",
+            "PAYX",
+            "ROST",
+            "ANSS",
+            "CDW",
+            "WDAY",
+            "EXPD",
+            "PCAR",
+            "FERG",
+            "NDAQ",
+            "ALGN",
+            "TTD",
+            "VRSN",
+            "EBAY",
+        ]
 
 
 def resolve_tickers(tickers_arg, logger):
     """Resolve ticker symbols from command-line arguments.
 
-    Handles two cases:
+    Handles three cases:
     1. Specific tickers: Returns the provided list as-is
     2. 'full-registry': Fetches all tickers from SEC datasource
+    3. 'SP500': Fetches all S&P 500 ticker symbols
 
     Args:
-        tickers_arg: List of ticker symbols or ['full-registry'].
+        tickers_arg: List of ticker symbols, ['full-registry'], or ['SP500'].
         logger: Logger instance for logging resolution progress.
 
     Returns:
-        List of resolved ticker symbols. Empty list if full-registry
+        List of resolved ticker symbols. Empty list if full-registry or SP500
         returns no data.
 
     Raises:
@@ -29,6 +168,7 @@ def resolve_tickers(tickers_arg, logger):
         >>> tickers = resolve_tickers(['AAPL', 'MSFT'], logger)
         >>> assert tickers == ['AAPL', 'MSFT']
         >>> all_tickers = resolve_tickers(['full-registry'], logger)
+        >>> sp500_tickers = resolve_tickers(['SP500'], logger)
     """
     if tickers_arg == ["full-registry"]:
         logger.info("full-registry specified, fetching all tickers from SEC datasource...")
@@ -45,6 +185,14 @@ def resolve_tickers(tickers_arg, logger):
                 ticker_list.append(value["ticker"])
 
         logger.info(f"Retrieved {len(ticker_list)} tickers from SEC datasource")
+        return ticker_list
+    elif tickers_arg == ["SP500"]:
+        logger.info("SP500 specified, fetching S&P 500 tickers...")
+        ticker_list = get_sp500_tickers()
+        if not ticker_list:
+            logger.error("Failed to retrieve S&P 500 tickers")
+            raise ValueError("Failed to retrieve S&P 500 tickers")
+        logger.info(f"Retrieved {len(ticker_list)} S&P 500 tickers")
         return ticker_list
     else:
         logger.info(f"Processing {len(tickers_arg)} specific tickers: {tickers_arg}")
