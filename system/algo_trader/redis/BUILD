@@ -12,6 +12,7 @@ py_library(
     name = "redis_services",
     srcs = [
         "account.py",
+        "check_queues.py",
         "historical_market.py",
         "live_market.py",
         "queue_broker.py",
@@ -75,4 +76,13 @@ pytest_test(
     coverage_path = "system.algo_trader.redis",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/redis:test_watchlist_lib",
+)
+
+# Test for check_queues - Queue Status Checker
+pytest_test(
+    name = "test_check_queues",
+    size = "small",
+    coverage_path = "system.algo_trader.redis",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/redis:test_check_queues_lib",
 )

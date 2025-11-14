@@ -51,3 +51,18 @@ py_library(
         "//system/algo_trader/redis:redis_services",
     ],
 )
+
+# Test library for check_queues
+py_library(
+    name = "test_check_queues_lib",
+    testonly = True,
+    srcs = [
+        "conftest.py",
+        "test_check_queues.py",
+    ],
+    visibility = ["//system/algo_trader/redis:__pkg__"],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/redis:redis_services",
+    ],
+)
