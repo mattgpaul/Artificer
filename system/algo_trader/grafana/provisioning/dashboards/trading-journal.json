@@ -465,19 +465,30 @@
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
+                "id": "color",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
                     {
                       "color": "red",
-                      "value": -999999
+                      "value": null
                     },
                     {
                       "color": "green",
                       "value": 0
                     }
-                  ],
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
                   "type": "color-text"
                 }
               },
@@ -494,19 +505,30 @@
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
+                "id": "color",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
                     {
                       "color": "red",
-                      "value": -999999
+                      "value": null
                     },
                     {
                       "color": "green",
                       "value": 0
                     }
-                  ],
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
                   "type": "color-text"
                 }
               },
