@@ -73,7 +73,6 @@ Thumbs.db
 
 # Large data files
 *.csv
-*.json
 *.xml
 *.parquet
 *.h5
