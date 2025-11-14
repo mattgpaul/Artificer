@@ -1,4 +1,19 @@
+load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
+
+# Library for shared test fixtures
+py_library(
+    name = "conftest_lib",
+    testonly = True,
+    srcs = ["conftest.py"],
+    visibility = [
+        "//system/algo_trader/schwab:__pkg__",
+        "//tests/system/algo_trader/schwab:__subpackages__",
+    ],
+    deps = [
+        requirement("pytest"),
+    ],
+)
 
 # Library for schwab client tests
 py_library(
@@ -7,6 +22,7 @@ py_library(
     srcs = ["test_schwab_client.py"],
     visibility = ["//system/algo_trader/schwab:__pkg__"],
     deps = [
+        ":conftest_lib",
         "//system/algo_trader/schwab:schwab_services",
     ],
 )

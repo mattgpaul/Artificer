@@ -9,7 +9,6 @@ from datetime import timezone
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
 from system.algo_trader.strategy.base import BaseStrategy, strategy_write_config
@@ -58,48 +57,7 @@ class ConcreteStrategy(BaseStrategy):
         pass
 
 
-@pytest.fixture
-def mock_dependencies():
-    """Fixture to mock all external dependencies."""
-    with (
-        patch("system.algo_trader.strategy.base.get_logger") as mock_logger,
-        patch("system.algo_trader.strategy.base.MarketDataInflux") as mock_influx_class,
-        patch("system.algo_trader.strategy.base.ThreadManager") as mock_thread_class,
-    ):
-        mock_logger_instance = MagicMock()
-        mock_logger.return_value = mock_logger_instance
-
-        mock_influx_instance = MagicMock()
-        mock_influx_class.return_value = mock_influx_instance
-
-        mock_thread_instance = MagicMock()
-        mock_thread_class.return_value = mock_thread_instance
-
-        yield {
-            "logger": mock_logger,
-            "logger_instance": mock_logger_instance,
-            "influx_class": mock_influx_class,
-            "influx_instance": mock_influx_instance,
-            "thread_class": mock_thread_class,
-            "thread_instance": mock_thread_instance,
-        }
-
-
-@pytest.fixture
-def sample_ohlcv_data():
-    """Fixture providing sample OHLCV data."""
-    dates = pd.date_range("2024-01-01", periods=5, freq="1D", tz=timezone.utc)
-    return pd.DataFrame(
-        {
-            "open": [100.0, 101.0, 102.0, 103.0, 104.0],
-            "high": [105.0, 106.0, 107.0, 108.0, 109.0],
-            "low": [99.0, 100.0, 101.0, 102.0, 103.0],
-            "close": [104.0, 105.0, 106.0, 107.0, 108.0],
-            "volume": [1000000, 1100000, 1200000, 1300000, 1400000],
-            "ticker": ["AAPL", "AAPL", "AAPL", "AAPL", "AAPL"],
-        },
-        index=dates,
-    )
+# All fixtures moved to conftest.py
 
 
 class TestBaseStrategyInitialization:
@@ -155,7 +113,7 @@ class TestQueryOHLCV:
         result = strategy.query_ohlcv("AAPL")
 
         assert isinstance(result, pd.DataFrame)
-        assert len(result) == 5
+        assert len(result) == 50  # sample_ohlcv_data fixture creates 50 rows
         assert isinstance(result.index, pd.DatetimeIndex)
         mock_dependencies["influx_instance"].query.assert_called_once()
 

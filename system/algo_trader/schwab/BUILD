@@ -19,6 +19,7 @@ py_library(
         "//infrastructure:client",
         "//infrastructure/logging:logger",
         "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/schwab/auth",
         requirement("requests"),
     ],
 )

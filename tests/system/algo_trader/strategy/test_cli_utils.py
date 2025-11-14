@@ -5,64 +5,20 @@ journal summary formatting, and trade details formatting. External dependencies
 (Tickers, logger) are mocked.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.cli_utils import (
+from system.algo_trader.strategy.utils.cli_utils import (
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
     resolve_tickers,
 )
 
-
-@pytest.fixture
-def mock_logger():
-    """Mock logger instance."""
-    return MagicMock()
-
-
-@pytest.fixture
-def sample_signals():
-    """Sample signals DataFrame for formatting tests."""
-    dates = pd.date_range("2024-01-01", periods=5, freq="1D", tz=timezone.utc)
-    return pd.DataFrame(
-        {
-            "ticker": ["AAPL", "AAPL", "MSFT", "MSFT", "GOOGL"],
-            "signal_type": ["buy", "sell", "buy", "sell", "buy"],
-            "price": [150.0, 155.0, 350.0, 360.0, 2800.0],
-            "confidence": [0.85, 0.90, 0.75, 0.80, 0.88],
-            "signal_time": dates,
-        },
-        index=dates,
-    )
-
-
-@pytest.fixture
-def sample_trades():
-    """Sample trades DataFrame for formatting tests."""
-    return pd.DataFrame(
-        {
-            "entry_time": [
-                datetime(2024, 1, 1, 10, 0, 0),
-                datetime(2024, 1, 5, 11, 0, 0),
-                datetime(2024, 1, 10, 9, 30, 0),
-            ],
-            "exit_time": [
-                datetime(2024, 1, 3, 15, 0, 0),
-                datetime(2024, 1, 8, 14, 0, 0),
-                datetime(2024, 1, 15, 16, 0, 0),
-            ],
-            "entry_price": [150.0, 155.0, 148.0],
-            "exit_price": [155.0, 152.0, 160.0],
-            "shares": [100.0, 100.0, 100.0],  # Required by format_trade_details
-            "gross_pnl": [500.0, -300.0, 800.0],
-            "gross_pnl_pct": [3.33, -1.94, 8.11],
-        }
-    )
+# All fixtures moved to conftest.py
 
 
 class TestResolveTickers:
@@ -87,7 +43,7 @@ class TestResolveTickers:
         assert result == ["AAPL"]
         mock_logger.info.assert_called_once()
 
-    @patch("system.algo_trader.strategy.cli_utils.Tickers")
+    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry(self, mock_tickers_class, mock_logger):
         """Test resolving full-registry to fetch all SEC tickers."""
         mock_tickers = MagicMock()
@@ -112,7 +68,7 @@ class TestResolveTickers:
         assert any("full-registry specified" in msg for msg in info_calls)
         assert any("Retrieved 3 tickers" in msg for msg in info_calls)
 
-    @patch("system.algo_trader.strategy.cli_utils.Tickers")
+    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_api_failure(self, mock_tickers_class, mock_logger):
         """Test full-registry when SEC API returns None."""
         mock_tickers = MagicMock()
@@ -124,7 +80,7 @@ class TestResolveTickers:
 
         mock_logger.error.assert_called_once()
 
-    @patch("system.algo_trader.strategy.cli_utils.Tickers")
+    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_empty_response(self, mock_tickers_class, mock_logger):
         """Test full-registry with empty SEC response."""
         mock_tickers = MagicMock()
@@ -135,7 +91,7 @@ class TestResolveTickers:
 
         assert result == []
 
-    @patch("system.algo_trader.strategy.cli_utils.Tickers")
+    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_malformed_data(self, mock_tickers_class, mock_logger):
         """Test full-registry with malformed SEC data."""
         mock_tickers = MagicMock()
@@ -153,7 +109,7 @@ class TestResolveTickers:
         # Should only extract MSFT
         assert result == ["MSFT"]
 
-    @patch("system.algo_trader.strategy.cli_utils.Tickers")
+    @patch("system.algo_trader.strategy.utils.cli_utils.Tickers")
     def test_resolve_full_registry_large_dataset(self, mock_tickers_class, mock_logger):
         """Test full-registry with large number of tickers."""
         mock_tickers = MagicMock()

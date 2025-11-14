@@ -24,7 +24,7 @@ alias(
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/datasource/populate:__pkg__",
         "//tests/system/algo_trader/datasource/sec:__pkg__",
-        "//tests/system/algo_trader/strategy:__pkg__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
     ],
 )
 

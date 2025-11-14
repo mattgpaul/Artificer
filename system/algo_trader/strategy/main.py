@@ -12,9 +12,9 @@ import os
 import sys
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.strategy.cli_utils import resolve_tickers
-from system.algo_trader.strategy.executor import execute_strategy
-from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.core.executor import execute_strategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
 
 def parse_args():

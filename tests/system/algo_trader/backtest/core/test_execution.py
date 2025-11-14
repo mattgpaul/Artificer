@@ -5,7 +5,7 @@ Tests cover execution simulation, fill price calculation, and slippage/commissio
 
 import pandas as pd
 
-from system.algo_trader.backtest.execution import ExecutionConfig, ExecutionSimulator
+from system.algo_trader.backtest.core.execution import ExecutionConfig, ExecutionSimulator
 
 
 class TestExecutionConfig:

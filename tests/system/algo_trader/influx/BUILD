@@ -29,6 +29,7 @@ py_library(
         "//infrastructure/influxdb",
         "//infrastructure/logging:logger",
         "//system/algo_trader/influx:publisher_lib",
+        "//system/algo_trader/influx/publisher:publisher_modules",
         requirement("pyyaml"),
     ],
 )

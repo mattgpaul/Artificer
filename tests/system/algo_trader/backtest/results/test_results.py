@@ -6,8 +6,9 @@ Tests cover trade/metrics writing, backtest hash computation, and Redis queue in
 
 import pandas as pd
 
-from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.backtest.results import ResultsWriter
+from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.results.hash import compute_backtest_hash
+from system.algo_trader.backtest.results.writer import ResultsWriter
 
 
 class TestResultsWriter:
@@ -26,14 +27,12 @@ class TestResultsWriter:
 
     def test_compute_backtest_hash(self, mock_queue_broker):
         """Test backtest hash computation."""
-        writer = ResultsWriter()
-
         execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
         strategy_params = {"short_window": 10, "long_window": 20}
         start_date = pd.Timestamp("2024-01-01", tz="UTC")
         end_date = pd.Timestamp("2024-01-31", tz="UTC")
 
-        hash1 = writer._compute_backtest_hash(
+        hash1 = compute_backtest_hash(
             strategy_params=strategy_params,
             execution_config=execution_config,
             start_date=start_date,
@@ -46,7 +45,7 @@ class TestResultsWriter:
         )
 
         # Same parameters should produce same hash
-        hash2 = writer._compute_backtest_hash(
+        hash2 = compute_backtest_hash(
             strategy_params=strategy_params,
             execution_config=execution_config,
             start_date=start_date,
@@ -63,15 +62,13 @@ class TestResultsWriter:
 
     def test_compute_backtest_hash_different_params(self, mock_queue_broker):
         """Test backtest hash differs with different parameters."""
-        writer = ResultsWriter()
-
         execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
         strategy_params1 = {"short_window": 10, "long_window": 20}
         strategy_params2 = {"short_window": 15, "long_window": 25}
         start_date = pd.Timestamp("2024-01-01", tz="UTC")
         end_date = pd.Timestamp("2024-01-31", tz="UTC")
 
-        hash1 = writer._compute_backtest_hash(
+        hash1 = compute_backtest_hash(
             strategy_params=strategy_params1,
             execution_config=execution_config,
             start_date=start_date,
@@ -83,7 +80,7 @@ class TestResultsWriter:
             risk_free_rate=0.04,
         )
 
-        hash2 = writer._compute_backtest_hash(
+        hash2 = compute_backtest_hash(
             strategy_params=strategy_params2,
             execution_config=execution_config,
             start_date=start_date,

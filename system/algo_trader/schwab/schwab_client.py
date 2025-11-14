@@ -10,9 +10,7 @@ Token Flow:
 4. If refresh token expired, initiate OAuth2 flow → save to Redis, display for manual save
 """
 
-import base64
 import os
-import time
 from typing import Any
 
 import requests
@@ -20,6 +18,8 @@ import requests
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.account import AccountBroker
+from system.algo_trader.schwab.auth.oauth2 import OAuth2Handler
+from system.algo_trader.schwab.auth.token_manager import TokenManager
 
 
 class SchwabClient(Client):
@@ -35,21 +35,30 @@ class SchwabClient(Client):
         """Initialize Schwab client with environment configuration."""
         self.logger = get_logger(self.__class__.__name__)
 
-        # Load configuration from environment variables
         self.api_key = os.getenv("SCHWAB_API_KEY")
         self.secret = os.getenv("SCHWAB_SECRET")
         self.app_name = os.getenv("SCHWAB_APP_NAME")
         self.base_url = "https://api.schwabapi.com"
 
-        # Validate required environment variables
         if not all([self.api_key, self.secret, self.app_name]):
             raise ValueError(
                 "Missing required Schwab environment variables. "
                 "Please set SCHWAB_API_KEY, SCHWAB_SECRET, and SCHWAB_APP_NAME"
             )
 
-        # Initialize Redis broker for token management
         self.account_broker = AccountBroker()
+
+        self.oauth2_handler = OAuth2Handler(
+            self.api_key, self.secret, self.base_url, self.account_broker, self.logger
+        )
+        self.token_manager = TokenManager(
+            self.api_key,
+            self.secret,
+            self.base_url,
+            self.account_broker,
+            self.oauth2_handler,
+            self.logger,
+        )
 
         self.logger.info("SchwabClient initialized successfully")
 
@@ -70,71 +79,7 @@ class SchwabClient(Client):
         Raises:
             Exception: If unable to obtain valid token after all attempts
         """
-        self.logger.debug("Attempting to get valid access token")
-
-        # Step 1: Check Redis for valid access token
-        access_token = self.account_broker.get_access_token()
-        if access_token:
-            self.logger.debug("Found valid access token in Redis")
-            return access_token
-
-        self.logger.info("No valid access token in Redis, attempting refresh")
-
-        # Step 2: Try to acquire lock for token refresh
-        lock_name = "token-refresh"
-        if self.account_broker.acquire_lock(lock_name, ttl=10, retry_interval=0.1, max_retries=50):
-            try:
-                # Double-check pattern: another thread might have refreshed while we waited
-                access_token = self.account_broker.get_access_token()
-                if access_token:
-                    self.logger.info("Access token was refreshed by another thread")
-                    return access_token
-
-                # We have the lock, proceed with refresh
-                self.logger.info("Lock acquired, refreshing token")
-
-                # Try to refresh using Redis refresh token
-                if self.refresh_token():
-                    access_token = self.account_broker.get_access_token()
-                    if access_token:
-                        self.logger.info("Successfully refreshed access token from Redis")
-                        return access_token
-
-                self.logger.info("Redis refresh failed, checking environment file")
-
-                # Load refresh token from env file and store in Redis
-                if self.load_token():
-                    if self.refresh_token():
-                        access_token = self.account_broker.get_access_token()
-                        if access_token:
-                            self.logger.info("Successfully refreshed access token from env file")
-                            return access_token
-
-                self.logger.warning("All refresh attempts failed, initiating OAuth2 flow")
-
-                # Perform complete OAuth2 flow
-                tokens = self.authenticate()
-                if tokens and tokens.get("access_token"):
-                    self.logger.info("OAuth2 flow completed successfully")
-                    return tokens["access_token"]
-
-                raise Exception("Unable to obtain valid access token after all attempts")
-            finally:
-                # Always release the lock
-                self.account_broker.release_lock(lock_name)
-        else:
-            # Lock acquisition failed - another thread is refreshing
-            # Wait a bit and check Redis again
-            self.logger.info("Another thread is refreshing token, waiting...")
-            time.sleep(0.5)  # Wait 500ms for the other thread to complete
-
-            access_token = self.account_broker.get_access_token()
-            if access_token:
-                self.logger.info("Successfully retrieved access token refreshed by another thread")
-                return access_token
-
-            # If still no token, something went wrong with the other thread
-            raise Exception("Token refresh by another thread failed")
+        return self.token_manager.get_valid_access_token()
 
     def refresh_token(self) -> bool:
         """Refresh access token using stored refresh token.
@@ -142,45 +87,7 @@ class SchwabClient(Client):
         Returns:
             bool: True if refresh was successful, False otherwise
         """
-        refresh_token = self.account_broker.get_refresh_token()
-        if not refresh_token:
-            self.logger.debug("No refresh token found in Redis")
-            return False
-
-        try:
-            # Make refresh request
-            credentials = f"{self.api_key}:{self.secret}"
-            headers = {
-                "Authorization": f"Basic {base64.b64encode(credentials.encode()).decode()}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            }
-            payload = {"grant_type": "refresh_token", "refresh_token": refresh_token}
-
-            self.logger.debug("Sending token refresh request to Schwab API")
-            response = requests.post(
-                f"{self.base_url}/v1/oauth/token", headers=headers, data=payload
-            )
-
-            if response.status_code == 200:
-                tokens = response.json()
-                # Keep the original refresh token if not provided in response
-                if "refresh_token" not in tokens:
-                    tokens["refresh_token"] = refresh_token
-
-                # Store new tokens in Redis
-                self.account_broker.set_access_token(tokens["access_token"])
-                if tokens.get("refresh_token"):
-                    self.account_broker.set_refresh_token(tokens["refresh_token"])
-
-                self.logger.info("Successfully refreshed access token")
-                return True
-            else:
-                self.logger.error(f"Token refresh failed: {response.status_code} - {response.text}")
-                return False
-        except Exception as e:
-            self.logger.error(f"Failed to refresh token: {e}")
-
-        return False
+        return self.token_manager.refresh_token()
 
     def load_token(self) -> bool:
         """Load refresh token from environment and store in Redis.
@@ -188,16 +95,7 @@ class SchwabClient(Client):
         Returns:
             bool: True if refresh token was loaded and stored, False otherwise
         """
-        try:
-            refresh_token = os.getenv("SCHWAB_REFRESH_TOKEN")
-            if refresh_token:
-                self.account_broker.set_refresh_token(refresh_token)
-                self.logger.info("Loaded refresh token from environment and stored in Redis")
-                return True
-        except Exception as e:
-            self.logger.error(f"Failed to load refresh token from env: {e}")
-
-        return False
+        return self.token_manager.load_token()
 
     def authenticate(self) -> dict[str, Any] | None:
         """Perform complete OAuth2 authentication flow.
@@ -205,102 +103,7 @@ class SchwabClient(Client):
         Returns:
             Dict containing tokens if successful, None otherwise
         """
-        self.logger.info("Starting OAuth2 authentication flow")
-
-        # Step 1: Show auth URL
-        auth_url = f"{self.base_url}/v1/oauth/authorize?client_id={self.api_key}&redirect_uri=https://127.0.0.1"
-        print("\n" + "=" * 60)
-        print("SCHWAB OAUTH2 AUTHENTICATION REQUIRED")
-        print("=" * 60)
-        print("Please visit this URL to authorize the application:")
-        print(f"{auth_url}")
-        print("\nAfter authorizing, you will be redirected to a URL.")
-        print("Copy the ENTIRE redirect URL and paste it below.")
-        print("=" * 60)
-
-        # Step 2: Get redirect URL from user
-        returned_url = input("\nRedirect URL: ").strip()
-
-        if not returned_url or "code=" not in returned_url:
-            self.logger.error("Invalid redirect URL provided")
-            return None
-
-        try:
-            # Step 3: Extract code (Schwab-specific format)
-            code_start = returned_url.index("code=") + 5
-            code_end = returned_url.index("%40")
-            response_code = f"{returned_url[code_start:code_end]}@"
-
-            # Step 4: Exchange code for tokens
-            tokens = self._exchange_code_for_tokens(response_code)
-
-            if tokens:
-                # Store tokens in Redis
-                self.account_broker.set_access_token(tokens["access_token"])
-                self.account_broker.set_refresh_token(tokens["refresh_token"])
-
-                # Display refresh token for manual persistence
-                self._display_refresh_token_instructions(tokens["refresh_token"])
-
-                self.logger.info("OAuth2 authentication completed successfully")
-                return tokens
-
-        except Exception as e:
-            self.logger.error(f"OAuth2 flow failed: {e}")
-
-        return None
-
-    def _exchange_code_for_tokens(self, code: str) -> dict[str, Any] | None:
-        """Exchange authorization code for access and refresh tokens.
-
-        Args:
-            code: Authorization code from OAuth2 flow
-
-        Returns:
-            Dict containing tokens if successful, None otherwise
-        """
-        credentials = f"{self.api_key}:{self.secret}"
-        base64_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
-
-        headers = {
-            "Authorization": f"Basic {base64_credentials}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-
-        payload = {
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": "https://127.0.0.1",
-        }
-
-        self.logger.debug("Exchanging authorization code for tokens")
-        response = requests.post(f"{self.base_url}/v1/oauth/token", headers=headers, data=payload)
-
-        if response.status_code == 200:
-            return response.json()
-        else:
-            self.logger.error(f"Token exchange failed: {response.status_code} - {response.text}")
-            return None
-
-    def _display_refresh_token_instructions(self, refresh_token: str) -> None:
-        """Display refresh token and instructions for manual persistence.
-
-        Args:
-            refresh_token: The new refresh token to be persisted
-        """
-        print("\n" + "=" * 70)
-        print("OAUTH2 FLOW COMPLETE - ACTION REQUIRED")
-        print("=" * 70)
-        print("\nYour new refresh token (valid for 90 days):")
-        print(f"\n{refresh_token}\n")
-        print("Please set this as an environment variable before next run:")
-        print(f"\nexport SCHWAB_REFRESH_TOKEN={refresh_token}\n")
-        print("Note: Token is stored in Redis for this session only.")
-        print("Redis is ephemeral - you must set the env var for future runs.")
-        print("=" * 70)
-
-        input("\nPress ENTER to continue after copying the token...")
-        self.logger.info("User confirmed token copied")
+        return self.oauth2_handler.authenticate()
 
     def get_auth_headers(self) -> dict[str, str]:
         """Get authentication headers for API requests.

@@ -11,10 +11,10 @@ import sys
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.backtest.processor import BacktestProcessor
-from system.algo_trader.strategy.cli_utils import resolve_tickers
-from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.processor.processor import BacktestProcessor
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
 
 def create_strategy(args, logger):
