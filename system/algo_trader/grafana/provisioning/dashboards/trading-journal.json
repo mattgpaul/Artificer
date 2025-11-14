@@ -434,12 +434,12 @@
                   "colorMode": "value",
                   "thresholds": [
                     {
-                      "color": "green",
-                      "value": "WIN"
-                    },
-                    {
                       "color": "red",
                       "value": "LOSS"
+                    },
+                    {
+                      "color": "green",
+                      "value": "WIN"
                     },
                     {
                       "color": "orange",
@@ -571,9 +571,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "query": "SELECT status, side, ticker as symbol, TO_TIMESTAMP_MILLIS(entry_time) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "rawQuery": true,
-          "rawSql": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "rawSql": "SELECT status, side, ticker as symbol, TO_TIMESTAMP_MILLIS(entry_time) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -610,7 +610,6 @@
               "net_return": "NET RETURN",
               "net_return_pct": "NET RETURN %",
               "open_date": "OPEN DATE",
-              "setups": "SETUPS",
               "side": "SIDE",
               "size": "SIZE",
               "status": "STATUS",
@@ -887,14 +886,14 @@
           "type": "influxdb",
           "uid": "Journal"
         },
-        "definition": "SELECT DISTINCT ticker FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY ticker",
+        "definition": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
         "includeAll": true,
         "label": "Symbol",
         "multi": true,
         "name": "symbol",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT ticker FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY ticker",
+          "query": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
