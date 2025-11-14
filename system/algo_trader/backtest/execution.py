@@ -64,13 +64,40 @@ class ExecutionSimulator:
         if ohlcv_data.empty:
             return signal_price
 
-        if timestamp not in ohlcv_data.index:
-            closest_idx = ohlcv_data.index[ohlcv_data.index <= timestamp]
+        # Ensure timestamp is timezone-aware (UTC) for comparison
+        if timestamp.tz is None:
+            timestamp = timestamp.tz_localize("UTC")
+        else:
+            timestamp = timestamp.tz_convert("UTC")
+
+        # Ensure index is timezone-aware (UTC) for comparison
+        # Work with a copy to avoid modifying original data
+        ohlcv_utc = ohlcv_data.copy()
+        if ohlcv_utc.index.tz is None:
+            ohlcv_utc.index = ohlcv_utc.index.tz_localize("UTC")
+        else:
+            ohlcv_utc.index = ohlcv_utc.index.tz_convert("UTC")
+
+        # Find the bar at or before the signal timestamp
+        if timestamp not in ohlcv_utc.index:
+            closest_idx = ohlcv_utc.index[ohlcv_utc.index <= timestamp]
             if len(closest_idx) == 0:
                 return signal_price
-            timestamp = closest_idx[-1]
+            signal_bar_time = closest_idx[-1]
+        else:
+            signal_bar_time = timestamp
 
-        bar = ohlcv_data.loc[timestamp]
+        # FIX FORWARD-LOOKING BIAS: Use the NEXT bar after signal detection for execution
+        # Signal detected at time T, but we can't execute until time T+1
+        next_bars = ohlcv_utc.index[ohlcv_utc.index > signal_bar_time]
+        if len(next_bars) == 0:
+            # No future bar available, use signal bar (edge case at end of data)
+            execution_bar_time = signal_bar_time
+        else:
+            execution_bar_time = next_bars[0]
+
+        # Use the execution bar for price lookup
+        bar = ohlcv_utc.loc[execution_bar_time]
 
         if self.config.use_limit_orders:
             if side == "entry":

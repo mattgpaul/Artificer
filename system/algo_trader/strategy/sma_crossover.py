@@ -135,7 +135,7 @@ class SMACrossoverStrategy(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.info(f"Generated {len(signals_df)} buy signals for {ticker}")
+        self.logger.debug(f"Generated {len(signals_df)} buy signals for {ticker}")
         return signals_df
 
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -181,7 +181,7 @@ class SMACrossoverStrategy(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.info(f"Generated {len(signals_df)} sell signals for {ticker}")
+        self.logger.debug(f"Generated {len(signals_df)} sell signals for {ticker}")
         return signals_df
 
     def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -299,7 +299,7 @@ class SMACrossoverStrategy(BaseStrategy):
             >>> assert len(sma_short) == len(ohlcv_data)
         """
         if ohlcv_data is None or ohlcv_data.empty:
-            self.logger.warning(f"No OHLCV data provided for {ticker}")
+            self.logger.debug(f"No OHLCV data provided for {ticker}")
             return None, None, None
 
         if "close" not in ohlcv_data.columns:
@@ -307,7 +307,7 @@ class SMACrossoverStrategy(BaseStrategy):
             return None, None, None
 
         if len(ohlcv_data) < self.long_window:
-            self.logger.warning(
+            self.logger.debug(
                 f"Insufficient data for {ticker}: {len(ohlcv_data)} rows "
                 f"(need at least {self.long_window} for SMA calculation)"
             )

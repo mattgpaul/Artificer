@@ -289,9 +289,27 @@ class TradeJournal:
             return 0.0
 
         try:
+            # Ensure timestamps are timezone-aware (UTC) for comparison
+            if entry_time.tz is None:
+                entry_time = entry_time.tz_localize("UTC")
+            else:
+                entry_time = entry_time.tz_convert("UTC")
+
+            if exit_time.tz is None:
+                exit_time = exit_time.tz_localize("UTC")
+            else:
+                exit_time = exit_time.tz_convert("UTC")
+
+            # Ensure index is timezone-aware (UTC) for comparison
+            ohlcv_utc = self.ohlcv_data.copy()
+            if ohlcv_utc.index.tz is None:
+                ohlcv_utc.index = ohlcv_utc.index.tz_localize("UTC")
+            else:
+                ohlcv_utc.index = ohlcv_utc.index.tz_convert("UTC")
+
             # Filter OHLCV data for the trade period
-            trade_data = self.ohlcv_data[
-                (self.ohlcv_data.index >= entry_time) & (self.ohlcv_data.index <= exit_time)
+            trade_data = ohlcv_utc[
+                (ohlcv_utc.index >= entry_time) & (ohlcv_utc.index <= exit_time)
             ]
 
             if trade_data.empty:

@@ -29,14 +29,37 @@ class BacktestStrategyWrapper:
 
         full_data = self._data_cache[ticker]
 
-        filtered_data = full_data[full_data.index <= self.current_time].copy()
+        # Ensure current_time is timezone-aware (UTC) for comparison
+        current_time_utc = self.current_time
+        if current_time_utc.tz is None:
+            current_time_utc = current_time_utc.tz_localize("UTC")
+        else:
+            current_time_utc = current_time_utc.tz_convert("UTC")
+
+        # Work with a copy to avoid modifying cached data
+        # Ensure index is timezone-aware (UTC) for comparison
+        filtered_data = full_data.copy()
+        if filtered_data.index.tz is None:
+            filtered_data.index = filtered_data.index.tz_localize("UTC")
+        else:
+            filtered_data.index = filtered_data.index.tz_convert("UTC")
+
+        filtered_data = filtered_data[filtered_data.index <= current_time_utc]
 
         if start_time:
-            start_ts = pd.to_datetime(start_time)
+            start_ts = pd.to_datetime(start_time, utc=True)
+            if start_ts.tz is None:
+                start_ts = start_ts.tz_localize("UTC")
+            else:
+                start_ts = start_ts.tz_convert("UTC")
             filtered_data = filtered_data[filtered_data.index >= start_ts]
 
         if end_time:
-            end_ts = pd.to_datetime(end_time)
+            end_ts = pd.to_datetime(end_time, utc=True)
+            if end_ts.tz is None:
+                end_ts = end_ts.tz_localize("UTC")
+            else:
+                end_ts = end_ts.tz_convert("UTC")
             filtered_data = filtered_data[filtered_data.index <= end_ts]
 
         if limit:

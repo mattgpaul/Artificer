@@ -79,7 +79,7 @@ class ResultsWriter:
         strategy_name: str,
         backtest_id: str | None = None,
     ) -> bool:
-        table_name = f"{strategy_name}_metrics"
+        table_name = f"{strategy_name}_summary"
 
         record = {
             "datetime": int(datetime.now(timezone.utc).timestamp() * 1000),
