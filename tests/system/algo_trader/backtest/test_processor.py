@@ -160,9 +160,21 @@ class TestBacktestTickerWorker:
             patch(
                 "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
             ) as mock_strategy_class,
-            patch("system.algo_trader.backtest.processor.worker.BacktestEngine") as mock_engine_class,
-            patch("system.algo_trader.backtest.processor.worker.ResultsWriter") as mock_writer_class,
-            patch("system.algo_trader.backtest.processor.worker.get_logger") as mock_get_logger,
+            patch(
+                "system.algo_trader.backtest.processor.worker.BacktestEngine"
+            ) as mock_engine_class,
+            patch(
+                "system.algo_trader.backtest.processor.worker.ResultsWriter"
+            ) as mock_writer_class,
+            patch(
+                "system.algo_trader.backtest.processor.worker.get_logger"
+            ) as mock_get_logger,
+            patch(
+                "system.algo_trader.backtest.processor.worker.log_backtest_results"
+            ) as mock_log_results,
+            patch(
+                "system.algo_trader.backtest.processor.worker.write_backtest_results"
+            ) as mock_write_results,
         ):
             # Setup mocks
             mock_logger = MagicMock()
@@ -188,6 +200,10 @@ class TestBacktestTickerWorker:
             mock_writer.write_trades.return_value = True
             mock_writer.write_metrics.return_value = True
             mock_writer_class.return_value = mock_writer
+
+            # Mock helper functions
+            mock_log_results.return_value = None
+            mock_write_results.return_value = (True, True)
 
             # Prepare args
             args = (
@@ -219,7 +235,13 @@ class TestBacktestTickerWorker:
             patch(
                 "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
             ) as mock_strategy_class,
+<<<<<<< HEAD
             patch("system.algo_trader.backtest.processor.worker.BacktestEngine") as mock_engine_class,
+=======
+            patch(
+                "system.algo_trader.backtest.processor.worker.BacktestEngine"
+            ) as mock_engine_class,
+>>>>>>> 5c078d1 (fix: update test_processor to match refactored code structure)
             patch("system.algo_trader.backtest.processor.worker.get_logger") as mock_get_logger,
         ):
             mock_logger = MagicMock()
