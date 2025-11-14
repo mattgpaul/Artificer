@@ -25,7 +25,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-algo-trader"
+        "uid": "influxdb-algo-trader-ohlcv"
       },
       "description": "Candlestick chart displaying Open, High, Low, Close prices and trading Volume for the selected ticker symbol",
       "fieldConfig": {
@@ -118,7 +118,7 @@
           "dataset": "iox",
           "datasource": {
             "type": "influxdb",
-            "uid": "InfluxDB"
+            "uid": "influxdb-algo-trader-ohlcv"
           },
           "editorMode": "code",
           "format": "table",
@@ -159,22 +159,23 @@
   "templating": {
     "list": [
       {
+        "allowCustomValue": false,
         "current": {
           "text": "AAPL",
           "value": "AAPL"
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "influxdb-algo-trader"
+          "uid": "influxdb-algo-trader-ohlcv"
         },
-        "definition": "SELECT DISTINCT ticker FROM ohlcv ORDER BY ticker",
+        "definition": "SELECT DISTINCT ticker FROM ohlcv ORDER BY ticker;",
         "description": "Select a stock ticker to display OHLCV data",
         "includeAll": false,
         "label": "Ticker Symbol",
         "name": "ticker",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT ticker FROM ohlcv ORDER BY ticker",
+          "query": "SELECT DISTINCT ticker FROM ohlcv ORDER BY ticker;",
           "refId": "InfluxVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
