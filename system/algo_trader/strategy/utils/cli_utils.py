@@ -7,6 +7,7 @@ and journal formatting used by the strategy execution CLI.
 import pandas as pd
 
 from system.algo_trader.datasource.sec.tickers.main import Tickers
+from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 
 def get_sp500_tickers() -> list[str]:
@@ -145,16 +146,54 @@ def get_sp500_tickers() -> list[str]:
         ]
 
 
+def get_influxdb_tickers() -> list[str]:
+    """Get list of ticker symbols from InfluxDB OHLCV database.
+
+    Queries InfluxDB for all distinct tickers that have OHLCV data
+    in the algo-trader-ohlcv database.
+
+    Returns:
+        List of ticker symbols. Returns empty list if query fails or no data found.
+
+    Raises:
+        ValueError: If query fails or returns no tickers.
+
+    Example:
+        >>> tickers = get_influxdb_tickers()
+        >>> assert 'AAPL' in tickers
+    """
+    influx_client = None
+    try:
+        influx_client = MarketDataInflux(database="algo-trader-ohlcv")
+        query = "SELECT DISTINCT ticker FROM ohlcv"
+        df = influx_client.query(query)
+
+        if df is None or (isinstance(df, bool) and not df) or df.empty:
+            return []
+
+        if "ticker" not in df.columns:
+            return []
+
+        tickers = df["ticker"].unique().tolist()
+        return sorted(tickers)
+    except Exception:
+        return []
+    finally:
+        if influx_client is not None:
+            influx_client.close()
+
+
 def resolve_tickers(tickers_arg, logger):
     """Resolve ticker symbols from command-line arguments.
 
-    Handles three cases:
+    Handles four cases:
     1. Specific tickers: Returns the provided list as-is
     2. 'full-registry': Fetches all tickers from SEC datasource
     3. 'SP500': Fetches all S&P 500 ticker symbols
+    4. 'influx-registry': Fetches all tickers from InfluxDB OHLCV database
 
     Args:
-        tickers_arg: List of ticker symbols, ['full-registry'], or ['SP500'].
+        tickers_arg: List of ticker symbols, ['full-registry'], ['SP500'], or ['influx-registry'].
         logger: Logger instance for logging resolution progress.
 
     Returns:
@@ -162,13 +201,15 @@ def resolve_tickers(tickers_arg, logger):
         returns no data.
 
     Raises:
-        ValueError: If full-registry fails to retrieve data from SEC.
+        ValueError: If full-registry fails to retrieve data from SEC, or if
+            influx-registry fails to retrieve data from InfluxDB.
 
     Example:
         >>> tickers = resolve_tickers(['AAPL', 'MSFT'], logger)
         >>> assert tickers == ['AAPL', 'MSFT']
         >>> all_tickers = resolve_tickers(['full-registry'], logger)
         >>> sp500_tickers = resolve_tickers(['SP500'], logger)
+        >>> influx_tickers = resolve_tickers(['influx-registry'], logger)
     """
     if tickers_arg == ["full-registry"]:
         logger.info("full-registry specified, fetching all tickers from SEC datasource...")
@@ -193,6 +234,16 @@ def resolve_tickers(tickers_arg, logger):
             logger.error("Failed to retrieve S&P 500 tickers")
             raise ValueError("Failed to retrieve S&P 500 tickers")
         logger.info(f"Retrieved {len(ticker_list)} S&P 500 tickers")
+        return ticker_list
+    elif tickers_arg == ["influx-registry"]:
+        logger.info(
+            "influx-registry specified, fetching all tickers from InfluxDB OHLCV database..."
+        )
+        ticker_list = get_influxdb_tickers()
+        if not ticker_list:
+            logger.error("Failed to retrieve tickers from InfluxDB")
+            raise ValueError("Failed to retrieve tickers from InfluxDB OHLCV database")
+        logger.info(f"Retrieved {len(ticker_list)} tickers from InfluxDB OHLCV database")
         return ticker_list
     else:
         logger.info(f"Processing {len(tickers_arg)} specific tickers: {tickers_arg}")
