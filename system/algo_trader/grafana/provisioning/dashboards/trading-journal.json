@@ -510,7 +510,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "entry_price"
+              "options": "entry"
             },
             "properties": [
               {
@@ -522,7 +522,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "exit_price"
+              "options": "exit"
             },
             "properties": [
               {
@@ -558,7 +558,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "exit_time"
+            "displayName": "close_date"
           }
         ]
       },
@@ -571,9 +571,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT status, side, ticker as symbol, entry_time as open_date, entry_price as entry, shares as size, exit_time as close_date, exit_price as exit, (entry_price * shares) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setup as setups, note, mistake as mistakes FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY exit_time DESC",
+          "query": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "rawQuery": true,
-          "rawSql": "SELECT status, side, ticker as symbol, entry_time as open_date, entry_price as entry, shares as size, exit_time as close_date, exit_price as exit, (entry_price * shares) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setup as setups, note, mistake as mistakes FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY exit_time DESC",
+          "rawSql": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -607,10 +607,8 @@
               "cost": "COST",
               "entry": "ENTRY",
               "exit": "EXIT",
-              "mistakes": "MISTAKES",
               "net_return": "NET RETURN",
               "net_return_pct": "NET RETURN %",
-              "note": "NOTE",
               "open_date": "OPEN DATE",
               "setups": "SETUPS",
               "side": "SIDE",
@@ -868,248 +866,6 @@
       ],
       "title": "WIN %",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "Journal"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "profit_loss"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "green"
-                    },
-                    {
-                      "color": "red",
-                      "value": 0
-                    }
-                  ],
-                  "type": "color-text"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 13
-      },
-      "id": 9,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "Journal"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "query": "SELECT setup, SUM(gross_pnl) as profit_loss FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND setup IS NOT NULL GROUP BY setup ORDER BY profit_loss DESC",
-          "rawQuery": true,
-          "rawSql": "SELECT setup, SUM(gross_pnl) as profit_loss FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND setup IS NOT NULL GROUP BY setup ORDER BY profit_loss DESC",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        }
-      ],
-      "title": "Setups",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "profit_loss": "Profit/Loss",
-              "setup": "Setup"
-            }
-          }
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "Journal"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "currencyUSD"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "profit_loss"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "green"
-                    },
-                    {
-                      "color": "red",
-                      "value": 0
-                    }
-                  ],
-                  "type": "color-text"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 21
-      },
-      "id": 10,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "Journal"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "query": "SELECT mistake, SUM(gross_pnl) as profit_loss FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND mistake IS NOT NULL GROUP BY mistake ORDER BY profit_loss DESC",
-          "rawQuery": true,
-          "rawSql": "SELECT mistake, SUM(gross_pnl) as profit_loss FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND mistake IS NOT NULL GROUP BY mistake ORDER BY profit_loss DESC",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        }
-      ],
-      "title": "Mistakes",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {},
-            "renameByName": {
-              "mistake": "Mistake",
-              "profit_loss": "Profit/Loss"
-            }
-          }
-        }
-      ],
-      "type": "table"
     }
   ],
   "preload": false,
@@ -1178,30 +934,6 @@
           "type": "influxdb",
           "uid": "Journal"
         },
-        "definition": "SELECT DISTINCT setup FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND setup IS NOT NULL ORDER BY setup",
-        "includeAll": true,
-        "label": "Setup",
-        "multi": true,
-        "name": "setup",
-        "options": [],
-        "query": {
-          "query": "SELECT DISTINCT setup FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND setup IS NOT NULL ORDER BY setup",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "influxdb",
-          "uid": "Journal"
-        },
         "definition": "SELECT DISTINCT side FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY side",
         "includeAll": true,
         "label": "Side",
@@ -1210,30 +942,6 @@
         "options": [],
         "query": {
           "query": "SELECT DISTINCT side FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY side",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "influxdb",
-          "uid": "Journal"
-        },
-        "definition": "SELECT DISTINCT mistake FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND mistake IS NOT NULL ORDER BY mistake",
-        "includeAll": true,
-        "label": "Mistake",
-        "multi": true,
-        "name": "mistake",
-        "options": [],
-        "query": {
-          "query": "SELECT DISTINCT mistake FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo AND mistake IS NOT NULL ORDER BY mistake",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
