@@ -429,23 +429,30 @@
             },
             "properties": [
               {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "LOSS": {
+                        "text": "LOSS",
+                        "color": "red"
+                      },
+                      "WIN": {
+                        "text": "WIN",
+                        "color": "green"
+                      },
+                      "OPEN": {
+                        "text": "OPEN",
+                        "color": "orange"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
                 "id": "custom.cellOptions",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "red",
-                      "value": "LOSS"
-                    },
-                    {
-                      "color": "green",
-                      "value": "WIN"
-                    },
-                    {
-                      "color": "orange",
-                      "value": "OPEN"
-                    }
-                  ],
                   "type": "color-background"
                 }
               }
