@@ -5,17 +5,26 @@ load("//:pytest_test.bzl", "pytest_test")
 py_library(
     name = "backtest_lib",
     srcs = [
+        "core/data_loader.py",
+        "core/execution.py",
+        "core/results_generator.py",
+        "core/signal_collector.py",
+        "core/time_stepper.py",
         "engine.py",
-        "execution.py",
-        "processor.py",
-        "progress.py",
-        "results.py",
-        "strategy_wrapper.py",
-        "utils.py",
+        "processor/parallel.py",
+        "processor/processor.py",
+        "processor/sequential.py",
+        "processor/worker.py",
+        "results/hash.py",
+        "results/results.py",
+        "results/writer.py",
+        "utils/progress.py",
+        "utils/strategy_wrapper.py",
+        "utils/utils.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/backtest:__pkg__",
+        "//tests/system/algo_trader/backtest:__subpackages__",
     ],
     deps = [
         "//infrastructure:config",
@@ -43,6 +52,7 @@ py_library(
         "//system/algo_trader/strategy:strategies",
         requirement("pandas"),
     ],
+    # Note: main.py imports from subdirectories via backtest_lib
 )
 
 py_binary(
@@ -59,15 +69,15 @@ py_binary(
 pytest_test(
     name = "test_execution",
     size = "small",
-    coverage_path = "system.algo_trader.backtest.execution",
-    test_lib = "//tests/system/algo_trader/backtest:test_execution_lib",
+    coverage_path = "system.algo_trader.backtest.core.execution",
+    test_lib = "//tests/system/algo_trader/backtest/core:test_execution_lib",
 )
 
 pytest_test(
     name = "test_results",
     size = "small",
-    coverage_path = "system.algo_trader.backtest.results",
-    test_lib = "//tests/system/algo_trader/backtest:test_results_lib",
+    coverage_path = "system.algo_trader.backtest.results.writer",
+    test_lib = "//tests/system/algo_trader/backtest/results:test_results_lib",
 )
 
 pytest_test(
@@ -80,7 +90,7 @@ pytest_test(
 pytest_test(
     name = "test_processor",
     size = "small",
-    coverage_path = "system.algo_trader.backtest.processor",
+    coverage_path = "system.algo_trader.backtest.processor.processor",
     tags = ["exclusive"],
-    test_lib = "//tests/system/algo_trader/backtest:test_processor_lib",
+    test_lib = "//tests/system/algo_trader/backtest/processor:test_processor_lib",
 )

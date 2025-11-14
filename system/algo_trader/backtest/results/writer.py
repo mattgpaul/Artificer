@@ -1,18 +1,18 @@
-"""Results writer for backtest outputs.
+"""Results writer for backtest execution.
 
-This module provides functionality for writing backtest results to Redis queues.
+This module provides functionality to write backtest results (trades and metrics)
+to Redis queues for later publication to InfluxDB by the influx-publisher service.
 """
 
-import hashlib
-import json
 from datetime import datetime, timezone
 from typing import Any
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.backtest.execution import ExecutionConfig
-from system.algo_trader.backtest.utils import (
+from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.results.hash import compute_backtest_hash
+from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
     BACKTEST_TRADES_QUEUE_NAME,
@@ -22,62 +22,24 @@ from system.algo_trader.redis.queue_broker import QueueBroker
 
 
 class ResultsWriter:
-    """Writer for backtest results to Redis queues.
+    """Writes backtest results to Redis queues.
+
+    This class handles writing trades and metrics to Redis queues with proper
+    serialization and metadata, including backtest hash computation for deduplication.
 
     Args:
-        namespace: Redis namespace for queues.
+        namespace: Redis namespace for queue operations. Defaults to "queue".
     """
 
     def __init__(self, namespace: str = "queue") -> None:
-        """Initialize results writer.
+        """Initialize ResultsWriter with Redis namespace.
 
         Args:
-            namespace: Redis namespace for queues.
+            namespace: Redis namespace for queue operations. Defaults to "queue".
         """
         self.namespace = namespace
         self.queue_broker = QueueBroker(namespace=namespace)
         self.logger = get_logger(self.__class__.__name__)
-
-    def _compute_backtest_hash(
-        self,
-        strategy_params: dict[str, Any],
-        execution_config: ExecutionConfig,
-        start_date: pd.Timestamp,
-        end_date: pd.Timestamp,
-        step_frequency: str,
-        database: str,
-        tickers: list[str],
-        capital_per_trade: float,
-        risk_free_rate: float,
-        walk_forward: bool = False,
-        train_days: int | None = None,
-        test_days: int | None = None,
-        train_split: float | None = None,
-    ) -> str:
-        args_dict = {
-            "strategy_params": strategy_params,
-            "execution": {
-                "slippage_bps": execution_config.slippage_bps,
-                "commission_per_share": execution_config.commission_per_share,
-                "use_limit_orders": execution_config.use_limit_orders,
-                "fill_delay_minutes": execution_config.fill_delay_minutes,
-            },
-            "backtest": {
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-                "step_frequency": step_frequency,
-                "database": database,
-            },
-            "tickers": sorted(tickers),
-            "capital_per_trade": capital_per_trade,
-            "risk_free_rate": risk_free_rate,
-            "walk_forward": walk_forward,
-            "train_days": train_days,
-            "test_days": test_days,
-            "train_split": train_split,
-        }
-        args_json = json.dumps(args_dict, sort_keys=True, default=str)
-        return hashlib.sha256(args_json.encode()).hexdigest()[:16]
 
     def write_trades(
         self,
@@ -99,29 +61,32 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
     ) -> bool:
-        """Write trades to Redis queue.
+        """Write backtest trades to Redis queue.
+
+        Serializes trades DataFrame and writes to Redis queue with metadata
+        including backtest hash for deduplication.
 
         Args:
             trades: DataFrame containing executed trades.
-            strategy_name: Name of the strategy.
-            ticker: Ticker symbol.
-            backtest_id: Optional backtest identifier.
-            strategy_params: Optional strategy parameters.
-            execution_config: Optional execution configuration.
-            start_date: Optional start date.
-            end_date: Optional end date.
-            step_frequency: Optional step frequency.
-            database: Optional database name.
-            tickers: Optional list of tickers.
-            capital_per_trade: Optional capital per trade.
-            risk_free_rate: Optional risk-free rate.
-            walk_forward: Optional walk-forward flag.
-            train_days: Optional training days.
-            test_days: Optional testing days.
-            train_split: Optional train/test split.
+            strategy_name: Name of the strategy used.
+            ticker: Ticker symbol that was backtested.
+            backtest_id: Optional unique identifier for this backtest.
+            strategy_params: Optional strategy parameters for hash computation.
+            execution_config: Optional execution config for hash computation.
+            start_date: Optional start date for hash computation.
+            end_date: Optional end date for hash computation.
+            step_frequency: Optional step frequency for hash computation.
+            database: Optional database name for hash computation.
+            tickers: Optional ticker list for hash computation.
+            capital_per_trade: Optional capital per trade for hash computation.
+            risk_free_rate: Optional risk-free rate for hash computation.
+            walk_forward: Whether walk-forward analysis was used.
+            train_days: Number of training days (if walk-forward).
+            test_days: Number of test days (if walk-forward).
+            train_split: Training split ratio (if walk-forward).
 
         Returns:
-            True if successful, False otherwise.
+            True if trades were successfully enqueued, False otherwise.
         """
         if trades.empty:
             self.logger.debug(f"No trades to enqueue for {ticker}")
@@ -141,7 +106,7 @@ class ResultsWriter:
                 risk_free_rate is not None,
             ]
         ):
-            backtest_hash = self._compute_backtest_hash(
+            backtest_hash = compute_backtest_hash(
                 strategy_params=strategy_params,
                 execution_config=execution_config,
                 start_date=start_date,
@@ -210,29 +175,32 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
     ) -> bool:
-        """Write metrics to Redis queue.
+        """Write backtest metrics to Redis queue.
+
+        Formats performance metrics and writes to Redis queue with metadata
+        including backtest hash for deduplication.
 
         Args:
             metrics: Dictionary containing performance metrics.
-            strategy_name: Name of the strategy.
-            ticker: Ticker symbol.
-            backtest_id: Optional backtest identifier.
-            strategy_params: Optional strategy parameters.
-            execution_config: Optional execution configuration.
-            start_date: Optional start date.
-            end_date: Optional end date.
-            step_frequency: Optional step frequency.
-            database: Optional database name.
-            tickers: Optional list of tickers.
-            capital_per_trade: Optional capital per trade.
-            risk_free_rate: Optional risk-free rate.
-            walk_forward: Optional walk-forward flag.
-            train_days: Optional training days.
-            test_days: Optional testing days.
-            train_split: Optional train/test split.
+            strategy_name: Name of the strategy used.
+            ticker: Ticker symbol that was backtested.
+            backtest_id: Optional unique identifier for this backtest.
+            strategy_params: Optional strategy parameters for hash computation.
+            execution_config: Optional execution config for hash computation.
+            start_date: Optional start date for hash computation.
+            end_date: Optional end date for hash computation.
+            step_frequency: Optional step frequency for hash computation.
+            database: Optional database name for hash computation.
+            tickers: Optional ticker list for hash computation.
+            capital_per_trade: Optional capital per trade for hash computation.
+            risk_free_rate: Optional risk-free rate for hash computation.
+            walk_forward: Whether walk-forward analysis was used.
+            train_days: Number of training days (if walk-forward).
+            test_days: Number of test days (if walk-forward).
+            train_split: Training split ratio (if walk-forward).
 
         Returns:
-            True if successful, False otherwise.
+            True if metrics were successfully enqueued, False otherwise.
         """
         backtest_hash = None
         if all(
@@ -248,7 +216,7 @@ class ResultsWriter:
                 risk_free_rate is not None,
             ]
         ):
-            backtest_hash = self._compute_backtest_hash(
+            backtest_hash = compute_backtest_hash(
                 strategy_params=strategy_params,
                 execution_config=execution_config,
                 start_date=start_date,

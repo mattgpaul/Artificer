@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
-from system.algo_trader.strategy.cli_utils import (
+from system.algo_trader.strategy.journal.journal import TradeJournal
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.utils.cli_utils import (
     format_group_summary,
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
 )
-from system.algo_trader.strategy.journal import TradeJournal
-from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
 
 def create_strategy(args, logger):

@@ -9,21 +9,15 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from system.algo_trader.backtest.execution import ExecutionConfig
+from system.algo_trader.backtest.core.execution import ExecutionConfig
 
 
 @pytest.fixture(autouse=True)
 def mock_logger():
     """Auto-mock logger to prevent logging calls."""
-    with (
-        patch("system.algo_trader.backtest.engine.get_logger") as mock_get_logger,
-        patch("system.algo_trader.backtest.processor.get_logger") as mock_processor_logger,
-        patch("system.algo_trader.backtest.results.get_logger") as mock_results_logger,
-    ):
+    with patch("infrastructure.logging.logger.get_logger") as mock_get_logger:
         mock_logger_instance = MagicMock()
         mock_get_logger.return_value = mock_logger_instance
-        mock_processor_logger.return_value = mock_logger_instance
-        mock_results_logger.return_value = mock_logger_instance
         yield mock_logger_instance
 
 
@@ -99,7 +93,7 @@ def sample_trades():
 @pytest.fixture
 def mock_queue_broker():
     """Mock QueueBroker for ResultsWriter tests."""
-    with patch("system.algo_trader.backtest.results.QueueBroker") as mock_broker_class:
+    with patch("system.algo_trader.backtest.results.writer.QueueBroker") as mock_broker_class:
         mock_broker = MagicMock()
         mock_broker.enqueue.return_value = True
         mock_broker_class.return_value = mock_broker
@@ -109,7 +103,9 @@ def mock_queue_broker():
 @pytest.fixture
 def mock_process_manager():
     """Mock ProcessManager for BacktestProcessor tests."""
-    with patch("system.algo_trader.backtest.processor.ProcessManager") as mock_manager_class:
+    with patch(
+        "system.algo_trader.backtest.processor.parallel.ProcessManager"
+    ) as mock_manager_class:
         mock_manager = MagicMock()
         mock_manager.map.return_value = [{"success": True, "trades": 10}]
         mock_manager.close_pool.return_value = None
