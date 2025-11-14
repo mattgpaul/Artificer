@@ -15,16 +15,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from system.algo_trader.influx.publisher import (
+from system.algo_trader.influx.publisher.config import (
     FUNDAMENTALS_BATCH_SIZE,
     FUNDAMENTALS_DATABASE,
     OHLCV_BATCH_SIZE,
     OHLCV_DATABASE,
     TRADING_JOURNAL_BATCH_SIZE,
     TRADING_JOURNAL_DATABASE,
-    InfluxPublisher,
-    main,
 )
+from system.algo_trader.influx.publisher.publisher import InfluxPublisher, main
+from system.algo_trader.influx.publisher.queue_processor import process_queue
 
 
 class TestInfluxPublisherInitialization:
@@ -216,7 +216,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_queue_broker.get_queue_size.return_value = 0
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_queue_broker.dequeue.assert_not_called()
 
@@ -233,8 +239,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_market_data_influx["instance"].write_sync.return_value = True
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         assert mock_queue_broker.dequeue.call_count >= 2
         assert mock_market_data_influx["instance"].write_sync.call_count == 2
@@ -248,8 +259,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_queue_broker.get_data.return_value = None
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_queue_broker.delete_data.assert_not_called()
         mock_market_data_influx["instance"].write_sync.assert_not_called()
@@ -263,8 +279,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_queue_broker.get_data.return_value = {"invalid": "data"}  # Missing ticker and candles
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
         mock_market_data_influx["instance"].write_sync.assert_not_called()
@@ -282,8 +303,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_market_data_influx["instance"].write_sync.return_value = False
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
 
@@ -300,8 +326,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_market_data_influx["instance"].write_sync.side_effect = Exception("Write error")
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
 
@@ -318,8 +349,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_market_data_influx["instance"].write_sync.return_value = True
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["ohlcv_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_market_data_influx["instance"].write_sync.assert_called_once()
         call_args = mock_market_data_influx["instance"].write_sync.call_args
@@ -338,8 +374,13 @@ class TestInfluxPublisherQueueProcessing:
         mock_market_data_influx["instance"].write_sync.return_value = True
 
         queue_config = {"name": "fundamentals_queue", "table": "fundamentals"}
-        publisher.running = True
-        publisher._process_queue(queue_config)
+        process_queue(
+            queue_config,
+            mock_queue_broker,
+            publisher.influx_clients["fundamentals_queue"],
+            True,
+            publisher.logger,
+        )
 
         mock_market_data_influx["instance"].write_sync.assert_called_once()
         call_args = mock_market_data_influx["instance"].write_sync.call_args
@@ -378,8 +419,9 @@ class TestInfluxPublisherSignalHandling:
 
         publisher._signal_handler(signal.SIGTERM, None)
 
-        mock_publisher_logger.info.assert_called()
-        assert "SIGTERM" in str(mock_publisher_logger.info.call_args)
+        # Check that logger.info was called - the logger instance is publisher.logger
+        publisher.logger.info.assert_called()
+        assert "SIGTERM" in str(publisher.logger.info.call_args)
 
 
 class TestInfluxPublisherRun:
@@ -470,7 +512,8 @@ class TestInfluxPublisherCleanup:
         # Should not raise exception
         publisher._cleanup()
 
-        mock_publisher_logger.warning.assert_called()
+        # Check that logger.warning was called - the logger instance is publisher.logger
+        publisher.logger.warning.assert_called()
 
 
 class TestInfluxPublisherConstants:
@@ -509,7 +552,7 @@ class TestInfluxPublisherMain:
         """Test main uses PUBLISHER_CONFIG environment variable."""
         with patch.dict(os.environ, {"PUBLISHER_CONFIG": temp_config_file}):
             with patch(
-                "system.algo_trader.influx.publisher.InfluxPublisher"
+                "system.algo_trader.influx.publisher.publisher.InfluxPublisher"
             ) as mock_publisher_class:
                 mock_publisher = MagicMock()
                 mock_publisher_class.return_value = mock_publisher
@@ -527,7 +570,7 @@ class TestInfluxPublisherMain:
 
         with patch.dict(os.environ, {}, clear=True):
             with patch(
-                "system.algo_trader.influx.publisher.InfluxPublisher"
+                "system.algo_trader.influx.publisher.publisher.InfluxPublisher"
             ) as mock_publisher_class:
                 mock_publisher = MagicMock()
                 mock_publisher_class.return_value = mock_publisher

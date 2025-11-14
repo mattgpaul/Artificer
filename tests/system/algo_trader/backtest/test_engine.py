@@ -2,15 +2,12 @@
 
 Tests cover data loading, step interval determination, and backtest execution.
 All external dependencies are mocked via conftest.py.
-.
 """
-
-from unittest.mock import patch
 
 import pandas as pd
 
+from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.engine import BacktestEngine, BacktestResults
-from system.algo_trader.backtest.execution import ExecutionConfig
 
 
 class TestBacktestResults:
@@ -86,10 +83,12 @@ class TestBacktestEngine:
             step_frequency="daily",
         )
 
-        # Mock query to return sample data
-        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data.copy()
+        # Mock query to return sample data (with time column for DataLoader)
+        sample_data_with_time = sample_ohlcv_data.reset_index()
+        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
+        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
 
-        result = engine._load_ticker_ohlcv_data("AAPL")
+        result = engine.data_loader.load_ticker_ohlcv_data("AAPL", start_date, end_date)
 
         assert result is not None
         assert len(result) == len(sample_ohlcv_data)
@@ -111,7 +110,7 @@ class TestBacktestEngine:
         # Mock query to return None/empty
         mock_market_data_influx["instance"].query.return_value = None
 
-        result = engine._load_ticker_ohlcv_data("AAPL")
+        result = engine.data_loader.load_ticker_ohlcv_data("AAPL", start_date, end_date)
 
         assert result is None
 
@@ -128,7 +127,7 @@ class TestBacktestEngine:
             step_frequency="daily",
         )
 
-        intervals = engine._determine_step_intervals()
+        intervals = engine.time_stepper.determine_step_intervals()
 
         assert len(intervals) > 0
         assert intervals[0] >= start_date
@@ -147,7 +146,7 @@ class TestBacktestEngine:
             step_frequency="hourly",
         )
 
-        intervals = engine._determine_step_intervals()
+        intervals = engine.time_stepper.determine_step_intervals()
 
         assert len(intervals) > 0
         assert intervals[0] >= start_date
@@ -169,9 +168,9 @@ class TestBacktestEngine:
         )
 
         # Set up data cache for auto detection
-        engine.data_cache = {"AAPL": sample_ohlcv_data}
+        data_cache = {"AAPL": sample_ohlcv_data}
 
-        intervals = engine._determine_step_intervals()
+        intervals = engine.time_stepper.determine_step_intervals(data_cache)
 
         assert len(intervals) > 0
 
@@ -188,10 +187,10 @@ class TestBacktestEngine:
             step_frequency="daily",
         )
 
-        assert engine._timedelta_to_freq(pd.Timedelta(days=1)) == "D"
-        assert engine._timedelta_to_freq(pd.Timedelta(hours=1)) == "H"
-        assert engine._timedelta_to_freq(pd.Timedelta(minutes=1)) == "T"
-        assert engine._timedelta_to_freq(pd.Timedelta(seconds=1)) == "S"
+        assert engine.time_stepper.timedelta_to_freq(pd.Timedelta(days=1)) == "D"
+        assert engine.time_stepper.timedelta_to_freq(pd.Timedelta(hours=1)) == "H"
+        assert engine.time_stepper.timedelta_to_freq(pd.Timedelta(minutes=1)) == "T"
+        assert engine.time_stepper.timedelta_to_freq(pd.Timedelta(seconds=1)) == "S"
 
     def test_run_ticker_no_data(self, mock_strategy, mock_market_data_influx):
         """Test run_ticker when no OHLCV data available."""
@@ -229,14 +228,15 @@ class TestBacktestEngine:
             step_frequency="daily",
         )
 
-        # Mock query to return sample data
-        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data.copy()
+        # Mock query to return sample data (with time column for DataLoader)
+        sample_data_with_time = sample_ohlcv_data.reset_index()
+        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
+        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
 
-        # Mock strategy to return empty signals
+        # Mock signal collector to return empty signals
         mock_strategy.run_strategy.return_value = pd.DataFrame()
 
-        with patch("system.algo_trader.backtest.engine.ticker_progress_bar"):
-            results = engine.run_ticker("AAPL")
+        results = engine.run_ticker("AAPL")
 
         assert isinstance(results, BacktestResults)
         assert results.signals.empty
@@ -257,7 +257,7 @@ class TestBacktestEngine:
         )
 
         data_cache = {"AAPL": sample_ohlcv_data}
-        intervals = engine._determine_step_intervals_for_data(data_cache)
+        intervals = engine.time_stepper.determine_step_intervals(data_cache)
 
         assert len(intervals) > 0
         assert intervals[0] >= start_date

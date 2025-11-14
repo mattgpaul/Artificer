@@ -196,75 +196,167 @@ py_library(
 
 ---
 
-## Reusable Fixtures
+## Reusable Fixtures - MANDATORY conftest.py Usage
 
-### Using conftest.py
+### CRITICAL: Always Use conftest.py for Shared Fixtures
 
-**Rule:** Create `conftest.py` files at package level for shared fixtures. This eliminates duplicate fixture definitions across test files.
+**Rule:** **ALL shared fixtures MUST be defined in `conftest.py` files, NOT in individual test files.** This is mandatory to eliminate code duplication and ensure consistency.
 
-### Fixture Organization
+### Why conftest.py is Required
+
+1. **Eliminates Duplication**: Common fixtures (mocks, test data, setup) are defined once
+2. **Automatic Discovery**: pytest automatically discovers and makes fixtures available
+3. **Consistency**: Ensures all tests use the same mocking strategy
+4. **Maintainability**: Changes to mocks only need to be made in one place
+
+### Fixture Organization Hierarchy
 
 ```
 tests/
-  conftest.py                    # Project-wide fixtures
+  conftest.py                    # Project-wide fixtures (if needed)
   infrastructure/
     conftest.py                  # Infrastructure-specific fixtures
     redis/
-      conftest.py                # Redis-specific fixtures (if needed)
-      test_redis.py
+      conftest.py                # Redis-specific fixtures
+      test_redis.py              # Uses fixtures from conftest.py
+  system/
+    algo_trader/
+      schwab/
+        conftest.py              # Schwab-specific fixtures
+        test_schwab_client.py   # Uses fixtures from conftest.py
 ```
 
-### Example: Project-wide conftest.py
+**Key Principle:** Each test package should have its own `conftest.py` with fixtures specific to that package's tests.
 
-**File:** `tests/conftest.py`
+### Example: Package-specific conftest.py (Schwab Client)
 
-```python
-"""Shared fixtures for all tests."""
-
-import pytest
-from unittest.mock import MagicMock, patch
-
-
-@pytest.fixture
-def mock_logger():
-    """Mock logger for all tests."""
-    with patch('infrastructure.logging.logger.get_logger') as mock_get_logger:
-        mock_logger_instance = MagicMock()
-        mock_get_logger.return_value = mock_logger_instance
-        yield mock_logger_instance
-```
-
-### Example: Package-specific conftest.py
-
-**File:** `tests/infrastructure/redis/conftest.py`
+**File:** `tests/system/algo_trader/schwab/conftest.py`
 
 ```python
-"""Shared fixtures for Redis tests."""
+"""Shared fixtures for Schwab client tests.
 
-import pytest
+All common fixtures, mocks, and test parameters are defined here
+to reduce code duplication across test files.
+"""
+
+import os
 from unittest.mock import MagicMock, patch
 
-
-@pytest.fixture
-def mock_redis_client():
-    """Mock Redis client for Redis tests."""
-    with patch('infrastructure.redis.redis.redis') as mock_redis_module:
-        mock_pool = MagicMock()
-        mock_client = MagicMock()
-        mock_redis_module.ConnectionPool.return_value = mock_pool
-        mock_redis_module.Redis.return_value = mock_client
-        yield {
-            'module': mock_redis_module,
-            'pool': mock_pool,
-            'client': mock_client
-        }
+import pytest
 
 
 @pytest.fixture(autouse=True)
-def auto_mock_external_calls():
-    """Automatically mock external calls to prevent hangs."""
-    with patch('infrastructure.redis.redis.get_logger'):
+def mock_env_vars():
+    """Auto-mock required Schwab environment variables."""
+    with patch.dict(
+        os.environ,
+        {
+            "SCHWAB_API_KEY": "test_api_key",
+            "SCHWAB_SECRET": "test_secret",
+            "SCHWAB_APP_NAME": "test_app_name",
+        },
+    ):
         yield
+
+
+@pytest.fixture(autouse=True)
+def mock_logger():
+    """Auto-mock logger to prevent logging calls."""
+    with patch("system.algo_trader.schwab.schwab_client.get_logger") as mock_logger_func:
+        mock_logger_instance = MagicMock()
+        mock_logger_func.return_value = mock_logger_instance
+        yield mock_logger_instance
+
+
+@pytest.fixture
+def mock_account_broker():
+    """Fixture to mock AccountBroker."""
+    with patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class:
+        mock_broker = MagicMock()
+        mock_broker_class.return_value = mock_broker
+        yield mock_broker
+
+
+@pytest.fixture
+def mock_token_manager_requests():
+    """Fixture to mock requests module in token_manager."""
+    with patch("system.algo_trader.schwab.auth.token_manager.requests") as mock_requests:
+        yield mock_requests
+
+
+@pytest.fixture
+def mock_dependencies_token_management(mock_account_broker, mock_logger, mock_token_manager_requests):
+    """Composite fixture for token management tests."""
+    return {
+        "broker": mock_account_broker,
+        "logger": mock_logger,
+        "requests": mock_token_manager_requests,
+    }
+```
+
+### Example: Test File Using conftest.py Fixtures
+
+**File:** `tests/system/algo_trader/schwab/test_schwab_client.py`
+
+```python
+"""Unit tests for SchwabClient - OAuth2 and Token Management.
+
+Tests cover token lifecycle, OAuth2 flow, and error handling scenarios.
+All external dependencies are mocked to avoid network calls.
+Common fixtures are defined in conftest.py.
+"""
+
+import pytest
+from system.algo_trader.schwab.schwab_client import SchwabClient
+
+
+class TestSchwabClientTokenManagement:
+    """Test token lifecycle and refresh functionality."""
+
+    def test_refresh_token_success(self, mock_dependencies_token_management):
+        """Test successful token refresh using Redis refresh token."""
+        # Use fixtures from conftest.py - no need to define them here
+        mock_dependencies_token_management["broker"].get_refresh_token.return_value = "refresh_token"
+        
+        # ... rest of test
+```
+
+**Key Points:**
+- Test file imports fixtures from `conftest.py` automatically
+- No fixture definitions in test file
+- Fixtures are referenced by name in test method parameters
+- `autouse=True` fixtures are automatically applied
+
+### Fixture Composition Pattern
+
+For complex test scenarios, compose fixtures:
+
+```python
+# In conftest.py
+@pytest.fixture
+def mock_dependencies_base(mock_account_broker, mock_logger):
+    """Base fixture with common dependencies."""
+    return {
+        "broker": mock_account_broker,
+        "logger": mock_logger,
+    }
+
+
+@pytest.fixture
+def mock_dependencies_token_management(mock_dependencies_base, mock_token_manager_requests):
+    """Fixture for token management tests."""
+    deps = mock_dependencies_base.copy()
+    deps["requests"] = mock_token_manager_requests
+    return deps
+
+
+@pytest.fixture
+def mock_dependencies_oauth2(mock_dependencies_base, mock_oauth2_requests, mock_oauth2_input):
+    """Fixture for OAuth2 flow tests."""
+    deps = mock_dependencies_base.copy()
+    deps["requests"] = mock_oauth2_requests
+    deps["input"] = mock_oauth2_input
+    return deps
 ```
 
 ### Fixture Scoping
@@ -274,7 +366,30 @@ def auto_mock_external_calls():
 - **`module`**: Created once per test module
 - **`session`**: Created once per test session
 
-Use `autouse=True` for fixtures that should always be active (e.g., preventing network calls).
+Use `autouse=True` for fixtures that should always be active (e.g., preventing network calls, mocking environment variables).
+
+### What NOT to Do
+
+**❌ BAD: Defining fixtures in test files**
+
+```python
+# test_schwab_client.py
+class TestSchwabClient:
+    @pytest.fixture
+    def mock_dependencies(self):
+        """Duplicate fixture definition"""
+        # ... fixture code
+```
+
+**✅ GOOD: Using fixtures from conftest.py**
+
+```python
+# test_schwab_client.py
+class TestSchwabClient:
+    def test_something(self, mock_dependencies_token_management):
+        """Uses fixture from conftest.py"""
+        # ... test code
+```
 
 ---
 

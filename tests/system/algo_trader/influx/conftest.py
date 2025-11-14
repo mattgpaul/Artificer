@@ -45,7 +45,7 @@ def mock_influx_dependencies():
 @pytest.fixture
 def mock_queue_broker():
     """Fixture to mock QueueBroker for publisher tests."""
-    with patch("system.algo_trader.influx.publisher.QueueBroker") as mock_queue_broker_class:
+    with patch("system.algo_trader.redis.queue_broker.QueueBroker") as mock_queue_broker_class:
         mock_broker = MagicMock()
         mock_broker.get_queue_size.return_value = 0
         mock_broker.dequeue.return_value = None
@@ -59,7 +59,7 @@ def mock_queue_broker():
 @pytest.fixture
 def mock_publisher_logger():
     """Fixture to mock logger for publisher."""
-    with patch("system.algo_trader.influx.publisher.get_logger") as mock_get_logger:
+    with patch("system.algo_trader.influx.publisher.publisher.get_logger") as mock_get_logger:
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
         yield mock_logger
@@ -68,7 +68,7 @@ def mock_publisher_logger():
 @pytest.fixture
 def mock_market_data_influx():
     """Fixture to mock MarketDataInflux for publisher tests."""
-    with patch("system.algo_trader.influx.publisher.MarketDataInflux") as mock_client_class:
+    with patch("system.algo_trader.influx.publisher.config.MarketDataInflux") as mock_client_class:
         mock_client = MagicMock()
         mock_client.write_sync.return_value = True
         mock_client.close.return_value = None
@@ -83,7 +83,7 @@ def mock_market_data_influx():
 @pytest.fixture
 def mock_signal():
     """Fixture to mock signal handling."""
-    with patch("system.algo_trader.influx.publisher.signal.signal") as mock_signal_func:
+    with patch("system.algo_trader.influx.publisher.publisher.signal.signal") as mock_signal_func:
         yield mock_signal_func
 
 

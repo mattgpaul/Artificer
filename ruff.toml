@@ -64,6 +64,36 @@ exclude = [
 "system/algo_trader/backtest/results.py" = [
     "PLR0913",  # Configuration functions with many params
 ]
+# New refactored backtest processor files - keep PLR0913 for functions with many params
+"system/algo_trader/backtest/processor/**/*.py" = [
+    "PLR0913",  # Too many arguments (configuration functions)
+]
+# New refactored backtest results files - keep PLR0913 for functions with many params
+"system/algo_trader/backtest/results/**/*.py" = [
+    "PLR0913",  # Too many arguments (configuration functions)
+]
+# New refactored influx publisher files - keep complexity warnings for queue processing
+"system/algo_trader/influx/publisher/**/*.py" = [
+    "C901",     # Complexity (queue processing logic)
+    "PLR0912",  # Too many branches (queue processing logic)
+    "PLR0915",  # Too many statements (queue processing logic)
+]
+# New refactored schwab auth files - keep PLR0913 for OAuth2 configuration
+"system/algo_trader/schwab/auth/**/*.py" = [
+    "PLR0913",  # Too many arguments (OAuth2 configuration)
+]
+# New refactored strategy core files - keep PLR0913 for strategy configuration
+"system/algo_trader/strategy/core/**/*.py" = [
+    "PLR0913",  # Too many arguments (strategy configuration)
+]
+# New refactored strategy journal files - keep PLR0913 for trade matching configuration
+"system/algo_trader/strategy/journal/**/*.py" = [
+    "PLR0913",  # Too many arguments (trade matching configuration)
+]
+# New refactored strategy strategies files
+"system/algo_trader/strategy/strategies/**/*.py" = [
+    "PLR0913",  # Too many arguments (strategy initialization)
+]
 "system/algo_trader/datasource/populate/fundamentals/processor.py" = [
     "PLR0915",  # Too many statements (already refactored)
     "C901",     # Complexity (already refactored)

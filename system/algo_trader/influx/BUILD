@@ -36,17 +36,13 @@ py_library(
 
 py_library(
     name = "publisher_lib",
-    srcs = ["publisher.py"],
+    srcs = [],
     visibility = [
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/influx:__pkg__",
     ],
     deps = [
-        ":market_data_influx",
-        "//infrastructure/influxdb",
-        "//infrastructure/logging:logger",
-        "//system/algo_trader/redis:redis_services",
-        requirement("pyyaml"),
+        "//system/algo_trader/influx/publisher:publisher_service",
     ],
 )
 
@@ -68,12 +64,12 @@ pytest_test(
 # InfluxDB Publisher binary
 py_binary(
     name = "publisher",
-    srcs = ["publisher.py"],
+    srcs = ["//system/algo_trader/influx/publisher:publisher_service"],
     data = ["publisher_config.yaml"],
-    main = "publisher.py",
+    main = "system/algo_trader/influx/publisher/publisher.py",
     visibility = ["//visibility:public"],
     deps = [
-        ":publisher_lib",
+        "//system/algo_trader/influx/publisher:publisher_service",
     ],
 )
 

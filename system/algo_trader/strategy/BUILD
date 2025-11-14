@@ -6,12 +6,19 @@ py_library(
     name = "strategies",
     srcs = [
         "base.py",
-        "journal.py",
-        "sma_crossover.py",
+        "core/data_access.py",
+        "core/sequential.py",
+        "core/signal_writer.py",
+        "core/threaded.py",
+        "journal/calculator.py",
+        "journal/efficiency.py",
+        "journal/journal.py",
+        "journal/trade_matching.py",
+        "strategies/sma_crossover.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
-        "//tests/system/algo_trader/strategy:__pkg__",  # Allow test access
+        "//tests/system/algo_trader/strategy:__subpackages__",  # Allow test access
     ],
     deps = [
         "//infrastructure:client",
@@ -26,10 +33,10 @@ py_library(
 
 py_library(
     name = "cli_utils",
-    srcs = ["cli_utils.py"],
+    srcs = ["utils/cli_utils.py"],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/strategy:__pkg__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
         "//system/algo_trader/datasource/sec:tickers_lib",
@@ -38,10 +45,10 @@ py_library(
 
 py_library(
     name = "executor",
-    srcs = ["executor.py"],
+    srcs = ["core/executor.py"],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/strategy:__pkg__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
         ":cli_utils",
@@ -87,25 +94,25 @@ pytest_test(
 pytest_test(
     name = "test_sma_crossover",
     size = "small",
-    coverage_path = "system.algo_trader.strategy.sma_crossover",
+    coverage_path = "system.algo_trader.strategy.strategies.sma_crossover",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy:test_sma_crossover_lib",
+    test_lib = "//tests/system/algo_trader/strategy/strategies:test_sma_crossover_lib",
 )
 
 pytest_test(
     name = "test_executor",
     size = "small",
-    coverage_path = "system.algo_trader.strategy.executor",
+    coverage_path = "system.algo_trader.strategy.core.executor",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy:test_executor_lib",
+    test_lib = "//tests/system/algo_trader/strategy/core:test_executor_lib",
 )
 
 pytest_test(
     name = "test_cli_utils",
     size = "small",
-    coverage_path = "system.algo_trader.strategy.cli_utils",
+    coverage_path = "system.algo_trader.strategy.utils.cli_utils",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy:test_cli_utils_lib",
+    test_lib = "//tests/system/algo_trader/strategy/utils:test_cli_utils_lib",
 )
 
 pytest_test(

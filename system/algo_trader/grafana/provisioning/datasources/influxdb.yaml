@@ -1,8 +1,8 @@
 apiVersion: 1
 
 datasources:
-  - name: InfluxDB
-    uid: influxdb-algo-trader
+  - name: OHLCV
+    uid: influxdb-algo-trader-ohlcv
     type: influxdb
     access: proxy
     url: http://influxdb:8181
@@ -10,6 +10,23 @@ datasources:
     jsonData:
       version: SQL
       dbName: algo-trader-ohlcv
+      httpMode: POST
+      insecureGrpc: true
+      tlsSkipVerify: true
+    secureJsonData:
+      token: $INFLUXDB3_AUTH_TOKEN
+    isDefault: true
+    editable: true
+
+  - name: Journal
+    uid: influxdb-algo-trader-trading-journal
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8181
+    database: algo-trader-trading-journal
+    jsonData:
+      version: SQL
+      dbName: algo-trader-trading-journal
       httpMode: POST
       insecureGrpc: true
       tlsSkipVerify: true

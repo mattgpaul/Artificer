@@ -2,14 +2,12 @@
 
 This module provides the BaseStrategy abstract class for implementing market
 trading strategies that generate buy/sell signals from OHLCV data stored in
-InfluxDB and persist signals back to the database.
+InfluxDB and persisting signals back to the database.
 """
 
 from __future__ import annotations
 
-import time
 from abc import abstractmethod
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -19,6 +17,10 @@ from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
 from infrastructure.threads.thread_manager import ThreadManager
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from system.algo_trader.strategy.core.data_access import DataAccess
+from system.algo_trader.strategy.core.sequential import run_sequential
+from system.algo_trader.strategy.core.signal_writer import SignalWriter
+from system.algo_trader.strategy.core.threaded import run_threaded
 
 if TYPE_CHECKING:
     from infrastructure.config import ThreadConfig
@@ -52,7 +54,7 @@ class BaseStrategy(Client):
         strategy_type: Strategy type - 'LONG' or 'SHORT'. Subclasses must set this.
     """
 
-    strategy_type: str = None  # Subclasses must set to "LONG" or "SHORT"
+    strategy_type: str = None
 
     def __init__(
         self,
@@ -81,6 +83,9 @@ class BaseStrategy(Client):
             database=database, write_config=write_config, config=config
         )
         self.thread_manager = ThreadManager(config=thread_config) if use_threading else None
+
+        self.data_access = DataAccess(self.influx_client, self.strategy_name, self.logger)
+        self.signal_writer = SignalWriter(self.influx_client, self.strategy_name, self.logger)
 
         threading_info = f"threading={use_threading}"
         if use_threading and thread_config:
@@ -147,38 +152,7 @@ class BaseStrategy(Client):
         Example:
             >>> ohlcv = strategy.query_ohlcv('AAPL', start_time='2024-01-01')
         """
-        # Build SQL query with optional filters
-        query = f"SELECT * FROM ohlcv WHERE ticker = '{ticker}'"
-
-        if start_time:
-            query += f" AND time >= '{start_time}'"
-        if end_time:
-            query += f" AND time <= '{end_time}'"
-
-        query += " ORDER BY time ASC"
-
-        if limit:
-            query += f" LIMIT {limit}"
-
-        self.logger.debug(f"Querying OHLCV for {ticker}: {query}")
-
-        try:
-            df = self.influx_client.query(query)
-            if df is None or (isinstance(df, bool) and not df):
-                self.logger.warning(f"No OHLCV data found for {ticker}")
-                return None
-
-            # Set time as index if it exists
-            if "time" in df.columns:
-                df["time"] = pd.to_datetime(df["time"])
-                df = df.set_index("time")
-
-            self.logger.debug(f"Retrieved {len(df)} OHLCV records for {ticker}")
-            return df
-
-        except Exception as e:
-            self.logger.error(f"Failed to query OHLCV for {ticker}: {e}")
-            return None
+        return self.data_access.query_ohlcv(ticker, start_time, end_time, limit)
 
     def write_signals(self, signals: pd.DataFrame, ticker: str) -> bool:
         """Write trading signals to InfluxDB strategy table.
@@ -200,48 +174,7 @@ class BaseStrategy(Client):
             ... }, index=pd.to_datetime(['2024-01-01', '2024-01-02']))
             >>> strategy.write_signals(signals_df, 'AAPL')
         """
-        if signals.empty:
-            self.logger.info(f"No signals to write for {ticker}")
-            return True
-
-        # Validate required columns
-        required_cols = {"signal_type", "price"}
-        if not required_cols.issubset(signals.columns):
-            missing = required_cols - set(signals.columns)
-            self.logger.error(f"Missing required columns: {missing}")
-            return False
-
-        # Add metadata columns
-        signals_copy = signals.copy()
-        signals_copy["ticker"] = ticker
-        signals_copy["strategy"] = self.strategy_name
-        signals_copy["generated_at"] = datetime.now(timezone.utc).isoformat()
-
-        # Ensure index is datetime with name 'time' for InfluxDB
-        if not isinstance(signals_copy.index, pd.DatetimeIndex):
-            self.logger.error("Signals DataFrame must have DatetimeIndex")
-            return False
-
-        # Reset index to convert to column named 'time'
-        signals_copy = signals_copy.reset_index()
-        if signals_copy.columns[0] != "time":
-            signals_copy = signals_copy.rename(columns={signals_copy.columns[0]: "time"})
-
-        # Convert to milliseconds timestamp for consistency with OHLCV format
-        signals_copy["datetime"] = pd.to_datetime(signals_copy["time"]).astype("int64") // 10**6
-        signals_copy = signals_copy.drop("time", axis=1)
-
-        # Convert to list of dicts for write method
-        signal_records = signals_copy.to_dict("records")
-
-        try:
-            success = self.influx_client.write(data=signal_records, ticker=ticker, table="strategy")
-            if success:
-                self.logger.info(f"Wrote {len(signal_records)} signals for {ticker} to InfluxDB")
-            return success
-        except Exception as e:
-            self.logger.error(f"Failed to write signals for {ticker}: {e}")
-            return False
+        return self.signal_writer.write_signals(signals, ticker)
 
     def run_strategy(
         self,
@@ -278,13 +211,11 @@ class BaseStrategy(Client):
         """
         self.logger.debug(f"Running {self.strategy_name} strategy for {ticker}")
 
-        # Query OHLCV data
         ohlcv_data = self.query_ohlcv(ticker, start_time, end_time, limit)
         if ohlcv_data is None or ohlcv_data.empty:
             self.logger.debug(f"No OHLCV data available for {ticker}")
             return pd.DataFrame()
 
-        # Generate buy and sell signals using strategy-specific logic
         try:
             buy_signals = self.buy(ohlcv_data, ticker)
             sell_signals = self.sell(ohlcv_data, ticker)
@@ -292,7 +223,6 @@ class BaseStrategy(Client):
             self.logger.error(f"Signal generation failed for {ticker}: {e}")
             return pd.DataFrame()
 
-        # Add signal_type and side to each DataFrame
         if not buy_signals.empty:
             buy_signals["signal_type"] = "buy"
             buy_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
@@ -300,7 +230,6 @@ class BaseStrategy(Client):
             sell_signals["signal_type"] = "sell"
             sell_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
 
-        # Combine buy and sell signals
         if buy_signals.empty and sell_signals.empty:
             self.logger.debug(f"No signals generated for {ticker}")
             return pd.DataFrame()
@@ -311,7 +240,6 @@ class BaseStrategy(Client):
         else:
             signals = pd.concat([buy_signals, sell_signals]).sort_index()
 
-        # Write signals to InfluxDB if requested
         if write_signals:
             write_success = self.write_signals(signals, ticker)
             if not write_success:
@@ -319,7 +247,6 @@ class BaseStrategy(Client):
                     f"Failed to write signals for {ticker}, returning summary anyway"
                 )
 
-        # Build summary DataFrame
         summary = signals.copy()
         summary["ticker"] = ticker
         summary["signal_time"] = summary.index
@@ -367,166 +294,20 @@ class BaseStrategy(Client):
         )
 
         if self.thread_manager:
-            return self._run_threaded(tickers, start_time, end_time, limit, write_signals)
-        else:
-            return self._run_sequential(tickers, start_time, end_time, limit, write_signals)
-
-    def _run_sequential(
-        self,
-        tickers: list[str],
-        start_time: str | None,
-        end_time: str | None,
-        limit: int | None,
-        write_signals: bool,
-    ) -> pd.DataFrame:
-        """Execute strategy sequentially for multiple tickers."""
-        all_summaries = []
-
-        for ticker in tickers:
-            summary = self.run_strategy(ticker, start_time, end_time, limit, write_signals)
-            if not summary.empty:
-                all_summaries.append(summary)
-
-        if not all_summaries:
-            self.logger.info("No signals generated for any tickers")
-            return pd.DataFrame()
-
-        combined = pd.concat(all_summaries, ignore_index=True)
-        self._log_multi_summary(combined)
-        return combined
-
-    def _run_threaded(
-        self,
-        tickers: list[str],
-        start_time: str | None,
-        end_time: str | None,
-        limit: int | None,
-        write_signals: bool,
-    ) -> pd.DataFrame:
-        """Execute strategy in parallel using ThreadManager with batching support.
-
-        Processes tickers in batches when the number of tickers exceeds max_threads.
-        Automatically manages thread capacity and processes all tickers sequentially
-        in batches until complete.
-        """
-
-        def process_ticker(ticker: str) -> dict:
-            """Thread target for processing a single ticker."""
-            try:
-                summary = self.run_strategy(ticker, start_time, end_time, limit, write_signals)
-                return {"success": True, "summary": summary}
-            except Exception as e:
-                self.logger.error(f"Thread failed for {ticker}: {e}")
-                return {"success": False, "error": str(e)}
-
-        max_threads = self.thread_manager.config.max_threads
-        self.logger.info(f"ThreadManager initialized with max_threads={max_threads}")
-
-        # Check if batching will be needed
-        if len(tickers) > max_threads:
-            self.logger.info(
-                f"Ticker count ({len(tickers)}) exceeds max_threads ({max_threads}). "
-                f"Batching will be used. Consider increasing THREAD_MAX_THREADS "
-                f"for faster processing."
+            return run_threaded(
+                self,
+                tickers,
+                start_time,
+                end_time,
+                limit,
+                write_signals,
+                self.thread_manager,
+                self.logger,
             )
-
-        # Batch processing loop
-        remaining_tickers = list(tickers)
-        last_log_time = time.time()
-
-        self.logger.info("Starting batch processing...")
-
-        while remaining_tickers:
-            # Check available thread capacity
-            active_count = self.thread_manager.get_active_thread_count()
-            available_slots = max_threads - active_count
-
-            # Start new threads up to available capacity
-            if available_slots > 0 and remaining_tickers:
-                batch_size = min(available_slots, len(remaining_tickers))
-                batch = remaining_tickers[:batch_size]
-                remaining_tickers = remaining_tickers[batch_size:]
-
-                for ticker in batch:
-                    try:
-                        self.thread_manager.start_thread(
-                            target=process_ticker,
-                            name=f"strategy-{ticker}",
-                            args=(ticker,),
-                        )
-                        self.logger.debug(f"Started thread for {ticker}")
-                    except RuntimeError as e:
-                        self.logger.error(f"Failed to start thread for {ticker}: {e}")
-                        remaining_tickers.append(ticker)  # Re-add to queue
-
-            # Wait briefly for threads to complete
-            time.sleep(0.5)
-
-            # Log progress periodically (every 10 seconds)
-            # Note: We don't cleanup dead threads here to preserve results for final summary
-            current_time = time.time()
-            if current_time - last_log_time >= 10:
-                with self.thread_manager.lock:
-                    completed_count = sum(
-                        1
-                        for status in self.thread_manager.threads.values()
-                        if not status.thread.is_alive() and status.status in ("stopped", "error")
-                    )
-                started_count = len(tickers) - len(remaining_tickers)
-                self.logger.info(
-                    f"Progress: {started_count} started, {completed_count} completed, "
-                    f"{len(remaining_tickers)} remaining, {active_count} active threads"
-                )
-                last_log_time = current_time
-
-        # Wait for all remaining threads to complete
-        self.logger.info("Waiting for all strategy threads to complete...")
-        self.thread_manager.wait_for_all_threads(timeout=300)
-
-        # Collect results
-        all_results = self.thread_manager.get_all_results()
-        all_summaries = []
-
-        for result in all_results.values():
-            if result and result.get("success"):
-                summary = result.get("summary")
-                if summary is not None and not summary.empty:
-                    all_summaries.append(summary)
-
-        # Cleanup threads
-        self.thread_manager.cleanup_dead_threads()
-
-        # Wait for InfluxDB batch writes to complete (only if writing was enabled)
-        if write_signals:
-            self.influx_client.wait_for_batches(timeout=30)
-
-        if not all_summaries:
-            self.logger.info("No signals generated for any tickers")
-            return pd.DataFrame()
-
-        combined = pd.concat(all_summaries, ignore_index=True)
-        self._log_multi_summary(combined)
-        return combined
-
-    def _log_multi_summary(self, combined: pd.DataFrame) -> None:
-        """Log summary statistics for multi-ticker strategy execution."""
-        stats_by_ticker = (
-            combined.groupby("ticker")["signal_type"]
-            .value_counts()
-            .unstack(fill_value=0)
-            .reset_index()
-        )
-        stats_by_ticker["total"] = stats_by_ticker.get("buy", 0) + stats_by_ticker.get("sell", 0)
-
-        total_signals = len(combined)
-        total_buys = (combined["signal_type"] == "buy").sum()
-        total_sells = (combined["signal_type"] == "sell").sum()
-
-        self.logger.info(
-            f"Strategy execution complete: {total_signals} total signals "
-            f"({total_buys} buys, {total_sells} sells) across "
-            f"{combined['ticker'].nunique()} tickers"
-        )
+        else:
+            return run_sequential(
+                self, tickers, start_time, end_time, limit, write_signals, self.logger
+            )
 
     def query_signals(
         self,
@@ -549,33 +330,7 @@ class BaseStrategy(Client):
         Example:
             >>> buys = strategy.query_signals(ticker='AAPL', signal_type='buy')
         """
-        query = f"SELECT * FROM strategy WHERE strategy = '{self.strategy_name}'"
-
-        if ticker:
-            query += f" AND ticker = '{ticker}'"
-        if start_time:
-            query += f" AND time >= '{start_time}'"
-        if end_time:
-            query += f" AND time <= '{end_time}'"
-        if signal_type:
-            query += f" AND signal_type = '{signal_type}'"
-
-        query += " ORDER BY time DESC"
-
-        self.logger.debug(f"Querying signals: {query}")
-
-        try:
-            df = self.influx_client.query(query)
-            if df is None or (isinstance(df, bool) and not df):
-                self.logger.info("No signals found matching criteria")
-                return None
-
-            self.logger.info(f"Retrieved {len(df)} historical signals")
-            return df
-
-        except Exception as e:
-            self.logger.error(f"Failed to query signals: {e}")
-            return None
+        return self.data_access.query_signals(ticker, start_time, end_time, signal_type)
 
     def close(self) -> None:
         """Close InfluxDB client and cleanup resources."""
