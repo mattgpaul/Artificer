@@ -1,3 +1,10 @@
+"""Execution simulation for backtesting.
+
+This module provides execution simulation functionality, including:
+- ExecutionConfig: Configuration for execution simulation
+- ExecutionSimulator: Simulates trade execution with slippage and commissions
+"""
+
 from dataclasses import dataclass
 
 import pandas as pd
@@ -5,6 +12,15 @@ import pandas as pd
 
 @dataclass
 class ExecutionConfig:
+    """Configuration for execution simulation.
+
+    Attributes:
+        slippage_bps: Slippage in basis points.
+        commission_per_share: Commission per share.
+        use_limit_orders: Whether to use limit orders.
+        fill_delay_minutes: Fill delay in minutes.
+    """
+
     slippage_bps: float = 5.0
     commission_per_share: float = 0.005
     use_limit_orders: bool = False
@@ -12,12 +28,32 @@ class ExecutionConfig:
 
 
 class ExecutionSimulator:
-    def __init__(self, config: ExecutionConfig):
+    """Simulates trade execution with slippage and commissions.
+
+    Args:
+        config: Execution configuration.
+    """
+
+    def __init__(self, config: ExecutionConfig) -> None:
+        """Initialize execution simulator.
+
+        Args:
+            config: Execution configuration.
+        """
         self.config = config
 
     def apply_execution(
         self, trades: pd.DataFrame, ohlcv_data: dict[str, pd.DataFrame]
     ) -> pd.DataFrame:
+        """Apply execution simulation to trades.
+
+        Args:
+            trades: DataFrame containing trade signals.
+            ohlcv_data: Dictionary mapping tickers to OHLCV DataFrames.
+
+        Returns:
+            DataFrame with executed trades including fill prices and PnL.
+        """
         if trades.empty:
             return trades
 
@@ -58,35 +94,51 @@ class ExecutionSimulator:
 
         return executed_trades
 
-    def _calculate_fill_price(
-        self,
-        signal_price: float,
-        timestamp: pd.Timestamp,
-        ohlcv_data: pd.DataFrame,
-        side: str,
-    ) -> float:
-        if ohlcv_data.empty:
-            return signal_price
+    def _normalize_timestamp(self, timestamp: pd.Timestamp) -> pd.Timestamp:
+        """Normalize timestamp to UTC timezone.
 
-        # Ensure timestamp is timezone-aware (UTC) for comparison
+        Args:
+            timestamp: Timestamp to normalize.
+
+        Returns:
+            UTC timezone-aware timestamp.
+        """
         if timestamp.tz is None:
-            timestamp = timestamp.tz_localize("UTC")
-        else:
-            timestamp = timestamp.tz_convert("UTC")
+            return timestamp.tz_localize("UTC")
+        return timestamp.tz_convert("UTC")
 
-        # Ensure index is timezone-aware (UTC) for comparison
-        # Work with a copy to avoid modifying original data
+    def _normalize_ohlcv_timezone(self, ohlcv_data: pd.DataFrame) -> pd.DataFrame:
+        """Normalize OHLCV DataFrame index to UTC timezone.
+
+        Args:
+            ohlcv_data: DataFrame with time index.
+
+        Returns:
+            DataFrame with UTC timezone-aware index.
+        """
         ohlcv_utc = ohlcv_data.copy()
         if ohlcv_utc.index.tz is None:
             ohlcv_utc.index = ohlcv_utc.index.tz_localize("UTC")
         else:
             ohlcv_utc.index = ohlcv_utc.index.tz_convert("UTC")
+        return ohlcv_utc
 
-        # Find the bar at or before the signal timestamp
+    def _find_execution_bar_time(
+        self, timestamp: pd.Timestamp, ohlcv_utc: pd.DataFrame
+    ) -> pd.Timestamp:
+        """Find execution bar time for a given timestamp.
+
+        Args:
+            timestamp: Signal timestamp.
+            ohlcv_utc: OHLCV data with UTC timezone-aware index.
+
+        Returns:
+            Execution bar timestamp.
+        """
         if timestamp not in ohlcv_utc.index:
             closest_idx = ohlcv_utc.index[ohlcv_utc.index <= timestamp]
             if len(closest_idx) == 0:
-                return signal_price
+                return timestamp
             signal_bar_time = closest_idx[-1]
         else:
             signal_bar_time = timestamp
@@ -95,28 +147,66 @@ class ExecutionSimulator:
         # Signal detected at time T, but we can't execute until time T+1
         next_bars = ohlcv_utc.index[ohlcv_utc.index > signal_bar_time]
         if len(next_bars) == 0:
-            # No future bar available, use signal bar (edge case at end of data)
-            execution_bar_time = signal_bar_time
-        else:
-            execution_bar_time = next_bars[0]
+            return signal_bar_time
+        return next_bars[0]
 
-        # Use the execution bar for price lookup
-        bar = ohlcv_utc.loc[execution_bar_time]
+    def _get_base_fill_price(self, bar: pd.Series, side: str) -> float:
+        """Get base fill price from bar data.
 
+        Args:
+            bar: OHLCV bar data.
+            side: Trade side ("entry" or "exit").
+
+        Returns:
+            Base fill price before slippage.
+        """
         if self.config.use_limit_orders:
-            if side == "entry":
-                fill_price = bar["open"]
-            else:
-                fill_price = bar["open"]
-        elif side == "entry":
-            fill_price = bar["close"]
-        else:
-            fill_price = bar["close"]
+            return bar["open"]
+        return bar["close"]
 
+    def _apply_slippage(self, fill_price: float, side: str) -> float:
+        """Apply slippage to fill price.
+
+        Args:
+            fill_price: Base fill price.
+            side: Trade side ("entry" or "exit").
+
+        Returns:
+            Fill price with slippage applied.
+        """
         slippage_multiplier = 1 + (self.config.slippage_bps / 10000)
         if side == "entry":
-            fill_price = fill_price * slippage_multiplier
-        else:
-            fill_price = fill_price * (1 - (self.config.slippage_bps / 10000))
+            return fill_price * slippage_multiplier
+        return fill_price * (1 - (self.config.slippage_bps / 10000))
+
+    def _calculate_fill_price(
+        self,
+        signal_price: float,
+        timestamp: pd.Timestamp,
+        ohlcv_data: pd.DataFrame,
+        side: str,
+    ) -> float:
+        """Calculate fill price for a trade signal.
+
+        Args:
+            signal_price: Original signal price.
+            timestamp: Signal timestamp.
+            ohlcv_data: OHLCV data for price lookup.
+            side: Trade side ("entry" or "exit").
+
+        Returns:
+            Calculated fill price with slippage.
+        """
+        if ohlcv_data.empty:
+            return signal_price
+
+        timestamp = self._normalize_timestamp(timestamp)
+        ohlcv_utc = self._normalize_ohlcv_timezone(ohlcv_data)
+
+        execution_bar_time = self._find_execution_bar_time(timestamp, ohlcv_utc)
+        bar = ohlcv_utc.loc[execution_bar_time]
+
+        fill_price = self._get_base_fill_price(bar, side)
+        fill_price = self._apply_slippage(fill_price, side)
 
         return round(fill_price, 4)

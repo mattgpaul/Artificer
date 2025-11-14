@@ -1,3 +1,8 @@
+"""Results writer for backtest outputs.
+
+This module provides functionality for writing backtest results to Redis queues.
+"""
+
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -17,7 +22,18 @@ from system.algo_trader.redis.queue_broker import QueueBroker
 
 
 class ResultsWriter:
-    def __init__(self, namespace: str = "queue"):
+    """Writer for backtest results to Redis queues.
+
+    Args:
+        namespace: Redis namespace for queues.
+    """
+
+    def __init__(self, namespace: str = "queue") -> None:
+        """Initialize results writer.
+
+        Args:
+            namespace: Redis namespace for queues.
+        """
         self.namespace = namespace
         self.queue_broker = QueueBroker(namespace=namespace)
         self.logger = get_logger(self.__class__.__name__)
@@ -83,6 +99,30 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
     ) -> bool:
+        """Write trades to Redis queue.
+
+        Args:
+            trades: DataFrame containing executed trades.
+            strategy_name: Name of the strategy.
+            ticker: Ticker symbol.
+            backtest_id: Optional backtest identifier.
+            strategy_params: Optional strategy parameters.
+            execution_config: Optional execution configuration.
+            start_date: Optional start date.
+            end_date: Optional end date.
+            step_frequency: Optional step frequency.
+            database: Optional database name.
+            tickers: Optional list of tickers.
+            capital_per_trade: Optional capital per trade.
+            risk_free_rate: Optional risk-free rate.
+            walk_forward: Optional walk-forward flag.
+            train_days: Optional training days.
+            test_days: Optional testing days.
+            train_split: Optional train/test split.
+
+        Returns:
+            True if successful, False otherwise.
+        """
         if trades.empty:
             self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
@@ -170,6 +210,30 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
     ) -> bool:
+        """Write metrics to Redis queue.
+
+        Args:
+            metrics: Dictionary containing performance metrics.
+            strategy_name: Name of the strategy.
+            ticker: Ticker symbol.
+            backtest_id: Optional backtest identifier.
+            strategy_params: Optional strategy parameters.
+            execution_config: Optional execution configuration.
+            start_date: Optional start date.
+            end_date: Optional end date.
+            step_frequency: Optional step frequency.
+            database: Optional database name.
+            tickers: Optional list of tickers.
+            capital_per_trade: Optional capital per trade.
+            risk_free_rate: Optional risk-free rate.
+            walk_forward: Optional walk-forward flag.
+            train_days: Optional training days.
+            test_days: Optional testing days.
+            train_split: Optional train/test split.
+
+        Returns:
+            True if successful, False otherwise.
+        """
         backtest_hash = None
         if all(
             [

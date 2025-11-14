@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""Main entry point for backtesting engine.
+
+This module provides the CLI interface for running backtests on trading strategies.
+"""
+
 import argparse
 import sys
 
@@ -13,6 +18,18 @@ from system.algo_trader.strategy.sma_crossover import SMACrossoverStrategy
 
 
 def create_strategy(args, logger):
+    """Create strategy instance from command-line arguments.
+
+    Args:
+        args: Parsed command-line arguments.
+        logger: Logger instance.
+
+    Returns:
+        Strategy instance.
+
+    Raises:
+        ValueError: If strategy type is unknown.
+    """
     if args.strategy == "sma-crossover":
         logger.info(f"Initializing SMA Crossover: short={args.short}, long={args.long}")
         return SMACrossoverStrategy(
@@ -26,6 +43,11 @@ def create_strategy(args, logger):
 
 
 def parse_args():
+    """Parse command-line arguments.
+
+    Returns:
+        Parsed arguments namespace.
+    """
     parser = argparse.ArgumentParser(
         description="Backtesting engine for trading strategies",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -59,7 +81,9 @@ def parse_args():
         "--step-frequency",
         type=str,
         default="auto",
-        help="Time-stepping frequency: auto, daily, hourly, minute, or ISO duration (default: auto)",
+        help=(
+            "Time-stepping frequency: auto, daily, hourly, minute, or ISO duration (default: auto)"
+        ),
     )
     parser.add_argument(
         "--walk-forward",
@@ -132,6 +156,11 @@ def parse_args():
 
 
 def main():
+    """Main entry point for backtesting CLI.
+
+    Returns:
+        Exit code (0 for success, 1 for failure).
+    """
     args = parse_args()
     logger = get_logger("BacktestMain")
 

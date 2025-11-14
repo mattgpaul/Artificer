@@ -220,7 +220,10 @@ class InfluxPublisher:
 
             try:
                 success = influx_client.write_sync(
-                    data=time_series_data, ticker=ticker, table=dynamic_table_name, tag_columns=tag_columns
+                    data=time_series_data,
+                    ticker=ticker,
+                    table=dynamic_table_name,
+                    tag_columns=tag_columns,
                 )
 
                 if success:

@@ -70,7 +70,10 @@ class ProcessManager(Client):
         self._process_counter = 0
 
         max_processes = config.max_processes or max(1, multiprocessing.cpu_count() - 2)
-        self.logger.info(f"ProcessManager initialized (max_processes={max_processes}, start_method={config.start_method})")
+        self.logger.info(
+            f"ProcessManager initialized "
+            f"(max_processes={max_processes}, start_method={config.start_method})"
+        )
 
     def _generate_process_id(self) -> int:
         """Generate unique process ID.
@@ -352,7 +355,9 @@ class ProcessManager(Client):
             self.logger.info(f"All {len(process_names)} processes completed")
         else:
             incomplete_count = len([r for r in results if not r])
-            self.logger.error(f"{incomplete_count} of {len(process_names)} processes did not complete")
+            self.logger.error(
+                f"{incomplete_count} of {len(process_names)} processes did not complete"
+            )
 
         return all_completed
 
@@ -474,4 +479,3 @@ class ProcessManager(Client):
             self.pool.terminate()
             self.pool.join()
             self.pool = None
-

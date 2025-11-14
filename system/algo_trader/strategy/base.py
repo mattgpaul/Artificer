@@ -54,7 +54,7 @@ class BaseStrategy(Client):
 
     strategy_type: str = None  # Subclasses must set to "LONG" or "SHORT"
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         strategy_name: str,
         database: str = "algo-trader-database",

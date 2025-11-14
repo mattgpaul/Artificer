@@ -92,7 +92,9 @@ class MarketDataInflux(BaseInfluxDBClient):
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             return False
 
-    def write_sync(self, data: dict, ticker: str, table: str, tag_columns: list[str] | None = None) -> bool:
+    def write_sync(
+        self, data: dict, ticker: str, table: str, tag_columns: list[str] | None = None
+    ) -> bool:
         """Write market data to InfluxDB and wait for completion.
 
         Unlike write(), this method doesn't use the pending counter system.

@@ -1,3 +1,9 @@
+"""Utility functions for backtesting.
+
+This module provides utility functions for backtesting, including data
+conversion and queue name constants.
+"""
+
 import pandas as pd
 
 BACKTEST_TRADES_QUEUE_NAME = "backtest_trades_queue"
@@ -6,6 +12,14 @@ BACKTEST_REDIS_TTL = 3600
 
 
 def dataframe_to_dict(df: pd.DataFrame) -> dict:
+    """Convert DataFrame to dictionary format for Redis storage.
+
+    Args:
+        df: DataFrame to convert.
+
+    Returns:
+        Dictionary representation of the DataFrame.
+    """
     df_copy = df.copy()
 
     if isinstance(df_copy.index, pd.DatetimeIndex):

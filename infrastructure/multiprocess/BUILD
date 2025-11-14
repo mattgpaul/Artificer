@@ -3,7 +3,10 @@ load("//:pytest_test.bzl", "pytest_test")
 py_library(
     name = "process_manager",
     srcs = ["process_manager.py"],
-    visibility = ["//visibility:public"],
+    visibility = [
+        "//tests/infrastructure/multiprocess:__pkg__",
+        "//visibility:public",
+    ],
     deps = [
         "//infrastructure:client",
         "//infrastructure:config",
@@ -22,4 +25,3 @@ pytest_test(
     ],
     test_lib = "//tests/infrastructure/multiprocess:test_process_manager_lib",
 )
-

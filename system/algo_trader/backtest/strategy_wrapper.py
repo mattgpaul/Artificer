@@ -1,3 +1,10 @@
+"""Strategy wrapper for backtesting.
+
+This module provides a wrapper around strategies to prevent forward-looking bias
+during backtesting by filtering data to only show historical data up to the
+current time step.
+"""
+
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -7,12 +14,27 @@ if TYPE_CHECKING:
 
 
 class BacktestStrategyWrapper:
+    """Wrapper around strategy to prevent forward-looking bias.
+
+    Args:
+        strategy: Strategy instance to wrap.
+        current_time: Current time step in the backtest.
+        data_cache: Dictionary mapping tickers to OHLCV DataFrames.
+    """
+
     def __init__(
         self,
         strategy: "BaseStrategy",
         current_time: pd.Timestamp,
         data_cache: dict[str, pd.DataFrame],
-    ):
+    ) -> None:
+        """Initialize strategy wrapper.
+
+        Args:
+            strategy: Strategy instance to wrap.
+            current_time: Current time step in the backtest.
+            data_cache: Dictionary mapping tickers to OHLCV DataFrames.
+        """
         self.strategy = strategy
         self.current_time = current_time
         self._data_cache = data_cache
@@ -24,6 +46,17 @@ class BacktestStrategyWrapper:
         end_time: str | None = None,
         limit: int | None = None,
     ) -> pd.DataFrame | None:
+        """Query OHLCV data filtered to current time step.
+
+        Args:
+            ticker: Ticker symbol.
+            start_time: Optional start time filter.
+            end_time: Optional end time filter.
+            limit: Optional limit on number of rows.
+
+        Returns:
+            Filtered DataFrame or None if ticker not found.
+        """
         if ticker not in self._data_cache:
             return None
 
@@ -68,4 +101,12 @@ class BacktestStrategyWrapper:
         return filtered_data if not filtered_data.empty else None
 
     def __getattr__(self, name: str):
+        """Delegate attribute access to wrapped strategy.
+
+        Args:
+            name: Attribute name.
+
+        Returns:
+            Attribute value from wrapped strategy.
+        """
         return getattr(self.strategy, name)

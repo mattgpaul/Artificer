@@ -33,7 +33,7 @@ class SMACrossoverStrategy(BaseStrategy):
 
     strategy_type = "LONG"
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         short_window: int = 10,
         long_window: int = 20,
