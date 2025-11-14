@@ -573,6 +573,22 @@
                 "value": "currencyUSD"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time_held"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              },
+              {
+                "id": "custom.suffix",
+                "value": " days"
+              }
+            ]
           }
         ]
       },
@@ -610,9 +626,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT status, side, ticker as symbol, TO_TIMESTAMP_MILLIS(entry_time) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "query": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "rawQuery": true,
-          "rawSql": "SELECT status, side, ticker as symbol, TO_TIMESTAMP_MILLIS(entry_time) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "rawSql": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -652,7 +668,8 @@
               "side": "SIDE",
               "size": "SIZE",
               "status": "STATUS",
-              "symbol": "SYMBOL"
+              "symbol": "SYMBOL",
+              "time_held": "TIME HELD"
             }
           }
         }
