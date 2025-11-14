@@ -582,11 +582,11 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "dtdurations"
+                "value": "d"
               },
               {
-                "id": "custom.suffix",
-                "value": " days"
+                "id": "decimals",
+                "value": 0
               }
             ]
           }
