@@ -294,6 +294,142 @@ class TestMarketDataInfluxWrite:
         assert mock_influx_dependencies["client"].write.call_count == 3
 
 
+class TestMarketDataInfluxWriteSync:
+    """Test write_sync operations."""
+
+    def test_write_sync_success(self, mock_influx_dependencies):
+        """Test successful synchronous write."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = {
+            "datetime": [1609459200000, 1609545600000],
+            "open": [100.0, 101.0],
+            "close": [104.0, 105.0],
+            "volume": [1000000, 1100000],
+        }
+
+        result = client.write_sync(data, "AAPL", "stock")
+
+        assert result is True
+        mock_influx_dependencies["client"].write.assert_called_once()
+
+        # Verify write was called with correct parameters
+        call_args = mock_influx_dependencies["client"].write.call_args
+        assert call_args[1]["data_frame_measurement_name"] == "stock"
+        assert call_args[1]["data_frame_tag_columns"] == ["ticker"]
+
+    def test_write_sync_with_custom_tag_columns(self, mock_influx_dependencies):
+        """Test write_sync with custom tag columns."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        result = client.write_sync(data, "AAPL", "stock", tag_columns=["ticker", "exchange"])
+
+        assert result is True
+        call_args = mock_influx_dependencies["client"].write.call_args
+        assert call_args[1]["data_frame_tag_columns"] == ["ticker", "exchange"]
+
+    def test_write_sync_defaults_to_ticker_tag(self, mock_influx_dependencies):
+        """Test write_sync defaults tag_columns to ticker."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        client.write_sync(data, "AAPL", "stock")
+
+        call_args = mock_influx_dependencies["client"].write.call_args
+        assert call_args[1]["data_frame_tag_columns"] == ["ticker"]
+
+    def test_write_sync_logs_debug_message(self, mock_influx_dependencies):
+        """Test write_sync logs debug message with record count."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = {
+            "datetime": [1609459200000, 1609545600000],
+            "open": [100.0, 101.0],
+            "close": [104.0, 105.0],
+        }
+
+        client.write_sync(data, "AAPL", "stock")
+
+        mock_influx_dependencies["logger_instance"].debug.assert_called()
+        debug_call = mock_influx_dependencies["logger_instance"].debug.call_args[0][0]
+        assert "Wrote 2 records" in debug_call
+        assert "AAPL" in debug_call
+        assert "stock" in debug_call
+
+    def test_write_sync_failure_returns_false(self, mock_influx_dependencies):
+        """Test write_sync returns False on exception."""
+        mock_influx_dependencies["client"].write.side_effect = Exception("Write failed")
+
+        client = MarketDataInflux()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        result = client.write_sync(data, "AAPL", "stock")
+
+        assert result is False
+
+    def test_write_sync_failure_logs_error(self, mock_influx_dependencies):
+        """Test write_sync failure logs error message."""
+        mock_influx_dependencies["client"].write.side_effect = Exception("Connection timeout")
+
+        client = MarketDataInflux()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        client.write_sync(data, "AAPL", "stock")
+
+        error_call = mock_influx_dependencies["logger_instance"].error.call_args
+        assert "Failed to write data" in error_call[0][0]
+        assert "AAPL" in error_call[0][0]
+        assert "Connection timeout" in error_call[0][0]
+
+    def test_write_sync_with_list_data(self, mock_influx_dependencies):
+        """Test write_sync handles list data format."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = [
+            {"datetime": 1609459200000, "open": 100.0, "close": 104.0},
+            {"datetime": 1609545600000, "open": 101.0, "close": 105.0},
+        ]
+
+        result = client.write_sync(data, "AAPL", "stock")
+
+        assert result is True
+        mock_influx_dependencies["logger_instance"].debug.assert_called()
+        debug_call = mock_influx_dependencies["logger_instance"].debug.call_args[0][0]
+        assert "Wrote 2 records" in debug_call
+
+    def test_write_sync_adds_ticker_column(self, mock_influx_dependencies):
+        """Test write_sync adds ticker as a column."""
+        mock_influx_dependencies["client"].write.return_value = None
+
+        client = MarketDataInflux()
+
+        data = {"datetime": [1609459200000], "open": [100.0], "close": [104.0]}
+
+        client.write_sync(data, "TSLA", "stock")
+
+        # Get the dataframe that was passed to write
+        call_args = mock_influx_dependencies["client"].write.call_args
+        df_passed = call_args[0][0]
+
+        assert "ticker" in df_passed.columns
+        assert df_passed["ticker"].iloc[0] == "TSLA"
+
+
 class TestMarketDataInfluxQuery:
     """Test query operations."""
 

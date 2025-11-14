@@ -278,3 +278,55 @@ class TestOHLCVArgumentHandler:
         context = {}
         ohlcv_handler.execute(context)
         ohlcv_handler.logger.error.assert_called()
+
+    def test_process_with_missing_tickers(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
+        """Test process with missing-tickers fetches from MySQL."""
+        mock_ohlcv_bad_ticker_client.get_missing_tickers.return_value = ["MISS1", "MISS2", "MISS3"]
+
+        parser = argparse.ArgumentParser()
+        ohlcv_handler.add_arguments(parser)
+        args = parser.parse_args(
+            [
+                "--tickers",
+                "missing-tickers",
+                "--frequency",
+                "daily",
+                "--period",
+                "year",
+                "--frequency-value",
+                "1",
+                "--period-value",
+                "10",
+            ]
+        )
+
+        result = ohlcv_handler.process(args)
+
+        assert "MISS1" in result["tickers"]
+        assert "MISS2" in result["tickers"]
+        assert "MISS3" in result["tickers"]
+        mock_ohlcv_bad_ticker_client.get_missing_tickers.assert_called_once_with(limit=10000)
+
+    def test_process_with_missing_tickers_empty(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
+        """Test process with missing-tickers raises error when empty."""
+        mock_ohlcv_bad_ticker_client.get_missing_tickers.return_value = []
+
+        parser = argparse.ArgumentParser()
+        ohlcv_handler.add_arguments(parser)
+        args = parser.parse_args(
+            [
+                "--tickers",
+                "missing-tickers",
+                "--frequency",
+                "daily",
+                "--period",
+                "year",
+                "--frequency-value",
+                "1",
+                "--period-value",
+                "10",
+            ]
+        )
+
+        with pytest.raises(ValueError, match="No missing tickers found"):
+            ohlcv_handler.process(args)

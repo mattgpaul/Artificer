@@ -46,6 +46,23 @@ py_library(
     ],
 )
 
+py_library(
+    name = "diagnose_missing_data",
+    srcs = ["diagnose_missing_data.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/influx:__pkg__",
+    ],
+    deps = [
+        ":market_data_influx",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/datasource/sec:tickers_lib",
+        "//system/algo_trader/mysql:bad_ticker_client",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/strategy:cli_utils",
+    ],
+)
+
 # Test targets
 pytest_test(
     name = "test_market_data_influx",
@@ -59,6 +76,13 @@ pytest_test(
     coverage_path = "system.algo_trader.influx",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/influx:test_publisher_lib",
+)
+
+pytest_test(
+    name = "test_diagnose_missing_data",
+    coverage_path = "system.algo_trader.influx",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/influx:test_diagnose_missing_data_lib",
 )
 
 # InfluxDB Publisher binary
@@ -99,4 +123,15 @@ sh_binary(
     name = "publisher-exec",
     srcs = ["publisher_cli.sh"],
     visibility = ["//visibility:public"],
+)
+
+# Diagnostic script for investigating missing OHLCV data
+py_binary(
+    name = "diagnose_missing_data_bin",
+    srcs = ["diagnose_missing_data.py"],
+    main = "diagnose_missing_data.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":diagnose_missing_data",
+    ],
 )

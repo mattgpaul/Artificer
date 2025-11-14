@@ -50,10 +50,34 @@ class MarketDataInflux(BaseInfluxDBClient):
         super().__init__(database=database, write_config=write_config, config=config)
         self.logger = get_logger(self.__class__.__name__)
 
-    def _format_stock_data(self, data: dict, ticker: str) -> pd.DataFrame:
+    def _format_stock_data(self, data: dict | list, ticker: str) -> pd.DataFrame:
+        """Format stock data for InfluxDB write operations.
+
+        Converts market data dictionary or list to pandas DataFrame with datetime
+        index. Handles empty data and missing datetime columns.
+
+        Args:
+            data: Dictionary or list containing market data with datetime and OHLCV fields.
+            ticker: Stock ticker symbol for logging purposes.
+
+        Returns:
+            DataFrame with datetime index and OHLCV columns (datetime column removed).
+
+        Raises:
+            ValueError: If datetime column is missing from data.
+        """
         self.logger.debug(f"Formatting {ticker}")
         # TODO: datetime probably needs formatting
         df = pd.DataFrame(data)
+
+        if df.empty:
+            self.logger.warning(f"Empty DataFrame for {ticker} - cannot format")
+            return df
+
+        if "datetime" not in df.columns:
+            self.logger.error(f"No 'datetime' column in data for {ticker}")
+            raise ValueError(f"No 'datetime' column found in data for {ticker}")
+
         df = df.set_index(pd.to_datetime(df["datetime"], unit="ms", utc=True))
         df = df.drop("datetime", axis=1)
         return df

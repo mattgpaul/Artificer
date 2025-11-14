@@ -187,3 +187,145 @@ class TestBadTickerClientOperations:
 
         assert result is False
         mock_logger.error.assert_called()
+
+
+class TestBadTickerClientMissingTickers:
+    """Test missing tickers table operations."""
+
+    def test_create_missing_tickers_table_success(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test successful missing_tickers table creation."""
+        client = BadTickerClient()
+        client.create_missing_tickers_table()
+
+        # Verify CREATE TABLE query was executed
+        calls = mock_mysql["cursor"].execute.call_args_list
+        create_table_calls = [
+            call
+            for call in calls
+            if "CREATE TABLE" in str(call[0]) and "missing_tickers" in str(call[0])
+        ]
+        assert len(create_table_calls) > 0
+        mock_logger.info.assert_called()
+
+    def test_create_missing_tickers_table_failure(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test missing_tickers table creation handles errors."""
+        client = BadTickerClient()
+        # Set side_effect after init to avoid affecting create_missing_tickers_table() in __init__
+        mock_mysql["cursor"].execute.side_effect = RuntimeError("Database error")
+
+        with pytest.raises(RuntimeError, match="Database error"):
+            client.create_missing_tickers_table()
+
+        mock_logger.error.assert_called()
+
+    def test_store_missing_tickers_success(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test successful storage of missing tickers."""
+        mock_mysql["cursor"].execute.return_value = 1
+
+        client = BadTickerClient()
+        tickers = ["MISS1", "MISS2", "MISS3"]
+        result = client.store_missing_tickers(tickers, "test_source")
+
+        assert result == 3
+        assert mock_mysql["cursor"].execute.call_count >= 3
+
+    def test_store_missing_tickers_handles_duplicates(
+        self, mock_mysql, mock_logger, mock_mysql_config
+    ):
+        """Test store_missing_tickers handles duplicate tickers."""
+        mock_mysql["cursor"].execute.return_value = 1
+
+        client = BadTickerClient()
+        tickers = ["MISS1", "MISS1", "MISS2"]  # Duplicate ticker
+        result = client.store_missing_tickers(tickers, "test_source")
+
+        assert result == 3  # All stored, duplicates handled by ON DUPLICATE KEY UPDATE
+
+    def test_store_missing_tickers_handles_errors(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test store_missing_tickers handles individual ticker errors."""
+        client = BadTickerClient()
+        # First ticker succeeds, second fails, third succeeds
+        mock_mysql["cursor"].execute.side_effect = [
+            1,  # First succeeds
+            Exception("DB error"),  # Second fails
+            1,  # Third succeeds
+        ]
+
+        tickers = ["MISS1", "MISS2", "MISS3"]
+        result = client.store_missing_tickers(tickers, "test_source")
+
+        assert result == 2  # Only 2 succeeded
+        mock_logger.error.assert_called()
+
+    def test_get_missing_tickers_success(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test successful retrieval of missing tickers."""
+        mock_mysql["cursor"].fetchall.return_value = [
+            {"ticker": "MISS1"},
+            {"ticker": "MISS2"},
+            {"ticker": "MISS3"},
+        ]
+
+        client = BadTickerClient()
+        result = client.get_missing_tickers(limit=10)
+
+        assert len(result) == 3
+        assert "MISS1" in result
+        assert "MISS2" in result
+        assert "MISS3" in result
+
+    def test_get_missing_tickers_with_limit(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test get_missing_tickers respects limit parameter."""
+        mock_mysql["cursor"].fetchall.return_value = [
+            {"ticker": "MISS1"},
+            {"ticker": "MISS2"},
+        ]
+
+        client = BadTickerClient()
+        result = client.get_missing_tickers(limit=2)
+
+        assert len(result) == 2
+        mock_mysql["cursor"].execute.assert_called()
+        call_args = mock_mysql["cursor"].execute.call_args
+        assert "LIMIT" in str(call_args[0][0])
+
+    def test_get_missing_tickers_empty_result(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test get_missing_tickers returns empty list when no tickers."""
+        mock_mysql["cursor"].fetchall.return_value = []
+
+        client = BadTickerClient()
+        result = client.get_missing_tickers()
+
+        assert result == []
+
+    def test_get_missing_tickers_failure(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test get_missing_tickers handles errors."""
+        client = BadTickerClient()
+        mock_mysql["cursor"].execute.side_effect = Exception("DB error")
+
+        result = client.get_missing_tickers()
+
+        assert result == []
+        mock_logger.error.assert_called()
+
+    def test_clear_missing_tickers_success(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test successful clearing of missing_tickers table."""
+        mock_mysql["cursor"].execute.return_value = 1
+
+        client = BadTickerClient()
+        result = client.clear_missing_tickers()
+
+        assert result is True
+        mock_logger.info.assert_called()
+        calls = mock_mysql["cursor"].execute.call_args_list
+        delete_calls = [call for call in calls if "DELETE FROM missing_tickers" in str(call[0])]
+        assert len(delete_calls) > 0
+
+    def test_clear_missing_tickers_failure(self, mock_mysql, mock_logger, mock_mysql_config):
+        """Test clear_missing_tickers handles errors."""
+        client = BadTickerClient()
+        mock_mysql["cursor"].execute.side_effect = Exception("DB error")
+
+        result = client.clear_missing_tickers()
+
+        assert result is False
+        mock_logger.error.assert_called()
