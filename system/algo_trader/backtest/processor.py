@@ -42,6 +42,7 @@ class BacktestProcessor:
         test_days: int | None = None,
         train_split: float | None = None,
         max_threads: int = MAX_THREADS,
+        use_threading: bool = True,
     ) -> None:
         if not tickers:
             self.logger.error("No tickers provided")
@@ -52,21 +53,14 @@ class BacktestProcessor:
             f"strategy={strategy.strategy_name}, date_range={start_date.date()} to {end_date.date()}"
         )
 
-        thread_config = ThreadConfig(max_threads=max_threads)
-        thread_manager = ThreadManager(config=thread_config)
         results_writer = ResultsWriter()
-
         backtest_id = str(uuid4())
         self.logger.info(f"Backtest ID: {backtest_id}")
 
-        if len(tickers) > max_threads:
-            self.logger.info(
-                f"Ticker count ({len(tickers)}) exceeds max_threads ({max_threads}). "
-                f"Batching will be used."
-            )
-
         def backtest_ticker(ticker: str) -> dict:
+            engine = None
             try:
+                self.logger.info(f"Starting backtest for {ticker}")
                 engine = BacktestEngine(
                     strategy=strategy,
                     tickers=[ticker],
@@ -80,11 +74,24 @@ class BacktestProcessor:
                 )
 
                 results = engine.run_ticker(ticker)
-                engine.influx_client.close()
 
                 if results.trades.empty:
-                    self.logger.debug(f"{ticker}: No trades generated")
+                    self.logger.info(f"{ticker}: No trades generated")
                     return {"success": True, "trades": 0}
+
+                # Print detailed summary for this ticker
+                if results.metrics:
+                    self.logger.info(
+                        f"\n{ticker} Backtest Results:\n"
+                        f"  Strategy: {results.strategy_name}\n"
+                        f"  Total Trades: {results.metrics.get('total_trades', 0)}\n"
+                        f"  Total Profit: ${results.metrics.get('total_profit', 0):,.2f} "
+                        f"({results.metrics.get('total_profit_pct', 0):.2f}%)\n"
+                        f"  Max Drawdown: {results.metrics.get('max_drawdown', 0):.2f}%\n"
+                        f"  Sharpe Ratio: {results.metrics.get('sharpe_ratio', 0):.4f}\n"
+                        f"  Win Rate: {results.metrics.get('win_rate', 0):.2f}%\n"
+                        f"  Efficiency: {results.metrics.get('avg_efficiency', 0):.2f}%\n"
+                    )
 
                 trades_success = results_writer.write_trades(
                     trades=results.trades,
@@ -138,62 +145,91 @@ class BacktestProcessor:
                     return {"success": False, "error": "Redis enqueue failed"}
 
             except Exception as e:
-                self.logger.error(f"{ticker}: Exception during backtest: {e}")
+                self.logger.error(f"{ticker}: Exception during backtest: {e}", exc_info=True)
                 return {"success": False, "error": str(e)}
-
-        remaining_tickers = list(tickers)
-        last_log_time = time.time()
-
-        self.logger.info("Starting batch processing...")
-
-        while remaining_tickers:
-            active_count = thread_manager.get_active_thread_count()
-            available_slots = max_threads - active_count
-
-            if available_slots > 0 and remaining_tickers:
-                batch_size = min(available_slots, len(remaining_tickers))
-                batch = remaining_tickers[:batch_size]
-                remaining_tickers = remaining_tickers[batch_size:]
-
-                for ticker in batch:
+            finally:
+                if engine is not None:
                     try:
-                        thread_manager.start_thread(
-                            target=backtest_ticker,
-                            name=f"backtest-{ticker}",
-                            args=(ticker,),
-                        )
-                        self.logger.debug(f"Started thread for {ticker}")
-                    except RuntimeError as e:
-                        self.logger.error(f"Failed to start thread for {ticker}: {e}")
-                        remaining_tickers.append(ticker)
+                        engine.influx_client.close()
+                    except Exception as e:
+                        self.logger.warning(f"{ticker}: Error closing InfluxDB client: {e}")
 
-            time.sleep(0.5)
+        if not use_threading:
+            self.logger.info("Processing tickers sequentially (threading disabled)...")
+            successful = 0
+            failed = 0
 
-            current_time = time.time()
-            if current_time - last_log_time >= 10:
-                with thread_manager.lock:
-                    completed_count = sum(
-                        1
-                        for status in thread_manager.threads.values()
-                        if not status.thread.is_alive() and status.status in ("stopped", "error")
-                    )
-                started_count = len(tickers) - len(remaining_tickers)
+            for ticker in tickers:
+                result = backtest_ticker(ticker)
+                if result.get("success", False):
+                    successful += 1
+                else:
+                    failed += 1
+
+            summary = {"successful": successful, "failed": failed, "total": len(tickers)}
+        else:
+            thread_config = ThreadConfig(max_threads=max_threads)
+            thread_manager = ThreadManager(config=thread_config)
+
+            if len(tickers) > max_threads:
                 self.logger.info(
-                    f"Progress: {started_count} started, {completed_count} completed, "
-                    f"{len(remaining_tickers)} remaining, {active_count} active threads"
+                    f"Ticker count ({len(tickers)}) exceeds max_threads ({max_threads}). "
+                    f"Batching will be used."
                 )
-                last_log_time = current_time
 
-        self.logger.info("Waiting for all threads to complete...")
-        thread_manager.wait_for_all_threads(timeout=600)
+            remaining_tickers = list(tickers)
+            last_log_time = time.time()
 
-        summary = thread_manager.get_results_summary()
-        self.logger.info(
-            f"Batch processing complete: {summary['successful']} successful, "
-            f"{summary['failed']} failed out of {len(tickers)} total tickers"
-        )
+            self.logger.info("Starting batch processing...")
 
-        thread_manager.cleanup_dead_threads()
+            while remaining_tickers:
+                active_count = thread_manager.get_active_thread_count()
+                available_slots = max_threads - active_count
+
+                if available_slots > 0 and remaining_tickers:
+                    batch_size = min(available_slots, len(remaining_tickers))
+                    batch = remaining_tickers[:batch_size]
+                    remaining_tickers = remaining_tickers[batch_size:]
+
+                    for ticker in batch:
+                        try:
+                            thread_manager.start_thread(
+                                target=backtest_ticker,
+                                name=f"backtest-{ticker}",
+                                args=(ticker,),
+                            )
+                            self.logger.debug(f"Started thread for {ticker}")
+                        except RuntimeError as e:
+                            self.logger.error(f"Failed to start thread for {ticker}: {e}")
+                            remaining_tickers.append(ticker)
+
+                time.sleep(0.5)
+
+                current_time = time.time()
+                if current_time - last_log_time >= 10:
+                    with thread_manager.lock:
+                        completed_count = sum(
+                            1
+                            for status in thread_manager.threads.values()
+                            if not status.thread.is_alive() and status.status in ("stopped", "error")
+                        )
+                    started_count = len(tickers) - len(remaining_tickers)
+                    self.logger.info(
+                        f"Progress: {started_count} started, {completed_count} completed, "
+                        f"{len(remaining_tickers)} remaining, {active_count} active threads"
+                    )
+                    last_log_time = current_time
+
+            self.logger.info("Waiting for all threads to complete...")
+            thread_manager.wait_for_all_threads(timeout=600)
+
+            summary = thread_manager.get_results_summary()
+            self.logger.info(
+                f"Batch processing complete: {summary['successful']} successful, "
+                f"{summary['failed']} failed out of {len(tickers)} total tickers"
+            )
+
+            thread_manager.cleanup_dead_threads()
 
         print(f"\n{'=' * 50}")
         print("Backtest Processing Summary")

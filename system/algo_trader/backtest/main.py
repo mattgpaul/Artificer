@@ -129,6 +129,11 @@ def parse_args():
         default=MAX_THREADS,
         help=f"Maximum number of threads for parallel ticker processing (default: {MAX_THREADS})",
     )
+    parser.add_argument(
+        "--no-threading",
+        action="store_true",
+        help="Disable threading and process tickers sequentially (default: False)",
+    )
 
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to backtest"
@@ -204,6 +209,7 @@ def main():
             test_days=args.test_days if args.walk_forward else None,
             train_split=args.train_split,
             max_threads=args.max_threads,
+            use_threading=not args.no_threading,
         )
 
         return 0
