@@ -18,6 +18,21 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.redis.queue_broker import QueueBroker
 
+# Hard-coded database names - each queue type uses its own database for isolation
+OHLCV_DATABASE = "algo-trader-ohlcv"
+FUNDAMENTALS_DATABASE = "algo-trader-fundamentals"
+TRADING_JOURNAL_DATABASE = "algo-trader-trading-journal"
+
+# Hard-coded batch sizes - protected constants to prevent configuration errors
+#
+# CRITICAL: These constants are PROTECTED and MUST NOT be modified without explicit user approval.
+# ALWAYS ask the user before changing any of these values.
+#
+# OHLCV_BATCH_SIZE is read-only and MUST NOT be modified without code review
+OHLCV_BATCH_SIZE = 300_000  # Protected constant - do not modify
+FUNDAMENTALS_BATCH_SIZE = 50_000  # Protected constant - ask user before modifying
+TRADING_JOURNAL_BATCH_SIZE = 50_000  # Protected constant - ask user before modifying
+
 
 class InfluxPublisher:
     """Publisher service for writing market data to InfluxDB.
@@ -68,12 +83,44 @@ class InfluxPublisher:
             sys.exit(1)
 
     def _init_influx_clients(self) -> None:
-        database = self.config.get("database", "algo-trader-database")
+        """Initialize InfluxDB clients for each queue with hard-coded databases and batch sizes.
+
+        Maps queue names to their respective databases and batch sizes:
+        - ohlcv_queue -> algo-trader-ohlcv (300k batch size, protected)
+        - fundamentals_queue -> algo-trader-fundamentals (50k batch size)
+        - trading_journal_queue -> algo-trader-trading-journal (50k batch size)
+        """
+        # Map queue names to their databases and batch sizes
+        queue_database_map = {
+            "ohlcv_queue": (OHLCV_DATABASE, OHLCV_BATCH_SIZE),
+            "fundamentals_queue": (FUNDAMENTALS_DATABASE, FUNDAMENTALS_BATCH_SIZE),
+            "trading_journal_queue": (TRADING_JOURNAL_DATABASE, TRADING_JOURNAL_BATCH_SIZE),
+        }
 
         for queue_config in self.config.get("queues", []):
             queue_name = queue_config["name"]
+
+            # Get database and batch size from hard-coded mapping
+            if queue_name not in queue_database_map:
+                self.logger.error(
+                    f"Unknown queue '{queue_name}'. Must be one of: "
+                    f"{', '.join(queue_database_map.keys())}"
+                )
+                sys.exit(1)
+
+            database, batch_size = queue_database_map[queue_name]
+
+            # Validate OHLCV batch size is using the protected constant
+            if queue_name == "ohlcv_queue" and batch_size != OHLCV_BATCH_SIZE:
+                self.logger.error(
+                    f"OHLCV batch size must be {OHLCV_BATCH_SIZE}. "
+                    f"Attempted to use {batch_size}. This is a protected constant."
+                )
+                sys.exit(1)
+
+            # Create write config with hard-coded batch size and other params from YAML
             write_config = BatchWriteConfig(
-                batch_size=queue_config.get("batch_size", 100000),
+                batch_size=batch_size,  # Hard-coded, not from config
                 flush_interval=queue_config.get("flush_interval", 10000),
                 jitter_interval=queue_config.get("jitter_interval", 2000),
                 retry_interval=queue_config.get("retry_interval", 15000),
@@ -87,8 +134,8 @@ class InfluxPublisher:
             )
 
             self.logger.info(
-                f"Initialized InfluxDB client for queue '{queue_name}' "
-                f"(batch_size={write_config.batch_size})"
+                f"Initialized InfluxDB client for queue '{queue_name}' -> "
+                f"database '{database}' (batch_size={write_config.batch_size})"
             )
 
     def _signal_handler(self, signum, frame) -> None:
