@@ -33,7 +33,7 @@ class SMACrossoverStrategy(BaseStrategy):
 
     strategy_type = "LONG"
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         short_window: int = 10,
         long_window: int = 20,
@@ -87,7 +87,7 @@ class SMACrossoverStrategy(BaseStrategy):
         self.long_window = long_window
         self.min_confidence = min_confidence
 
-        self.logger.info(
+        self.logger.debug(
             f"SMA Crossover initialized: short={short_window}, long={long_window}, "
             f"min_confidence={min_confidence}"
         )
@@ -135,7 +135,7 @@ class SMACrossoverStrategy(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.info(f"Generated {len(signals_df)} buy signals for {ticker}")
+        self.logger.debug(f"Generated {len(signals_df)} buy signals for {ticker}")
         return signals_df
 
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -181,7 +181,7 @@ class SMACrossoverStrategy(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.info(f"Generated {len(signals_df)} sell signals for {ticker}")
+        self.logger.debug(f"Generated {len(signals_df)} sell signals for {ticker}")
         return signals_df
 
     def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -299,7 +299,7 @@ class SMACrossoverStrategy(BaseStrategy):
             >>> assert len(sma_short) == len(ohlcv_data)
         """
         if ohlcv_data is None or ohlcv_data.empty:
-            self.logger.warning(f"No OHLCV data provided for {ticker}")
+            self.logger.debug(f"No OHLCV data provided for {ticker}")
             return None, None, None
 
         if "close" not in ohlcv_data.columns:
@@ -307,9 +307,10 @@ class SMACrossoverStrategy(BaseStrategy):
             return None, None, None
 
         if len(ohlcv_data) < self.long_window:
-            self.logger.warning(
-                f"Insufficient data for {ticker}: {len(ohlcv_data)} rows "
-                f"(need at least {self.long_window} for SMA calculation)"
+            # Only log at debug level - this is expected during early time steps in backtesting
+            self.logger.debug(
+                f"{ticker}: Insufficient data for SMA calculation - {len(ohlcv_data)} rows "
+                f"(need at least {self.long_window} for long_window={self.long_window})"
             )
             return None, None, None
 

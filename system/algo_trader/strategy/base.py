@@ -54,7 +54,7 @@ class BaseStrategy(Client):
 
     strategy_type: str = None  # Subclasses must set to "LONG" or "SHORT"
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         strategy_name: str,
         database: str = "algo-trader-database",
@@ -86,7 +86,7 @@ class BaseStrategy(Client):
         if use_threading and thread_config:
             threading_info += f", max_threads={thread_config.max_threads}"
 
-        self.logger.info(
+        self.logger.debug(
             f"Strategy '{strategy_name}' initialized (database={database}, {threading_info})"
         )
 
@@ -173,7 +173,7 @@ class BaseStrategy(Client):
                 df["time"] = pd.to_datetime(df["time"])
                 df = df.set_index("time")
 
-            self.logger.info(f"Retrieved {len(df)} OHLCV records for {ticker}")
+            self.logger.debug(f"Retrieved {len(df)} OHLCV records for {ticker}")
             return df
 
         except Exception as e:
@@ -276,12 +276,12 @@ class BaseStrategy(Client):
         Example:
             >>> summary = strategy.run_strategy('AAPL', start_time='2024-01-01')
         """
-        self.logger.info(f"Running {self.strategy_name} strategy for {ticker}")
+        self.logger.debug(f"Running {self.strategy_name} strategy for {ticker}")
 
         # Query OHLCV data
         ohlcv_data = self.query_ohlcv(ticker, start_time, end_time, limit)
         if ohlcv_data is None or ohlcv_data.empty:
-            self.logger.warning(f"No OHLCV data available for {ticker}")
+            self.logger.debug(f"No OHLCV data available for {ticker}")
             return pd.DataFrame()
 
         # Generate buy and sell signals using strategy-specific logic
@@ -302,7 +302,7 @@ class BaseStrategy(Client):
 
         # Combine buy and sell signals
         if buy_signals.empty and sell_signals.empty:
-            self.logger.info(f"No signals generated for {ticker}")
+            self.logger.debug(f"No signals generated for {ticker}")
             return pd.DataFrame()
         elif buy_signals.empty:
             signals = sell_signals
@@ -325,7 +325,7 @@ class BaseStrategy(Client):
         summary["signal_time"] = summary.index
         summary = summary.reset_index(drop=True)
 
-        self.logger.info(
+        self.logger.debug(
             f"Strategy complete for {ticker}: {len(summary)} signals "
             f"({(summary['signal_type'] == 'buy').sum()} buys, "
             f"{(summary['signal_type'] == 'sell').sum()} sells)"
@@ -580,4 +580,4 @@ class BaseStrategy(Client):
     def close(self) -> None:
         """Close InfluxDB client and cleanup resources."""
         self.influx_client.close()
-        self.logger.info(f"Strategy '{self.strategy_name}' closed")
+        self.logger.debug(f"Strategy '{self.strategy_name}' closed")
