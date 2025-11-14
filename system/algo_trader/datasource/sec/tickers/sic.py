@@ -168,7 +168,7 @@ class TickersSICEnricher:
         except Exception:
             return None
 
-    def enrich_static_info(  # noqa: PLR0912
+    def enrich_static_info(
         self, static_info: dict, cik: str, ticker: str, tickers_data: dict | None
     ) -> dict:
         """Enrich static info with SIC-derived sector and industry.

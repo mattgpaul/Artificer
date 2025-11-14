@@ -6,6 +6,8 @@ fundamentals data from SEC company facts API.
 
 import time
 
+import pandas as pd
+
 from infrastructure.config import ThreadConfig
 from infrastructure.logging.logger import get_logger
 from infrastructure.threads.thread_manager import ThreadManager
@@ -35,7 +37,67 @@ class FundamentalsProcessor:
         """
         self.logger = logger or get_logger(self.__class__.__name__)
 
-    def process_tickers(  # noqa: C901, PLR0915
+    def _write_fundamentals_data(
+        self,
+        ticker: str,
+        static_data: dict,
+        time_series_df: pd.DataFrame,
+        queue_broker: QueueBroker,
+        summary_stats: dict,
+    ) -> dict:
+        """Write fundamentals data to Redis queues.
+
+        Args:
+            ticker: Ticker symbol.
+            static_data: Static company data.
+            time_series_df: Time series DataFrame.
+            queue_broker: Queue broker instance.
+            summary_stats: Summary statistics dictionary to update.
+
+        Returns:
+            Dictionary with success status and optional error message.
+        """
+        if not queue_broker:
+            return {"success": False, "error": "Queue broker not initialized"}
+
+        static_enqueue_success = queue_broker.enqueue(
+            queue_name=FUNDAMENTALS_STATIC_QUEUE_NAME,
+            item_id=ticker,
+            data=static_data,
+            ttl=FUNDAMENTALS_REDIS_TTL,
+        )
+
+        if not static_enqueue_success:
+            self.logger.error(f"{ticker}: Failed to enqueue static data to Redis")
+            return {"success": False, "error": "Redis static enqueue failed"}
+
+        summary_stats["static_rows"] += 1
+        self.logger.debug(f"{ticker}: Successfully enqueued static data to Redis")
+
+        time_series_dict = dataframe_to_dict(time_series_df)
+        queue_data = {
+            "ticker": ticker,
+            "data": time_series_dict,
+        }
+
+        enqueue_success = queue_broker.enqueue(
+            queue_name=FUNDAMENTALS_QUEUE_NAME,
+            item_id=ticker,
+            data=queue_data,
+            ttl=FUNDAMENTALS_REDIS_TTL,
+        )
+
+        if not enqueue_success:
+            self.logger.error(f"{ticker}: Failed to enqueue time series data to Redis")
+            return {"success": False, "error": "Redis time series enqueue failed"}
+
+        time_series_len = len(time_series_dict.get("datetime", []))
+        summary_stats["time_series_rows"] += time_series_len
+        self.logger.debug(f"{ticker}: Successfully enqueued {time_series_len} rows to Redis")
+
+        return {"success": True}
+
+    def process_tickers(
         self,
         tickers: list[str],
         lookback_period: int,
@@ -88,7 +150,7 @@ class FundamentalsProcessor:
             "market_cap_rows": 0,
         }
 
-        def fetch_ticker_fundamentals(ticker: str) -> dict:  # noqa: PLR0911
+        def fetch_ticker_fundamentals(ticker: str) -> dict:
             try:
                 self.logger.debug(f"Fetching company facts for {ticker}")
 
@@ -116,47 +178,11 @@ class FundamentalsProcessor:
                 summary_stats["market_cap_rows"] += market_cap_count
 
                 if write:
-                    if queue_broker:
-                        static_enqueue_success = queue_broker.enqueue(
-                            queue_name=FUNDAMENTALS_STATIC_QUEUE_NAME,
-                            item_id=ticker,
-                            data=static_data,
-                            ttl=FUNDAMENTALS_REDIS_TTL,
-                        )
-
-                        if static_enqueue_success:
-                            summary_stats["static_rows"] += 1
-                            self.logger.debug(
-                                f"{ticker}: Successfully enqueued static data to Redis"
-                            )
-                        else:
-                            self.logger.error(f"{ticker}: Failed to enqueue static data to Redis")
-                            return {"success": False, "error": "Redis static enqueue failed"}
-
-                        time_series_dict = dataframe_to_dict(time_series_df)
-                        queue_data = {
-                            "ticker": ticker,
-                            "data": time_series_dict,
-                        }
-
-                        enqueue_success = queue_broker.enqueue(
-                            queue_name=FUNDAMENTALS_QUEUE_NAME,
-                            item_id=ticker,
-                            data=queue_data,
-                            ttl=FUNDAMENTALS_REDIS_TTL,
-                        )
-
-                        if enqueue_success:
-                            time_series_len = len(time_series_dict.get("datetime", []))
-                            summary_stats["time_series_rows"] += time_series_len
-                            self.logger.debug(
-                                f"{ticker}: Successfully enqueued {time_series_len} rows to Redis"
-                            )
-                        else:
-                            self.logger.error(
-                                f"{ticker}: Failed to enqueue time series data to Redis"
-                            )
-                            return {"success": False, "error": "Redis time series enqueue failed"}
+                    result = self._write_fundamentals_data(
+                        ticker, static_data, time_series_df, queue_broker, summary_stats
+                    )
+                    if not result["success"]:
+                        return result
                 else:
                     summary_stats["static_rows"] += 1
                     summary_stats["time_series_rows"] += len(time_series_df)

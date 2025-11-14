@@ -98,7 +98,7 @@ class TickersDataFrameBuilder:
             "datetime": datetime_ms,
         }
 
-    def _extract_periods_for_single_fact(  # noqa: PLR0913
+    def _extract_periods_for_single_fact(
         self,
         facts_data: dict,
         namespace: str,
@@ -189,7 +189,7 @@ class TickersDataFrameBuilder:
 
         return periods
 
-    def build_time_series_dataframe(  # noqa: C901, PLR0912
+    def build_time_series_dataframe(
         self, facts: dict, ticker: str, years_back: int = 10
     ) -> pd.DataFrame:
         """Build time series DataFrame from company facts data.

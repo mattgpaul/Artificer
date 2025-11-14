@@ -24,6 +24,7 @@ py_library(
     srcs = ["market_data_influx.py"],
     visibility = [
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/backtest:__pkg__",
         "//tests/system/algo_trader/influx:__pkg__",
     ],
     deps = [

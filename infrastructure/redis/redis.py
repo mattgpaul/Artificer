@@ -76,7 +76,7 @@ class BaseRedisClient(Client):
                 socket_timeout=self.socket_timeout,
             )
             self.client = redis.Redis(connection_pool=self.pool)
-            self.logger.info(
+            self.logger.debug(
                 f"Redis connection pool created for namespace: {self.namespace} "
                 f"(host: {self.host}, port: {self.port}, db: {self.db})"
             )

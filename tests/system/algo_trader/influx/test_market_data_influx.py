@@ -321,7 +321,7 @@ class TestMarketDataInfluxQuery:
         )
 
     def test_query_logs_info(self, mock_influx_dependencies):
-        """Test that query logs info message."""
+        """Test that query logs debug message."""
         mock_df = pd.DataFrame({"close": [104.0]})
         mock_influx_dependencies["client"].query.return_value = mock_df
 
@@ -329,7 +329,7 @@ class TestMarketDataInfluxQuery:
 
         client.query("SELECT * FROM stock")
 
-        mock_influx_dependencies["logger_instance"].info.assert_called_with("Getting data")
+        mock_influx_dependencies["logger_instance"].debug.assert_called_with("Getting data")
 
     def test_query_failure_returns_false(self, mock_influx_dependencies):
         """Test that query returns False on exception."""

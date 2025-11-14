@@ -36,7 +36,7 @@ class OHLCVProcessor:
         """
         self.logger = logger or get_logger(self.__class__.__name__)
 
-    def process_tickers(  # noqa: PLR0915
+    def process_tickers(
         self,
         tickers: list[str],
         frequency_type: FrequencyType,

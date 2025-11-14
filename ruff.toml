@@ -55,6 +55,42 @@ exclude = [
     "D103",   # Missing docstring in public function
     "PLR0913",  # Too many arguments (common in test functions with mocks
 ]
+# Configuration functions legitimately need many parameters
+"system/algo_trader/backtest/engine.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/backtest/processor.py" = [
+    "PLR0913",  # Configuration functions with many params
+    "C901",     # process_tickers complexity (already refactored)
+]
+"system/algo_trader/backtest/results.py" = [
+    "PLR0913",  # Configuration functions with many params
+]
+"system/algo_trader/datasource/populate/fundamentals/processor.py" = [
+    "PLR0915",  # Too many statements (already refactored)
+    "C901",     # Complexity (already refactored)
+]
+# Strategy initialization methods legitimately need many parameters
+"system/algo_trader/strategy/base.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/strategy/sma_crossover.py" = ["PLR0913"]  # __init__ with many config params
+# Market handler API methods legitimately need many parameters
+"system/algo_trader/schwab/market_handler.py" = ["PLR0913"]  # API methods with many params
+# Publisher queue processing is complex but necessary
+"system/algo_trader/influx/publisher.py" = [
+    "PLR0915",  # Too many statements (queue processing logic)
+    "C901",     # Complexity (queue processing logic)
+    "PLR0912",  # Too many branches (queue processing logic)
+]
+# SIC enrichment has many branches for data mapping
+"system/algo_trader/datasource/sec/tickers/sic.py" = ["PLR0912"]  # Data enrichment logic
+# OHLCV processor has many statements for data processing
+"system/algo_trader/datasource/populate/ohlcv/processor.py" = [
+    "PLR0915",  # Too many statements (data processing logic)
+]
+# DataFrame building has complex logic for SEC data processing
+"system/algo_trader/datasource/sec/tickers/dataframe.py" = [
+    "PLR0913",  # Too many arguments (data extraction methods)
+    "C901",     # Complexity (dataframe building logic)
+    "PLR0912",  # Too many branches (dataframe building logic)
+]
 
 [lint.mccabe]
 max-complexity = 15  # Google standard

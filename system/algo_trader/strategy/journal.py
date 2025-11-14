@@ -49,7 +49,7 @@ class TradeJournal:
         self.risk_free_rate = risk_free_rate
         self.logger = get_logger(self.__class__.__name__)
 
-        self.logger.info(
+        self.logger.debug(
             f"TradeJournal initialized: strategy={strategy_name}, "
             f"capital={capital_per_trade}, risk_free_rate={risk_free_rate:.2%}"
         )
@@ -130,14 +130,14 @@ class TradeJournal:
 
         total_unmatched = sum(len(positions) for positions in open_positions.values())
         if total_unmatched > 0:
-            self.logger.info(f"{total_unmatched} open positions remain unmatched")
+            self.logger.debug(f"{total_unmatched} open positions remain unmatched")
 
         if not matched_trades:
             self.logger.warning("No trades could be matched")
             return pd.DataFrame()
 
         trades_df = pd.DataFrame(matched_trades)
-        self.logger.info(f"Matched {len(trades_df)} completed trades")
+        self.logger.debug(f"Matched {len(trades_df)} completed trades")
         return trades_df
 
     def calculate_metrics(self, trades: pd.DataFrame) -> dict:
@@ -192,7 +192,7 @@ class TradeJournal:
             "win_rate": win_rate,
         }
 
-        self.logger.info(
+        self.logger.debug(
             f"Metrics calculated: {total_trades} trades, "
             f"${total_profit:.2f} profit ({total_profit_pct:.2f}%), "
             f"{max_drawdown:.2f}% drawdown, {sharpe_ratio:.2f} Sharpe, "
@@ -289,10 +289,26 @@ class TradeJournal:
             return 0.0
 
         try:
+            # Ensure timestamps are timezone-aware (UTC) for comparison
+            if entry_time.tz is None:
+                entry_time = entry_time.tz_localize("UTC")
+            else:
+                entry_time = entry_time.tz_convert("UTC")
+
+            if exit_time.tz is None:
+                exit_time = exit_time.tz_localize("UTC")
+            else:
+                exit_time = exit_time.tz_convert("UTC")
+
+            # Ensure index is timezone-aware (UTC) for comparison
+            ohlcv_utc = self.ohlcv_data.copy()
+            if ohlcv_utc.index.tz is None:
+                ohlcv_utc.index = ohlcv_utc.index.tz_localize("UTC")
+            else:
+                ohlcv_utc.index = ohlcv_utc.index.tz_convert("UTC")
+
             # Filter OHLCV data for the trade period
-            trade_data = self.ohlcv_data[
-                (self.ohlcv_data.index >= entry_time) & (self.ohlcv_data.index <= exit_time)
-            ]
+            trade_data = ohlcv_utc[(ohlcv_utc.index >= entry_time) & (ohlcv_utc.index <= exit_time)]
 
             if trade_data.empty:
                 return 0.0
@@ -328,7 +344,7 @@ class TradeJournal:
             >>> journal = TradeJournal(signals_df)
             >>> metrics, trades = journal.generate_report()
         """
-        self.logger.info("Generating trading journal report")
+        self.logger.debug("Generating trading journal report")
 
         trades = self.match_trades()
         metrics = self.calculate_metrics(trades)

@@ -102,7 +102,7 @@ class MarketHandler(SchwabClient):
             self.logger.error("Failed to get quotes")
             return {}
 
-    def get_price_history(  # noqa: PLR0913
+    def get_price_history(
         self,
         ticker: str,
         period_type: PeriodType = PeriodType.YEAR,
