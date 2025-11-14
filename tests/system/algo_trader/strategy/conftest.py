@@ -120,3 +120,28 @@ def sample_trades():
             "gross_pnl_pct": [3.33, -1.94, 8.11],
         }
     )
+
+
+@pytest.fixture
+def mock_influx_client():
+    """Fixture to mock MarketDataInflux client for cli_utils tests."""
+    with patch("system.algo_trader.strategy.utils.cli_utils.MarketDataInflux") as mock_influx_class:
+        mock_client = MagicMock()
+        mock_influx_class.return_value = mock_client
+        yield {"class": mock_influx_class, "instance": mock_client}
+
+
+@pytest.fixture
+def mock_tickers_class():
+    """Fixture to mock SEC Tickers class for cli_utils tests."""
+    with patch("system.algo_trader.strategy.utils.cli_utils.Tickers") as mock_class:
+        mock_instance = MagicMock()
+        mock_class.return_value = mock_instance
+        yield {"class": mock_class, "instance": mock_instance}
+
+
+@pytest.fixture
+def mock_get_sp500():
+    """Fixture to mock get_sp500_tickers function for cli_utils tests."""
+    with patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers") as mock_func:
+        yield mock_func
