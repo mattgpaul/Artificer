@@ -429,23 +429,30 @@
             },
             "properties": [
               {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "LOSS": {
+                        "text": "LOSS",
+                        "color": "red"
+                      },
+                      "WIN": {
+                        "text": "WIN",
+                        "color": "green"
+                      },
+                      "OPEN": {
+                        "text": "OPEN",
+                        "color": "orange"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
                 "id": "custom.cellOptions",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "green",
-                      "value": "WIN"
-                    },
-                    {
-                      "color": "red",
-                      "value": "LOSS"
-                    },
-                    {
-                      "color": "orange",
-                      "value": "OPEN"
-                    }
-                  ],
                   "type": "color-background"
                 }
               }
@@ -458,18 +465,30 @@
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
+                "id": "color",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "green"
-                    },
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
                     {
                       "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
                       "value": 0
                     }
-                  ],
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
                   "type": "color-text"
                 }
               },
@@ -486,18 +505,30 @@
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
+                "id": "color",
                 "value": {
-                  "colorMode": "value",
-                  "thresholds": [
-                    {
-                      "color": "green"
-                    },
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
                     {
                       "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
                       "value": 0
                     }
-                  ],
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
                   "type": "color-text"
                 }
               },
@@ -542,6 +573,22 @@
                 "value": "currencyUSD"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time_held"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -555,6 +602,14 @@
       "options": {
         "cellHeight": "sm",
         "showHeader": true,
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "sortBy": [
           {
             "desc": true,
@@ -571,9 +626,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "query": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "rawQuery": true,
-          "rawSql": "SELECT status, side, ticker as symbol, entry_time as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, setups FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "rawSql": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -610,11 +665,11 @@
               "net_return": "NET RETURN",
               "net_return_pct": "NET RETURN %",
               "open_date": "OPEN DATE",
-              "setups": "SETUPS",
               "side": "SIDE",
               "size": "SIZE",
               "status": "STATUS",
-              "symbol": "SYMBOL"
+              "symbol": "SYMBOL",
+              "time_held": "TIME HELD"
             }
           }
         }
@@ -887,14 +942,14 @@
           "type": "influxdb",
           "uid": "Journal"
         },
-        "definition": "SELECT DISTINCT ticker FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY ticker",
+        "definition": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
         "includeAll": true,
         "label": "Symbol",
         "multi": true,
         "name": "symbol",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT ticker FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY ticker",
+          "query": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
