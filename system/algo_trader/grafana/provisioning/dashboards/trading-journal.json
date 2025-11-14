@@ -455,10 +455,6 @@
                 "value": {
                   "type": "color-background"
                 }
-              },
-              {
-                "id": "custom.width",
-                "value": 80
               }
             ]
           },
@@ -474,10 +470,10 @@
                   "colorMode": "value",
                   "thresholds": [
                     {
-                      "color": "green"
+                      "color": "red"
                     },
                     {
-                      "color": "red",
+                      "color": "green",
                       "value": 0
                     }
                   ],
@@ -487,10 +483,6 @@
               {
                 "id": "unit",
                 "value": "currencyUSD"
-              },
-              {
-                "id": "custom.width",
-                "value": 120
               }
             ]
           },
@@ -506,10 +498,10 @@
                   "colorMode": "value",
                   "thresholds": [
                     {
-                      "color": "green"
+                      "color": "red"
                     },
                     {
-                      "color": "red",
+                      "color": "green",
                       "value": 0
                     }
                   ],
@@ -519,10 +511,6 @@
               {
                 "id": "unit",
                 "value": "percent"
-              },
-              {
-                "id": "custom.width",
-                "value": 130
               }
             ]
           },
@@ -535,10 +523,6 @@
               {
                 "id": "unit",
                 "value": "currencyUSD"
-              },
-              {
-                "id": "custom.width",
-                "value": 100
               }
             ]
           },
@@ -551,10 +535,6 @@
               {
                 "id": "unit",
                 "value": "currencyUSD"
-              },
-              {
-                "id": "custom.width",
-                "value": 100
               }
             ]
           },
@@ -567,70 +547,6 @@
               {
                 "id": "unit",
                 "value": "currencyUSD"
-              },
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "side"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "symbol"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "open_date"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 180
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "close_date"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 180
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "size"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
               }
             ]
           }
@@ -638,7 +554,7 @@
       },
       "gridPos": {
         "h": 20,
-        "w": 24,
+        "w": 18,
         "x": 0,
         "y": 4
       },
