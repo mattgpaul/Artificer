@@ -12,6 +12,7 @@ from system.algo_trader.datasource.populate.ohlcv.verifier import BadTickerVerif
 from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.strategy.utils.cli_utils import get_sp500_tickers
 
 
 class OHLCVArgumentHandler(ArgumentHandler):
@@ -35,10 +36,12 @@ class OHLCVArgumentHandler(ArgumentHandler):
             "--tickers",
             nargs="+",
             required=False,
-            help='List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-            'Use "full-registry" to fetch all tickers from SEC datasource. '
-            'Use "missing-tickers" to fetch tickers from missing_tickers table. '
-            "Required unless --verify-bad-tickers is used.",
+            help=(
+                'List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
+                'Use "SP500" for S&P 500 tickers, "full-registry" to fetch all tickers from SEC datasource, '
+                'or "missing-tickers" to fetch tickers from missing_tickers table. '
+                "Required unless --verify-bad-tickers is used."
+            ),
         )
         parser.add_argument(
             "--frequency",
@@ -121,6 +124,14 @@ class OHLCVArgumentHandler(ArgumentHandler):
                     ticker_list.append(value["ticker"])
 
             self.logger.info(f"Retrieved {len(ticker_list)} tickers from SEC datasource")
+            tickers = ticker_list
+        elif tickers == ["SP500"]:
+            self.logger.info("SP500 specified, fetching S&P 500 tickers...")
+            ticker_list = get_sp500_tickers()
+            if not ticker_list:
+                self.logger.error("Failed to retrieve S&P 500 tickers")
+                raise ValueError("Failed to retrieve S&P 500 tickers")
+            self.logger.info(f"Retrieved {len(ticker_list)} S&P 500 tickers")
             tickers = ticker_list
         elif tickers == ["missing-tickers"]:
             self.logger.info(

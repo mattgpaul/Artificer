@@ -66,7 +66,6 @@ class MarketDataInflux(BaseInfluxDBClient):
         Raises:
             ValueError: If datetime column is missing from data.
         """
-        self.logger.debug(f"Formatting {ticker}")
         # TODO: datetime probably needs formatting
         df = pd.DataFrame(data)
 
@@ -203,7 +202,6 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             DataFrame containing query results, or None if query fails.
         """
-        self.logger.debug("Getting data")
         try:
             df = self.client.query(query=query, language="sql", mode="pandas")
         except Exception as e:

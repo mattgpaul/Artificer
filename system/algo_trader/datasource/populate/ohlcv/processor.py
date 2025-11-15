@@ -107,6 +107,21 @@ class OHLCVProcessor:
                     frequency=frequency_value,
                 )
 
+                # Check for server errors (500/502) - these are NOT bad tickers
+                if "_error_status" in response:
+                    status_code = response.get("_error_status")
+                    if status_code in (500, 502):
+                        self.logger.error(
+                            f"{ticker}: Server error {status_code} from API - "
+                            "skipping (transient error, not a bad ticker)"
+                        )
+                        return {"success": False, "error": f"Server error {status_code}", "skip_bad_ticker": True}
+                    else:
+                        # Other errors (404, 400, etc.) might indicate bad ticker
+                        self.logger.error(f"{ticker}: API error {status_code}")
+                        enqueue_bad_ticker(ticker, f"API error {status_code}")
+                        return {"success": False, "error": f"API error {status_code}"}
+
                 if not response:
                     self.logger.error(f"{ticker}: Empty response from API")
                     enqueue_bad_ticker(ticker, "Empty response")

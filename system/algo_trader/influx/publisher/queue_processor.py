@@ -60,9 +60,6 @@ def process_queue(
         ticker = data.get("ticker")
         time_series_data = data.get("candles") or data.get("data")
 
-        # Log data processing at debug level
-        logger.debug(f"Processing {item_id}: ticker={ticker}")
-
         if not ticker or not time_series_data:
             logger.error(
                 f"Invalid data structure for {item_id} (ticker={ticker}, "
