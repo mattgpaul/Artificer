@@ -134,4 +134,3 @@ def mock_dependencies_locking(
     deps["input"] = mock_oauth2_input
     deps["time_sleep"] = mock_token_manager_time
     return deps
-

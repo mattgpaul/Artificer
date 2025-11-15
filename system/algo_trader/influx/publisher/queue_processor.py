@@ -156,14 +156,11 @@ def process_queue(
                                 "replacing with 'unknown' placeholder"
                             )
                             time_series_data[tag_col] = [
-                                "unknown" if (v is None or v == "") else str(v)
-                                for v in tag_values
+                                "unknown" if (v is None or v == "") else str(v) for v in tag_values
                             ]
                         else:
                             # Ensure all tag values are strings
-                            time_series_data[tag_col] = [
-                                str(v) for v in time_series_data[tag_col]
-                            ]
+                            time_series_data[tag_col] = [str(v) for v in time_series_data[tag_col]]
 
                         # Final check: ensure no empty strings remain (InfluxDB rejects empty tags)
                         if any(v == "" for v in time_series_data[tag_col]):
@@ -172,8 +169,7 @@ def process_queue(
                                 "replacing with 'unknown' placeholder"
                             )
                             time_series_data[tag_col] = [
-                                "unknown" if v == "" else v
-                                for v in time_series_data[tag_col]
+                                "unknown" if v == "" else v for v in time_series_data[tag_col]
                             ]
 
         try:
@@ -185,11 +181,14 @@ def process_queue(
                     f"(default was '{influx_client.database}')"
                 )
                 from infrastructure.influxdb.influxdb import BatchWriteConfig
+
                 write_config = BatchWriteConfig(
                     batch_size=50000,
                     flush_interval=10000,
                 )
-                client_to_use = MarketDataInflux(database=target_database, write_config=write_config)
+                client_to_use = MarketDataInflux(
+                    database=target_database, write_config=write_config
+                )
 
             success = client_to_use.write(
                 data=time_series_data,

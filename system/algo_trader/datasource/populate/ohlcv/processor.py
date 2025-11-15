@@ -115,7 +115,11 @@ class OHLCVProcessor:
                             f"{ticker}: Server error {status_code} from API - "
                             "skipping (transient error, not a bad ticker)"
                         )
-                        return {"success": False, "error": f"Server error {status_code}", "skip_bad_ticker": True}
+                        return {
+                            "success": False,
+                            "error": f"Server error {status_code}",
+                            "skip_bad_ticker": True,
+                        }
                     else:
                         # Other errors (404, 400, etc.) might indicate bad ticker
                         self.logger.error(f"{ticker}: API error {status_code}")

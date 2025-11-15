@@ -173,4 +173,3 @@ class TestCheckQueuesConstants:
         assert FUNDAMENTALS_QUEUE == "fundamentals_queue"
         assert OHLCV_QUEUE == "ohlcv_queue"
         assert BAD_TICKER_QUEUE == "bad_ticker_queue"
-

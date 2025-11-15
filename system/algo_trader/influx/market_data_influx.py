@@ -143,14 +143,14 @@ class MarketDataInflux(BaseInfluxDBClient):
                 f"Writing {len(df)} points to database '{self.database}' "
                 f"table '{table}' for {ticker}"
             )
-            
+
             # Use DataFrame write API (proven to work - matches old working version)
             self.client.write(
                 df,
                 data_frame_measurement_name=table,
                 data_frame_tag_columns=tag_columns,
             )
-            
+
             self.logger.info(
                 f"Write call completed for {len(df)} points to database '{self.database}' "
                 f"table '{table}' for {ticker}"
@@ -163,6 +163,7 @@ class MarketDataInflux(BaseInfluxDBClient):
                 self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
             import traceback
+
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
