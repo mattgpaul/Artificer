@@ -133,6 +133,7 @@ class ResultsWriter:
             "backtest_id": backtest_id,
             "backtest_hash": backtest_hash,
             "data": trades_dict,
+            "database": database,
         }
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}"
@@ -264,6 +265,7 @@ class ResultsWriter:
             "backtest_id": backtest_id,
             "backtest_hash": backtest_hash,
             "data": metrics_data,
+            "database": database,
         }
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}_metrics"

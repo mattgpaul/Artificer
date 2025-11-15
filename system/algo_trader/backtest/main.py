@@ -7,12 +7,13 @@ This module provides the CLI interface for running backtests on trading strategi
 
 import argparse
 import sys
+from uuid import uuid4
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.backtest.processor.processor import BacktestProcessor
+from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
@@ -209,6 +210,12 @@ def main():
         }
 
     try:
+        backtest_id = str(uuid4())
+        results_database = get_backtest_database()
+
+        logger.info(f"Backtest ID: {backtest_id}")
+        logger.info(f"Results Database: {results_database}")
+
         processor = BacktestProcessor(logger=logger)
         processor.process_tickers(
             strategy=strategy,
@@ -217,10 +224,12 @@ def main():
             end_date=end_date,
             step_frequency=args.step_frequency,
             database=args.database,
+            results_database=results_database,
             execution_config=execution_config,
             capital_per_trade=args.capital,
             risk_free_rate=args.risk_free_rate,
             strategy_params=strategy_params,
+            backtest_id=backtest_id,
             walk_forward=args.walk_forward,
             train_days=args.train_days if args.walk_forward else None,
             test_days=args.test_days if args.walk_forward else None,

@@ -4,6 +4,7 @@ This module provides functionality to process multiple tickers through backtest
 execution, supporting both parallel and sequential processing modes.
 """
 
+import os
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -20,6 +21,16 @@ from system.algo_trader.backtest.utils.utils import (
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
+
+
+def get_backtest_database() -> str:
+    """Get the appropriate database for backtest results based on environment.
+    
+    Returns:
+        'algo-trader-backtest' for prod environment, 'debug' otherwise.
+    """
+    env = os.getenv("INFLUXDB3_ENVIRONMENT", "").lower()
+    return "algo-trader-backtest" if env == "prod" else "debug"
 
 
 class BacktestProcessor:
@@ -49,6 +60,7 @@ class BacktestProcessor:
         end_date: pd.Timestamp,
         step_frequency: str,
         database: str,
+        results_database: str,
         execution_config: ExecutionConfig,
         capital_per_trade: float,
         risk_free_rate: float,
@@ -96,6 +108,7 @@ class BacktestProcessor:
                 end_date,
                 step_frequency,
                 database,
+                results_database,
                 execution_config_dict,
                 capital_per_trade,
                 risk_free_rate,
@@ -134,10 +147,12 @@ class BacktestProcessor:
         end_date: pd.Timestamp,
         step_frequency: str,
         database: str,
+        results_database: str,
         execution_config: ExecutionConfig,
         capital_per_trade: float,
         risk_free_rate: float,
         strategy_params: dict,
+        backtest_id: str,
         walk_forward: bool = False,
         train_days: int | None = None,
         test_days: int | None = None,
@@ -178,11 +193,9 @@ class BacktestProcessor:
         self.logger.info(
             f"Processing backtest for {len(tickers)} tickers with "
             f"strategy={strategy.strategy_name}, "
-            f"date_range={start_date.date()} to {end_date.date()}"
+            f"date_range={start_date.date()} to {end_date.date()}, "
+            f"backtest_id={backtest_id}"
         )
-
-        backtest_id = str(uuid4())
-        self.logger.info(f"Backtest ID: {backtest_id}")
 
         strategy_type = type(strategy).__name__
 
@@ -194,6 +207,7 @@ class BacktestProcessor:
             end_date=end_date,
             step_frequency=step_frequency,
             database=database,
+            results_database=results_database,
             execution_config=execution_config,
             capital_per_trade=capital_per_trade,
             risk_free_rate=risk_free_rate,

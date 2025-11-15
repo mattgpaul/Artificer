@@ -59,6 +59,7 @@ def process_queue(
 
         ticker = data.get("ticker")
         time_series_data = data.get("candles") or data.get("data")
+        target_database = data.get("database")
 
         if not ticker or not time_series_data:
             logger.error(
@@ -176,7 +177,21 @@ def process_queue(
                             ]
 
         try:
-            success = influx_client.write(
+            # Use target database client if specified, otherwise use default
+            client_to_use = influx_client
+            if target_database and target_database != influx_client.database:
+                logger.info(
+                    f"Creating client for target database '{target_database}' "
+                    f"(default was '{influx_client.database}')"
+                )
+                from infrastructure.influxdb.influxdb import BatchWriteConfig
+                write_config = BatchWriteConfig(
+                    batch_size=50000,
+                    flush_interval=10000,
+                )
+                client_to_use = MarketDataInflux(database=target_database, write_config=write_config)
+
+            success = client_to_use.write(
                 data=time_series_data,
                 ticker=ticker,
                 table=dynamic_table_name,
