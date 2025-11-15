@@ -60,6 +60,30 @@ def process_queue(
         ticker = data.get("ticker")
         time_series_data = data.get("candles") or data.get("data")
 
+        # Debug logging: inspect data received from Redis
+        logger.info(
+            f"[DEBUG] Processing {item_id}: ticker={ticker}, "
+            f"data_type={type(time_series_data)}"
+        )
+        if isinstance(time_series_data, dict):
+            logger.info(
+                f"[DEBUG] Time series keys: {list(time_series_data.keys())}, "
+                f"datetime length: {len(time_series_data.get('datetime', []))}"
+            )
+            if time_series_data.get("datetime"):
+                logger.info(
+                    f"[DEBUG] First datetime: {time_series_data['datetime'][0]} "
+                    f"(type: {type(time_series_data['datetime'][0])})"
+                )
+            # Check for problematic values
+            for key, values in time_series_data.items():
+                if isinstance(values, list):
+                    none_count = sum(1 for v in values if v is None)
+                    if none_count > 0:
+                        logger.warning(
+                            f"[DEBUG] {key}: {none_count} None values found"
+                        )
+
         if not ticker or not time_series_data:
             logger.error(
                 f"Invalid data structure for {item_id} (ticker={ticker}, "
@@ -125,6 +149,55 @@ def process_queue(
                 if "strategy" not in time_series_data:
                     time_series_data["strategy"] = [strategy_name] * data_length
                 tag_columns.append("strategy")
+
+        # Validate data before writing
+        if isinstance(time_series_data, dict):
+            # Validate datetime array exists and has correct length
+            datetime_array = time_series_data.get("datetime", [])
+            if not datetime_array:
+                logger.error(f"No datetime array found in {item_id}")
+                queue_broker.delete_data(queue_name, item_id)
+                failed_count += 1
+                continue
+
+            data_length = len(datetime_array)
+
+            # Validate tag columns don't contain NaN values
+            # Note: ticker is handled separately by write_sync, so we skip it here
+            for tag_col in tag_columns:
+                if tag_col == "ticker":
+                    continue  # Ticker is handled separately by write_sync
+
+                if tag_col in time_series_data:
+                    tag_values = time_series_data[tag_col]
+                    if isinstance(tag_values, list):
+                        # Check for None or invalid values in tag columns
+                        # InfluxDB line protocol requires tags to have non-empty values
+                        if any(v is None or v == "" for v in tag_values):
+                            logger.warning(
+                                f"Found None/empty values in tag column '{tag_col}' for {item_id}, "
+                                "replacing with 'unknown' placeholder"
+                            )
+                            time_series_data[tag_col] = [
+                                "unknown" if (v is None or v == "") else str(v)
+                                for v in tag_values
+                            ]
+                        else:
+                            # Ensure all tag values are strings
+                            time_series_data[tag_col] = [
+                                str(v) for v in time_series_data[tag_col]
+                            ]
+
+                        # Final check: ensure no empty strings remain (InfluxDB rejects empty tags)
+                        if any(v == "" for v in time_series_data[tag_col]):
+                            logger.warning(
+                                f"Found empty strings in tag column '{tag_col}' for {item_id}, "
+                                "replacing with 'unknown' placeholder"
+                            )
+                            time_series_data[tag_col] = [
+                                "unknown" if v == "" else v
+                                for v in time_series_data[tag_col]
+                            ]
 
         try:
             success = influx_client.write_sync(

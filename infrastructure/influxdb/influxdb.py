@@ -126,6 +126,17 @@ class BatchingCallback:
         try:
             data_str = data.decode("utf-8") if isinstance(data, bytes) else data
             data_preview = data_str[:200] + "..." if len(data_str) > 200 else data_str
+            # Log first few lines of the actual line protocol for debugging
+            lines = data_str.split("\n")
+            if len(lines) > 0:
+                self.logger.error(
+                    f"=== FULL LINE PROTOCOL DATA (first 2000 chars) ==="
+                )
+                full_preview = "\n".join(lines[:10])  # First 10 lines
+                if len(full_preview) > 2000:
+                    full_preview = full_preview[:2000] + "..."
+                self.logger.error(full_preview)
+                self.logger.error(f"=== END LINE PROTOCOL DATA ===")
         except Exception:
             data_preview = "<unable to decode data>"
         self.logger.error(
