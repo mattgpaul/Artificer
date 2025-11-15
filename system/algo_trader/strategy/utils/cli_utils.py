@@ -150,7 +150,7 @@ def get_influxdb_tickers() -> list[str]:
     """Get list of ticker symbols from InfluxDB OHLCV database.
 
     Queries InfluxDB for all distinct tickers that have OHLCV data
-    in the algo-trader-ohlcv database.
+    in the ohlcv database.
 
     Returns:
         List of ticker symbols. Returns empty list if query fails or no data found.
@@ -164,7 +164,7 @@ def get_influxdb_tickers() -> list[str]:
     """
     influx_client = None
     try:
-        influx_client = MarketDataInflux(database="algo-trader-ohlcv")
+        influx_client = MarketDataInflux(database="ohlcv")
         query = "SELECT DISTINCT ticker FROM ohlcv"
         df = influx_client.query(query)
 

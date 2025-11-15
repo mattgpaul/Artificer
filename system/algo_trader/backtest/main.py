@@ -78,8 +78,8 @@ def parse_args():
     parser.add_argument(
         "--database",
         type=str,
-        default="algo-trader-ohlcv",
-        help="InfluxDB database name for OHLCV data (default: algo-trader-ohlcv)",
+        default="ohlcv",
+        help="InfluxDB database name for OHLCV data (default: ohlcv)",
     )
     parser.add_argument(
         "--step-frequency",

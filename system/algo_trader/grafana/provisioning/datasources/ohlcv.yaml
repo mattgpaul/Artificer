@@ -6,10 +6,10 @@ datasources:
     type: influxdb
     access: proxy
     url: http://influxdb:8181
-    database: algo-trader-ohlcv
+    database: ohlcv
     jsonData:
       version: SQL
-      dbName: algo-trader-ohlcv
+      dbName: ohlcv
       httpMode: POST
       insecureGrpc: true
       tlsSkipVerify: true

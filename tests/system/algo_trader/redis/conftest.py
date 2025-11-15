@@ -28,3 +28,4 @@ def mock_check_queues_queue_broker():
         mock_broker.get_data.return_value = None
         mock_queue_broker_class.return_value = mock_broker
         yield mock_broker
+

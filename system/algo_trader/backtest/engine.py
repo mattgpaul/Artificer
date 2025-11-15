@@ -46,7 +46,7 @@ class BacktestEngine:
         start_date: pd.Timestamp,
         end_date: pd.Timestamp,
         step_frequency: str,
-        database: str = "algo-trader-ohlcv",
+        database: str = "ohlcv",
         execution_config: ExecutionConfig | None = None,
         capital_per_trade: float = 10000.0,
         risk_free_rate: float = 0.04,
