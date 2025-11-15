@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-algo-trader-backtest"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -74,13 +74,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-algo-trader-backtest"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT SUM(gross_pnl) as total_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  SUM(gross_pnl) as total_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT SUM(gross_pnl) as total_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  SUM(gross_pnl) as total_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -106,7 +106,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-algo-trader-backtest"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -156,13 +156,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-algo-trader-backtest"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT CASE WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0 THEN ROUND(SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) / SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END), 2) ELSE 0 END as profit_loss_ratio FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT CASE WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0 THEN ROUND(SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) / SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END), 2) ELSE 0 END as profit_loss_ratio FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -188,7 +188,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-algo-trader-backtest"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -247,13 +247,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "influxdb-algo-trader-backtest"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -279,7 +279,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "influxdb-algo-trader-backtest"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -359,13 +359,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "time_series",
-          "query": "SELECT time, SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time",
+          "query": "SELECT\n  time,\n  SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time",
           "rawQuery": true,
-          "rawSql": "SELECT time, SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time",
+          "rawSql": "SELECT\n  time,\n  SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -391,7 +391,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -425,7 +425,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "status"
+              "options": "result"
             },
             "properties": [
               {
@@ -434,17 +434,13 @@
                   {
                     "type": "value",
                     "options": {
-                      "LOSS": {
-                        "text": "LOSS",
-                        "color": "red"
-                      },
                       "WIN": {
                         "text": "WIN",
                         "color": "green"
                       },
-                      "OPEN": {
-                        "text": "OPEN",
-                        "color": "orange"
+                      "LOSS": {
+                        "text": "LOSS",
+                        "color": "red"
                       }
                     }
                   }
@@ -453,7 +449,7 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-background"
+                  "type": "color-text"
                 }
               }
             ]
@@ -622,13 +618,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "query": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
           "rawQuery": true,
-          "rawSql": "SELECT status, side, ticker as symbol, CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date, entry, size, time as close_date, exit, (entry * size) as cost, gross_pnl as net_return, gross_pnl_pct as net_return_pct, CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY time DESC",
+          "rawSql": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
           "refId": "A",
           "sql": {
             "columns": [
@@ -656,7 +652,21 @@
             "excludeByName": {
               "time": true
             },
-            "indexByName": {},
+            "indexByName": {
+              "result": 0,
+              "status": 1,
+              "side": 2,
+              "symbol": 3,
+              "open_date": 4,
+              "entry": 5,
+              "size": 6,
+              "close_date": 7,
+              "exit": 8,
+              "cost": 9,
+              "net_return": 10,
+              "net_return_pct": 11,
+              "time_held": 12
+            },
             "renameByName": {
               "close_date": "CLOSE DATE",
               "cost": "COST",
@@ -665,6 +675,7 @@
               "net_return": "NET RETURN",
               "net_return_pct": "NET RETURN %",
               "open_date": "OPEN DATE",
+              "result": "RESULT",
               "side": "SIDE",
               "size": "SIZE",
               "status": "STATUS",
@@ -679,7 +690,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -729,13 +740,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT AVG(gross_pnl) as avg_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  AVG(gross_pnl) as avg_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT AVG(gross_pnl) as avg_return FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  AVG(gross_pnl) as avg_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -761,7 +772,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -811,13 +822,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT AVG(gross_pnl_pct) as avg_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  AVG(gross_pnl_pct) as avg_return_pct\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT AVG(gross_pnl_pct) as avg_return_pct FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  AVG(gross_pnl_pct) as avg_return_pct\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -843,7 +854,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -893,13 +904,13 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "query": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "rawQuery": true,
-          "rawSql": "SELECT (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo",
+          "rawSql": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
           "refId": "A",
           "sql": {
             "columns": [
@@ -935,21 +946,49 @@
     "list": [
       {
         "current": {
+          "selected": true,
+          "text": "Backtest",
+          "value": "influxdb-algo-trader-backtest"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Datasource",
+        "multi": false,
+        "name": "datasource",
+        "options": [
+          {
+            "selected": true,
+            "text": "Backtest",
+            "value": "influxdb-algo-trader-backtest"
+          },
+          {
+            "selected": false,
+            "text": "Debug",
+            "value": "influxdb-algo-trader-debug"
+          }
+        ],
+        "query": "influxdb",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
           "text": "All",
           "value": "$__all"
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "Journal"
+          "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
+        "definition": "SELECT DISTINCT ticker\nFROM \"$strategy\"\nORDER BY ticker",
         "includeAll": true,
         "label": "Symbol",
         "multi": true,
         "name": "symbol",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT ticker FROM \"$strategy\" ORDER BY ticker",
+          "query": "SELECT DISTINCT ticker\nFROM \"$strategy\"\nORDER BY ticker",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -959,20 +998,21 @@
       },
       {
         "current": {
-          "text": "All",
-          "value": "$__all"
+          "selected": false,
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "Journal"
+          "uid": "$datasource"
         },
-        "definition": "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_type = 'BASE TABLE';",
-        "includeAll": true,
+        "definition": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+        "includeAll": false,
         "label": "Strategy",
         "name": "strategy",
         "options": [],
         "query": {
-          "query": "SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_type = 'BASE TABLE';",
+          "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
           "refId": "InfluxVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -987,16 +1027,16 @@
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "Journal"
+          "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT side FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY side",
+        "definition": "SELECT DISTINCT side\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
         "includeAll": true,
         "label": "Side",
         "multi": true,
         "name": "side",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT side FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY side",
+          "query": "SELECT DISTINCT side\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1011,16 +1051,16 @@
         },
         "datasource": {
           "type": "influxdb",
-          "uid": "Journal"
+          "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT status FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY status",
+        "definition": "SELECT DISTINCT status\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
         "includeAll": true,
         "label": "Status",
         "multi": true,
         "name": "status",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT status FROM \"$strategy\" WHERE time >= $__timeFrom AND time <= $__timeTo ORDER BY status",
+          "query": "SELECT DISTINCT status\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
