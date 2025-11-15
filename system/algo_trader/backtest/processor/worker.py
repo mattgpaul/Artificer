@@ -20,14 +20,13 @@ from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStr
 
 
 def create_strategy_instance(
-    strategy_type: str, strategy_params: dict, database: str
+    strategy_type: str, strategy_params: dict
 ) -> "BaseStrategy":
     """Create a strategy instance from type and parameters.
 
     Args:
         strategy_type: Type of strategy to create (e.g., 'SMACrossoverStrategy').
         strategy_params: Dictionary of strategy parameters.
-        database: Database name for data access.
 
     Returns:
         Strategy instance of the specified type.
@@ -39,8 +38,6 @@ def create_strategy_instance(
         return SMACrossoverStrategy(
             short_window=strategy_params["short_window"],
             long_window=strategy_params["long_window"],
-            database=database,
-            use_threading=False,
         )
     raise ValueError(f"Unknown strategy type: {strategy_type}")
 
@@ -168,7 +165,8 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - start_date_local: Start date for backtest
             - end_date_local: End date for backtest
             - step_frequency_local: Frequency for time steps
-            - database_local: Database name for data access
+            - database_local: Database name for OHLCV data access
+            - results_database_local: Database name for backtest results
             - execution_config_dict: Execution config as dictionary
             - capital_per_trade_local: Capital per trade
             - risk_free_rate_local: Risk-free rate
@@ -208,7 +206,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         logger.debug(f"Starting backtest for {ticker}")
 
         strategy_instance = create_strategy_instance(
-            strategy_type, strategy_params_local, database_local
+            strategy_type, strategy_params_local
         )
 
         execution_config = ExecutionConfig(

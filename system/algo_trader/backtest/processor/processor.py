@@ -6,7 +6,6 @@ execution, supporting both parallel and sequential processing modes.
 
 import os
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 import pandas as pd
 
