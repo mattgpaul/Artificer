@@ -139,102 +139,22 @@ class MarketDataInflux(BaseInfluxDBClient):
             df[non_tag_cols] = df[non_tag_cols].fillna(0)
 
         try:
-            # Increment pending batch counter before write
-            self._callback.increment_pending()
-
-            # CRITICAL FIX: InfluxDB client library has a bug with DataFrame conversion
-            # when using multiple tags. Use Point API to bypass the buggy DataFrame write path.
-            from influxdb_client_3 import Point
-
-            points = []
-            # CRITICAL: Always extract timestamps from original data dict to ensure they're set
-            # This prevents InfluxDB from using server time which could cause overwrites
-            datetime_list = data.get("datetime", [])
-            datetime_timestamps = None
+            self.logger.info(
+                f"Writing {len(df)} points to database '{self.database}' "
+                f"table '{table}' for {ticker}"
+            )
             
-            # Parse datetime from original data dict (most reliable source)
-            if datetime_list:
-                try:
-                    # Convert milliseconds to DatetimeIndex
-                    datetime_timestamps = pd.to_datetime(datetime_list, unit="ms", utc=True)
-                    self.logger.debug(f"Extracted {len(datetime_timestamps)} timestamps from data dict for {ticker}")
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to parse datetime from data dict for {ticker}: {e}. "
-                        f"Will try to use DataFrame index."
-                    )
+            # Use DataFrame write API (proven to work - matches old working version)
+            self.client.write(
+                df,
+                data_frame_measurement_name=table,
+                data_frame_tag_columns=tag_columns,
+            )
             
-            # Fallback: use DataFrame index if datetime_list parsing failed
-            if datetime_timestamps is None and isinstance(df.index, pd.DatetimeIndex):
-                datetime_timestamps = df.index
-                self.logger.debug(f"Using DataFrame index as timestamp source for {ticker}")
-            
-            if datetime_timestamps is None:
-                self.logger.error(
-                    f"CRITICAL: No timestamp source available for {ticker}. "
-                    f"DataFrame index type: {type(df.index)}, datetime_list length: {len(datetime_list)}"
-                )
-            
-            for i, (idx, row) in enumerate(df.iterrows()):
-                point = Point(table)
-
-                # Add tags - ensure they're strings and non-empty
-                for tag_col in tag_columns:
-                    if tag_col in row.index:
-                        tag_value = str(row[tag_col])
-                        # Skip empty or invalid tag values
-                        if tag_value and tag_value not in ["nan", "None", "<NA>", "NaN", "null", ""]:
-                            point = point.tag(tag_col, tag_value)
-
-                # Add fields - all non-tag columns
-                for col in df.columns:
-                    if col not in tag_columns:
-                        value = row[col]
-                        # Skip NaN values
-                        if pd.isna(value):
-                            continue
-                        # Add as appropriate type
-                        if isinstance(value, (int, float)):
-                            point = point.field(col, float(value))
-                        elif isinstance(value, str):
-                            if value and value not in ["nan", "None", "<NA>", "NaN", "null"]:
-                                point = point.field(col, value)
-                        else:
-                            point = point.field(col, str(value))
-
-                # Set timestamp - CRITICAL: always set from actual data, never use server time
-                timestamp_set = False
-                
-                # Method 1: Use extracted datetime_timestamps (preferred)
-                if datetime_timestamps is not None and i < len(datetime_timestamps):
-                    ts = datetime_timestamps[i]
-                    if isinstance(ts, pd.Timestamp):
-                        point = point.time(ts.value)  # nanoseconds
-                        timestamp_set = True
-                    elif isinstance(ts, (int, float)):
-                        # If it's still milliseconds, convert to nanoseconds
-                        point = point.time(int(ts * 1_000_000))
-                        timestamp_set = True
-                
-                # Method 2: Fallback to DataFrame index if available
-                if not timestamp_set and isinstance(idx, pd.Timestamp):
-                    point = point.time(idx.value)  # nanoseconds
-                    timestamp_set = True
-                
-                if not timestamp_set:
-                    # This should never happen with proper data, but log it if it does
-                    self.logger.error(
-                        f"CRITICAL: Could not set timestamp for row {i} of {ticker}. "
-                        f"Index type: {type(idx)}, datetime_timestamps available: {datetime_timestamps is not None}, "
-                        f"datetime_timestamps length: {len(datetime_timestamps) if datetime_timestamps is not None else 0}"
-                    )
-                    # Don't append point without timestamp - it will use server time and could cause overwrites
-                    continue
-
-                points.append(point)
-
-            # Write points directly (bypasses DataFrame conversion bug)
-            self.client.write(records=points)
+            self.logger.info(
+                f"Write call completed for {len(df)} points to database '{self.database}' "
+                f"table '{table}' for {ticker}"
+            )
 
             return True
         except Exception as e:
