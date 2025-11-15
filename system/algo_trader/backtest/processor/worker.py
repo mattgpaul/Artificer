@@ -80,10 +80,12 @@ def write_backtest_results(
     train_days: int | None,
     test_days: int | None,
     train_split: float | None,
-) -> tuple[bool, bool]:
+) -> bool:
     """Write backtest results to Redis queues.
 
-    Writes both trades and metrics to Redis queues for later publication to InfluxDB.
+    Writes trades to Redis queues for later publication to InfluxDB.
+    Summary metrics are no longer stored separately - they can be calculated
+    from trades in Grafana with filtering capabilities.
 
     Args:
         results: BacktestResults object containing trades and metrics.
@@ -103,7 +105,7 @@ def write_backtest_results(
         train_split: Training split ratio (if walk-forward).
 
     Returns:
-        Tuple of (trades_success, metrics_success) indicating write success.
+        True if trades were successfully enqueued, False otherwise.
     """
     writer = ResultsWriter()
     trades_success = writer.write_trades(
@@ -126,29 +128,7 @@ def write_backtest_results(
         train_split=train_split,
     )
 
-    metrics_success = False
-    if results.metrics and trades_success:
-        metrics_success = writer.write_metrics(
-            metrics=results.metrics,
-            strategy_name=results.strategy_name,
-            ticker=ticker,
-            backtest_id=backtest_id,
-            strategy_params=strategy_params,
-            execution_config=execution_config,
-            start_date=start_date,
-            end_date=end_date,
-            step_frequency=step_frequency,
-            database=database,
-            tickers=[ticker],
-            capital_per_trade=capital_per_trade,
-            risk_free_rate=risk_free_rate,
-            walk_forward=walk_forward,
-            train_days=train_days,
-            test_days=test_days,
-            train_split=train_split,
-        )
-
-    return trades_success, metrics_success
+    return trades_success
 
 
 def backtest_ticker_worker(args: tuple) -> dict:
@@ -234,7 +214,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
 
         log_backtest_results(ticker, results)
 
-        trades_success, metrics_success = write_backtest_results(
+        trades_success = write_backtest_results(
             results=results,
             ticker=ticker,
             backtest_id=backtest_id_local,
@@ -252,13 +232,13 @@ def backtest_ticker_worker(args: tuple) -> dict:
             train_split=train_split_local,
         )
 
-        if trades_success and metrics_success:
+        if trades_success:
             logger.debug(
-                f"{ticker}: Successfully enqueued {len(results.trades)} trades and metrics to Redis"
+                f"{ticker}: Successfully enqueued {len(results.trades)} trades to Redis"
             )
             return {"success": True, "trades": len(results.trades)}
         else:
-            logger.error(f"{ticker}: Failed to enqueue results to Redis")
+            logger.error(f"{ticker}: Failed to enqueue trades to Redis")
             return {"success": False, "error": "Redis enqueue failed"}
 
     except Exception as e:

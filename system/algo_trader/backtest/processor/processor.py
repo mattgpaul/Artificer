@@ -14,7 +14,6 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.parallel import process_in_parallel
 from system.algo_trader.backtest.processor.sequential import process_sequentially
 from system.algo_trader.backtest.utils.utils import (
-    BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_TRADES_QUEUE_NAME,
 )
 
@@ -133,9 +132,9 @@ class BacktestProcessor:
         print(f"Successfully Processed: {summary['successful']}")
         print(f"Failed: {summary['failed']}")
         print(f"Trades Queue: {BACKTEST_TRADES_QUEUE_NAME}")
-        print(f"Metrics Queue: {BACKTEST_METRICS_QUEUE_NAME}")
         print("Redis TTL: 3600s")
         print("\nResults will be published to InfluxDB by the influx-publisher service.")
+        print("Summary metrics can be calculated from trades in Grafana with filtering.")
         print(f"{'=' * 50}\n")
 
     def process_tickers(
