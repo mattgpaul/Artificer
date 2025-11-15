@@ -124,27 +124,8 @@ class ResultsWriter:
 
         trades_dict = dataframe_to_dict(trades)
 
-        # Debug logging: inspect data before Redis
-        self.logger.info(
-            f"[DEBUG] Writing trades to Redis for {ticker}: "
-            f"{len(trades)} trades, dict keys: {list(trades_dict.keys())}"
-        )
-        if trades_dict.get("datetime"):
-            self.logger.info(
-                f"[DEBUG] Datetime array: length={len(trades_dict['datetime'])}, "
-                f"first={trades_dict['datetime'][0]}, last={trades_dict['datetime'][-1]}"
-            )
-        # Check for problematic values
-        for key, values in trades_dict.items():
-            if isinstance(values, list):
-                none_count = sum(1 for v in values if v is None)
-                nan_count = sum(
-                    1 for v in values if isinstance(v, float) and pd.isna(v)
-                )
-                if none_count > 0 or nan_count > 0:
-                    self.logger.warning(
-                        f"[DEBUG] {key}: {none_count} None, {nan_count} NaN values"
-                    )
+        # Log at debug level
+        self.logger.debug(f"Writing {len(trades)} trades to Redis for {ticker}")
 
         queue_data = {
             "ticker": ticker,

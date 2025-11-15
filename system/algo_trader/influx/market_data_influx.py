@@ -82,47 +82,10 @@ class MarketDataInflux(BaseInfluxDBClient):
         df = df.drop("datetime", axis=1)
         return df
 
-    def write(self, data: dict, ticker: str, table: str) -> bool:
-        """Write market data to InfluxDB.
-
-        Args:
-            data: Dictionary containing market data with datetime and OHLCV fields.
-            ticker: Stock ticker symbol to tag data with.
-            table: Target measurement/table name in InfluxDB.
-
-        Returns:
-            True if write succeeded, False otherwise.
-        """
-        # Format data (works for any table - stock, ohlcv, etc.)
-        df = self._format_stock_data(data, ticker)
-
-        # Add ticker as a tag column
-        df["ticker"] = ticker
-
-        try:
-            # Increment pending batch counter before write
-            self._callback.increment_pending()
-
-            callback = self.client.write(
-                df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
-            )
-            self.logger.debug(f"{callback}")
-
-            return True
-        except Exception as e:
-            # Decrement on exception since write failed
-            with self._callback._lock:
-                self._callback._pending_batches -= 1
-            self.logger.error(f"Failed to write data for {ticker}: {e}")
-            return False
-
-    def write_sync(
+    def write(
         self, data: dict, ticker: str, table: str, tag_columns: list[str] | None = None
     ) -> bool:
-        """Write market data to InfluxDB and wait for completion.
-
-        Unlike write(), this method doesn't use the pending counter system.
-        It writes the data and returns. The batch system will flush in background.
+        """Write market data to InfluxDB.
 
         Args:
             data: Dictionary containing market data with datetime and OHLCV fields.
@@ -133,21 +96,102 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             True if write succeeded, False otherwise.
         """
+        # Format data (works for any table - stock, ohlcv, etc.)
         df = self._format_stock_data(data, ticker)
+
+        # Add ticker as a tag column
         df["ticker"] = ticker
 
         if tag_columns is None:
             tag_columns = ["ticker"]
 
-        try:
-            self.client.write(
-                df, data_frame_measurement_name=table, data_frame_tag_columns=tag_columns
+        # Clean and validate tag columns
+        for col in tag_columns:
+            if col not in df.columns:
+                self.logger.warning(f"Tag column '{col}' not found in DataFrame for {ticker}")
+                continue
+
+            # Replace NaN values with placeholder for tags (InfluxDB rejects empty tag values)
+            nan_mask = df[col].isna()
+            if nan_mask.any():
+                placeholder = "unknown" if col != "ticker" else ticker
+                df.loc[nan_mask, col] = placeholder
+
+            # Convert to string and clean invalid string representations
+            df[col] = df[col].astype(str)
+            df[col] = df[col].replace(
+                ["nan", "None", "<NA>", "NaN", "null"], "unknown", regex=False
             )
-            data_count = len(data.get("datetime", [])) if isinstance(data, dict) else len(data)
-            self.logger.debug(f"Wrote {data_count} records for {ticker} to {table}")
+
+            # Replace any remaining empty strings with placeholder (InfluxDB rejects empty tags)
+            empty_mask = df[col] == ""
+            if empty_mask.any():
+                placeholder = "unknown" if col != "ticker" else ticker
+                df.loc[empty_mask, col] = placeholder
+
+        # Ensure all numeric columns are float64 (InfluxDB prefers floats)
+        for col in df.columns:
+            if col not in tag_columns and pd.api.types.is_integer_dtype(df[col]):
+                df[col] = df[col].astype("float64")
+
+        # Fill NaN values in non-tag columns
+        non_tag_cols = [col for col in df.columns if col not in tag_columns]
+        if non_tag_cols:
+            df[non_tag_cols] = df[non_tag_cols].fillna(0)
+
+        try:
+            # Increment pending batch counter before write
+            self._callback.increment_pending()
+
+            # CRITICAL FIX: InfluxDB client library has a bug with DataFrame conversion
+            # when using multiple tags. Use Point API to bypass the buggy DataFrame write path.
+            from influxdb_client_3 import Point
+
+            points = []
+            for idx, row in df.iterrows():
+                point = Point(table)
+
+                # Add tags - ensure they're strings and non-empty
+                for tag_col in tag_columns:
+                    if tag_col in row.index:
+                        tag_value = str(row[tag_col])
+                        # Skip empty or invalid tag values
+                        if tag_value and tag_value not in ["nan", "None", "<NA>", "NaN", "null", ""]:
+                            point = point.tag(tag_col, tag_value)
+
+                # Add fields - all non-tag columns
+                for col in df.columns:
+                    if col not in tag_columns:
+                        value = row[col]
+                        # Skip NaN values
+                        if pd.isna(value):
+                            continue
+                        # Add as appropriate type
+                        if isinstance(value, (int, float)):
+                            point = point.field(col, float(value))
+                        elif isinstance(value, str):
+                            if value and value not in ["nan", "None", "<NA>", "NaN", "null"]:
+                                point = point.field(col, value)
+                        else:
+                            point = point.field(col, str(value))
+
+                # Set timestamp from index
+                if isinstance(idx, pd.Timestamp):
+                    point = point.time(idx.value)  # nanoseconds
+
+                points.append(point)
+
+            # Write points directly (bypasses DataFrame conversion bug)
+            self.client.write(records=points)
+
             return True
         except Exception as e:
+            # Decrement on exception since write failed
+            with self._callback._lock:
+                self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
     def query(self, query: str):

@@ -60,29 +60,8 @@ def process_queue(
         ticker = data.get("ticker")
         time_series_data = data.get("candles") or data.get("data")
 
-        # Debug logging: inspect data received from Redis
-        logger.info(
-            f"[DEBUG] Processing {item_id}: ticker={ticker}, "
-            f"data_type={type(time_series_data)}"
-        )
-        if isinstance(time_series_data, dict):
-            logger.info(
-                f"[DEBUG] Time series keys: {list(time_series_data.keys())}, "
-                f"datetime length: {len(time_series_data.get('datetime', []))}"
-            )
-            if time_series_data.get("datetime"):
-                logger.info(
-                    f"[DEBUG] First datetime: {time_series_data['datetime'][0]} "
-                    f"(type: {type(time_series_data['datetime'][0])})"
-                )
-            # Check for problematic values
-            for key, values in time_series_data.items():
-                if isinstance(values, list):
-                    none_count = sum(1 for v in values if v is None)
-                    if none_count > 0:
-                        logger.warning(
-                            f"[DEBUG] {key}: {none_count} None values found"
-                        )
+        # Log data processing at debug level
+        logger.debug(f"Processing {item_id}: ticker={ticker}")
 
         if not ticker or not time_series_data:
             logger.error(
@@ -163,10 +142,10 @@ def process_queue(
             data_length = len(datetime_array)
 
             # Validate tag columns don't contain NaN values
-            # Note: ticker is handled separately by write_sync, so we skip it here
+            # Note: ticker is handled separately by write(), so we skip it here
             for tag_col in tag_columns:
                 if tag_col == "ticker":
-                    continue  # Ticker is handled separately by write_sync
+                    continue  # Ticker is handled separately by write()
 
                 if tag_col in time_series_data:
                     tag_values = time_series_data[tag_col]
@@ -200,7 +179,7 @@ def process_queue(
                             ]
 
         try:
-            success = influx_client.write_sync(
+            success = influx_client.write(
                 data=time_series_data,
                 ticker=ticker,
                 table=dynamic_table_name,
