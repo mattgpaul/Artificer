@@ -19,9 +19,7 @@ if TYPE_CHECKING:
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
 
 
-def create_strategy_instance(
-    strategy_type: str, strategy_params: dict
-) -> "BaseStrategy":
+def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "BaseStrategy":
     """Create a strategy instance from type and parameters.
 
     Args:
@@ -176,6 +174,8 @@ def backtest_ticker_worker(args: tuple) -> dict:
         train_days_local,
         test_days_local,
         train_split_local,
+        initial_account_value_local,
+        trade_percentage_local,
     ) = args
 
     engine = None
@@ -185,9 +185,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
     try:
         logger.debug(f"Starting backtest for {ticker}")
 
-        strategy_instance = create_strategy_instance(
-            strategy_type, strategy_params_local
-        )
+        strategy_instance = create_strategy_instance(strategy_type, strategy_params_local)
 
         execution_config = ExecutionConfig(
             slippage_bps=execution_config_dict["slippage_bps"],
@@ -204,6 +202,8 @@ def backtest_ticker_worker(args: tuple) -> dict:
             execution_config=execution_config,
             capital_per_trade=capital_per_trade_local,
             risk_free_rate=risk_free_rate_local,
+            initial_account_value=initial_account_value_local,
+            trade_percentage=trade_percentage_local,
         )
 
         results = engine.run_ticker(ticker)
@@ -233,9 +233,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         )
 
         if trades_success:
-            logger.debug(
-                f"{ticker}: Successfully enqueued {len(results.trades)} trades to Redis"
-            )
+            logger.debug(f"{ticker}: Successfully enqueued {len(results.trades)} trades to Redis")
             return {"success": True, "trades": len(results.trades)}
         else:
             logger.error(f"{ticker}: Failed to enqueue trades to Redis")

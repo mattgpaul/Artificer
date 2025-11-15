@@ -53,6 +53,8 @@ class ResultsGenerator:
         capital_per_trade: float,
         risk_free_rate: float,
         logger=None,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ):
         """Initialize ResultsGenerator with strategy and configuration.
 
@@ -67,6 +69,8 @@ class ResultsGenerator:
         self.execution_simulator = execution_simulator
         self.capital_per_trade = capital_per_trade
         self.risk_free_rate = risk_free_rate
+        self.initial_account_value = initial_account_value
+        self.trade_percentage = trade_percentage
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def generate_results_from_signals(
@@ -95,6 +99,8 @@ class ResultsGenerator:
             ohlcv_data=ticker_data,
             capital_per_trade=self.capital_per_trade,
             risk_free_rate=self.risk_free_rate,
+            initial_account_value=self.initial_account_value,
+            trade_percentage=self.trade_percentage,
         )
 
         metrics, trades = journal.generate_report()
@@ -140,6 +146,8 @@ class ResultsGenerator:
                 ohlcv_data=ohlcv_data,
                 capital_per_trade=self.capital_per_trade,
                 risk_free_rate=self.risk_free_rate,
+                initial_account_value=self.initial_account_value,
+                trade_percentage=self.trade_percentage,
             )
 
             _metrics, trades = journal.generate_report()
@@ -155,6 +163,8 @@ class ResultsGenerator:
                 strategy_name=self.strategy.strategy_name,
                 capital_per_trade=self.capital_per_trade,
                 risk_free_rate=self.risk_free_rate,
+                initial_account_value=self.initial_account_value,
+                trade_percentage=self.trade_percentage,
             )
             results.metrics = group_journal.calculate_metrics(executed_trades)
             results.trades = executed_trades

@@ -131,6 +131,18 @@ def parse_args():
         help="Capital per trade (default: 10000)",
     )
     parser.add_argument(
+        "--account-value",
+        type=float,
+        default=10000.0,
+        help="Initial account value for percentage-based position sizing (default: 10000)",
+    )
+    parser.add_argument(
+        "--trade-percentage",
+        type=float,
+        default=0.10,
+        help="Percentage of account value to use per trade (default: 0.10 = 10%%)",
+    )
+    parser.add_argument(
         "--risk-free-rate",
         type=float,
         default=0.04,
@@ -236,6 +248,8 @@ def main():
             train_split=args.train_split,
             max_processes=args.max_processes,
             use_multiprocessing=not args.no_multiprocessing,
+            initial_account_value=args.account_value,
+            trade_percentage=args.trade_percentage,
         )
 
         return 0

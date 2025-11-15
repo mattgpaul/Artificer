@@ -43,7 +43,7 @@ class TestBacktestEngine:
         assert engine.start_date == start_date
         assert engine.end_date == end_date
         assert engine.step_frequency == "daily"
-        assert engine.database == "algo-trader-ohlcv"
+        assert engine.database == "ohlcv"
 
     def test_initialization_custom_params(self, mock_strategy, mock_market_data_influx):
         """Test BacktestEngine initialization with custom parameters."""

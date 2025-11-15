@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 def get_backtest_database() -> str:
     """Get the appropriate database for backtest results based on environment.
-    
+
     Returns:
         'backtest' for prod environment, 'debug' otherwise.
     """
@@ -67,6 +67,8 @@ class BacktestProcessor:
         train_days: int | None,
         test_days: int | None,
         train_split: float | None,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -115,6 +117,8 @@ class BacktestProcessor:
                 train_days,
                 test_days,
                 train_split,
+                initial_account_value,
+                trade_percentage,
             )
             for ticker in tickers
         ]
@@ -157,6 +161,8 @@ class BacktestProcessor:
         train_split: float | None = None,
         max_processes: int | None = None,
         use_multiprocessing: bool = True,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -214,6 +220,8 @@ class BacktestProcessor:
             train_days=train_days,
             test_days=test_days,
             train_split=train_split,
+            initial_account_value=initial_account_value,
+            trade_percentage=trade_percentage,
         )
 
         if use_multiprocessing:

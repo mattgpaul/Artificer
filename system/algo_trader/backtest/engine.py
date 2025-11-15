@@ -50,6 +50,8 @@ class BacktestEngine:
         execution_config: ExecutionConfig | None = None,
         capital_per_trade: float = 10000.0,
         risk_free_rate: float = 0.04,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> None:
         """Initialize BacktestEngine with strategy and configuration.
 
@@ -90,6 +92,8 @@ class BacktestEngine:
             self.capital_per_trade,
             self.risk_free_rate,
             self.logger,
+            initial_account_value,
+            trade_percentage,
         )
 
     def run_ticker(self, ticker: str) -> BacktestResults:
