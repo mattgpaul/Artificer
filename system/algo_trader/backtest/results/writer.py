@@ -255,27 +255,8 @@ class ResultsWriter:
         if backtest_hash:
             metrics_data["backtest_hash"] = [backtest_hash]
 
-        # Debug logging: inspect metrics before Redis
-        self.logger.info(
-            f"[DEBUG] Writing metrics to Redis for {ticker}: "
-            f"dict keys: {list(metrics_data.keys())}"
-        )
-        if metrics_data.get("datetime"):
-            self.logger.info(
-                f"[DEBUG] Datetime: {metrics_data['datetime'][0]} "
-                f"(type: {type(metrics_data['datetime'][0])})"
-            )
-        # Check for problematic values
-        for key, values in metrics_data.items():
-            if isinstance(values, list):
-                none_count = sum(1 for v in values if v is None)
-                nan_count = sum(
-                    1 for v in values if isinstance(v, float) and pd.isna(v)
-                )
-                if none_count > 0 or nan_count > 0:
-                    self.logger.warning(
-                        f"[DEBUG] {key}: {none_count} None, {nan_count} NaN values"
-                    )
+        # Log at debug level
+        self.logger.debug(f"Writing metrics to Redis for {ticker}")
 
         queue_data = {
             "ticker": ticker,
