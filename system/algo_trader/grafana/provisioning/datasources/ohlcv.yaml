@@ -16,4 +16,4 @@ datasources:
     secureJsonData:
       token: $INFLUXDB3_AUTH_TOKEN
     isDefault: true
-    editable: true
+    editable: false

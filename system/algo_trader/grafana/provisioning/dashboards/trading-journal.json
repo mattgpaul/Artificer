@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "influxdb-algo-trader-backtest"
       },
       "fieldConfig": {
         "defaults": {
@@ -74,7 +74,7 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "influxdb-algo-trader-backtest"
           },
           "editorMode": "code",
           "format": "table",
@@ -106,7 +106,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "influxdb-algo-trader-backtest"
       },
       "fieldConfig": {
         "defaults": {
@@ -156,7 +156,7 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "influxdb-algo-trader-backtest"
           },
           "editorMode": "code",
           "format": "table",
@@ -188,7 +188,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "influxdb-algo-trader-backtest"
       },
       "fieldConfig": {
         "defaults": {
@@ -247,7 +247,7 @@
         {
           "datasource": {
             "type": "influxdb",
-            "uid": "Journal"
+            "uid": "influxdb-algo-trader-backtest"
           },
           "editorMode": "code",
           "format": "table",
@@ -279,7 +279,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "Journal"
+        "uid": "influxdb-algo-trader-backtest"
       },
       "fieldConfig": {
         "defaults": {
