@@ -5,7 +5,6 @@ dynamic table name resolution, target database handling, error handling, and com
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,25 +37,13 @@ class TestProcessQueueOHLCVQueue:
     """Test process_queue for OHLCV queue."""
 
     @pytest.mark.unit
-    def test_process_queue_ohlcv_success(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_ohlcv_success(
+        self, mock_queue_broker, mock_market_data_influx, sample_ohlcv_queue_data
+    ):
         """Test successful OHLCV queue processing."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["AAPL_20240101", None]
-        now_ms = int(time.time() * 1000)
-        mock_queue_broker.get_data.return_value = {
-            "ticker": "AAPL",
-            "candles": [
-                {
-                    "datetime": now_ms,
-                    "open": 100.0,
-                    "high": 105.0,
-                    "low": 99.0,
-                    "close": 104.0,
-                    "volume": 1000000,
-                }
-            ],
-            "database": "debug",
-        }
+        mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
@@ -121,23 +108,13 @@ class TestProcessQueueBacktestQueues:
     """Test process_queue for backtest queues."""
 
     @pytest.mark.unit
-    def test_process_queue_backtest_trades_success(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_backtest_trades_success(
+        self, mock_queue_broker, mock_market_data_influx, sample_backtest_trades_queue_data
+    ):
         """Test successful backtest trades queue processing."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
-        mock_queue_broker.get_data.return_value = {
-            "ticker": "AAPL",
-            "strategy_name": "SMACrossoverStrategy",
-            "backtest_id": "test-id",
-            "backtest_hash": "abc123",
-            "data": {
-                "datetime": [1704067200000],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "gross_pnl": [500.0],
-            },
-            "database": "debug",
-        }
+        mock_queue_broker.get_data.return_value = sample_backtest_trades_queue_data
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
@@ -155,22 +132,13 @@ class TestProcessQueueBacktestQueues:
         assert call_args[1]["database"] == "debug"
 
     @pytest.mark.unit
-    def test_process_queue_backtest_metrics_success(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_backtest_metrics_success(
+        self, mock_queue_broker, mock_market_data_influx, sample_backtest_metrics_queue_data
+    ):
         """Test successful backtest metrics queue processing."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
-        mock_queue_broker.get_data.return_value = {
-            "ticker": "AAPL",
-            "strategy_name": "SMACrossoverStrategy",
-            "backtest_id": "test-id",
-            "backtest_hash": "abc123",
-            "data": {
-                "datetime": [1704067200000],
-                "total_trades": [10],
-                "total_profit": [5000.0],
-            },
-            "database": "debug",
-        }
+        mock_queue_broker.get_data.return_value = sample_backtest_metrics_queue_data
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_metrics_queue", "table": "backtest_metrics"}
@@ -396,24 +364,13 @@ class TestProcessQueueErrorHandling:
         assert failed == 1
 
     @pytest.mark.unit
-    def test_process_queue_write_failure(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_write_failure(
+        self, mock_queue_broker, mock_market_data_influx, sample_ohlcv_queue_data
+    ):
         """Test handling write failure."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["item_1", None]
-        mock_queue_broker.get_data.return_value = {
-            "ticker": "AAPL",
-            "candles": [
-                {
-                    "datetime": int(time.time() * 1000),
-                    "open": 100.0,
-                    "high": 105.0,
-                    "low": 99.0,
-                    "close": 104.0,
-                    "volume": 1000000,
-                }
-            ],
-            "database": "debug",
-        }
+        mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
         mock_market_data_influx.write.return_value = False
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
@@ -432,25 +389,13 @@ class TestProcessQueueTargetDatabase:
     """Test target database handling."""
 
     @pytest.mark.unit
-    def test_process_queue_target_database(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_target_database(
+        self, mock_queue_broker, mock_market_data_influx, sample_ohlcv_queue_data
+    ):
         """Test target database specification."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["item_1", None]
-        now_ms = int(time.time() * 1000)
-        mock_queue_broker.get_data.return_value = {
-            "ticker": "AAPL",
-            "candles": [
-                {
-                    "datetime": now_ms,
-                    "open": 100.0,
-                    "high": 105.0,
-                    "low": 99.0,
-                    "close": 104.0,
-                    "volume": 1000000,
-                }
-            ],
-            "database": "debug",
-        }
+        mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
@@ -466,38 +411,25 @@ class TestProcessQueueTargetDatabase:
         assert call_args[1]["database"] == "debug"
 
     @pytest.mark.integration
-    def test_process_queue_complete_workflow(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_complete_workflow(
+        self, mock_queue_broker, mock_market_data_influx, sample_candle
+    ):
         """Test complete queue processing workflow."""
         mock_queue_broker.get_queue_size.return_value = 2
         mock_queue_broker.dequeue.side_effect = ["item_1", "item_2", None]
-        now_ms = int(time.time() * 1000)
+        # Create MSFT candle with different values
+        msft_candle = sample_candle.copy()
+        msft_candle.update({"open": 200.0, "high": 205.0, "low": 199.0, "close": 204.0, "volume": 2000000})
+        msft_candle["datetime"] = sample_candle["datetime"] + 1000
         mock_queue_broker.get_data.side_effect = [
             {
                 "ticker": "AAPL",
-                "candles": [
-                    {
-                        "datetime": now_ms,
-                        "open": 100.0,
-                        "high": 105.0,
-                        "low": 99.0,
-                        "close": 104.0,
-                        "volume": 1000000,
-                    }
-                ],
+                "candles": [sample_candle],
                 # No database specified - uses default client
             },
             {
                 "ticker": "MSFT",
-                "candles": [
-                    {
-                        "datetime": now_ms + 1000,
-                        "open": 200.0,
-                        "high": 205.0,
-                        "low": 199.0,
-                        "close": 204.0,
-                        "volume": 2000000,
-                    }
-                ],
+                "candles": [msft_candle],
                 # No database specified - uses default client
             },
         ]

@@ -177,9 +177,7 @@ class TestBacktestEngineDataLoading:
         )
 
         # Mock query to return sample data (with time column for DataLoader)
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
         result = engine.data_loader.load_ticker_ohlcv_data("AAPL", start_date, end_date)
 
@@ -235,9 +233,7 @@ class TestBacktestEngineDataLoading:
             step_frequency="daily",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
         result = engine.data_loader.load_ohlcv_data(["AAPL", "MSFT"], start_date, end_date)
 
@@ -517,9 +513,7 @@ class TestBacktestEngineRunTicker:
             step_frequency="daily",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
         mock_strategy.run_strategy.return_value = pd.DataFrame()
 
         results = engine.run_ticker("AAPL")
@@ -540,9 +534,7 @@ class TestBacktestEngineRunTicker:
             step_frequency="daily",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
         results = engine.run_ticker("AAPL")
 
@@ -551,7 +543,12 @@ class TestBacktestEngineRunTicker:
 
     @pytest.mark.integration
     def test_run_ticker_complete_workflow(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self,
+        mock_strategy,
+        mock_market_data_influx,
+        sample_ohlcv_data_with_time,
+        sample_mock_signals,
+        sample_mock_trades,
     ):
         """Test complete run_ticker workflow: data load → signals → trades → metrics."""
         engine = BacktestEngine(
@@ -564,24 +561,10 @@ class TestBacktestEngineRunTicker:
         )
 
         # Setup data
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
         # Setup signals
-        mock_signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell"],
-                "price": [100.0, 105.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
-        mock_strategy.run_strategy.return_value = mock_signals
+        mock_strategy.run_strategy.return_value = sample_mock_signals
 
         # Mock TradeJournal and ExecutionSimulator
         with (
@@ -591,26 +574,14 @@ class TestBacktestEngineRunTicker:
             ) as mock_exec_sim_class,
         ):
             mock_journal = MagicMock()
-            mock_trades = pd.DataFrame(
-                {
-                    "ticker": ["AAPL"],
-                    "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                    "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                    "entry_price": [100.0],
-                    "exit_price": [105.0],
-                    "shares": [100.0],  # Required by ExecutionSimulator
-                    "side": ["LONG"],
-                    "gross_pnl": [500.0],
-                }
-            )
             mock_journal.generate_report.return_value = (
                 {"total_trades": 1, "total_profit": 500.0},
-                mock_trades,
+                sample_mock_trades,
             )
             mock_journal_class.return_value = mock_journal
 
             mock_exec_sim = MagicMock()
-            mock_exec_sim.apply_execution.return_value = mock_trades
+            mock_exec_sim.apply_execution.return_value = sample_mock_trades
             mock_exec_sim_class.return_value = mock_exec_sim
 
             results = engine.run_ticker("AAPL")
@@ -622,7 +593,7 @@ class TestBacktestEngineRunTicker:
 
     @pytest.mark.integration
     def test_run_ticker_with_account_tracking(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time, sample_mock_signals
     ):
         """Test run_ticker with account value tracking."""
         engine = BacktestEngine(
@@ -636,23 +607,8 @@ class TestBacktestEngineRunTicker:
             trade_percentage=0.10,
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
-
-        mock_signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell"],
-                "price": [100.0, 105.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
-        mock_strategy.run_strategy.return_value = mock_signals
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
+        mock_strategy.run_strategy.return_value = sample_mock_signals
 
         with patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class:
             mock_journal = MagicMock()
@@ -689,7 +645,9 @@ class TestBacktestEngineRun:
         assert results.signals.empty
 
     @pytest.mark.unit
-    def test_run_no_step_intervals(self, mock_strategy, mock_market_data_influx, sample_ohlcv_data):
+    def test_run_no_step_intervals(
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
+    ):
         """Test run() when no step intervals can be determined."""
         engine = BacktestEngine(
             strategy=mock_strategy,
@@ -699,9 +657,7 @@ class TestBacktestEngineRun:
             step_frequency="daily",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
         results = engine.run()
 
@@ -709,7 +665,9 @@ class TestBacktestEngineRun:
         assert results.signals.empty
 
     @pytest.mark.unit
-    def test_run_no_signals(self, mock_strategy, mock_market_data_influx, sample_ohlcv_data):
+    def test_run_no_signals(
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
+    ):
         """Test run() when no signals are generated."""
         engine = BacktestEngine(
             strategy=mock_strategy,
@@ -719,9 +677,7 @@ class TestBacktestEngineRun:
             step_frequency="daily",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
         mock_strategy.run_strategy.return_value = pd.DataFrame()
 
         results = engine.run()
@@ -731,7 +687,12 @@ class TestBacktestEngineRun:
 
     @pytest.mark.integration
     def test_run_complete_workflow_multiple_tickers(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self,
+        mock_strategy,
+        mock_market_data_influx,
+        sample_ohlcv_data_with_time,
+        sample_mock_signals_multiple_tickers,
+        sample_mock_trades,
     ):
         """Test complete run() workflow for multiple tickers."""
         engine = BacktestEngine(
@@ -743,23 +704,8 @@ class TestBacktestEngineRun:
             database="debug",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
-
-        mock_signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "MSFT"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                ],
-                "signal_type": ["buy", "buy"],
-                "price": [100.0, 200.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
-        mock_strategy.run_strategy.return_value = mock_signals
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
+        mock_strategy.run_strategy.return_value = sample_mock_signals_multiple_tickers
 
         with (
             patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,
@@ -768,23 +714,11 @@ class TestBacktestEngineRun:
             ) as mock_exec_sim_class,
         ):
             mock_journal = MagicMock()
-            mock_trades = pd.DataFrame(
-                {
-                    "ticker": ["AAPL"],
-                    "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                    "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                    "entry_price": [100.0],
-                    "exit_price": [105.0],
-                    "shares": [100.0],  # Required by ExecutionSimulator
-                    "side": ["LONG"],
-                    "gross_pnl": [500.0],
-                }
-            )
-            mock_journal.generate_report.return_value = ({}, mock_trades)
+            mock_journal.generate_report.return_value = ({}, sample_mock_trades)
             mock_journal_class.return_value = mock_journal
 
             mock_exec_sim = MagicMock()
-            mock_exec_sim.apply_execution.return_value = mock_trades
+            mock_exec_sim.apply_execution.return_value = sample_mock_trades
             mock_exec_sim_class.return_value = mock_exec_sim
 
             results = engine.run()
@@ -795,7 +729,13 @@ class TestBacktestEngineRun:
             assert len(results.signals) >= 2
 
     @pytest.mark.integration
-    def test_run_closes_influx_client(self, mock_strategy, mock_market_data_influx, sample_ohlcv_data):
+    def test_run_closes_influx_client(
+        self,
+        mock_strategy,
+        mock_market_data_influx,
+        sample_ohlcv_data_with_time,
+        sample_mock_signals_single,
+    ):
         """Test run() closes InfluxDB client after completion."""
         engine = BacktestEngine(
             strategy=mock_strategy,
@@ -806,20 +746,9 @@ class TestBacktestEngineRun:
             database="debug",
         )
 
-        sample_data_with_time = sample_ohlcv_data.reset_index()
-        sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
-        mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
         # Generate signals so close() is called (close() only called when signals exist)
-        mock_signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "signal_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "signal_type": ["buy"],
-                "price": [100.0],
-                "side": ["LONG"],
-            }
-        )
-        mock_strategy.run_strategy.return_value = mock_signals
+        mock_strategy.run_strategy.return_value = sample_mock_signals_single
 
         with (
             patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,

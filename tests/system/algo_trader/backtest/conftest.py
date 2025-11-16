@@ -153,3 +153,34 @@ def sample_mock_signals():
             "side": ["LONG", "LONG"],
         }
     )
+
+
+@pytest.fixture
+def sample_mock_signals_single():
+    """Sample single signal DataFrame for testing."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "signal_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "signal_type": ["buy"],
+            "price": [100.0],
+            "side": ["LONG"],
+        }
+    )
+
+
+@pytest.fixture
+def sample_mock_signals_multiple_tickers():
+    """Sample signals DataFrame for multiple tickers."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "MSFT"],
+            "signal_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-06", tz="UTC"),
+            ],
+            "signal_type": ["buy", "buy"],
+            "price": [100.0, 200.0],
+            "side": ["LONG", "LONG"],
+        }
+    )

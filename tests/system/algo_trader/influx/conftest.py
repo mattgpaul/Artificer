@@ -226,3 +226,63 @@ def mock_diagnose_sp500_tickers():
     with patch("system.algo_trader.influx.diagnose_missing_data.get_sp500_tickers") as mock_sp500:
         mock_sp500.return_value = []
         yield mock_sp500
+
+
+@pytest.fixture
+def sample_candle():
+    """Sample candle data structure for queue processor tests."""
+    import time
+
+    return {
+        "datetime": int(time.time() * 1000),
+        "open": 100.0,
+        "high": 105.0,
+        "low": 99.0,
+        "close": 104.0,
+        "volume": 1000000,
+    }
+
+
+@pytest.fixture
+def sample_ohlcv_queue_data(sample_candle):
+    """Sample OHLCV queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "candles": [sample_candle],
+        "database": "debug",
+    }
+
+
+@pytest.fixture
+def sample_backtest_trades_queue_data():
+    """Sample backtest trades queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "strategy_name": "SMACrossoverStrategy",
+        "backtest_id": "test-id",
+        "backtest_hash": "abc123",
+        "data": {
+            "datetime": [1704067200000],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "gross_pnl": [500.0],
+        },
+        "database": "debug",
+    }
+
+
+@pytest.fixture
+def sample_backtest_metrics_queue_data():
+    """Sample backtest metrics queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "strategy_name": "SMACrossoverStrategy",
+        "backtest_id": "test-id",
+        "backtest_hash": "abc123",
+        "data": {
+            "datetime": [1704067200000],
+            "total_trades": [10],
+            "total_profit": [5000.0],
+        },
+        "database": "debug",
+    }
