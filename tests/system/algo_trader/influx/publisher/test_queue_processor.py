@@ -5,6 +5,7 @@ dynamic table name resolution, target database handling, error handling, and com
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -41,10 +42,18 @@ class TestProcessQueueOHLCVQueue:
         """Test successful OHLCV queue processing."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["AAPL_20240101", None]
+        now_ms = int(time.time() * 1000)
         mock_queue_broker.get_data.return_value = {
             "ticker": "AAPL",
             "candles": [
-                {"open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000}
+                {
+                    "datetime": now_ms,
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                }
             ],
             "database": "debug",
         }
@@ -394,7 +403,14 @@ class TestProcessQueueErrorHandling:
         mock_queue_broker.get_data.return_value = {
             "ticker": "AAPL",
             "candles": [
-                {"open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000}
+                {
+                    "datetime": int(time.time() * 1000),
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                }
             ],
             "database": "debug",
         }
@@ -420,10 +436,18 @@ class TestProcessQueueTargetDatabase:
         """Test target database specification."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["item_1", None]
+        now_ms = int(time.time() * 1000)
         mock_queue_broker.get_data.return_value = {
             "ticker": "AAPL",
             "candles": [
-                {"open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000}
+                {
+                    "datetime": now_ms,
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                }
             ],
             "database": "debug",
         }
@@ -446,23 +470,40 @@ class TestProcessQueueTargetDatabase:
         """Test complete queue processing workflow."""
         mock_queue_broker.get_queue_size.return_value = 2
         mock_queue_broker.dequeue.side_effect = ["item_1", "item_2", None]
+        now_ms = int(time.time() * 1000)
         mock_queue_broker.get_data.side_effect = [
             {
                 "ticker": "AAPL",
                 "candles": [
-                    {"open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000}
+                    {
+                        "datetime": now_ms,
+                        "open": 100.0,
+                        "high": 105.0,
+                        "low": 99.0,
+                        "close": 104.0,
+                        "volume": 1000000,
+                    }
                 ],
-                "database": "debug",
+                # No database specified - uses default client
             },
             {
                 "ticker": "MSFT",
                 "candles": [
-                    {"open": 200.0, "high": 205.0, "low": 199.0, "close": 204.0, "volume": 2000000}
+                    {
+                        "datetime": now_ms + 1000,
+                        "open": 200.0,
+                        "high": 205.0,
+                        "low": 199.0,
+                        "close": 204.0,
+                        "volume": 2000000,
+                    }
                 ],
-                "database": "debug",
+                # No database specified - uses default client
             },
         ]
         mock_market_data_influx.write.return_value = True
+        # Ensure database attribute exists for comparison
+        mock_market_data_influx.database = "ohlcv"
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
         processed, failed = process_queue(
@@ -474,5 +515,6 @@ class TestProcessQueueTargetDatabase:
 
         assert processed == 2
         assert failed == 0
+        # When no database is specified in data, uses default client
         assert mock_market_data_influx.write.call_count == 2
 

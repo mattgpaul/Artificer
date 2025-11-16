@@ -598,6 +598,8 @@ class TestBacktestEngineRunTicker:
                     "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                     "entry_price": [100.0],
                     "exit_price": [105.0],
+                    "shares": [100.0],  # Required by ExecutionSimulator
+                    "side": ["LONG"],
                     "gross_pnl": [500.0],
                 }
             )
@@ -773,6 +775,8 @@ class TestBacktestEngineRun:
                     "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                     "entry_price": [100.0],
                     "exit_price": [105.0],
+                    "shares": [100.0],  # Required by ExecutionSimulator
+                    "side": ["LONG"],
                     "gross_pnl": [500.0],
                 }
             )
@@ -805,9 +809,33 @@ class TestBacktestEngineRun:
         sample_data_with_time = sample_ohlcv_data.reset_index()
         sample_data_with_time = sample_data_with_time.rename(columns={"index": "time"})
         mock_market_data_influx["instance"].query.return_value = sample_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = pd.DataFrame()
+        # Generate signals so close() is called (close() only called when signals exist)
+        mock_signals = pd.DataFrame(
+            {
+                "ticker": ["AAPL"],
+                "signal_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                "signal_type": ["buy"],
+                "price": [100.0],
+                "side": ["LONG"],
+            }
+        )
+        mock_strategy.run_strategy.return_value = mock_signals
 
-        engine.run()
+        with (
+            patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = pd.DataFrame()
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            engine.run()
 
         mock_market_data_influx["instance"].close.assert_called_once()
 

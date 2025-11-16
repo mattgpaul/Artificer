@@ -111,3 +111,45 @@ def mock_process_manager():
         mock_manager.close_pool.return_value = None
         mock_manager_class.return_value = mock_manager
         yield mock_manager
+
+
+@pytest.fixture
+def sample_ohlcv_data_with_time(sample_ohlcv_data):
+    """Sample OHLCV data with time column (for InfluxDB query format)."""
+    data = sample_ohlcv_data.reset_index()
+    data = data.rename(columns={"index": "time"})
+    return data
+
+
+@pytest.fixture
+def sample_mock_trades():
+    """Sample mock trades DataFrame with all required columns for ExecutionSimulator."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],  # Required by ExecutionSimulator
+            "side": ["LONG"],
+            "gross_pnl": [500.0],
+        }
+    )
+
+
+@pytest.fixture
+def sample_mock_signals():
+    """Sample mock signals DataFrame for testing."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "AAPL"],
+            "signal_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-10", tz="UTC"),
+            ],
+            "signal_type": ["buy", "sell"],
+            "price": [100.0, 105.0],
+            "side": ["LONG", "LONG"],
+        }
+    )
