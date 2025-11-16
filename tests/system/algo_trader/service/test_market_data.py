@@ -110,6 +110,7 @@ def mock_historical_dependencies():
 class TestMarketDataCLIIntegration:
     """Test CLI integration and service dispatching."""
 
+    @pytest.mark.integration
     def test_live_service_dispatch(self, mock_live_dependencies):
         """Test CLI correctly dispatches to LiveMarketService."""
         # This would test the CLI argument parsing and service instantiation
@@ -120,6 +121,7 @@ class TestMarketDataCLIIntegration:
         assert service.sleep_override == 1
         assert service.running is True
 
+    @pytest.mark.integration
     def test_historical_service_dispatch(self, mock_historical_dependencies):
         """Test CLI correctly dispatches to HistoricalMarketService."""
         service = HistoricalMarketService()
@@ -132,6 +134,7 @@ class TestMarketDataCLIIntegration:
 class TestLiveMarketServiceIntegration:
     """Integration tests for LiveMarketService full workflow."""
 
+    @pytest.mark.integration
     def test_service_initialization(self, mock_live_dependencies, mock_redis, mock_schwab_api):
         """Test service initializes all clients correctly."""
         service = LiveMarketService(sleep_override=1)
@@ -142,6 +145,7 @@ class TestLiveMarketServiceIntegration:
         assert service.api_handler is not None
         assert service.watchlist_broker is not None
 
+    @pytest.mark.integration
     def test_execute_pipeline_full_workflow(
         self, mock_live_dependencies, mock_redis, mock_schwab_api
     ):
@@ -164,6 +168,7 @@ class TestLiveMarketServiceIntegration:
 class TestHistoricalMarketServiceIntegration:
     """Integration tests for HistoricalMarketService full workflow."""
 
+    @pytest.mark.integration
     def test_service_initialization(
         self,
         mock_historical_dependencies,
@@ -180,6 +185,7 @@ class TestHistoricalMarketServiceIntegration:
         assert service.watchlist_broker is not None
         assert service.database_handler is not None
 
+    @pytest.mark.integration
     def test_execute_pipeline_full_workflow(
         self,
         mock_historical_dependencies,

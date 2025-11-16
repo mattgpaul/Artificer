@@ -246,10 +246,10 @@ class TestInfluxPublisherRun:
             publisher.run()
 
             # Should handle error and continue
-            mock_logger.error.assert_called()
+            mock_publisher_logger.error.assert_called()
 
     @pytest.mark.integration
-    def test_run_complete_workflow(self, mock_logger):
+    def test_run_complete_workflow(self, mock_publisher_logger):
         """Test complete publisher workflow."""
         config_path = "/path/to/config.yaml"
         config = {
@@ -350,5 +350,5 @@ class TestInfluxPublisherCleanup:
             publisher._cleanup()
 
             # Should log warning but not raise
-            mock_logger.warning.assert_called()
+            mock_publisher_logger.warning.assert_called()
 

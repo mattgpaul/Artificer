@@ -33,6 +33,7 @@ def mock_dependencies():
 class TestPopulateCLIInitialization:
     """Test PopulateCLI initialization."""
 
+    @pytest.mark.integration
     def test_initialization_creates_cli(self, mock_dependencies):
         """Test CLI can be instantiated."""
         cli = PopulateCLI()
@@ -40,6 +41,7 @@ class TestPopulateCLIInitialization:
         assert cli is not None
         assert cli.logger is not None
 
+    @pytest.mark.integration
     def test_initialization_creates_logger(self, mock_dependencies):
         """Test logger is created with class name."""
         cli = PopulateCLI()
@@ -49,6 +51,7 @@ class TestPopulateCLIInitialization:
         # Verify logger instance exists (it's mocked)
         assert cli.logger is mock_dependencies["logger_instance"]
 
+    @pytest.mark.integration
     def test_initialization_registers_handlers(self, mock_dependencies):
         """Test handlers are registered."""
         cli = PopulateCLI()
@@ -62,6 +65,7 @@ class TestPopulateCLIInitialization:
 class TestPopulateCLIRun:
     """Test run method execution."""
 
+    @pytest.mark.integration
     def test_run_with_valid_command(self, mock_dependencies):
         """Test run with valid ohlcv command processes and executes handler."""
         cli = PopulateCLI()
@@ -76,6 +80,7 @@ class TestPopulateCLIRun:
         # Verify logs were called (from the actual handler execution)
         assert mock_dependencies["logger_instance"].info.call_count > 0
 
+    @pytest.mark.integration
     def test_run_handles_handler_error(self, mock_dependencies):
         """Test run handles handler processing errors."""
         cli = PopulateCLI()
@@ -95,6 +100,7 @@ class TestPopulateCLIRun:
 class TestPopulateCLIOrchestration:
     """Test handler orchestration and context management."""
 
+    @pytest.mark.integration
     def test_run_orchestrates_handler_workflow(self, mock_dependencies):
         """Test run collects results and executes all applicable handlers."""
         cli = PopulateCLI()
@@ -113,6 +119,7 @@ class TestPopulateCLIOrchestration:
 class TestPopulateCLIErrorHandling:
     """Test error handling and edge cases."""
 
+    @pytest.mark.integration
     def test_run_handles_missing_handler(self, mock_dependencies):
         """Test run handles missing handler gracefully."""
         cli = PopulateCLI()
@@ -127,6 +134,7 @@ class TestPopulateCLIErrorHandling:
         # Should handle missing subcommand gracefully
         assert True
 
+    @pytest.mark.integration
     def test_run_with_missing_subcommand(self, mock_dependencies):
         """Test run handles missing subcommand."""
         cli = PopulateCLI()
@@ -136,6 +144,7 @@ class TestPopulateCLIErrorHandling:
             with pytest.raises(SystemExit):
                 cli.run()
 
+    @pytest.mark.integration
     def test_run_aborts_on_handler_failure(self, mock_dependencies):
         """Test run aborts on handler processing failure."""
         cli = PopulateCLI()
