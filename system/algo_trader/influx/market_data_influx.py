@@ -5,6 +5,8 @@ time-series in InfluxDB with batch write support and pandas DataFrame
 integration.
 """
 
+import traceback
+
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BaseInfluxDBClient, BatchWriteConfig
@@ -162,7 +164,6 @@ class MarketDataInflux(BaseInfluxDBClient):
             with self._callback._lock:
                 self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
-            import traceback
 
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             return False

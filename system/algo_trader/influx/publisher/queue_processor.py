@@ -6,6 +6,7 @@ to InfluxDB, handling various data formats and error conditions.
 
 from typing import Any
 
+from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.redis.queue_broker import QueueBroker
@@ -180,7 +181,6 @@ def process_queue(
                     f"Creating client for target database '{target_database}' "
                     f"(default was '{influx_client.database}')"
                 )
-                from infrastructure.influxdb.influxdb import BatchWriteConfig
 
                 write_config = BatchWriteConfig(
                     batch_size=50000,

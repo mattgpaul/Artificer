@@ -39,9 +39,7 @@ class TestResultsWriterInitialization:
     @pytest.mark.unit
     def test_initialization_creates_queue_broker(self, mock_queue_broker):
         """Test initialization creates QueueBroker."""
-        with patch(
-            "system.algo_trader.backtest.results.writer.QueueBroker"
-        ) as mock_broker_class:
+        with patch("system.algo_trader.backtest.results.writer.QueueBroker") as mock_broker_class:
             mock_broker = MagicMock()
             mock_broker_class.return_value = mock_broker
 
@@ -914,4 +912,3 @@ class TestResultsWriterDataFrameConversion:
         assert len(data_dict["datetime"]) == 2
         assert len(data_dict["ticker"]) == 2
         assert len(data_dict["gross_pnl"]) == 2
-

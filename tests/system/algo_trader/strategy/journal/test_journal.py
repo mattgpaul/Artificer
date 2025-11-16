@@ -6,7 +6,7 @@ All external dependencies are mocked via conftest.py. Integration tests use
 'debug' database.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -81,9 +81,7 @@ class TestTradeJournalMatchTrades:
 
         journal = TradeJournal(signals=signals, strategy_name="TestStrategy")
 
-        with patch(
-            "system.algo_trader.strategy.journal.journal.match_trades"
-        ) as mock_match:
+        with patch("system.algo_trader.strategy.journal.journal.match_trades") as mock_match:
             mock_match.return_value = pd.DataFrame()
 
             result = journal.match_trades()
@@ -105,9 +103,7 @@ class TestTradeJournalMatchTrades:
             trade_percentage=0.10,
         )
 
-        with patch(
-            "system.algo_trader.strategy.journal.journal.match_trades"
-        ) as mock_match:
+        with patch("system.algo_trader.strategy.journal.journal.match_trades") as mock_match:
             mock_match.return_value = pd.DataFrame()
 
             journal.match_trades()
@@ -211,9 +207,7 @@ class TestTradeJournalGenerateReport:
         mock_metrics = {"total_trades": 1, "total_profit": 500.0}
 
         with (
-            patch(
-                "system.algo_trader.strategy.journal.journal.match_trades"
-            ) as mock_match,
+            patch("system.algo_trader.strategy.journal.journal.match_trades") as mock_match,
             patch(
                 "system.algo_trader.strategy.journal.journal.calculate_metrics"
             ) as mock_calculate,
@@ -235,9 +229,7 @@ class TestTradeJournalGenerateReport:
         journal = TradeJournal(signals=signals, strategy_name="TestStrategy")
 
         with (
-            patch(
-                "system.algo_trader.strategy.journal.journal.match_trades"
-            ) as mock_match,
+            patch("system.algo_trader.strategy.journal.journal.match_trades") as mock_match,
             patch(
                 "system.algo_trader.strategy.journal.journal.calculate_metrics"
             ) as mock_calculate,
@@ -299,9 +291,7 @@ class TestTradeJournalGenerateReport:
         }
 
         with (
-            patch(
-                "system.algo_trader.strategy.journal.journal.match_trades"
-            ) as mock_match,
+            patch("system.algo_trader.strategy.journal.journal.match_trades") as mock_match,
             patch(
                 "system.algo_trader.strategy.journal.journal.calculate_metrics"
             ) as mock_calculate,
@@ -315,4 +305,3 @@ class TestTradeJournalGenerateReport:
             assert len(trades) == 2
             assert trades.iloc[0]["ticker"] == "AAPL"
             assert trades.iloc[1]["ticker"] == "MSFT"
-

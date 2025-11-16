@@ -64,6 +64,8 @@ class ResultsGenerator:
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for Sharpe ratio calculation.
             logger: Optional logger instance. If not provided, creates a new logger.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         self.strategy = strategy
         self.execution_simulator = execution_simulator

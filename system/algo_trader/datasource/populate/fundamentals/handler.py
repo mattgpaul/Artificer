@@ -38,7 +38,8 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             required=False,
             help=(
                 'List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-                'Use "SP500" for S&P 500 tickers or "full-registry" to fetch all tickers from SEC datasource.'
+                'Use "SP500" for S&P 500 tickers or "full-registry" to fetch all '
+                "tickers from SEC datasource."
             ),
         )
         parser.add_argument(

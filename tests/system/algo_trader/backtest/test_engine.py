@@ -162,7 +162,7 @@ class TestBacktestEngineDataLoading:
 
     @pytest.mark.unit
     def test_load_ticker_ohlcv_data_success(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
     ):
         """Test successful loading of OHLCV data for a ticker."""
         start_date = pd.Timestamp("2024-01-01", tz="UTC")
@@ -182,18 +182,20 @@ class TestBacktestEngineDataLoading:
         result = engine.data_loader.load_ticker_ohlcv_data("AAPL", start_date, end_date)
 
         assert result is not None
-        assert len(result) == len(sample_ohlcv_data)
+        assert len(result) == len(sample_ohlcv_data_with_time)
         assert isinstance(result.index, pd.DatetimeIndex)
         assert result.index.tz is not None
 
     @pytest.mark.unit
     def test_load_ticker_ohlcv_data_no_data(self, mock_strategy, mock_market_data_influx):
         """Test loading when no data found returns None."""
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-31", tz="UTC")
         engine = BacktestEngine(
             strategy=mock_strategy,
             tickers=["AAPL"],
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            start_date=start_date,
+            end_date=end_date,
             step_frequency="daily",
         )
 
@@ -206,11 +208,13 @@ class TestBacktestEngineDataLoading:
     @pytest.mark.unit
     def test_load_ticker_ohlcv_data_empty_dataframe(self, mock_strategy, mock_market_data_influx):
         """Test loading when empty DataFrame returned."""
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-31", tz="UTC")
         engine = BacktestEngine(
             strategy=mock_strategy,
             tickers=["AAPL"],
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            start_date=start_date,
+            end_date=end_date,
             step_frequency="daily",
         )
 
@@ -222,14 +226,16 @@ class TestBacktestEngineDataLoading:
 
     @pytest.mark.unit
     def test_load_ohlcv_data_multiple_tickers(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
     ):
         """Test loading data for multiple tickers."""
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-31", tz="UTC")
         engine = BacktestEngine(
             strategy=mock_strategy,
             tickers=["AAPL", "MSFT"],
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            start_date=start_date,
+            end_date=end_date,
             step_frequency="daily",
         )
 
@@ -247,11 +253,13 @@ class TestBacktestEngineDataLoading:
         self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
     ):
         """Test loading when one ticker fails but others succeed."""
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-31", tz="UTC")
         engine = BacktestEngine(
             strategy=mock_strategy,
             tickers=["AAPL", "INVALID"],
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            start_date=start_date,
+            end_date=end_date,
             step_frequency="daily",
         )
 
@@ -502,7 +510,7 @@ class TestBacktestEngineRunTicker:
 
     @pytest.mark.unit
     def test_run_ticker_no_signals(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
     ):
         """Test run_ticker when data exists but no signals generated."""
         engine = BacktestEngine(
@@ -523,7 +531,7 @@ class TestBacktestEngineRunTicker:
 
     @pytest.mark.unit
     def test_run_ticker_no_step_intervals(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data
+        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time
     ):
         """Test run_ticker when no step intervals can be determined."""
         engine = BacktestEngine(
@@ -568,7 +576,9 @@ class TestBacktestEngineRunTicker:
 
         # Mock TradeJournal and ExecutionSimulator
         with (
-            patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
             patch(
                 "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
             ) as mock_exec_sim_class,
@@ -593,7 +603,11 @@ class TestBacktestEngineRunTicker:
 
     @pytest.mark.integration
     def test_run_ticker_with_account_tracking(
-        self, mock_strategy, mock_market_data_influx, sample_ohlcv_data_with_time, sample_mock_signals
+        self,
+        mock_strategy,
+        mock_market_data_influx,
+        sample_ohlcv_data_with_time,
+        sample_mock_signals,
     ):
         """Test run_ticker with account value tracking."""
         engine = BacktestEngine(
@@ -610,12 +624,14 @@ class TestBacktestEngineRunTicker:
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
         mock_strategy.run_strategy.return_value = sample_mock_signals
 
-        with patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class:
+        with patch(
+            "system.algo_trader.backtest.core.results_generator.TradeJournal"
+        ) as mock_journal_class:
             mock_journal = MagicMock()
             mock_journal.generate_report.return_value = ({}, pd.DataFrame())
             mock_journal_class.return_value = mock_journal
 
-            results = engine.run_ticker("AAPL")
+            engine.run_ticker("AAPL")
 
             # Verify account tracking parameters were passed
             call_args = mock_journal_class.call_args
@@ -708,7 +724,9 @@ class TestBacktestEngineRun:
         mock_strategy.run_strategy.return_value = sample_mock_signals_multiple_tickers
 
         with (
-            patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
             patch(
                 "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
             ) as mock_exec_sim_class,
@@ -751,7 +769,9 @@ class TestBacktestEngineRun:
         mock_strategy.run_strategy.return_value = sample_mock_signals_single
 
         with (
-            patch("system.algo_trader.backtest.core.results_generator.TradeJournal") as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
             patch(
                 "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
             ) as mock_exec_sim_class,

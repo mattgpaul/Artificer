@@ -21,16 +21,16 @@ class TestInfluxPublisherInitialization:
     def test_initialization(self, mock_logger):
         """Test publisher initialization."""
         config_path = "/path/to/config.yaml"
-        config = {
-            "queues": [
-                {"name": "ohlcv_queue", "table": "ohlcv", "namespace": "queue"}
-            ]
-        }
+        config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "namespace": "queue"}]}
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config") as mock_load_config,
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace") as mock_get_namespace,
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace"
+            ) as mock_get_namespace,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal") as mock_signal,
         ):
@@ -56,15 +56,19 @@ class TestInfluxPublisherInitialization:
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal") as mock_signal,
         ):
             mock_init_clients.return_value = {"ohlcv_queue": MagicMock()}
             mock_broker_class.return_value = MagicMock()
 
-            publisher = InfluxPublisher(config_path)
+            InfluxPublisher(config_path)
 
             # Should register SIGTERM and SIGINT handlers
             assert mock_signal.call_count == 2
@@ -84,8 +88,12 @@ class TestInfluxPublisherSignalHandler:
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
         ):
@@ -107,8 +115,12 @@ class TestInfluxPublisherSignalHandler:
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
         ):
@@ -130,20 +142,22 @@ class TestInfluxPublisherRun:
     def test_run_monitors_queues(self, mock_logger):
         """Test run method monitors configured queues."""
         config_path = "/path/to/config.yaml"
-        config = {
-            "queues": [
-                {"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 2}
-            ]
-        }
+        config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 2}]}
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
-            patch("system.algo_trader.influx.publisher.publisher.process_queue") as mock_process_queue,
-            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as mock_sleep,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.process_queue"
+            ) as mock_process_queue,
+            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as _mock_sleep,
         ):
             mock_init_clients.return_value = {"ohlcv_queue": MagicMock()}
             mock_broker_class.return_value = MagicMock()
@@ -170,20 +184,22 @@ class TestInfluxPublisherRun:
     def test_run_poll_interval(self, mock_logger):
         """Test poll interval handling."""
         config_path = "/path/to/config.yaml"
-        config = {
-            "queues": [
-                {"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 5}
-            ]
-        }
+        config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 5}]}
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
-            patch("system.algo_trader.influx.publisher.publisher.process_queue") as mock_process_queue,
-            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as mock_sleep,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.process_queue"
+            ) as mock_process_queue,
+            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as _mock_sleep,
         ):
             mock_init_clients.return_value = {"ohlcv_queue": MagicMock()}
             mock_broker_class.return_value = MagicMock()
@@ -204,26 +220,28 @@ class TestInfluxPublisherRun:
             publisher.run()
 
             # Should sleep with poll_interval
-            mock_sleep.assert_called_with(5)
+            _mock_sleep.assert_called_with(5)
 
     @pytest.mark.unit
-    def test_run_error_handling(self, mock_logger):
+    def test_run_error_handling(self, mock_publisher_logger):
         """Test error handling in main loop."""
         config_path = "/path/to/config.yaml"
-        config = {
-            "queues": [
-                {"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 2}
-            ]
-        }
+        config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 2}]}
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
-            patch("system.algo_trader.influx.publisher.publisher.process_queue") as mock_process_queue,
-            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as mock_sleep,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.process_queue"
+            ) as mock_process_queue,
+            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as _mock_sleep,
         ):
             mock_init_clients.return_value = {"ohlcv_queue": MagicMock()}
             mock_broker_class.return_value = MagicMock()
@@ -261,12 +279,18 @@ class TestInfluxPublisherRun:
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
-            patch("system.algo_trader.influx.publisher.publisher.process_queue") as mock_process_queue,
-            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as mock_sleep,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.process_queue"
+            ) as mock_process_queue,
+            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as _mock_sleep,
         ):
             mock_init_clients.return_value = {
                 "ohlcv_queue": MagicMock(),
@@ -309,8 +333,12 @@ class TestInfluxPublisherCleanup:
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
         ):
@@ -329,15 +357,19 @@ class TestInfluxPublisherCleanup:
             mock_client2.close.assert_called_once()
 
     @pytest.mark.unit
-    def test_cleanup_handles_close_errors(self, mock_logger):
+    def test_cleanup_handles_close_errors(self, mock_publisher_logger):
         """Test cleanup handles client close errors gracefully."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv"}]}
 
         with (
             patch("system.algo_trader.influx.publisher.publisher.load_config", return_value=config),
-            patch("system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"),
-            patch("system.algo_trader.influx.publisher.publisher.init_influx_clients") as mock_init_clients,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.get_namespace", return_value="queue"
+            ),
+            patch(
+                "system.algo_trader.influx.publisher.publisher.init_influx_clients"
+            ) as mock_init_clients,
             patch("system.algo_trader.influx.publisher.publisher.QueueBroker") as mock_broker_class,
             patch("system.algo_trader.influx.publisher.publisher.signal.signal"),
         ):
@@ -351,4 +383,3 @@ class TestInfluxPublisherCleanup:
 
             # Should log warning but not raise
             mock_publisher_logger.warning.assert_called()
-

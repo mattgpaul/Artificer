@@ -5,8 +5,6 @@ dynamic table name resolution, target database handling, error handling, and com
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from system.algo_trader.influx.publisher.queue_processor import process_queue
@@ -155,7 +153,9 @@ class TestProcessQueueBacktestQueues:
         assert call_args[1]["table"] == "SMACrossoverStrategy_summary"  # Dynamic table name
 
     @pytest.mark.unit
-    def test_process_queue_backtest_empty_datetime(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_backtest_empty_datetime(
+        self, mock_queue_broker, mock_market_data_influx
+    ):
         """Test handling empty datetime in backtest queue."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
@@ -183,7 +183,9 @@ class TestProcessQueueTagColumns:
     """Test tag column handling."""
 
     @pytest.mark.unit
-    def test_process_queue_tag_columns_backtest_id(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_tag_columns_backtest_id(
+        self, mock_queue_broker, mock_market_data_influx
+    ):
         """Test backtest_id tag column handling."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
@@ -200,7 +202,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, failed = process_queue(
+        processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx,
@@ -212,7 +214,9 @@ class TestProcessQueueTagColumns:
         assert "backtest_id" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
-    def test_process_queue_tag_columns_backtest_hash(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_tag_columns_backtest_hash(
+        self, mock_queue_broker, mock_market_data_influx
+    ):
         """Test backtest_hash tag column handling."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
@@ -229,7 +233,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, failed = process_queue(
+        processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx,
@@ -257,7 +261,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, failed = process_queue(
+        processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx,
@@ -269,7 +273,9 @@ class TestProcessQueueTagColumns:
         assert "strategy" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
-    def test_process_queue_tag_columns_none_values(self, mock_queue_broker, mock_market_data_influx):
+    def test_process_queue_tag_columns_none_values(
+        self, mock_queue_broker, mock_market_data_influx
+    ):
         """Test handling None tag values."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
@@ -287,7 +293,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, failed = process_queue(
+        processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx,
@@ -399,7 +405,7 @@ class TestProcessQueueTargetDatabase:
         mock_market_data_influx.write.return_value = True
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        processed, failed = process_queue(
+        processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx,
@@ -419,7 +425,9 @@ class TestProcessQueueTargetDatabase:
         mock_queue_broker.dequeue.side_effect = ["item_1", "item_2", None]
         # Create MSFT candle with different values
         msft_candle = sample_candle.copy()
-        msft_candle.update({"open": 200.0, "high": 205.0, "low": 199.0, "close": 204.0, "volume": 2000000})
+        msft_candle.update(
+            {"open": 200.0, "high": 205.0, "low": 199.0, "close": 204.0, "volume": 2000000}
+        )
         msft_candle["datetime"] = sample_candle["datetime"] + 1000
         mock_queue_broker.get_data.side_effect = [
             {
@@ -449,4 +457,3 @@ class TestProcessQueueTargetDatabase:
         assert failed == 0
         # When no database is specified in data, uses default client
         assert mock_market_data_influx.write.call_count == 2
-

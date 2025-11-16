@@ -87,7 +87,10 @@ pytest_test(
     name = "test_engine",
     size = "small",
     coverage_path = "system.algo_trader.backtest.engine",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest:test_engine_lib",
 )
 
@@ -95,7 +98,10 @@ pytest_test(
     name = "test_main",
     size = "medium",
     coverage_path = "system.algo_trader.backtest.main",
-    tags = ["unit", "e2e"],
+    tags = [
+        "e2e",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest:test_main_lib",
 )
 
@@ -103,7 +109,11 @@ pytest_test(
     name = "test_processor",
     size = "small",
     coverage_path = "system.algo_trader.backtest.processor.processor",
-    tags = ["exclusive", "unit", "integration"],
+    tags = [
+        "exclusive",
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest/processor:test_processor_lib",
 )
 
@@ -111,7 +121,10 @@ pytest_test(
     name = "test_worker",
     size = "small",
     coverage_path = "system.algo_trader.backtest.processor.worker",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest/processor:test_worker_lib",
 )
 
@@ -119,7 +132,10 @@ pytest_test(
     name = "test_results_generator",
     size = "small",
     coverage_path = "system.algo_trader.backtest.core.results_generator",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest/core:test_results_generator_lib",
 )
 
@@ -127,7 +143,10 @@ pytest_test(
     name = "test_writer",
     size = "small",
     coverage_path = "system.algo_trader.backtest.results.writer",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/backtest/results:test_writer_lib",
 )
 

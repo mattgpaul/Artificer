@@ -53,7 +53,8 @@ exclude = [
 "tests/**/*.py" = [
     "D100",   # Missing docstring in public module
     "D103",   # Missing docstring in public function
-    "PLR0913",  # Too many arguments (common in test functions with mocks
+    "PLR0913",  # Too many arguments (common in test functions with mocks)
+    "F841",   # Unused variables (common for mock context managers in tests)
 ]
 # Configuration functions legitimately need many parameters
 "system/algo_trader/backtest/engine.py" = ["PLR0913"]  # __init__ with many config params
@@ -114,6 +115,21 @@ exclude = [
 # OHLCV processor has many statements for data processing
 "system/algo_trader/datasource/populate/ohlcv/processor.py" = [
     "PLR0915",  # Too many statements (data processing logic)
+    "C901",     # Complexity (data processing logic)
+    "PLR0911",  # Too many return statements (data processing logic)
+]
+# OHLCV handler has complex argument processing logic
+"system/algo_trader/datasource/populate/ohlcv/handler.py" = [
+    "PLR0912",  # Too many branches (argument validation logic)
+    "PLR0915",  # Too many statements (argument processing logic)
+]
+# Results generator __init__ legitimately needs many parameters
+"system/algo_trader/backtest/core/results_generator.py" = [
+    "PLR0913",  # Too many arguments (configuration parameters)
+]
+# Trade matching has complex logic for matching signals
+"system/algo_trader/strategy/journal/trade_matching.py" = [
+    "PLR0912",  # Too many branches (trade matching logic)
 ]
 # DataFrame building has complex logic for SEC data processing
 "system/algo_trader/datasource/sec/tickers/dataframe.py" = [

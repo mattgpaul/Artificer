@@ -602,7 +602,6 @@ class TestBacktestProcessorEdgeCases:
             )
 
             # Summary should reflect failures
-            call_args = mock_sequential.call_args
             summary = mock_sequential.return_value
             assert summary["failed"] == 2
             assert summary["successful"] == 1

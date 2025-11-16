@@ -63,9 +63,7 @@ class TestLogBacktestResults:
     @pytest.mark.unit
     def test_log_backtest_results_with_metrics(self):
         """Test logging results with metrics."""
-        with patch(
-            "system.algo_trader.backtest.processor.worker.get_logger"
-        ) as mock_get_logger:
+        with patch("system.algo_trader.backtest.processor.worker.get_logger") as mock_get_logger:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
@@ -93,9 +91,7 @@ class TestLogBacktestResults:
     @pytest.mark.unit
     def test_log_backtest_results_no_metrics(self):
         """Test logging results without metrics."""
-        with patch(
-            "system.algo_trader.backtest.processor.worker.get_logger"
-        ) as mock_get_logger:
+        with patch("system.algo_trader.backtest.processor.worker.get_logger") as mock_get_logger:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
@@ -109,9 +105,7 @@ class TestLogBacktestResults:
     @pytest.mark.unit
     def test_log_backtest_results_partial_metrics(self):
         """Test logging results with partial metrics."""
-        with patch(
-            "system.algo_trader.backtest.processor.worker.get_logger"
-        ) as mock_get_logger:
+        with patch("system.algo_trader.backtest.processor.worker.get_logger") as mock_get_logger:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
@@ -293,7 +287,7 @@ class TestBacktestTickerWorker:
             ) as mock_write_results,
             patch(
                 "system.algo_trader.backtest.processor.worker.log_backtest_results"
-            ) as mock_log_results,
+            ) as _mock_log_results,
         ):
             mock_strategy = MagicMock()
             mock_strategy.close = MagicMock()
@@ -409,7 +403,7 @@ class TestBacktestTickerWorker:
             ) as mock_write_results,
             patch(
                 "system.algo_trader.backtest.processor.worker.log_backtest_results"
-            ) as mock_log_results,
+            ) as _mock_log_results,
         ):
             mock_strategy = MagicMock()
             mock_strategy.close = MagicMock()
@@ -776,4 +770,3 @@ class TestBacktestTickerWorker:
             assert call_args[1]["walk_forward"] is True
             assert call_args[1]["train_days"] == 90
             assert call_args[1]["test_days"] == 30
-

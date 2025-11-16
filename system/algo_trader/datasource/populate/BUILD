@@ -80,7 +80,10 @@ pytest_test(
     name = "test_ohlcv_processor",
     size = "medium",
     coverage_path = "system.algo_trader.datasource.populate.ohlcv.processor",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/datasource/populate/ohlcv:test_processor_lib",
 )
 
@@ -88,7 +91,10 @@ pytest_test(
     name = "test_ohlcv_handler",
     size = "medium",
     coverage_path = "system.algo_trader.datasource.populate.ohlcv.handler",
-    tags = ["unit", "e2e"],
+    tags = [
+        "e2e",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/datasource/populate/ohlcv:test_handler_lib",
 )
 
@@ -120,6 +126,9 @@ pytest_test(
     name = "test_fundamentals_handler",
     size = "medium",
     coverage_path = "system.algo_trader.datasource.populate.fundamentals.handler",
-    tags = ["unit", "e2e"],
+    tags = [
+        "e2e",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/datasource/populate/fundamentals:test_handler_lib",
 )

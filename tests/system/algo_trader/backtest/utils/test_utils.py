@@ -270,4 +270,3 @@ class TestDataFrameToDict:
         assert len(result["ticker"]) == 3
         assert result["efficiency"][2] == 0  # NaN converted to 0
         assert isinstance(result["entry_time"][0], int)  # Datetime converted
-

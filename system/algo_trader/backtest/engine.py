@@ -65,6 +65,8 @@ class BacktestEngine:
             execution_config: Execution simulation configuration.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for performance calculations.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         self.strategy = strategy
         self.tickers = tickers

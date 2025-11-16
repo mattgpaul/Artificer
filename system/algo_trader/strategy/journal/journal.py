@@ -43,6 +43,8 @@ class TradeJournal:
             ohlcv_data: Optional OHLCV DataFrame for trade matching and efficiency calculation.
             capital_per_trade: Capital allocated per trade. Defaults to 10000.0.
             risk_free_rate: Annual risk-free rate for Sharpe ratio. Defaults to 0.04.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         self.signals = signals.copy()
         self.strategy_name = strategy_name

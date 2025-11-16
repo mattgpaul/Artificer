@@ -53,7 +53,8 @@ class MarketHandler(SchwabClient):
                 # 500/502 are server errors - not bad tickers, but API issues
                 if response.status_code in (500, 502):
                     self.logger.error(
-                        f"Server error {response.status_code} from Schwab API (transient): {response.text}"
+                        f"Server error {response.status_code} from Schwab API "
+                        f"(transient): {response.text}"
                     )
                 else:
                     self.logger.error(
@@ -162,7 +163,8 @@ class MarketHandler(SchwabClient):
             if response:
                 if attempt > 0:
                     self.logger.info(
-                        f"Successfully retrieved price history for {ticker} on retry attempt {attempt}"
+                        f"Successfully retrieved price history for {ticker} "
+                        f"on retry attempt {attempt}"
                     )
                 return response
 

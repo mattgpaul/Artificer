@@ -31,7 +31,7 @@ py_library(
     srcs = ["test_main.py"],
     visibility = ["//system/algo_trader/influx/publisher:__pkg__"],
     deps = [
-        "//system/algo_trader/influx/publisher:publisher_service",
+        "//system/algo_trader/influx/publisher:publisher_main",
         requirement("pytest"),
     ],
 )
@@ -47,4 +47,3 @@ py_library(
         requirement("pytest"),
     ],
 )
-

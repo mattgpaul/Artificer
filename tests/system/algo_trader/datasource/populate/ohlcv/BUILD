@@ -26,4 +26,3 @@ py_library(
         requirement("pytest"),
     ],
 )
-

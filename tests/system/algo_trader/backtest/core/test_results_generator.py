@@ -337,7 +337,7 @@ class TestResultsGeneratorForAllTickers:
 
         with patch(
             "system.algo_trader.backtest.core.results_generator.TradeJournal"
-        ) as mock_journal_class:
+        ) as _mock_journal_class:
             results = generator.generate_results_for_all_tickers(combined_signals, data_cache)
 
             assert isinstance(results, BacktestResults)
@@ -452,7 +452,10 @@ class TestResultsGeneratorForAllTickers:
                 ({}, mock_trades_aapl),
                 ({}, mock_trades_msft),
             ]
-            mock_journal.calculate_metrics.return_value = {"total_trades": 2, "total_profit": 1500.0}
+            mock_journal.calculate_metrics.return_value = {
+                "total_trades": 2,
+                "total_profit": 1500.0,
+            }
             mock_journal_class.return_value = mock_journal
 
             combined_trades = pd.concat([mock_trades_aapl, mock_trades_msft], ignore_index=True)
@@ -626,4 +629,3 @@ class TestResultsGeneratorForAllTickers:
             for call_args in call_args_list:
                 assert call_args[1]["initial_account_value"] == 50000.0
                 assert call_args[1]["trade_percentage"] == 0.10
-

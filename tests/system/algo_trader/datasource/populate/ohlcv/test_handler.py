@@ -21,7 +21,7 @@ class TestOHLCVArgumentHandlerInitialization:
     def test_initialization(self, mock_logger):
         """Test handler initialization."""
         handler = OHLCVArgumentHandler()
-        assert handler.command == "ohlcv"
+        assert handler.name == "ohlcv"
         assert handler.logger is not None
 
 
@@ -99,7 +99,9 @@ class TestOHLCVArgumentHandlerProcess:
     """Test process method."""
 
     @pytest.mark.unit
-    def test_process_specific_tickers(self, ohlcv_handler, mock_logger):
+    def test_process_specific_tickers(
+        self, ohlcv_handler, mock_logger, mock_ohlcv_bad_ticker_client
+    ):
         """Test processing specific tickers."""
         args = argparse.Namespace(
             tickers=["AAPL", "MSFT"],
@@ -120,7 +122,7 @@ class TestOHLCVArgumentHandlerProcess:
         assert result["verify_bad_tickers"] is False
 
     @pytest.mark.unit
-    def test_process_sp500_tickers(self, ohlcv_handler, mock_tickers):
+    def test_process_sp500_tickers(self, ohlcv_handler, mock_tickers, mock_ohlcv_bad_ticker_client):
         """Test processing SP500 tickers."""
         mock_tickers.get_sp500_tickers.return_value = ["AAPL", "MSFT", "GOOGL"]
         args = argparse.Namespace(
@@ -143,7 +145,7 @@ class TestOHLCVArgumentHandlerProcess:
             assert "AAPL" in result["tickers"]
 
     @pytest.mark.unit
-    def test_process_full_registry(self, ohlcv_handler, mock_tickers):
+    def test_process_full_registry(self, ohlcv_handler, mock_tickers, mock_ohlcv_bad_ticker_client):
         """Test processing full-registry tickers."""
         mock_tickers.get_tickers.return_value = {
             "key1": {"ticker": "AAPL"},
@@ -215,11 +217,11 @@ class TestOHLCVArgumentHandlerProcess:
         assert result["verify_bad_tickers"] is True
 
     @pytest.mark.unit
-    def test_process_frequency_period_validation(self, ohlcv_handler):
+    def test_process_frequency_period_validation(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
         """Test frequency and period type validation."""
         args = argparse.Namespace(
             tickers=["AAPL"],
-            frequency="hourly",
+            frequency="daily",
             period="month",
             frequency_value=1,
             period_value=6,
@@ -228,13 +230,13 @@ class TestOHLCVArgumentHandlerProcess:
 
         result = ohlcv_handler.process(args)
 
-        assert result["frequency_type"] == FrequencyType.HOURLY
+        assert result["frequency_type"] == FrequencyType.DAILY
         assert result["period_type"] == PeriodType.MONTH
         assert result["frequency_value"] == 1
         assert result["period_value"] == 6
 
     @pytest.mark.unit
-    def test_process_verify_bad_tickers_flag(self, ohlcv_handler):
+    def test_process_verify_bad_tickers_flag(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
         """Test verify_bad_tickers flag handling."""
         args = argparse.Namespace(
             tickers=["AAPL"],
@@ -302,7 +304,9 @@ class TestOHLCVArgumentHandlerProcess:
             ohlcv_handler.process(args)
 
     @pytest.mark.e2e
-    def test_process_complete_workflow(self, ohlcv_handler, mock_tickers):
+    def test_process_complete_workflow(
+        self, ohlcv_handler, mock_tickers, mock_ohlcv_bad_ticker_client
+    ):
         """Test complete handler workflow."""
         args = argparse.Namespace(
             tickers=["AAPL", "MSFT"],
@@ -337,15 +341,21 @@ class TestOHLCVArgumentHandlerProcess:
             verify_bad_tickers=True,
         )
 
-        with patch(
-            "system.algo_trader.datasource.populate.ohlcv.handler.BadTickerVerifier"
-        ) as mock_verifier_class:
+        with (
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv.handler.BadTickerVerifier"
+            ) as mock_verifier_class,
+            patch(
+                "system.algo_trader.datasource.populate.ohlcv.handler.OHLCVProcessor"
+            ) as mock_processor_class,
+        ):
             mock_verifier = MagicMock()
             mock_verifier_class.return_value = mock_verifier
+            mock_processor = MagicMock()
+            mock_processor_class.return_value = mock_processor
 
             result = ohlcv_handler.process(args)
             ohlcv_handler.execute(result)
 
             mock_verifier_class.assert_called_once()
             mock_verifier.verify_bad_tickers.assert_called_once()
-

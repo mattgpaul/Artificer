@@ -4,6 +4,7 @@ All common fixtures, mocks, and test parameters are defined here
 to reduce code duplication across test files.
 """
 
+import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
@@ -231,8 +232,6 @@ def mock_diagnose_sp500_tickers():
 @pytest.fixture
 def sample_candle():
     """Sample candle data structure for queue processor tests."""
-    import time
-
     return {
         "datetime": int(time.time() * 1000),
         "open": 100.0,

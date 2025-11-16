@@ -7,9 +7,7 @@ E2E tests use 'debug' database for InfluxDB operations.
 
 import sys
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
 
-import pandas as pd
 import pytest
 
 from system.algo_trader.backtest.main import create_strategy, main, parse_args
@@ -63,7 +61,7 @@ class TestParseArgs:
         args = parse_args()
 
         # Mock sys.argv for testing
-        with patch.object(sys, "argv", ["backtest"] + test_args):
+        with patch.object(sys, "argv", ["backtest", *test_args]):
             args = parse_args()
 
             assert args.tickers == ["AAPL", "MSFT"]
@@ -103,7 +101,7 @@ class TestParseArgs:
             "20",
         ]
 
-        with patch.object(sys, "argv", ["backtest"] + test_args):
+        with patch.object(sys, "argv", ["backtest", *test_args]):
             args = parse_args()
 
             assert args.database == "ohlcv"
@@ -133,7 +131,7 @@ class TestParseArgs:
             "20",
         ]
 
-        with patch.object(sys, "argv", ["backtest"] + test_args):
+        with patch.object(sys, "argv", ["backtest", *test_args]):
             with pytest.raises(SystemExit):
                 parse_args()
 
@@ -149,7 +147,7 @@ class TestParseArgs:
             "2024-01-31",
         ]
 
-        with patch.object(sys, "argv", ["backtest"] + test_args):
+        with patch.object(sys, "argv", ["backtest", *test_args]):
             with pytest.raises(SystemExit):
                 parse_args()
 
@@ -166,9 +164,7 @@ class TestCreateStrategy:
         args.long = 20
         args.database = "test_db"
 
-        with patch(
-            "system.algo_trader.backtest.main.SMACrossoverStrategy"
-        ) as mock_strategy_class:
+        with patch("system.algo_trader.backtest.main.SMACrossoverStrategy") as mock_strategy_class:
             mock_strategy = MagicMock()
             mock_strategy_class.return_value = mock_strategy
 
@@ -211,7 +207,7 @@ class TestMainTickerResolution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor,
@@ -246,7 +242,7 @@ class TestMainTickerResolution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor,
@@ -281,7 +277,7 @@ class TestMainTickerResolution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
         ):
             mock_resolve.side_effect = ValueError("Failed to resolve tickers")
@@ -312,7 +308,7 @@ class TestMainDateValidation:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
         ):
             mock_resolve.return_value = ["AAPL"]
@@ -339,7 +335,7 @@ class TestMainDateValidation:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
         ):
             mock_resolve.return_value = ["AAPL"]
@@ -366,7 +362,7 @@ class TestMainDateValidation:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor,
@@ -406,7 +402,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -456,7 +452,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -504,7 +500,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -549,7 +545,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -596,7 +592,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -638,7 +634,7 @@ class TestMainExecution:
         ]
 
         with (
-            patch.object(sys, "argv", ["backtest"] + test_args),
+            patch.object(sys, "argv", ["backtest", *test_args]),
             patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
             patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
             patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
@@ -655,4 +651,3 @@ class TestMainExecution:
 
             assert result == 1
             mock_strategy.close.assert_called_once()  # Should still close strategy
-

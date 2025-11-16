@@ -82,6 +82,7 @@ class BacktestProcessor:
             end_date: End date for backtest.
             step_frequency: Frequency for time steps.
             database: Database name for data access.
+            results_database: Database name for results storage.
             execution_config: Execution configuration with slippage and commission.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for Sharpe ratio calculation.
@@ -90,6 +91,8 @@ class BacktestProcessor:
             train_days: Number of training days for walk-forward.
             test_days: Number of test days for walk-forward.
             train_split: Training split ratio for walk-forward.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -177,10 +180,12 @@ class BacktestProcessor:
             end_date: End date for backtest period.
             step_frequency: Frequency for time steps ('daily', 'hourly', etc.).
             database: Database name for data access.
+            results_database: Database name for results storage.
             execution_config: Execution configuration with slippage and commission.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for Sharpe ratio calculation.
             strategy_params: Dictionary of strategy parameters.
+            backtest_id: Unique identifier for this backtest run.
             walk_forward: Whether to use walk-forward analysis.
             train_days: Number of training days for walk-forward.
             test_days: Number of test days for walk-forward.
@@ -189,6 +194,8 @@ class BacktestProcessor:
                 If None, uses CPU count - 2.
             use_multiprocessing: Whether to use parallel processing.
                 If False, processes sequentially.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         if not tickers:
             self.logger.error("No tickers provided")

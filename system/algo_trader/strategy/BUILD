@@ -97,7 +97,10 @@ pytest_test(
     name = "test_journal",
     size = "small",
     coverage_path = "system.algo_trader.strategy.journal.journal",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/strategy/journal:test_journal_lib",
 )
 
@@ -105,7 +108,10 @@ pytest_test(
     name = "test_trade_matching",
     size = "small",
     coverage_path = "system.algo_trader.strategy.journal.trade_matching",
-    tags = ["unit", "integration"],
+    tags = [
+        "integration",
+        "unit",
+    ],
     test_lib = "//tests/system/algo_trader/strategy/journal:test_trade_matching_lib",
 )
 

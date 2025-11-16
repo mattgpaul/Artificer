@@ -22,7 +22,7 @@ class TestFundamentalsArgumentHandlerInitialization:
     def test_initialization(self, mock_logger):
         """Test handler initialization."""
         handler = FundamentalsArgumentHandler()
-        assert handler.command == "fundamentals"
+        assert handler.name == "fundamentals"
         assert handler.logger is not None
 
 
@@ -285,10 +285,12 @@ class TestFundamentalsArgumentHandlerProcess:
             mock_processor_class.assert_called_once()
             mock_processor.process_tickers.assert_called_once()
             call_args = mock_processor.process_tickers.call_args
-            assert call_args[1]["write"] is False
+            assert call_args[0][2] is False  # write is the 3rd positional argument
 
     @pytest.mark.e2e
-    def test_process_complete_workflow_write_mode(self, fundamentals_handler, mock_bad_ticker_client):
+    def test_process_complete_workflow_write_mode(
+        self, fundamentals_handler, mock_bad_ticker_client
+    ):
         """Test complete handler workflow in write mode."""
         mock_bad_ticker_client.is_bad_ticker.return_value = False
         args = argparse.Namespace(
@@ -309,5 +311,4 @@ class TestFundamentalsArgumentHandlerProcess:
 
             mock_processor.process_tickers.assert_called_once()
             call_args = mock_processor.process_tickers.call_args
-            assert call_args[1]["write"] is True
-
+            assert call_args[0][2] is True  # write is the 3rd positional argument

@@ -38,9 +38,9 @@ class OHLCVArgumentHandler(ArgumentHandler):
             required=False,
             help=(
                 'List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-                'Use "SP500" for S&P 500 tickers, "full-registry" to fetch all tickers from SEC datasource, '
-                'or "missing-tickers" to fetch tickers from missing_tickers table. '
-                "Required unless --verify-bad-tickers is used."
+                'Use "SP500" for S&P 500 tickers, "full-registry" to fetch all '
+                'tickers from SEC datasource, or "missing-tickers" to fetch '
+                "tickers from missing_tickers table. Required unless --verify-bad-tickers is used."
             ),
         )
         parser.add_argument(

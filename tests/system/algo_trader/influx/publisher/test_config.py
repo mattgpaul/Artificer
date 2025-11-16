@@ -5,20 +5,15 @@ database mapping, batch size configuration, and protected constants validation.
 All external dependencies are mocked.
 """
 
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
 from system.algo_trader.influx.publisher.config import (
-    BACKTEST_BATCH_SIZE,
     FUNDAMENTALS_BATCH_SIZE,
     FUNDAMENTALS_DATABASE,
     OHLCV_BATCH_SIZE,
     OHLCV_DATABASE,
-    TRADING_JOURNAL_BATCH_SIZE,
-    TRADING_JOURNAL_DATABASE,
     get_namespace,
     init_influx_clients,
     load_config,
@@ -86,11 +81,7 @@ class TestGetNamespace:
     @pytest.mark.unit
     def test_get_namespace_from_config(self):
         """Test extracting namespace from config."""
-        config = {
-            "queues": [
-                {"name": "ohlcv_queue", "table": "ohlcv", "namespace": "custom"}
-            ]
-        }
+        config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "namespace": "custom"}]}
         result = get_namespace(config)
         assert result == "custom"
 
@@ -239,7 +230,7 @@ class TestInitInfluxClients:
                 mock_client = MagicMock()
                 mock_client_class.return_value = mock_client
 
-                result = init_influx_clients(config)
+                init_influx_clients(config)
 
                 # Should still work, using protected constant
                 call_args = mock_client_class.call_args
@@ -270,7 +261,7 @@ class TestInitInfluxClients:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
-            result = init_influx_clients(config)
+            init_influx_clients(config)
 
             call_args = mock_client_class.call_args
             write_config = call_args[1]["write_config"]
@@ -305,7 +296,7 @@ class TestInitInfluxClients:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
-            result = init_influx_clients(config)
+            init_influx_clients(config)
 
             call_args = mock_client_class.call_args
             write_config = call_args[1]["write_config"]
@@ -345,4 +336,3 @@ class TestInitInfluxClients:
             assert "fundamentals_queue" in result
             assert "trading_journal_queue" in result
             assert mock_client_class.call_count == 3
-

@@ -5,7 +5,7 @@ time held calculation, account tracking, trade percentage position sizing, and e
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -32,9 +32,7 @@ class TestMatchTradesEmptySignals:
     @pytest.mark.unit
     def test_match_trades_no_signals(self):
         """Test matching with no signals."""
-        signals = pd.DataFrame(
-            columns=["ticker", "signal_time", "signal_type", "price", "side"]
-        )
+        signals = pd.DataFrame(columns=["ticker", "signal_time", "signal_type", "price", "side"])
 
         result = match_trades(
             signals=signals,
@@ -483,7 +481,19 @@ class TestMatchTradesEdgeCases:
             )
 
             assert len(result) == 2
-            assert all(col in result.columns for col in ["ticker", "entry_time", "exit_time", "entry_price", "exit_price", "gross_pnl", "gross_pnl_pct", "efficiency", "time_held"])
+            assert all(
+                col in result.columns
+                for col in [
+                    "ticker",
+                    "entry_time",
+                    "exit_time",
+                    "entry_price",
+                    "exit_price",
+                    "gross_pnl",
+                    "gross_pnl_pct",
+                    "efficiency",
+                    "time_held",
+                ]
+            )
             assert result.iloc[0]["ticker"] == "AAPL"
             assert result.iloc[1]["ticker"] == "MSFT"
-

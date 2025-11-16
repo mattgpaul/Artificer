@@ -66,13 +66,13 @@ class TestOHLCVProcessorProcessTickers:
         with (
             patch(
                 "system.algo_trader.datasource.populate.ohlcv.processor.MarketHandler"
-            ) as mock_market_handler_class,
+            ) as _mock_market_handler_class,
             patch(
                 "system.algo_trader.datasource.populate.ohlcv.processor.ThreadManager"
-            ) as mock_thread_manager_class,
+            ) as _mock_thread_manager_class,
             patch(
                 "system.algo_trader.datasource.populate.ohlcv.processor.QueueBroker"
-            ) as mock_queue_broker_class,
+            ) as _mock_queue_broker_class,
         ):
             processor.process_tickers(
                 tickers=[],
@@ -707,4 +707,3 @@ class TestOHLCVProcessorThreadManagement:
             mock_thread_manager.wait_for_all_threads.assert_called_once()
             mock_thread_manager.cleanup_dead_threads.assert_called_once()
             mock_thread_manager.get_results_summary.assert_called()
-

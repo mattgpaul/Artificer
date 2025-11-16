@@ -34,6 +34,8 @@ def match_trades(
         capital_per_trade: Capital allocated per trade.
         ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
         logger: Optional logger instance. If not provided, creates a new logger.
+        initial_account_value: Optional initial account value for account tracking.
+        trade_percentage: Optional percentage of account to use per trade.
 
     Returns:
         DataFrame containing matched trades with columns:
