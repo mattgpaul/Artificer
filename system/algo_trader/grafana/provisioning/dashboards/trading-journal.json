@@ -18,18 +18,53 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 4,
+  "id": 3,
   "links": [],
   "panels": [
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "$datasource"
+        "uid": "influxdb-algo-trader-ohlcv"
       },
+      "description": "Candlestick chart displaying Open, High, Low, Close prices and trading Volume for the selected ticker symbol",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -38,49 +73,57 @@
               {
                 "color": "green",
                 "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
-          },
-          "unit": "currencyUSD"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
+        "h": 11,
+        "w": 18,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 9,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "candleStyle": "candles",
+        "colorStrategy": "open-close",
+        "colors": {
+          "down": "red",
+          "up": "green"
         },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
+        "includeAllFields": false,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mode": "candles+volume",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "12.2.1",
       "targets": [
         {
+          "dataset": "iox",
           "datasource": {
             "type": "influxdb",
-            "uid": "$datasource"
+            "uid": "influxdb-algo-trader-ohlcv"
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT\n  SUM(gross_pnl) as total_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "query": "SELECT \n    time,\n    ticker,\n    open,\n    high,\n    low,\n    close,\n    volume\nFROM ohlcv\nWHERE ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time",
           "rawQuery": true,
-          "rawSql": "SELECT\n  SUM(gross_pnl) as total_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "rawSql": "SELECT \n    time,\n    ticker,\n    open,\n    high,\n    low,\n    close,\n    volume\nFROM ohlcv\nWHERE ticker = '$symbol'\nORDER BY time DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -100,181 +143,8 @@
           }
         }
       ],
-      "title": "Accumulative Return Net $",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "$datasource"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "query": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        }
-      ],
-      "title": "Profit/Loss Ratio",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "max": 100,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 50
-              },
-              {
-                "color": "green",
-                "value": 60
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "id": 3,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto",
-        "text": {}
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "$datasource"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "query": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        }
-      ],
-      "title": "Win %",
-      "type": "gauge"
+      "title": "$symbol OHLCV",
+      "type": "candlestick"
     },
     {
       "datasource": {
@@ -385,307 +255,8 @@
           }
         }
       ],
-      "title": "Account Performance",
+      "title": "Ticker Performance",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "$datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "footer": {
-              "reducers": [
-                "sum"
-              ]
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "result"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "WIN": {
-                        "text": "WIN",
-                        "color": "green"
-                      },
-                      "LOSS": {
-                        "text": "LOSS",
-                        "color": "red"
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "net_return"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "green",
-                      "value": 0
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "net_return_pct"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "green",
-                      "value": 0
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "entry"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "exit"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cost"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "currencyUSD"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "time_held"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "d"
-              },
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 20,
-        "w": 18,
-        "x": 0,
-        "y": 4
-      },
-      "id": 4,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true,
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "close_date"
-          }
-        ]
-      },
-      "pluginVersion": "12.2.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "$datasource"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "query": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        }
-      ],
-      "title": "Trades",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "time": true
-            },
-            "indexByName": {
-              "result": 0,
-              "status": 1,
-              "side": 2,
-              "symbol": 3,
-              "open_date": 4,
-              "entry": 5,
-              "size": 6,
-              "close_date": 7,
-              "exit": 8,
-              "cost": 9,
-              "net_return": 10,
-              "net_return_pct": 11,
-              "time_held": 12
-            },
-            "renameByName": {
-              "close_date": "CLOSE DATE",
-              "cost": "COST",
-              "entry": "ENTRY",
-              "exit": "EXIT",
-              "net_return": "NET RETURN",
-              "net_return_pct": "NET RETURN %",
-              "open_date": "OPEN DATE",
-              "result": "RESULT",
-              "side": "SIDE",
-              "size": "SIZE",
-              "status": "STATUS",
-              "symbol": "SYMBOL",
-              "time_held": "TIME HELD"
-            }
-          }
-        }
-      ],
-      "type": "table"
     },
     {
       "datasource": {
@@ -932,6 +503,478 @@
       ],
       "title": "WIN %",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": [
+                "sum"
+              ]
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "result"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "LOSS": {
+                        "color": "red",
+                        "text": "LOSS"
+                      },
+                      "WIN": {
+                        "color": "green",
+                        "text": "WIN"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "net_return"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "net_return_pct"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "entry"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "exit"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cost"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "time_held"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 18,
+        "x": 0,
+        "y": 11
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "OPEN DATE"
+          }
+        ]
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Trades",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "time": true
+            },
+            "indexByName": {
+              "close_date": 7,
+              "cost": 9,
+              "entry": 5,
+              "exit": 8,
+              "net_return": 10,
+              "net_return_pct": 11,
+              "open_date": 4,
+              "result": 0,
+              "side": 2,
+              "size": 6,
+              "status": 1,
+              "symbol": 3,
+              "time_held": 12
+            },
+            "renameByName": {
+              "close_date": "CLOSE DATE",
+              "cost": "COST",
+              "entry": "ENTRY",
+              "exit": "EXIT",
+              "net_return": "NET RETURN",
+              "net_return_pct": "NET RETURN %",
+              "open_date": "OPEN DATE",
+              "result": "RESULT",
+              "side": "SIDE",
+              "size": "SIZE",
+              "status": "STATUS",
+              "symbol": "SYMBOL",
+              "time_held": "TIME HELD"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 60
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 13
+      },
+      "id": 3,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto",
+        "text": {}
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Win %",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 17
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Profit/Loss Ratio",
+      "type": "stat"
     }
   ],
   "preload": false,
@@ -946,14 +989,11 @@
     "list": [
       {
         "current": {
-          "selected": true,
           "text": "Backtest",
           "value": "influxdb-algo-trader-backtest"
         },
-        "hide": 0,
         "includeAll": false,
         "label": "Datasource",
-        "multi": false,
         "name": "datasource",
         "options": [
           {
@@ -968,11 +1008,11 @@
           }
         ],
         "query": "influxdb",
-        "queryValue": "",
-        "skipUrlSync": false,
+        "refresh": 1,
         "type": "datasource"
       },
       {
+        "allowCustomValue": false,
         "current": {
           "text": "All",
           "value": "$__all"
@@ -982,9 +1022,8 @@
           "uid": "$datasource"
         },
         "definition": "SELECT DISTINCT ticker\nFROM \"$strategy\"\nORDER BY ticker",
-        "includeAll": true,
+        "includeAll": false,
         "label": "Symbol",
-        "multi": true,
         "name": "symbol",
         "options": [],
         "query": {
@@ -998,7 +1037,6 @@
       },
       {
         "current": {
-          "selected": false,
           "text": "",
           "value": ""
         },
@@ -1078,5 +1116,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 11
+  "version": 50
 }
