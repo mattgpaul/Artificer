@@ -70,6 +70,7 @@ pytest_test(
     name = "test_execution",
     size = "small",
     coverage_path = "system.algo_trader.backtest.core.execution",
+    tags = ["unit"],
     test_lib = "//tests/system/algo_trader/backtest/core:test_execution_lib",
 )
 
@@ -77,6 +78,7 @@ pytest_test(
     name = "test_results",
     size = "small",
     coverage_path = "system.algo_trader.backtest.results.writer",
+    tags = ["unit"],
     test_lib = "//tests/system/algo_trader/backtest/results:test_results_lib",
 )
 
@@ -84,13 +86,54 @@ pytest_test(
     name = "test_engine",
     size = "small",
     coverage_path = "system.algo_trader.backtest.engine",
+    tags = ["unit", "integration"],
     test_lib = "//tests/system/algo_trader/backtest:test_engine_lib",
+)
+
+pytest_test(
+    name = "test_main",
+    size = "medium",
+    coverage_path = "system.algo_trader.backtest.main",
+    tags = ["unit", "e2e"],
+    test_lib = "//tests/system/algo_trader/backtest:test_main_lib",
 )
 
 pytest_test(
     name = "test_processor",
     size = "small",
     coverage_path = "system.algo_trader.backtest.processor.processor",
-    tags = ["exclusive"],
+    tags = ["exclusive", "unit", "integration"],
     test_lib = "//tests/system/algo_trader/backtest/processor:test_processor_lib",
+)
+
+pytest_test(
+    name = "test_worker",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.processor.worker",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/backtest/processor:test_worker_lib",
+)
+
+pytest_test(
+    name = "test_results_generator",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.core.results_generator",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/backtest/core:test_results_generator_lib",
+)
+
+pytest_test(
+    name = "test_writer",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.results.writer",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/backtest/results:test_writer_lib",
+)
+
+pytest_test(
+    name = "test_utils",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.utils.utils",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/backtest/utils:test_utils_lib",
 )

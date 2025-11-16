@@ -22,7 +22,7 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader/datasource:__subpackages__",
-        "//tests/system/algo_trader/datasource/populate:__pkg__",
+        "//tests/system/algo_trader/datasource/populate:__subpackages__",
     ],
     deps = [
         ":argument_base",
@@ -77,6 +77,22 @@ pytest_test(
 )
 
 pytest_test(
+    name = "test_ohlcv_processor",
+    size = "medium",
+    coverage_path = "system.algo_trader.datasource.populate.ohlcv.processor",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/datasource/populate/ohlcv:test_processor_lib",
+)
+
+pytest_test(
+    name = "test_ohlcv_handler",
+    size = "medium",
+    coverage_path = "system.algo_trader.datasource.populate.ohlcv.handler",
+    tags = ["unit", "e2e"],
+    test_lib = "//tests/system/algo_trader/datasource/populate/ohlcv:test_handler_lib",
+)
+
+pytest_test(
     name = "test_main",
     size = "medium",
     coverage_path = "system.algo_trader.datasource.populate.main",
@@ -98,4 +114,12 @@ pytest_test(
     coverage_path = "system.algo_trader.datasource.populate.fundamentals",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/datasource/populate:test_fundamentals_lib",
+)
+
+pytest_test(
+    name = "test_fundamentals_handler",
+    size = "medium",
+    coverage_path = "system.algo_trader.datasource.populate.fundamentals.handler",
+    tags = ["unit", "e2e"],
+    test_lib = "//tests/system/algo_trader/datasource/populate/fundamentals:test_handler_lib",
 )

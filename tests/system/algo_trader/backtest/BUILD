@@ -29,3 +29,17 @@ py_library(
         requirement("pytest"),
     ],
 )
+
+py_library(
+    name = "test_main_lib",
+    testonly = True,
+    srcs = ["test_main.py"],
+    visibility = ["//system/algo_trader/backtest:__pkg__"],
+    deps = [
+        ":conftest_lib",
+        "//system/algo_trader/backtest:backtest_lib",
+        "//system/algo_trader/backtest:main_lib",
+        requirement("pandas"),
+        requirement("pytest"),
+    ],
+)

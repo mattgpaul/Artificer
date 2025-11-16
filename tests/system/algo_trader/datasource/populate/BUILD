@@ -4,6 +4,26 @@ load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
+    name = "conftest_lib",
+    testonly = True,
+    srcs = ["conftest.py"],
+    visibility = [
+        "//system/algo_trader/datasource/populate:__pkg__",
+        "//tests/system/algo_trader/datasource/populate:__subpackages__",
+    ],
+    deps = [
+        "//infrastructure/logging:logger",
+        "//infrastructure/threads:thread_manager",
+        "//system/algo_trader/datasource/populate:populate_lib",
+        "//system/algo_trader/datasource/sec:tickers_lib",
+        "//system/algo_trader/mysql:bad_ticker_client",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/schwab:schwab_services",
+        requirement("pytest"),
+    ],
+)
+
+py_library(
     name = "test_argument_base_lib",
     testonly = True,
     srcs = ["test_argument_base.py"],

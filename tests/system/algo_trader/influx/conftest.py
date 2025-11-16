@@ -71,13 +71,11 @@ def mock_market_data_influx():
     with patch("system.algo_trader.influx.publisher.config.MarketDataInflux") as mock_client_class:
         mock_client = MagicMock()
         mock_client.write_sync.return_value = True
+        mock_client.write.return_value = True  # For queue_processor tests
         mock_client.close.return_value = None
         mock_client_class.return_value = mock_client
         # Yield both class and instance for different test needs
-        yield {
-            "class": mock_client_class,
-            "instance": mock_client,
-        }
+        yield mock_client
 
 
 @pytest.fixture

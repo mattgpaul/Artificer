@@ -10,7 +10,7 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader/datasource:__subpackages__",
-        "//tests/system/algo_trader/datasource/populate:__pkg__",
+        "//tests/system/algo_trader/datasource/populate:__subpackages__",
     ],
     deps = [
         "//infrastructure:config",

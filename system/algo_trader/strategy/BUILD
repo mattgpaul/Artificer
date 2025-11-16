@@ -94,6 +94,22 @@ pytest_test(
 )
 
 pytest_test(
+    name = "test_journal",
+    size = "small",
+    coverage_path = "system.algo_trader.strategy.journal.journal",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/strategy/journal:test_journal_lib",
+)
+
+pytest_test(
+    name = "test_trade_matching",
+    size = "small",
+    coverage_path = "system.algo_trader.strategy.journal.trade_matching",
+    tags = ["unit", "integration"],
+    test_lib = "//tests/system/algo_trader/strategy/journal:test_trade_matching_lib",
+)
+
+pytest_test(
     name = "test_sma_crossover",
     size = "small",
     coverage_path = "system.algo_trader.strategy.strategies.sma_crossover",
