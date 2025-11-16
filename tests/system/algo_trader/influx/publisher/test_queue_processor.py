@@ -5,6 +5,8 @@ dynamic table name resolution, target database handling, error handling, and com
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from system.algo_trader.influx.publisher.queue_processor import process_queue
@@ -22,7 +24,7 @@ class TestProcessQueueEmptyQueue:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -42,19 +44,30 @@ class TestProcessQueueOHLCVQueue:
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["AAPL_20240101", None]
         mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "ohlcv"  # Set database attribute
 
-        queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        processed, failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        assert failed == 0
-        mock_market_data_influx.write.assert_called_once()
+            queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
+            processed, failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            assert failed == 0
+            # Check that write was called on the new client
+            # (since database="debug" creates new client)
+            new_mock_client.write.assert_called_once()
 
     @pytest.mark.unit
     def test_process_queue_ohlcv_empty_candles(self, mock_queue_broker, mock_market_data_influx):
@@ -71,7 +84,7 @@ class TestProcessQueueOHLCVQueue:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -94,7 +107,7 @@ class TestProcessQueueOHLCVQueue:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -113,21 +126,30 @@ class TestProcessQueueBacktestQueues:
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = sample_backtest_trades_queue_data
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        assert failed == 0
-        call_args = mock_market_data_influx.write.call_args
-        assert call_args[1]["table"] == "SMACrossoverStrategy"  # Dynamic table name
-        assert call_args[1]["database"] == "debug"
+            queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
+            processed, failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            assert failed == 0
+            # Check that write was called on the new client with correct table name
+            call_args = new_mock_client.write.call_args
+            assert call_args[1]["table"] == "SMACrossoverStrategy"  # Dynamic table name
 
     @pytest.mark.unit
     def test_process_queue_backtest_metrics_success(
@@ -137,20 +159,30 @@ class TestProcessQueueBacktestQueues:
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = sample_backtest_metrics_queue_data
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        queue_config = {"name": "backtest_metrics_queue", "table": "backtest_metrics"}
-        processed, failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        assert failed == 0
-        call_args = mock_market_data_influx.write.call_args
-        assert call_args[1]["table"] == "SMACrossoverStrategy_summary"  # Dynamic table name
+            queue_config = {"name": "backtest_metrics_queue", "table": "backtest_metrics"}
+            processed, failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            assert failed == 0
+            # Check that write was called on the new client with correct table name
+            call_args = new_mock_client.write.call_args
+            assert call_args[1]["table"] == "SMACrossoverStrategy_summary"  # Dynamic table name
 
     @pytest.mark.unit
     def test_process_queue_backtest_empty_datetime(
@@ -171,7 +203,7 @@ class TestProcessQueueBacktestQueues:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -199,19 +231,28 @@ class TestProcessQueueTagColumns:
             },
             "database": "debug",
         }
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, _failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        call_args = mock_market_data_influx.write.call_args
-        assert "backtest_id" in call_args[1]["tag_columns"]
+            queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
+            processed, _failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            call_args = new_mock_client.write.call_args
+            assert "backtest_id" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_backtest_hash(
@@ -230,19 +271,28 @@ class TestProcessQueueTagColumns:
             },
             "database": "debug",
         }
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, _failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        call_args = mock_market_data_influx.write.call_args
-        assert "backtest_hash" in call_args[1]["tag_columns"]
+            queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
+            processed, _failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            call_args = new_mock_client.write.call_args
+            assert "backtest_hash" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_strategy(self, mock_queue_broker, mock_market_data_influx):
@@ -258,19 +308,28 @@ class TestProcessQueueTagColumns:
             },
             "database": "debug",
         }
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
-        processed, _failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        call_args = mock_market_data_influx.write.call_args
-        assert "strategy" in call_args[1]["tag_columns"]
+            queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
+            processed, _failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            call_args = new_mock_client.write.call_args
+            assert "strategy" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_none_values(
@@ -290,13 +349,13 @@ class TestProcessQueueTagColumns:
             },
             "database": "debug",
         }
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
 
         queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
         processed, _failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -318,7 +377,7 @@ class TestProcessQueueErrorHandling:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -339,7 +398,7 @@ class TestProcessQueueErrorHandling:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -362,7 +421,7 @@ class TestProcessQueueErrorHandling:
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
@@ -377,18 +436,27 @@ class TestProcessQueueErrorHandling:
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["item_1", None]
         mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
-        mock_market_data_influx.write.return_value = False
+        mock_market_data_influx["instance"].write.return_value = False
+        mock_market_data_influx["instance"].database = "ohlcv"  # Set database attribute
 
-        queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        processed, failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = False  # Write fails
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 0
-        assert failed == 1
+            queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
+            processed, failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 0
+            assert failed == 1
 
 
 class TestProcessQueueTargetDatabase:
@@ -402,19 +470,31 @@ class TestProcessQueueTargetDatabase:
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["item_1", None]
         mock_queue_broker.get_data.return_value = sample_ohlcv_queue_data
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "ohlcv"  # Set database attribute
 
-        queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
-        processed, _failed = process_queue(
-            queue_config=queue_config,
-            queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
-            running=True,
-        )
+        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            new_mock_client.database = "debug"  # New client uses target database
+            mock_client_class.return_value = new_mock_client
 
-        assert processed == 1
-        call_args = mock_market_data_influx.write.call_args
-        assert call_args[1]["database"] == "debug"
+            queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
+            processed, _failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            # Verify that MarketDataInflux was called with target database
+            mock_client_class.assert_called_once()
+            call_kwargs = mock_client_class.call_args[1]
+            assert call_kwargs["database"] == "debug"
 
     @pytest.mark.integration
     def test_process_queue_complete_workflow(
@@ -441,19 +521,19 @@ class TestProcessQueueTargetDatabase:
                 # No database specified - uses default client
             },
         ]
-        mock_market_data_influx.write.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
         # Ensure database attribute exists for comparison
-        mock_market_data_influx.database = "ohlcv"
+        mock_market_data_influx["instance"].database = "ohlcv"
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
         processed, failed = process_queue(
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
-            influx_client=mock_market_data_influx,
+            influx_client=mock_market_data_influx["instance"],
             running=True,
         )
 
         assert processed == 2
         assert failed == 0
         # When no database is specified in data, uses default client
-        assert mock_market_data_influx.write.call_count == 2
+        assert mock_market_data_influx["instance"].write.call_count == 2

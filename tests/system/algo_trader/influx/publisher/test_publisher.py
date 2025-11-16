@@ -18,7 +18,7 @@ class TestInfluxPublisherInitialization:
     """Test InfluxPublisher initialization."""
 
     @pytest.mark.unit
-    def test_initialization(self, mock_logger):
+    def test_initialization(self, mock_publisher_logger):
         """Test publisher initialization."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "namespace": "queue"}]}
@@ -49,7 +49,7 @@ class TestInfluxPublisherInitialization:
             mock_signal.assert_called()
 
     @pytest.mark.unit
-    def test_initialization_signal_handlers(self, mock_logger):
+    def test_initialization_signal_handlers(self, mock_publisher_logger):
         """Test signal handlers are registered."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv"}]}
@@ -81,7 +81,7 @@ class TestInfluxPublisherSignalHandler:
     """Test signal handler functionality."""
 
     @pytest.mark.unit
-    def test_signal_handler_sigterm(self, mock_logger):
+    def test_signal_handler_sigterm(self, mock_publisher_logger):
         """Test SIGTERM signal handling."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv"}]}
@@ -108,7 +108,7 @@ class TestInfluxPublisherSignalHandler:
             assert publisher.running is False
 
     @pytest.mark.unit
-    def test_signal_handler_sigint(self, mock_logger):
+    def test_signal_handler_sigint(self, mock_publisher_logger):
         """Test SIGINT signal handling."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv"}]}
@@ -139,7 +139,7 @@ class TestInfluxPublisherRun:
     """Test run method."""
 
     @pytest.mark.unit
-    def test_run_monitors_queues(self, mock_logger):
+    def test_run_monitors_queues(self, mock_publisher_logger):
         """Test run method monitors configured queues."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 2}]}
@@ -181,7 +181,7 @@ class TestInfluxPublisherRun:
             mock_process_queue.assert_called()
 
     @pytest.mark.unit
-    def test_run_poll_interval(self, mock_logger):
+    def test_run_poll_interval(self, mock_publisher_logger):
         """Test poll interval handling."""
         config_path = "/path/to/config.yaml"
         config = {"queues": [{"name": "ohlcv_queue", "table": "ohlcv", "poll_interval": 5}]}
@@ -207,20 +207,25 @@ class TestInfluxPublisherRun:
             publisher = InfluxPublisher(config_path)
             publisher.running = True
 
-            call_count = 0
+            # Mock sleep to stop the loop after it's called once
+            sleep_call_count = [0]
 
-            def stop_after_one(*args, **kwargs):
-                nonlocal call_count
-                call_count += 1
-                if call_count >= 1:
+            def sleep_side_effect(seconds):
+                sleep_call_count[0] += 1
+                # Stop after first sleep call
+                if sleep_call_count[0] >= 1:
                     publisher.running = False
 
-            mock_process_queue.side_effect = stop_after_one
+            _mock_sleep.side_effect = sleep_side_effect
+            # Make process_queue return immediately
+            mock_process_queue.return_value = (0, 0)
 
             publisher.run()
 
-            # Should sleep with poll_interval
-            _mock_sleep.assert_called_with(5)
+            # Should sleep with poll_interval (sleep happens after queue processing)
+            assert _mock_sleep.called
+            # Check that sleep was called with poll_interval value
+            assert 5 in [call[0][0] for call in _mock_sleep.call_args_list]
 
     @pytest.mark.unit
     def test_run_error_handling(self, mock_publisher_logger):
@@ -321,7 +326,7 @@ class TestInfluxPublisherCleanup:
     """Test cleanup operations."""
 
     @pytest.mark.unit
-    def test_cleanup_closes_clients(self, mock_logger):
+    def test_cleanup_closes_clients(self, mock_publisher_logger):
         """Test cleanup closes all InfluxDB clients."""
         config_path = "/path/to/config.yaml"
         config = {

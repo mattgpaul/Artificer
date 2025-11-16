@@ -236,7 +236,10 @@ class TestInfluxPublisherQueueProcessing:
             {"ticker": "AAPL", "candles": [{"datetime": [1609459200000], "close": [104.0]}]},
             {"ticker": "TSLA", "candles": [{"datetime": [1609459200000], "close": [300.0]}]},
         ]
-        mock_market_data_influx["instance"].write_sync.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        publisher.influx_clients[
+            "ohlcv_queue"
+        ].database = "ohlcv"  # Set database to avoid new client creation
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
         process_queue(
@@ -248,7 +251,7 @@ class TestInfluxPublisherQueueProcessing:
         )
 
         assert mock_queue_broker.dequeue.call_count >= 2
-        assert mock_market_data_influx["instance"].write_sync.call_count == 2
+        assert mock_market_data_influx["instance"].write.call_count == 2
 
     def test_process_queue_handles_missing_data(
         self, publisher, mock_queue_broker, mock_market_data_influx
@@ -268,7 +271,7 @@ class TestInfluxPublisherQueueProcessing:
         )
 
         mock_queue_broker.delete_data.assert_not_called()
-        mock_market_data_influx["instance"].write_sync.assert_not_called()
+        mock_market_data_influx["instance"].write.assert_not_called()
 
     def test_process_queue_handles_invalid_data_structure(
         self, publisher, mock_queue_broker, mock_market_data_influx
@@ -288,7 +291,7 @@ class TestInfluxPublisherQueueProcessing:
         )
 
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
-        mock_market_data_influx["instance"].write_sync.assert_not_called()
+        mock_market_data_influx["instance"].write.assert_not_called()
 
     def test_process_queue_handles_write_failure(
         self, publisher, mock_queue_broker, mock_market_data_influx
@@ -346,7 +349,10 @@ class TestInfluxPublisherQueueProcessing:
             "ticker": "AAPL",
             "candles": [{"datetime": [1609459200000], "close": [104.0]}],
         }
-        mock_market_data_influx["instance"].write_sync.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        publisher.influx_clients[
+            "ohlcv_queue"
+        ].database = "ohlcv"  # Set database to avoid new client creation
 
         queue_config = {"name": "ohlcv_queue", "table": "ohlcv"}
         process_queue(
@@ -357,8 +363,8 @@ class TestInfluxPublisherQueueProcessing:
             publisher.logger,
         )
 
-        mock_market_data_influx["instance"].write_sync.assert_called_once()
-        call_args = mock_market_data_influx["instance"].write_sync.call_args
+        mock_market_data_influx["instance"].write.assert_called_once()
+        call_args = mock_market_data_influx["instance"].write.call_args
         assert call_args[1]["ticker"] == "AAPL"
 
     def test_process_queue_supports_data_format(
@@ -371,7 +377,10 @@ class TestInfluxPublisherQueueProcessing:
             "ticker": "AAPL",
             "data": {"datetime": [1609459200000], "revenue": [1000000]},
         }
-        mock_market_data_influx["instance"].write_sync.return_value = True
+        mock_market_data_influx["instance"].write.return_value = True
+        publisher.influx_clients[
+            "fundamentals_queue"
+        ].database = "fundamentals"  # Set database to avoid new client creation
 
         queue_config = {"name": "fundamentals_queue", "table": "fundamentals"}
         process_queue(
@@ -382,8 +391,8 @@ class TestInfluxPublisherQueueProcessing:
             publisher.logger,
         )
 
-        mock_market_data_influx["instance"].write_sync.assert_called_once()
-        call_args = mock_market_data_influx["instance"].write_sync.call_args
+        mock_market_data_influx["instance"].write.assert_called_once()
+        call_args = mock_market_data_influx["instance"].write.call_args
         assert call_args[1]["ticker"] == "AAPL"
 
     def test_process_queue_handles_empty_candles_list(
@@ -409,7 +418,7 @@ class TestInfluxPublisherQueueProcessing:
         assert processed == 0
         assert failed == 1
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
-        mock_market_data_influx["instance"].write_sync.assert_not_called()
+        mock_market_data_influx["instance"].write.assert_not_called()
 
     def test_process_queue_handles_empty_datetime_array(
         self, publisher, mock_queue_broker, mock_market_data_influx
@@ -434,7 +443,7 @@ class TestInfluxPublisherQueueProcessing:
         assert processed == 0
         assert failed == 1
         mock_queue_broker.delete_data.assert_called_once_with("ohlcv_queue", "item1")
-        mock_market_data_influx["instance"].write_sync.assert_not_called()
+        mock_market_data_influx["instance"].write.assert_not_called()
 
     def test_process_queue_handles_empty_fundamentals_data(
         self, publisher, mock_queue_broker, mock_market_data_influx
@@ -459,7 +468,7 @@ class TestInfluxPublisherQueueProcessing:
         assert processed == 0
         assert failed == 1
         mock_queue_broker.delete_data.assert_called_once_with("fundamentals_queue", "item1")
-        mock_market_data_influx["instance"].write_sync.assert_not_called()
+        mock_market_data_influx["instance"].write.assert_not_called()
 
 
 class TestInfluxPublisherSignalHandling:
@@ -608,7 +617,7 @@ class TestInfluxPublisherConstants:
 
     def test_database_constants(self):
         """Test database name constants."""
-        assert OHLCV_DATABASE == "algo-trader-ohlcv"
+        assert OHLCV_DATABASE == "ohlcv"
         assert FUNDAMENTALS_DATABASE == "algo-trader-fundamentals"
         assert TRADING_JOURNAL_DATABASE == "algo-trader-trading-journal"
 

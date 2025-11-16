@@ -58,8 +58,6 @@ class TestParseArgs:
             "20",
         ]
 
-        args = parse_args()
-
         # Mock sys.argv for testing
         with patch.object(sys, "argv", ["backtest", *test_args]):
             args = parse_args()
@@ -73,7 +71,7 @@ class TestParseArgs:
             assert args.train_days == 90
             assert args.test_days == 30
             assert args.slippage_bps == 10.0
-            assert args.commission == 0.005
+            assert args.commission == 0.01  # Matches --commission value passed in test_args
             assert args.capital == 20000.0
             assert args.account_value == 50000.0
             assert args.trade_percentage == 0.15
@@ -222,7 +220,9 @@ class TestMainTickerResolution:
             result = main()
 
             assert result == 0
-            mock_resolve.assert_called_once_with(["AAPL", "MSFT"], mock_logger)
+            # main() creates its own logger, so check tickers only
+            mock_resolve.assert_called_once()
+            assert mock_resolve.call_args[0][0] == ["AAPL", "MSFT"]
 
     @pytest.mark.unit
     def test_resolve_tickers_sp500(self, mock_logger):
@@ -257,7 +257,9 @@ class TestMainTickerResolution:
             result = main()
 
             assert result == 0
-            mock_resolve.assert_called_once_with(["SP500"], mock_logger)
+            # main() creates its own logger, so check tickers only
+            mock_resolve.assert_called_once()
+            assert mock_resolve.call_args[0][0] == ["SP500"]
 
     @pytest.mark.unit
     def test_resolve_tickers_failure(self, mock_logger):

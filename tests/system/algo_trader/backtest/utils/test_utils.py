@@ -117,32 +117,40 @@ class TestDataFrameToDict:
         """Test NaN in string columns converted to empty strings."""
         df = pd.DataFrame(
             {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "optional_str": [None],
+                "ticker": ["AAPL", "MSFT"],
+                "entry_time": [
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                ],
+                "optional_str": ["value", None],  # Mix of value and NaN
             }
         )
 
         result = dataframe_to_dict(df)
 
         assert "optional_str" in result
-        assert result["optional_str"][0] == ""  # NaN converted to empty string
+        assert result["optional_str"][0] == "value"
+        assert result["optional_str"][1] == ""  # NaN converted to empty string
 
     @pytest.mark.unit
     def test_dataframe_to_dict_nan_numeric_columns(self):
         """Test NaN in numeric columns converted to 0."""
         df = pd.DataFrame(
             {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "optional_num": [None],
+                "ticker": ["AAPL", "MSFT"],
+                "entry_time": [
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                ],
+                "optional_num": [100.0, None],  # Mix of value and NaN
             }
         )
 
         result = dataframe_to_dict(df)
 
         assert "optional_num" in result
-        assert result["optional_num"][0] == 0  # NaN converted to 0
+        assert result["optional_num"][0] == 100.0
+        assert result["optional_num"][1] == 0  # NaN converted to 0
 
     @pytest.mark.unit
     def test_dataframe_to_dict_datetime_columns_converted(self):
@@ -227,21 +235,25 @@ class TestDataFrameToDict:
     @pytest.mark.unit
     def test_dataframe_to_dict_resets_index(self):
         """Test index is reset in result."""
+        # Use datetime index since implementation expects datetime index or datetime column
+        dates = pd.date_range("2024-01-01", periods=2, freq="D", tz="UTC")
         df = pd.DataFrame(
             {
                 "ticker": ["AAPL", "MSFT"],
                 "price": [100.0, 200.0],
             },
-            index=["idx1", "idx2"],
+            index=dates,
         )
         df.index.name = "custom_index"
 
         result = dataframe_to_dict(df)
 
-        # Index should not appear in result
+        # Index should not appear in result (reset_index drops it)
         assert "custom_index" not in result
         assert "ticker" in result
         assert len(result["ticker"]) == 2
+        assert "datetime" in result
+        assert len(result["datetime"]) == 2
 
     @pytest.mark.unit
     def test_dataframe_to_dict_complex_dataframe(self):

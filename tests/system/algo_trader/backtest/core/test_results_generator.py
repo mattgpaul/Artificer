@@ -187,9 +187,12 @@ class TestResultsGeneratorFromSignals:
         )
         ticker_data = pd.DataFrame()
 
-        with patch(
-            "system.algo_trader.backtest.core.results_generator.TradeJournal"
-        ) as mock_journal_class:
+        with (
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch.object(execution_simulator, "apply_execution") as mock_apply_execution,
+        ):
             mock_journal = MagicMock()
             mock_journal.generate_report.return_value = ({}, pd.DataFrame())
             mock_journal_class.return_value = mock_journal
@@ -199,7 +202,7 @@ class TestResultsGeneratorFromSignals:
             assert isinstance(results, BacktestResults)
             assert not results.signals.empty
             assert results.trades.empty
-            execution_simulator.apply_execution.assert_not_called()
+            mock_apply_execution.assert_not_called()
 
     @pytest.mark.integration
     def test_generate_results_from_signals_complete_workflow(self, mock_strategy):
@@ -332,7 +335,10 @@ class TestResultsGeneratorForAllTickers:
             risk_free_rate=0.04,
         )
 
-        combined_signals = pd.DataFrame()
+        # Create empty DataFrame with required columns to match implementation expectations
+        combined_signals = pd.DataFrame(
+            columns=["ticker", "signal_time", "signal_type", "price", "side"]
+        )
         data_cache = {}
 
         with patch(

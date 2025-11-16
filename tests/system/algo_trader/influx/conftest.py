@@ -75,8 +75,8 @@ def mock_market_data_influx():
         mock_client.write.return_value = True  # For queue_processor tests
         mock_client.close.return_value = None
         mock_client_class.return_value = mock_client
-        # Yield both class and instance for different test needs
-        yield mock_client
+        # Yield dict with both class and instance for different test needs
+        yield {"class": mock_client_class, "instance": mock_client}
 
 
 @pytest.fixture

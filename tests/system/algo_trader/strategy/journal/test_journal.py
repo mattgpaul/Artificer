@@ -112,9 +112,9 @@ class TestTradeJournalMatchTrades:
             assert call_args[0][0].equals(signals)
             assert call_args[0][1] == "TestStrategy"
             assert call_args[0][2] == 15000.0
-            assert call_args[1]["ohlcv_data"].equals(ohlcv_data)
-            assert call_args[1]["initial_account_value"] == 50000.0
-            assert call_args[1]["trade_percentage"] == 0.10
+            assert call_args[0][3].equals(ohlcv_data)  # ohlcv_data is 4th positional arg
+            assert call_args[0][5] == 50000.0  # initial_account_value is 6th positional arg
+            assert call_args[0][6] == 0.10  # trade_percentage is 7th positional arg
 
 
 class TestTradeJournalCalculateMetrics:

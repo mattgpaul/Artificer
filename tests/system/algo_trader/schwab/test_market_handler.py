@@ -151,9 +151,11 @@ class TestMarketHandlerRequestMethods:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.text = "Bad Request"
-        mock_dependencies["client"].make_authenticated_request.return_value = mock_response
 
         handler = MarketHandler()
+        # Patch make_authenticated_request on the handler instance
+        handler.make_authenticated_request = MagicMock(return_value=mock_response)
+
         result, status_code = handler._send_request("https://api.test.com/test")
 
         assert result is None
@@ -161,11 +163,10 @@ class TestMarketHandlerRequestMethods:
 
     def test_send_request_exception(self, mock_dependencies):
         """Test request exception handling."""
-        mock_dependencies["client"].make_authenticated_request.side_effect = Exception(
-            "Network error"
-        )
-
         handler = MarketHandler()
+        # Patch make_authenticated_request on the handler instance to raise exception
+        handler.make_authenticated_request = MagicMock(side_effect=Exception("Network error"))
+
         result, status_code = handler._send_request("https://api.test.com/test")
 
         assert result is None

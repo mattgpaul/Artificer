@@ -218,8 +218,9 @@ class TestBacktestProcessorBuildWorkerArgs:
             trade_percentage=0.10,
         )
 
-        assert args[0][17] == 50000.0
-        assert args[0][18] == 0.10
+        # Parameter order: initial_account_value is at index 16, trade_percentage at index 17
+        assert args[0][16] == 50000.0  # initial_account_value
+        assert args[0][17] == 0.10  # trade_percentage
 
 
 class TestBacktestProcessorPrintSummary:
@@ -568,8 +569,8 @@ class TestBacktestProcessorEdgeCases:
             assert worker_args[13] == 90
             assert worker_args[14] == 30
             assert worker_args[15] == 0.7
-            assert worker_args[17] == 50000.0
-            assert worker_args[18] == 0.15
+            assert worker_args[16] == 50000.0  # initial_account_value
+            assert worker_args[17] == 0.15  # trade_percentage
 
     @pytest.mark.integration
     def test_error_propagation_from_workers(self, mock_logger, mock_strategy):

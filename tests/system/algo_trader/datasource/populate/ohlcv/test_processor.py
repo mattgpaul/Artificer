@@ -201,7 +201,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -249,7 +255,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -302,7 +314,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -352,7 +370,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -402,7 +426,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -452,7 +482,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -507,7 +543,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -553,7 +595,13 @@ class TestOHLCVProcessorFetchTickerData:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -596,7 +644,13 @@ class TestOHLCVProcessorThreadManagement:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -647,7 +701,13 @@ class TestOHLCVProcessorThreadManagement:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(
@@ -692,7 +752,13 @@ class TestOHLCVProcessorThreadManagement:
             }
             mock_thread_manager.wait_for_all_threads.return_value = None
             mock_thread_manager.cleanup_dead_threads.return_value = None
-            mock_thread_manager.start_thread = MagicMock()
+
+            # Make start_thread actually execute the target function
+            def start_thread_side_effect(target, name, args):
+                # Execute the function immediately for testing
+                target(*args)
+
+            mock_thread_manager.start_thread = MagicMock(side_effect=start_thread_side_effect)
             mock_thread_manager_class.return_value = mock_thread_manager
 
             processor.process_tickers(

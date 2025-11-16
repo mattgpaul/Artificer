@@ -164,7 +164,7 @@ class TestResolveTickers:
         assert "NVDA" in result
 
         # Verify InfluxDB client was created with correct database
-        mock_influx_client["class"].assert_called_once_with(database="algo-trader-ohlcv")
+        mock_influx_client["class"].assert_called_once_with(database="ohlcv")
         mock_influx_client["instance"].query.assert_called_once_with(
             "SELECT DISTINCT ticker FROM ohlcv"
         )

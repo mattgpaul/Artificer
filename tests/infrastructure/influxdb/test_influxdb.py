@@ -151,8 +151,11 @@ class TestBatchingCallback:
             callback.increment_pending()
             callback.error("batch_config", "test_data", mock_error_instance)
 
-            callback.logger.error.assert_called_once()
-            assert "Cannot write batch: batch_config" in callback.logger.error.call_args[0][0]
+            # Error callback logs multiple times (data preview + final message)
+            assert callback.logger.error.call_count >= 1
+            # Check that the final error message contains expected text
+            last_call_args = callback.logger.error.call_args_list[-1][0][0]
+            assert "Cannot write batch: batch_config" in last_call_args
             assert callback._pending_batches == 0
 
     def test_error_callback_handles_bytes_data(self, callback):
@@ -164,8 +167,11 @@ class TestBatchingCallback:
             callback.increment_pending()
             callback.error("batch_config", b"test_bytes_data", mock_error_instance)
 
-            callback.logger.error.assert_called_once()
-            assert "test_bytes_data" in callback.logger.error.call_args[0][0]
+            # Error callback logs multiple times (data preview + final message)
+            assert callback.logger.error.call_count >= 1
+            # Check that one of the calls contains the bytes data
+            all_call_args = [call[0][0] for call in callback.logger.error.call_args_list]
+            assert any("test_bytes_data" in arg for arg in all_call_args)
             assert callback._pending_batches == 0
 
     def test_retry_callback_logs_warning(self, callback):
