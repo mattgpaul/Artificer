@@ -203,7 +203,7 @@ def main() -> int:  # noqa: C901, PLR0912, PLR0915
     print("2. InfluxDB Database Contents")
     print("-" * 80)
     try:
-        influx_client = MarketDataInflux(database="algo-trader-ohlcv")
+        influx_client = MarketDataInflux(database="ohlcv")
         influx_status = check_influxdb_tickers(influx_client)
         if "error" in influx_status:
             print(f"❌ Error: {influx_status['error']}")

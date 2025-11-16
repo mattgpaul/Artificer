@@ -10,7 +10,7 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader/datasource:__subpackages__",
-        "//tests/system/algo_trader/datasource/populate:__pkg__",
+        "//tests/system/algo_trader/datasource/populate:__subpackages__",
     ],
     deps = [
         "//infrastructure:config",
@@ -20,6 +20,7 @@ py_library(
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/mysql:bad_ticker_client",
         "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/strategy:cli_utils",
         requirement("pandas"),
     ],
 )

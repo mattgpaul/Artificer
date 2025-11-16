@@ -10,6 +10,7 @@ from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.populate.fundamentals.processor import FundamentalsProcessor
 from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
+from system.algo_trader.strategy.utils.cli_utils import get_sp500_tickers
 
 MAX_THREADS = 4
 
@@ -35,8 +36,11 @@ class FundamentalsArgumentHandler(ArgumentHandler):
             "--tickers",
             nargs="+",
             required=False,
-            help='List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
-            'Use "full-registry" to fetch all tickers from SEC datasource.',
+            help=(
+                'List of ticker symbols to pull data for (e.g., "AAPL MSFT GOOGL"). '
+                'Use "SP500" for S&P 500 tickers or "full-registry" to fetch all '
+                "tickers from SEC datasource."
+            ),
         )
         parser.add_argument(
             "--lookback-period",
@@ -101,6 +105,14 @@ class FundamentalsArgumentHandler(ArgumentHandler):
                     ticker_list.append(value["ticker"])
 
             self.logger.info(f"Retrieved {len(ticker_list)} tickers from SEC datasource")
+            tickers = ticker_list
+        elif tickers == ["SP500"]:
+            self.logger.info("SP500 specified, fetching S&P 500 tickers...")
+            ticker_list = get_sp500_tickers()
+            if not ticker_list:
+                self.logger.error("Failed to retrieve S&P 500 tickers")
+                raise ValueError("Failed to retrieve S&P 500 tickers")
+            self.logger.info(f"Retrieved {len(ticker_list)} S&P 500 tickers")
             tickers = ticker_list
         else:
             self.logger.info(f"Processing {len(tickers)} specific tickers: {tickers}")

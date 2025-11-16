@@ -138,9 +138,10 @@ class TestMarketHandlerRequestMethods:
         handler = MarketHandler()
         handler.make_authenticated_request = Mock(return_value=mock_response)
 
-        result = handler._send_request("https://api.test.com/test", {"param": "value"})
+        result, status_code = handler._send_request("https://api.test.com/test", {"param": "value"})
 
         assert result == {"test": "data"}
+        assert status_code == 200
         handler.make_authenticated_request.assert_called_once_with(
             "GET", "https://api.test.com/test", params={"param": "value"}
         )
@@ -150,23 +151,26 @@ class TestMarketHandlerRequestMethods:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.text = "Bad Request"
-        mock_dependencies["client"].make_authenticated_request.return_value = mock_response
 
         handler = MarketHandler()
-        result = handler._send_request("https://api.test.com/test")
+        # Patch make_authenticated_request on the handler instance
+        handler.make_authenticated_request = MagicMock(return_value=mock_response)
+
+        result, status_code = handler._send_request("https://api.test.com/test")
 
         assert result is None
+        assert status_code == 400
 
     def test_send_request_exception(self, mock_dependencies):
         """Test request exception handling."""
-        mock_dependencies["client"].make_authenticated_request.side_effect = Exception(
-            "Network error"
-        )
-
         handler = MarketHandler()
-        result = handler._send_request("https://api.test.com/test")
+        # Patch make_authenticated_request on the handler instance to raise exception
+        handler.make_authenticated_request = MagicMock(side_effect=Exception("Network error"))
+
+        result, status_code = handler._send_request("https://api.test.com/test")
 
         assert result is None
+        assert status_code is None
 
 
 class TestMarketHandlerQuoteMethods:
@@ -281,7 +285,7 @@ class TestMarketHandlerQuoteMethods:
         }
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         result = handler.get_quotes(["AAPL"])
 
@@ -292,7 +296,7 @@ class TestMarketHandlerQuoteMethods:
     def test_get_quotes_failure(self, mock_dependencies):
         """Test quote retrieval failure."""
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=None)
+        handler._send_request = Mock(return_value=(None, 400))
 
         result = handler.get_quotes(["AAPL"])
 
@@ -352,7 +356,7 @@ class TestMarketHandlerPriceHistoryMethods:
         }
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         result = handler.get_price_history("AAPL", PeriodType.DAY, 1, FrequencyType.MINUTE, 5)
 
@@ -362,11 +366,12 @@ class TestMarketHandlerPriceHistoryMethods:
     def test_get_price_history_failure(self, mock_dependencies):
         """Test price history retrieval failure."""
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=None)
+        handler._send_request = Mock(return_value=(None, 400))
 
         result = handler.get_price_history("AAPL")
 
-        assert result == {}
+        assert "_error_status" in result
+        assert result["_error_status"] == 400
 
     def test_get_price_history_invalid_combination(self, mock_dependencies):
         """Test price history with invalid period/frequency combination."""
@@ -438,7 +443,7 @@ class TestMarketHandlerMarketHoursMethods:
         }
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         test_date = datetime(2023, 1, 1)
         result = handler.get_market_hours(test_date)
@@ -469,7 +474,7 @@ class TestMarketHandlerMarketHoursMethods:
         }
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         test_date = datetime(2023, 1, 1)
         result = handler.get_market_hours(test_date)
@@ -480,7 +485,7 @@ class TestMarketHandlerMarketHoursMethods:
     def test_get_market_hours_failure(self, mock_dependencies):
         """Test market hours retrieval failure."""
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=None)
+        handler._send_request = Mock(return_value=(None, 400))
 
         test_date = datetime(2023, 1, 1)
         result = handler.get_market_hours(test_date)
@@ -492,7 +497,7 @@ class TestMarketHandlerMarketHoursMethods:
         mock_response = {"other_market": {"isOpen": True}}
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         test_date = datetime(2023, 1, 1)
         result = handler.get_market_hours(test_date)
@@ -519,7 +524,7 @@ class TestMarketHandlerMarketHoursMethods:
         }
 
         handler = MarketHandler()
-        handler._send_request = Mock(return_value=mock_response)
+        handler._send_request = Mock(return_value=(mock_response, 200))
 
         test_date = datetime(2023, 1, 1)
         result = handler.get_market_hours(test_date)

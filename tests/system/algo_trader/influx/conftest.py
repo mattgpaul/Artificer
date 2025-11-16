@@ -4,6 +4,7 @@ All common fixtures, mocks, and test parameters are defined here
 to reduce code duplication across test files.
 """
 
+import time
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
@@ -71,13 +72,11 @@ def mock_market_data_influx():
     with patch("system.algo_trader.influx.publisher.config.MarketDataInflux") as mock_client_class:
         mock_client = MagicMock()
         mock_client.write_sync.return_value = True
+        mock_client.write.return_value = True  # For queue_processor tests
         mock_client.close.return_value = None
         mock_client_class.return_value = mock_client
-        # Yield both class and instance for different test needs
-        yield {
-            "class": mock_client_class,
-            "instance": mock_client,
-        }
+        # Yield dict with both class and instance for different test needs
+        yield {"class": mock_client_class, "instance": mock_client}
 
 
 @pytest.fixture
@@ -228,3 +227,61 @@ def mock_diagnose_sp500_tickers():
     with patch("system.algo_trader.influx.diagnose_missing_data.get_sp500_tickers") as mock_sp500:
         mock_sp500.return_value = []
         yield mock_sp500
+
+
+@pytest.fixture
+def sample_candle():
+    """Sample candle data structure for queue processor tests."""
+    return {
+        "datetime": int(time.time() * 1000),
+        "open": 100.0,
+        "high": 105.0,
+        "low": 99.0,
+        "close": 104.0,
+        "volume": 1000000,
+    }
+
+
+@pytest.fixture
+def sample_ohlcv_queue_data(sample_candle):
+    """Sample OHLCV queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "candles": [sample_candle],
+        "database": "debug",
+    }
+
+
+@pytest.fixture
+def sample_backtest_trades_queue_data():
+    """Sample backtest trades queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "strategy_name": "SMACrossoverStrategy",
+        "backtest_id": "test-id",
+        "backtest_hash": "abc123",
+        "data": {
+            "datetime": [1704067200000],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "gross_pnl": [500.0],
+        },
+        "database": "debug",
+    }
+
+
+@pytest.fixture
+def sample_backtest_metrics_queue_data():
+    """Sample backtest metrics queue data structure."""
+    return {
+        "ticker": "AAPL",
+        "strategy_name": "SMACrossoverStrategy",
+        "backtest_id": "test-id",
+        "backtest_hash": "abc123",
+        "data": {
+            "datetime": [1704067200000],
+            "total_trades": [10],
+            "total_profit": [5000.0],
+        },
+        "database": "debug",
+    }

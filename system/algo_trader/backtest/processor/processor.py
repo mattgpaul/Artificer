@@ -4,8 +4,8 @@ This module provides functionality to process multiple tickers through backtest
 execution, supporting both parallel and sequential processing modes.
 """
 
+import os
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 import pandas as pd
 
@@ -14,12 +14,21 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.parallel import process_in_parallel
 from system.algo_trader.backtest.processor.sequential import process_sequentially
 from system.algo_trader.backtest.utils.utils import (
-    BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_TRADES_QUEUE_NAME,
 )
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
+
+
+def get_backtest_database() -> str:
+    """Get the appropriate database for backtest results based on environment.
+
+    Returns:
+        'backtest' for prod environment, 'debug' otherwise.
+    """
+    env = os.getenv("INFLUXDB3_ENVIRONMENT", "").lower()
+    return "backtest" if env == "prod" else "debug"
 
 
 class BacktestProcessor:
@@ -49,6 +58,7 @@ class BacktestProcessor:
         end_date: pd.Timestamp,
         step_frequency: str,
         database: str,
+        results_database: str,
         execution_config: ExecutionConfig,
         capital_per_trade: float,
         risk_free_rate: float,
@@ -57,6 +67,8 @@ class BacktestProcessor:
         train_days: int | None,
         test_days: int | None,
         train_split: float | None,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -70,6 +82,7 @@ class BacktestProcessor:
             end_date: End date for backtest.
             step_frequency: Frequency for time steps.
             database: Database name for data access.
+            results_database: Database name for results storage.
             execution_config: Execution configuration with slippage and commission.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for Sharpe ratio calculation.
@@ -78,6 +91,8 @@ class BacktestProcessor:
             train_days: Number of training days for walk-forward.
             test_days: Number of test days for walk-forward.
             train_split: Training split ratio for walk-forward.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -96,6 +111,7 @@ class BacktestProcessor:
                 end_date,
                 step_frequency,
                 database,
+                results_database,
                 execution_config_dict,
                 capital_per_trade,
                 risk_free_rate,
@@ -104,6 +120,8 @@ class BacktestProcessor:
                 train_days,
                 test_days,
                 train_split,
+                initial_account_value,
+                trade_percentage,
             )
             for ticker in tickers
         ]
@@ -121,9 +139,9 @@ class BacktestProcessor:
         print(f"Successfully Processed: {summary['successful']}")
         print(f"Failed: {summary['failed']}")
         print(f"Trades Queue: {BACKTEST_TRADES_QUEUE_NAME}")
-        print(f"Metrics Queue: {BACKTEST_METRICS_QUEUE_NAME}")
         print("Redis TTL: 3600s")
         print("\nResults will be published to InfluxDB by the influx-publisher service.")
+        print("Summary metrics can be calculated from trades in Grafana with filtering.")
         print(f"{'=' * 50}\n")
 
     def process_tickers(
@@ -134,16 +152,20 @@ class BacktestProcessor:
         end_date: pd.Timestamp,
         step_frequency: str,
         database: str,
+        results_database: str,
         execution_config: ExecutionConfig,
         capital_per_trade: float,
         risk_free_rate: float,
         strategy_params: dict,
+        backtest_id: str,
         walk_forward: bool = False,
         train_days: int | None = None,
         test_days: int | None = None,
         train_split: float | None = None,
         max_processes: int | None = None,
         use_multiprocessing: bool = True,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -158,10 +180,12 @@ class BacktestProcessor:
             end_date: End date for backtest period.
             step_frequency: Frequency for time steps ('daily', 'hourly', etc.).
             database: Database name for data access.
+            results_database: Database name for results storage.
             execution_config: Execution configuration with slippage and commission.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for Sharpe ratio calculation.
             strategy_params: Dictionary of strategy parameters.
+            backtest_id: Unique identifier for this backtest run.
             walk_forward: Whether to use walk-forward analysis.
             train_days: Number of training days for walk-forward.
             test_days: Number of test days for walk-forward.
@@ -170,6 +194,8 @@ class BacktestProcessor:
                 If None, uses CPU count - 2.
             use_multiprocessing: Whether to use parallel processing.
                 If False, processes sequentially.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         if not tickers:
             self.logger.error("No tickers provided")
@@ -178,11 +204,9 @@ class BacktestProcessor:
         self.logger.info(
             f"Processing backtest for {len(tickers)} tickers with "
             f"strategy={strategy.strategy_name}, "
-            f"date_range={start_date.date()} to {end_date.date()}"
+            f"date_range={start_date.date()} to {end_date.date()}, "
+            f"backtest_id={backtest_id}"
         )
-
-        backtest_id = str(uuid4())
-        self.logger.info(f"Backtest ID: {backtest_id}")
 
         strategy_type = type(strategy).__name__
 
@@ -194,6 +218,7 @@ class BacktestProcessor:
             end_date=end_date,
             step_frequency=step_frequency,
             database=database,
+            results_database=results_database,
             execution_config=execution_config,
             capital_per_trade=capital_per_trade,
             risk_free_rate=risk_free_rate,
@@ -202,6 +227,8 @@ class BacktestProcessor:
             train_days=train_days,
             test_days=test_days,
             train_split=train_split,
+            initial_account_value=initial_account_value,
+            trade_percentage=trade_percentage,
         )
 
         if use_multiprocessing:

@@ -14,7 +14,7 @@ from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
-OHLCV_DATABASE = "algo-trader-ohlcv"
+OHLCV_DATABASE = "ohlcv"
 FUNDAMENTALS_DATABASE = "algo-trader-fundamentals"
 TRADING_JOURNAL_DATABASE = "algo-trader-trading-journal"
 

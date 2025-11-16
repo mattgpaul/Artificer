@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Debug
+    uid: influxdb-algo-trader-debug
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8181
+    database: debug
+    jsonData:
+      version: SQL
+      dbName: debug
+      httpMode: POST
+      insecureGrpc: true
+      tlsSkipVerify: true
+    secureJsonData:
+      token: $INFLUXDB3_AUTH_TOKEN
+    editable: false

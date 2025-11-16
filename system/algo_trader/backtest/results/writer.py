@@ -124,12 +124,16 @@ class ResultsWriter:
 
         trades_dict = dataframe_to_dict(trades)
 
+        # Log at debug level
+        self.logger.debug(f"Writing {len(trades)} trades to Redis for {ticker}")
+
         queue_data = {
             "ticker": ticker,
             "strategy_name": strategy_name,
             "backtest_id": backtest_id,
             "backtest_hash": backtest_hash,
             "data": trades_dict,
+            "database": database,
         }
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}"
@@ -252,12 +256,16 @@ class ResultsWriter:
         if backtest_hash:
             metrics_data["backtest_hash"] = [backtest_hash]
 
+        # Log at debug level
+        self.logger.debug(f"Writing metrics to Redis for {ticker}")
+
         queue_data = {
             "ticker": ticker,
             "strategy_name": strategy_name,
             "backtest_id": backtest_id,
             "backtest_hash": backtest_hash,
             "data": metrics_data,
+            "database": database,
         }
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}_metrics"
