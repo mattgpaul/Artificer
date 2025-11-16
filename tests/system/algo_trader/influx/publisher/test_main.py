@@ -6,12 +6,11 @@ dependencies are mocked via conftest.py. E2E tests use 'debug' database.
 """
 
 import os
+import runpy
 import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from system.algo_trader.influx.publisher import __main__
 
 
 class TestMainConfigPath:
@@ -23,12 +22,14 @@ class TestMainConfigPath:
         with (
             patch.dict(os.environ, {}, clear=True),
             patch("os.path.exists", return_value=True),
-            patch("system.algo_trader.influx.publisher.__main__.InfluxPublisher") as mock_publisher_class,
+            patch("system.algo_trader.influx.publisher.publisher.InfluxPublisher") as mock_publisher_class,
         ):
             mock_publisher = MagicMock()
             mock_publisher_class.return_value = mock_publisher
 
-            __main__.__main__()
+            # Execute __main__.py by running it as a module
+            with patch("sys.exit"):
+                runpy.run_module("system.algo_trader.influx.publisher.__main__", run_name="__main__")
 
             mock_publisher_class.assert_called_once()
             call_args = mock_publisher_class.call_args
@@ -41,12 +42,14 @@ class TestMainConfigPath:
         with (
             patch.dict(os.environ, {"PUBLISHER_CONFIG_PATH": custom_path}),
             patch("os.path.exists", return_value=True),
-            patch("system.algo_trader.influx.publisher.__main__.InfluxPublisher") as mock_publisher_class,
+            patch("system.algo_trader.influx.publisher.publisher.InfluxPublisher") as mock_publisher_class,
         ):
             mock_publisher = MagicMock()
             mock_publisher_class.return_value = mock_publisher
 
-            __main__.__main__()
+            # Execute __main__.py by running it as a module
+            with patch("sys.exit"):
+                runpy.run_module("system.algo_trader.influx.publisher.__main__", run_name="__main__")
 
             mock_publisher_class.assert_called_once_with(custom_path)
 
@@ -56,9 +59,11 @@ class TestMainConfigPath:
         with (
             patch("os.path.exists", return_value=False),
             patch("builtins.print") as mock_print,
+            patch("sys.exit") as mock_exit,
         ):
+            mock_exit.side_effect = SystemExit
             with pytest.raises(SystemExit):
-                __main__.__main__()
+                runpy.run_module("system.algo_trader.influx.publisher.__main__", run_name="__main__")
 
             mock_print.assert_called()
             call_args_str = str(mock_print.call_args)
@@ -76,12 +81,14 @@ class TestMainPublisherExecution:
         with (
             patch.dict(os.environ, {"PUBLISHER_CONFIG_PATH": config_path}),
             patch("os.path.exists", return_value=True),
-            patch("system.algo_trader.influx.publisher.__main__.InfluxPublisher") as mock_publisher_class,
+            patch("system.algo_trader.influx.publisher.publisher.InfluxPublisher") as mock_publisher_class,
         ):
             mock_publisher = MagicMock()
             mock_publisher_class.return_value = mock_publisher
 
-            __main__.__main__()
+            # Execute __main__.py by running it as a module
+            with patch("sys.exit"):
+                runpy.run_module("system.algo_trader.influx.publisher.__main__", run_name="__main__")
 
             mock_publisher_class.assert_called_once_with(config_path)
             mock_publisher.run.assert_called_once()
@@ -93,13 +100,14 @@ class TestMainPublisherExecution:
         with (
             patch.dict(os.environ, {"PUBLISHER_CONFIG_PATH": config_path}),
             patch("os.path.exists", return_value=True),
-            patch("system.algo_trader.influx.publisher.__main__.InfluxPublisher") as mock_publisher_class,
+            patch("system.algo_trader.influx.publisher.publisher.InfluxPublisher") as mock_publisher_class,
         ):
             mock_publisher = MagicMock()
             mock_publisher.run.side_effect = Exception("Publisher error")
             mock_publisher_class.return_value = mock_publisher
 
             # Should propagate exception
-            with pytest.raises(Exception, match="Publisher error"):
-                __main__.__main__()
+            with patch("sys.exit"):
+                with pytest.raises(Exception, match="Publisher error"):
+                    runpy.run_module("system.algo_trader.influx.publisher.__main__", run_name="__main__")
 

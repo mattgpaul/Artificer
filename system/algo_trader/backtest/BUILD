@@ -44,6 +44,7 @@ py_library(
     srcs = ["main.py"],
     visibility = [
         "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/backtest:__pkg__",
     ],
     deps = [
         ":backtest_lib",
