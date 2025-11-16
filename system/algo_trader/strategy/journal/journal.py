@@ -32,6 +32,8 @@ class TradeJournal:
         ohlcv_data: pd.DataFrame = None,
         capital_per_trade: float = 10000.0,
         risk_free_rate: float = 0.04,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ):
         """Initialize TradeJournal with signals and configuration.
 
@@ -41,12 +43,16 @@ class TradeJournal:
             ohlcv_data: Optional OHLCV DataFrame for trade matching and efficiency calculation.
             capital_per_trade: Capital allocated per trade. Defaults to 10000.0.
             risk_free_rate: Annual risk-free rate for Sharpe ratio. Defaults to 0.04.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         self.signals = signals.copy()
         self.strategy_name = strategy_name
         self.ohlcv_data = ohlcv_data
         self.capital_per_trade = capital_per_trade
         self.risk_free_rate = risk_free_rate
+        self.initial_account_value = initial_account_value
+        self.trade_percentage = trade_percentage
         self.logger = get_logger(self.__class__.__name__)
 
         self.logger.debug(
@@ -68,6 +74,8 @@ class TradeJournal:
             self.capital_per_trade,
             self.ohlcv_data,
             self.logger,
+            self.initial_account_value,
+            self.trade_percentage,
         )
 
     def calculate_metrics(self, trades: pd.DataFrame) -> dict:

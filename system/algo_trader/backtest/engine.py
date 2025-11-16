@@ -46,10 +46,12 @@ class BacktestEngine:
         start_date: pd.Timestamp,
         end_date: pd.Timestamp,
         step_frequency: str,
-        database: str = "algo-trader-ohlcv",
+        database: str = "ohlcv",
         execution_config: ExecutionConfig | None = None,
         capital_per_trade: float = 10000.0,
         risk_free_rate: float = 0.04,
+        initial_account_value: float | None = None,
+        trade_percentage: float | None = None,
     ) -> None:
         """Initialize BacktestEngine with strategy and configuration.
 
@@ -63,6 +65,8 @@ class BacktestEngine:
             execution_config: Execution simulation configuration.
             capital_per_trade: Capital allocated per trade.
             risk_free_rate: Risk-free rate for performance calculations.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
         """
         self.strategy = strategy
         self.tickers = tickers
@@ -90,6 +94,8 @@ class BacktestEngine:
             self.capital_per_trade,
             self.risk_free_rate,
             self.logger,
+            initial_account_value,
+            trade_percentage,
         )
 
     def run_ticker(self, ticker: str) -> BacktestResults:

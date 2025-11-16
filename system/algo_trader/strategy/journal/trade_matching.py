@@ -4,6 +4,8 @@ This module provides functionality to match trading signals (buy/sell) into
 executed trades, calculating PnL, efficiency, and other trade metrics.
 """
 
+import math
+
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
@@ -16,6 +18,8 @@ def match_trades(
     capital_per_trade: float,
     ohlcv_data: pd.DataFrame | None = None,
     logger=None,
+    initial_account_value: float | None = None,
+    trade_percentage: float | None = None,
 ) -> pd.DataFrame:
     """Match trading signals into executed trades.
 
@@ -30,6 +34,8 @@ def match_trades(
         capital_per_trade: Capital allocated per trade.
         ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
         logger: Optional logger instance. If not provided, creates a new logger.
+        initial_account_value: Optional initial account value for account tracking.
+        trade_percentage: Optional percentage of account to use per trade.
 
     Returns:
         DataFrame containing matched trades with columns:
@@ -44,6 +50,12 @@ def match_trades(
     signals = signals.sort_values(["ticker", "signal_time"])
     matched_trades = []
     open_positions = {}
+
+    ticker_accounts = {}
+    use_account_tracking = initial_account_value is not None and trade_percentage is not None
+    if use_account_tracking:
+        for ticker in signals["ticker"].unique():
+            ticker_accounts[ticker] = initial_account_value
 
     for _, signal in signals.iterrows():
         ticker = signal["ticker"]
@@ -69,14 +81,25 @@ def match_trades(
         elif is_exit:
             if open_positions[ticker]:
                 entry = open_positions[ticker].pop(0)
-                shares = capital_per_trade / entry["entry_price"]
+
+                if use_account_tracking:
+                    current_account = ticker_accounts[ticker]
+                    trade_capital = current_account * trade_percentage
+                    shares = math.floor(trade_capital / entry["entry_price"])
+                    capital_used = shares * entry["entry_price"]
+                else:
+                    shares = capital_per_trade / entry["entry_price"]
+                    capital_used = capital_per_trade
 
                 if entry["side"] == "LONG":
                     gross_pnl = shares * (price - entry["entry_price"])
                 else:
                     gross_pnl = shares * (entry["entry_price"] - price)
 
-                gross_pnl_pct = (gross_pnl / capital_per_trade) * 100
+                gross_pnl_pct = (gross_pnl / capital_used) * 100
+
+                time_held = (timestamp - entry["entry_time"]).total_seconds() / 3600
+
                 efficiency = calculate_efficiency(
                     ticker,
                     entry["entry_time"],
@@ -101,8 +124,12 @@ def match_trades(
                         "status": "CLOSED",
                         "strategy": strategy_name,
                         "efficiency": efficiency,
+                        "time_held": time_held,
                     }
                 )
+
+                if use_account_tracking:
+                    ticker_accounts[ticker] += gross_pnl
 
     total_unmatched = sum(len(positions) for positions in open_positions.values())
     if total_unmatched > 0:

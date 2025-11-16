@@ -28,6 +28,7 @@ services:
       - --object-store=file
       - --data-dir=/var/lib/influxdb3/data
       - --plugin-dir=/var/lib/influxdb3/plugins
+      - --admin-token-recovery-http-bind=0.0.0.0:8182
     networks:
       - algo_trader-net
     volumes:
@@ -35,9 +36,9 @@ services:
       - influxdb-plugins:/var/lib/influxdb3/plugins
     ports:
       - "127.0.0.1:8181:8181"  # Bind to localhost only
+      - "127.0.0.1:8182:8182"  # Bind to localhost only
     environment:
       - INFLUXDB3_AUTH_TOKEN=${INFLUXDB3_AUTH_TOKEN}
-      - INFLUXDB_DATABASE=${INFLUXDB_DATABASE}
 
   grafana:
     image: artificer-grafana:latest
@@ -73,7 +74,6 @@ services:
     environment:
       - PYTHONPATH=/workspace
       - INFLUXDB3_AUTH_TOKEN=${INFLUXDB3_AUTH_TOKEN}
-      - INFLUXDB_DATABASE=${INFLUXDB_DATABASE}
       - INFLUXDB3_HTTP_BIND_ADDR=influxdb:8181
       - REDIS_HOST=redis
       - REDIS_PORT=6379

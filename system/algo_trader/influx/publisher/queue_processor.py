@@ -6,6 +6,7 @@ to InfluxDB, handling various data formats and error conditions.
 
 from typing import Any
 
+from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.redis.queue_broker import QueueBroker
@@ -59,6 +60,7 @@ def process_queue(
 
         ticker = data.get("ticker")
         time_series_data = data.get("candles") or data.get("data")
+        target_database = data.get("database")
 
         if not ticker or not time_series_data:
             logger.error(
@@ -126,8 +128,69 @@ def process_queue(
                     time_series_data["strategy"] = [strategy_name] * data_length
                 tag_columns.append("strategy")
 
+        # Validate data before writing
+        if isinstance(time_series_data, dict):
+            # Validate datetime array exists and has correct length
+            datetime_array = time_series_data.get("datetime", [])
+            if not datetime_array:
+                logger.error(f"No datetime array found in {item_id}")
+                queue_broker.delete_data(queue_name, item_id)
+                failed_count += 1
+                continue
+
+            data_length = len(datetime_array)
+
+            # Validate tag columns don't contain NaN values
+            # Note: ticker is handled separately by write(), so we skip it here
+            for tag_col in tag_columns:
+                if tag_col == "ticker":
+                    continue  # Ticker is handled separately by write()
+
+                if tag_col in time_series_data:
+                    tag_values = time_series_data[tag_col]
+                    if isinstance(tag_values, list):
+                        # Check for None or invalid values in tag columns
+                        # InfluxDB line protocol requires tags to have non-empty values
+                        if any(v is None or v == "" for v in tag_values):
+                            logger.warning(
+                                f"Found None/empty values in tag column '{tag_col}' for {item_id}, "
+                                "replacing with 'unknown' placeholder"
+                            )
+                            time_series_data[tag_col] = [
+                                "unknown" if (v is None or v == "") else str(v) for v in tag_values
+                            ]
+                        else:
+                            # Ensure all tag values are strings
+                            time_series_data[tag_col] = [str(v) for v in time_series_data[tag_col]]
+
+                        # Final check: ensure no empty strings remain (InfluxDB rejects empty tags)
+                        if any(v == "" for v in time_series_data[tag_col]):
+                            logger.warning(
+                                f"Found empty strings in tag column '{tag_col}' for {item_id}, "
+                                "replacing with 'unknown' placeholder"
+                            )
+                            time_series_data[tag_col] = [
+                                "unknown" if v == "" else v for v in time_series_data[tag_col]
+                            ]
+
         try:
-            success = influx_client.write_sync(
+            # Use target database client if specified, otherwise use default
+            client_to_use = influx_client
+            if target_database and target_database != influx_client.database:
+                logger.info(
+                    f"Creating client for target database '{target_database}' "
+                    f"(default was '{influx_client.database}')"
+                )
+
+                write_config = BatchWriteConfig(
+                    batch_size=50000,
+                    flush_interval=10000,
+                )
+                client_to_use = MarketDataInflux(
+                    database=target_database, write_config=write_config
+                )
+
+            success = client_to_use.write(
                 data=time_series_data,
                 ticker=ticker,
                 table=dynamic_table_name,

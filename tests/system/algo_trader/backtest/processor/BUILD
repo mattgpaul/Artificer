@@ -14,3 +14,16 @@ py_library(
         requirement("pytest"),
     ],
 )
+
+py_library(
+    name = "test_worker_lib",
+    testonly = True,
+    srcs = ["test_worker.py"],
+    visibility = ["//system/algo_trader/backtest:__pkg__"],
+    deps = [
+        "//system/algo_trader/backtest:backtest_lib",
+        "//tests/system/algo_trader/backtest:conftest_lib",
+        requirement("pandas"),
+        requirement("pytest"),
+    ],
+)

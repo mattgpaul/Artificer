@@ -5,6 +5,8 @@ time-series in InfluxDB with batch write support and pandas DataFrame
 integration.
 """
 
+import traceback
+
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BaseInfluxDBClient, BatchWriteConfig
@@ -66,7 +68,6 @@ class MarketDataInflux(BaseInfluxDBClient):
         Raises:
             ValueError: If datetime column is missing from data.
         """
-        self.logger.debug(f"Formatting {ticker}")
         # TODO: datetime probably needs formatting
         df = pd.DataFrame(data)
 
@@ -82,47 +83,10 @@ class MarketDataInflux(BaseInfluxDBClient):
         df = df.drop("datetime", axis=1)
         return df
 
-    def write(self, data: dict, ticker: str, table: str) -> bool:
-        """Write market data to InfluxDB.
-
-        Args:
-            data: Dictionary containing market data with datetime and OHLCV fields.
-            ticker: Stock ticker symbol to tag data with.
-            table: Target measurement/table name in InfluxDB.
-
-        Returns:
-            True if write succeeded, False otherwise.
-        """
-        # Format data (works for any table - stock, ohlcv, etc.)
-        df = self._format_stock_data(data, ticker)
-
-        # Add ticker as a tag column
-        df["ticker"] = ticker
-
-        try:
-            # Increment pending batch counter before write
-            self._callback.increment_pending()
-
-            callback = self.client.write(
-                df, data_frame_measurement_name=table, data_frame_tag_columns=["ticker"]
-            )
-            self.logger.debug(f"{callback}")
-
-            return True
-        except Exception as e:
-            # Decrement on exception since write failed
-            with self._callback._lock:
-                self._callback._pending_batches -= 1
-            self.logger.error(f"Failed to write data for {ticker}: {e}")
-            return False
-
-    def write_sync(
+    def write(
         self, data: dict, ticker: str, table: str, tag_columns: list[str] | None = None
     ) -> bool:
-        """Write market data to InfluxDB and wait for completion.
-
-        Unlike write(), this method doesn't use the pending counter system.
-        It writes the data and returns. The batch system will flush in background.
+        """Write market data to InfluxDB.
 
         Args:
             data: Dictionary containing market data with datetime and OHLCV fields.
@@ -133,21 +97,75 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             True if write succeeded, False otherwise.
         """
+        # Format data (works for any table - stock, ohlcv, etc.)
         df = self._format_stock_data(data, ticker)
+
+        # Add ticker as a tag column
         df["ticker"] = ticker
 
         if tag_columns is None:
             tag_columns = ["ticker"]
 
-        try:
-            self.client.write(
-                df, data_frame_measurement_name=table, data_frame_tag_columns=tag_columns
+        # Clean and validate tag columns
+        for col in tag_columns:
+            if col not in df.columns:
+                self.logger.warning(f"Tag column '{col}' not found in DataFrame for {ticker}")
+                continue
+
+            # Replace NaN values with placeholder for tags (InfluxDB rejects empty tag values)
+            nan_mask = df[col].isna()
+            if nan_mask.any():
+                placeholder = "unknown" if col != "ticker" else ticker
+                df.loc[nan_mask, col] = placeholder
+
+            # Convert to string and clean invalid string representations
+            df[col] = df[col].astype(str)
+            df[col] = df[col].replace(
+                ["nan", "None", "<NA>", "NaN", "null"], "unknown", regex=False
             )
-            data_count = len(data.get("datetime", [])) if isinstance(data, dict) else len(data)
-            self.logger.debug(f"Wrote {data_count} records for {ticker} to {table}")
+
+            # Replace any remaining empty strings with placeholder (InfluxDB rejects empty tags)
+            empty_mask = df[col] == ""
+            if empty_mask.any():
+                placeholder = "unknown" if col != "ticker" else ticker
+                df.loc[empty_mask, col] = placeholder
+
+        # Ensure all numeric columns are float64 (InfluxDB prefers floats)
+        for col in df.columns:
+            if col not in tag_columns and pd.api.types.is_integer_dtype(df[col]):
+                df[col] = df[col].astype("float64")
+
+        # Fill NaN values in non-tag columns
+        non_tag_cols = [col for col in df.columns if col not in tag_columns]
+        if non_tag_cols:
+            df[non_tag_cols] = df[non_tag_cols].fillna(0)
+
+        try:
+            self.logger.info(
+                f"Writing {len(df)} points to database '{self.database}' "
+                f"table '{table}' for {ticker}"
+            )
+
+            # Use DataFrame write API (proven to work - matches old working version)
+            self.client.write(
+                df,
+                data_frame_measurement_name=table,
+                data_frame_tag_columns=tag_columns,
+            )
+
+            self.logger.info(
+                f"Write call completed for {len(df)} points to database '{self.database}' "
+                f"table '{table}' for {ticker}"
+            )
+
             return True
         except Exception as e:
+            # Decrement on exception since write failed
+            with self._callback._lock:
+                self._callback._pending_batches -= 1
             self.logger.error(f"Failed to write data for {ticker}: {e}")
+
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
     def query(self, query: str):
@@ -159,7 +177,6 @@ class MarketDataInflux(BaseInfluxDBClient):
         Returns:
             DataFrame containing query results, or None if query fails.
         """
-        self.logger.debug("Getting data")
         try:
             df = self.client.query(query=query, language="sql", mode="pandas")
         except Exception as e:

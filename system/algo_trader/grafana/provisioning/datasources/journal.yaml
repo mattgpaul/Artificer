@@ -1,18 +1,18 @@
 apiVersion: 1
 
 datasources:
-  - name: Journal
-    uid: influxdb-algo-trader-trading-journal
+  - name: Backtest
+    uid: influxdb-algo-trader-backtest
     type: influxdb
     access: proxy
     url: http://influxdb:8181
-    database: algo-trader-trading-journal
+    database: backtest
     jsonData:
       version: SQL
-      dbName: algo-trader-trading-journal
+      dbName: backtest
       httpMode: POST
       insecureGrpc: true
       tlsSkipVerify: true
     secureJsonData:
       token: $INFLUXDB3_AUTH_TOKEN
-    editable: true
+    editable: false
