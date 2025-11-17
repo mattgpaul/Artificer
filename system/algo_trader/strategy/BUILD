@@ -26,6 +26,7 @@ py_library(
         "//infrastructure/logging:logger",
         "//infrastructure/threads:thread_manager",
         "//system/algo_trader/influx:market_data_influx",
+        "//system/algo_trader/strategy/utils/studies/moving_average:simple_moving_average",
         requirement("numpy"),
         requirement("pandas"),
     ],
