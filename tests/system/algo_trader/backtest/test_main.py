@@ -162,7 +162,7 @@ class TestCreateStrategy:
         args.long = 20
         args.database = "test_db"
 
-        with patch("system.algo_trader.backtest.main.SMACrossoverStrategy") as mock_strategy_class:
+        with patch("system.algo_trader.backtest.main.SMACrossover") as mock_strategy_class:
             mock_strategy = MagicMock()
             mock_strategy_class.return_value = mock_strategy
 

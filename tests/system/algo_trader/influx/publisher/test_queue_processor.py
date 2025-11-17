@@ -332,6 +332,53 @@ class TestProcessQueueTagColumns:
             assert "strategy" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
+    def test_process_queue_tag_columns_strategy_params(
+        self, mock_queue_broker, mock_market_data_influx
+    ):
+        """Test strategy_params are added as tag columns."""
+        mock_queue_broker.get_queue_size.return_value = 1
+        mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
+        mock_queue_broker.get_data.return_value = {
+            "ticker": "AAPL",
+            "strategy_name": "SMACrossover",
+            "strategy_params": {"short_window": 20, "long_window": 50},
+            "data": {
+                "datetime": [1704067200000],
+                "entry_price": [100.0],
+            },
+            "database": "debug",
+        }
+        mock_market_data_influx["instance"].write.return_value = True
+        mock_market_data_influx["instance"].database = "trading_journal"
+
+        with patch(
+            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+        ) as mock_client_class:
+            new_mock_client = MagicMock()
+            new_mock_client.write.return_value = True
+            mock_client_class.return_value = new_mock_client
+
+            queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
+            processed, _failed = process_queue(
+                queue_config=queue_config,
+                queue_broker=mock_queue_broker,
+                influx_client=mock_market_data_influx["instance"],
+                running=True,
+            )
+
+            assert processed == 1
+            call_args = new_mock_client.write.call_args
+            tag_columns = call_args[1]["tag_columns"]
+            assert "short_window" in tag_columns
+            assert "long_window" in tag_columns
+            # Verify strategy params were added to data
+            data = call_args[1]["data"]
+            assert "short_window" in data
+            assert "long_window" in data
+            assert data["short_window"] == ["20"]
+            assert data["long_window"] == ["50"]
+
+    @pytest.mark.unit
     def test_process_queue_tag_columns_none_values(
         self, mock_queue_broker, mock_market_data_influx
     ):

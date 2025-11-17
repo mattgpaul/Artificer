@@ -16,14 +16,14 @@ from system.algo_trader.backtest.results.writer import ResultsWriter
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
 
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 
 
 def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "BaseStrategy":
     """Create a strategy instance from type and parameters.
 
     Args:
-        strategy_type: Type of strategy to create (e.g., 'SMACrossoverStrategy').
+        strategy_type: Type of strategy to create (e.g., 'SMACrossover').
         strategy_params: Dictionary of strategy parameters.
 
     Returns:
@@ -32,8 +32,8 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "Base
     Raises:
         ValueError: If strategy_type is not recognized.
     """
-    if strategy_type == "SMACrossoverStrategy":
-        return SMACrossoverStrategy(
+    if strategy_type == "SMACrossover":
+        return SMACrossover(
             short_window=strategy_params["short_window"],
             long_window=strategy_params["long_window"],
         )

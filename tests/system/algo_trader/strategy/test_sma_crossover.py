@@ -1,4 +1,4 @@
-"""Unit tests for SMACrossoverStrategy - SMA crossover trading strategy.
+"""Unit tests for SMACrossover - SMA crossover trading strategy.
 
 Tests cover initialization, signal generation with various data patterns,
 confidence calculation, edge cases, and error handling. All external
@@ -11,40 +11,40 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 
 # All fixtures moved to conftest.py
 
 
 class TestSMACrossoverInitialization:
-    """Test SMACrossoverStrategy initialization and validation."""
+    """Test SMACrossover initialization and validation."""
 
     def test_initialization_default_params(self, mock_dependencies):
         """Test initialization with default parameters."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         assert strategy.short_window == 10
         assert strategy.long_window == 20
         assert strategy.min_confidence == 0.0
-        assert strategy.strategy_name == "sma_crossover_10_20"
+        assert strategy.strategy_name == "SMACrossover"
 
     def test_initialization_custom_windows(self, mock_dependencies):
         """Test initialization with custom SMA windows."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=15)
+        strategy = SMACrossover(short_window=5, long_window=15)
 
         assert strategy.short_window == 5
         assert strategy.long_window == 15
-        assert strategy.strategy_name == "sma_crossover_5_15"
+        assert strategy.strategy_name == "SMACrossover"
 
     def test_initialization_with_min_confidence(self, mock_dependencies):
         """Test initialization with minimum confidence threshold."""
-        strategy = SMACrossoverStrategy(min_confidence=0.5)
+        strategy = SMACrossover(min_confidence=0.5)
 
         assert strategy.min_confidence == 0.5
 
     def test_initialization_with_custom_database(self, mock_dependencies):
         """Test initialization with custom database name."""
-        _ = SMACrossoverStrategy(database="custom-db")
+        _ = SMACrossover(database="custom-db")
 
         mock_dependencies["influx_class"].assert_called_once()
         call_args = mock_dependencies["influx_class"].call_args
@@ -53,27 +53,27 @@ class TestSMACrossoverInitialization:
     def test_initialization_invalid_windows(self, mock_dependencies):
         """Test initialization fails when short_window >= long_window."""
         with pytest.raises(ValueError, match=r"short_window .* must be less than"):
-            SMACrossoverStrategy(short_window=20, long_window=10)
+            SMACrossover(short_window=20, long_window=10)
 
         with pytest.raises(ValueError, match=r"short_window .* must be less than"):
-            SMACrossoverStrategy(short_window=10, long_window=10)
+            SMACrossover(short_window=10, long_window=10)
 
     def test_initialization_short_window_too_small(self, mock_dependencies):
         """Test initialization fails when short_window < 2."""
         with pytest.raises(ValueError, match="short_window must be at least 2"):
-            SMACrossoverStrategy(short_window=1, long_window=10)
+            SMACrossover(short_window=1, long_window=10)
 
     def test_initialization_invalid_confidence(self, mock_dependencies):
         """Test initialization fails with invalid confidence values."""
         with pytest.raises(ValueError, match="min_confidence must be in"):
-            SMACrossoverStrategy(min_confidence=-0.1)
+            SMACrossover(min_confidence=-0.1)
 
         with pytest.raises(ValueError, match="min_confidence must be in"):
-            SMACrossoverStrategy(min_confidence=1.5)
+            SMACrossover(min_confidence=1.5)
 
     def test_initialization_with_threading(self, mock_dependencies):
         """Test initialization with threading enabled."""
-        strategy = SMACrossoverStrategy(use_threading=True)
+        strategy = SMACrossover(use_threading=True)
 
         assert strategy.thread_manager is not None
         mock_dependencies["thread_class"].assert_called_once()
@@ -84,7 +84,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_with_crossover(self, mock_dependencies):
         """Test signal generation with a clear bullish crossover."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         # Create data with a clear bullish crossover
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
@@ -119,7 +119,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_bullish_crossover(self, mock_dependencies):
         """Test detection of bullish crossover (buy signal)."""
-        strategy = SMACrossoverStrategy(short_window=3, long_window=5)
+        strategy = SMACrossover(short_window=3, long_window=5)
 
         # Create data where short SMA crosses above long SMA
         dates = pd.date_range(start="2024-01-01", periods=20, freq="D")
@@ -146,7 +146,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_bearish_crossover(self, mock_dependencies):
         """Test detection of bearish crossover (sell signal)."""
-        strategy = SMACrossoverStrategy(short_window=3, long_window=5)
+        strategy = SMACrossover(short_window=3, long_window=5)
 
         # Create data where short SMA crosses below long SMA
         dates = pd.date_range(start="2024-01-01", periods=20, freq="D")
@@ -173,7 +173,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_no_crossover(self, mock_dependencies):
         """Test when no crossovers occur (constant uptrend)."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         # Constant uptrend - short SMA always above long SMA, no crossover
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
@@ -192,7 +192,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_min_confidence_filter(self, mock_dependencies):
         """Test that signals below min_confidence are filtered out."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10, min_confidence=0.8)
+        strategy = SMACrossover(short_window=5, long_window=10, min_confidence=0.8)
 
         # Create data with weak crossover
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
@@ -216,7 +216,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_confidence_calculation(self, mock_dependencies):
         """Test that confidence scores are properly calculated."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
         close_prices = np.concatenate(
@@ -240,7 +240,7 @@ class TestGenerateSignals:
 
     def test_generate_signals_metadata_structure(self, mock_dependencies):
         """Test that signal metadata contains required fields."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
         close_prices = np.concatenate(
@@ -276,7 +276,7 @@ class TestEdgeCases:
 
     def test_generate_signals_empty_dataframe(self, mock_dependencies):
         """Test with empty OHLCV data."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         empty_df = pd.DataFrame()
         signals = strategy.generate_signals(empty_df, "AAPL")
@@ -285,7 +285,7 @@ class TestEdgeCases:
 
     def test_generate_signals_none_dataframe(self, mock_dependencies):
         """Test with None as input."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         signals = strategy.generate_signals(None, "AAPL")
 
@@ -293,7 +293,7 @@ class TestEdgeCases:
 
     def test_generate_signals_missing_close_column(self, mock_dependencies):
         """Test with OHLCV data missing 'close' column."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
         ohlcv_data = pd.DataFrame(
@@ -312,7 +312,7 @@ class TestEdgeCases:
 
     def test_generate_signals_insufficient_data(self, mock_dependencies):
         """Test with insufficient data for long_window calculation."""
-        strategy = SMACrossoverStrategy(short_window=10, long_window=20)
+        strategy = SMACrossover(short_window=10, long_window=20)
 
         # Only 15 rows, but need 20 for long_window
         dates = pd.date_range(start="2024-01-01", periods=15, freq="D")
@@ -327,7 +327,7 @@ class TestEdgeCases:
 
     def test_generate_signals_exact_window_size(self, mock_dependencies):
         """Test with data exactly matching long_window size."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         # Exactly 10 rows
         dates = pd.date_range(start="2024-01-01", periods=10, freq="D")
@@ -345,7 +345,7 @@ class TestEdgeCases:
 
     def test_generate_signals_all_same_price(self, mock_dependencies):
         """Test with all close prices identical (no movement)."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
         ohlcv_data = pd.DataFrame(
@@ -360,7 +360,7 @@ class TestEdgeCases:
 
     def test_generate_signals_with_nan_values(self, mock_dependencies):
         """Test handling of NaN values in close prices."""
-        strategy = SMACrossoverStrategy(short_window=5, long_window=10)
+        strategy = SMACrossover(short_window=5, long_window=10)
 
         dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
         close_prices = np.linspace(100, 150, 30)
@@ -382,7 +382,7 @@ class TestConfidenceCalculation:
 
     def test_calculate_confidence_zero_sma_long(self, mock_dependencies):
         """Test confidence calculation when sma_long is zero."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         confidence = strategy._calculate_confidence(diff=10.0, sma_long=0.0)
 
@@ -390,7 +390,7 @@ class TestConfidenceCalculation:
 
     def test_calculate_confidence_small_difference(self, mock_dependencies):
         """Test confidence with small percentage difference."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         # 0.5% difference
         confidence = strategy._calculate_confidence(diff=0.5, sma_long=100.0)
@@ -400,7 +400,7 @@ class TestConfidenceCalculation:
 
     def test_calculate_confidence_large_difference(self, mock_dependencies):
         """Test confidence with large percentage difference."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         # 2% difference
         confidence = strategy._calculate_confidence(diff=2.0, sma_long=100.0)
@@ -410,7 +410,7 @@ class TestConfidenceCalculation:
 
     def test_calculate_confidence_negative_diff(self, mock_dependencies):
         """Test confidence with negative difference (uses absolute value)."""
-        strategy = SMACrossoverStrategy()
+        strategy = SMACrossover()
 
         confidence_pos = strategy._calculate_confidence(diff=1.0, sma_long=100.0)
         confidence_neg = strategy._calculate_confidence(diff=-1.0, sma_long=100.0)
@@ -424,7 +424,7 @@ class TestIntegration:
 
     def test_full_strategy_workflow(self, mock_dependencies):
         """Test complete workflow: initialize, generate signals, check results."""
-        strategy = SMACrossoverStrategy(
+        strategy = SMACrossover(
             short_window=5,
             long_window=10,
             min_confidence=0.3,
@@ -463,7 +463,7 @@ class TestIntegration:
 
     def test_multiple_crossovers(self, mock_dependencies):
         """Test detection of multiple crossovers in volatile data."""
-        strategy = SMACrossoverStrategy(short_window=3, long_window=5)
+        strategy = SMACrossover(short_window=3, long_window=5)
 
         # Create oscillating data
         dates = pd.date_range(start="2024-01-01", periods=50, freq="D")

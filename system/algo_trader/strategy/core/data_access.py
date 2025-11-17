@@ -4,6 +4,8 @@ This module provides functionality to query OHLCV data and trading signals
 from InfluxDB for strategy execution.
 """
 
+from typing import Any
+
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
@@ -20,18 +22,27 @@ class DataAccess:
         influx_client: InfluxDB client instance for querying data.
         strategy_name: Name of the strategy using this data access.
         logger: Optional logger instance. If not provided, creates a new logger.
+        strategy_args: Optional dictionary of strategy arguments (for consistency).
     """
 
-    def __init__(self, influx_client: MarketDataInflux, strategy_name: str, logger=None):
+    def __init__(
+        self,
+        influx_client: MarketDataInflux,
+        strategy_name: str,
+        logger=None,
+        strategy_args: dict[str, Any] | None = None,
+    ):
         """Initialize DataAccess with InfluxDB client.
 
         Args:
             influx_client: InfluxDB client instance for querying data.
             strategy_name: Name of the strategy using this data access.
             logger: Optional logger instance. If not provided, creates a new logger.
+            strategy_args: Optional dictionary of strategy arguments (for consistency).
         """
         self.influx_client = influx_client
         self.strategy_name = strategy_name
+        self.strategy_args = strategy_args
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def query_ohlcv(

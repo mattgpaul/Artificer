@@ -200,7 +200,7 @@ class TestDataFrameToDict:
                 "ticker": ["AAPL"],
                 "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
                 "side": ["LONG"],
-                "strategy": ["SMACrossoverStrategy"],
+                "strategy": ["SMACrossover"],
             }
         )
 
@@ -208,7 +208,7 @@ class TestDataFrameToDict:
 
         assert result["ticker"][0] == "AAPL"
         assert result["side"][0] == "LONG"
-        assert result["strategy"][0] == "SMACrossoverStrategy"
+        assert result["strategy"][0] == "SMACrossover"
 
     @pytest.mark.unit
     def test_dataframe_to_dict_mixed_nan_values(self):

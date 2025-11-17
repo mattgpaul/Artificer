@@ -2,7 +2,7 @@
 
 Tests cover strategy creation, ticker processing, signal display, journal generation,
 and the complete execute_strategy workflow. All external dependencies (logger,
-InfluxDB, TradeJournal, SMACrossoverStrategy) are mocked.
+InfluxDB, TradeJournal, SMACrossover) are mocked.
 """
 
 from datetime import datetime, timedelta
@@ -26,7 +26,7 @@ from system.algo_trader.strategy.core.executor import (
 class TestCreateStrategy:
     """Test strategy creation and initialization."""
 
-    @patch("system.algo_trader.strategy.core.executor.SMACrossoverStrategy")
+    @patch("system.algo_trader.strategy.core.executor.SMACrossover")
     def test_create_sma_crossover_strategy(self, mock_sma_class, mock_args, mock_logger):
         """Test creating SMA crossover strategy with correct parameters."""
         mock_strategy_instance = MagicMock()
@@ -44,7 +44,7 @@ class TestCreateStrategy:
         )
         mock_logger.info.assert_called_once()
 
-    @patch("system.algo_trader.strategy.core.executor.SMACrossoverStrategy")
+    @patch("system.algo_trader.strategy.core.executor.SMACrossover")
     def test_create_strategy_with_threading(self, mock_sma_class, mock_args, mock_logger):
         """Test strategy creation with threading enabled."""
         mock_args.threading = True

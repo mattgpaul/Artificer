@@ -14,7 +14,7 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
 
@@ -33,7 +33,7 @@ def create_strategy(args, logger):
     """
     if args.strategy == "sma-crossover":
         logger.info(f"Initializing SMA Crossover: short={args.short}, long={args.long}")
-        return SMACrossoverStrategy(
+        return SMACrossover(
             short_window=args.short,
             long_window=args.long,
             database=args.database,
@@ -166,7 +166,7 @@ def parse_args():
     sma_parser = subparsers.add_parser(
         "sma-crossover", help="Simple Moving Average crossover strategy"
     )
-    SMACrossoverStrategy().add_strategy_arguments(sma_parser)
+    SMACrossover().add_strategy_arguments(sma_parser)
 
     return parser.parse_args()
 
