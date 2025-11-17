@@ -8,7 +8,7 @@ InfluxDB and persisting signals back to the database.
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -58,41 +58,46 @@ class BaseStrategy(Client):
 
     def __init__(
         self,
-        strategy_name: str,
         database: str = "algo-trader-database",
         write_config: BatchWriteConfig = strategy_write_config,
         use_threading: bool = False,
         config=None,
         thread_config: ThreadConfig | None = None,
+        strategy_args: dict[str, Any] | None = None,
     ):
         """Initialize strategy with InfluxDB connection and optional threading.
 
         Args:
-            strategy_name: Unique name identifying this strategy (used for tagging).
             database: InfluxDB database name (default: "algo-trader-database").
             write_config: Batch write configuration for signal persistence.
             use_threading: Enable ThreadManager for parallel ticker processing.
             config: Optional InfluxDB config. If None, reads from environment.
             thread_config: Optional ThreadConfig for thread management.
                 If None and use_threading=True, ThreadManager will auto-create from environment.
+            strategy_args: Optional dictionary of strategy arguments to store as InfluxDB tags.
         """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
-        self.strategy_name = strategy_name
+        self.strategy_name = self.__class__.__name__
+        self.strategy_args = strategy_args
         self.influx_client = MarketDataInflux(
             database=database, write_config=write_config, config=config
         )
         self.thread_manager = ThreadManager(config=thread_config) if use_threading else None
 
-        self.data_access = DataAccess(self.influx_client, self.strategy_name, self.logger)
-        self.signal_writer = SignalWriter(self.influx_client, self.strategy_name, self.logger)
+        self.data_access = DataAccess(
+            self.influx_client, self.strategy_name, self.logger, strategy_args=strategy_args
+        )
+        self.signal_writer = SignalWriter(
+            self.influx_client, self.strategy_name, self.logger, strategy_args=strategy_args
+        )
 
         threading_info = f"threading={use_threading}"
         if use_threading and thread_config:
             threading_info += f", max_threads={thread_config.max_threads}"
 
         self.logger.debug(
-            f"Strategy '{strategy_name}' initialized (database={database}, {threading_info})"
+            f"Strategy '{self.strategy_name}' initialized (database={database}, {threading_info})"
         )
 
     @abstractmethod

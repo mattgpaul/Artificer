@@ -21,14 +21,14 @@ class ConcreteStrategy(BaseStrategy):
 
     def __init__(
         self,
-        strategy_name: str = "test_strategy",
         database: str = "test-database",
         write_config: BatchWriteConfig = strategy_write_config,
         use_threading: bool = False,
         config=None,
+        strategy_args: dict | None = None,
     ):
         """Initialize concrete strategy for testing."""
-        super().__init__(strategy_name, database, write_config, use_threading, config)
+        super().__init__(database, write_config, use_threading, config, strategy_args=strategy_args)
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
         """Mock buy signal generation."""
@@ -219,7 +219,7 @@ class TestWriteSignals:
         """Test that signals have ticker, strategy, and timestamp metadata added."""
         mock_dependencies["influx_instance"].write.return_value = True
 
-        strategy = ConcreteStrategy(strategy_name="sma_crossover")
+        strategy = ConcreteStrategy()
         signals = pd.DataFrame(
             {"signal_type": ["buy"], "price": [100.0]},
             index=pd.DatetimeIndex(["2024-01-01"], tz=timezone.utc),
@@ -482,14 +482,14 @@ class TestQuerySignals:
         mock_signals = pd.DataFrame({"ticker": ["AAPL"], "signal_type": ["buy"], "price": [100.0]})
         mock_dependencies["influx_instance"].query.return_value = mock_signals
 
-        strategy = ConcreteStrategy(strategy_name="sma_crossover")
+        strategy = ConcreteStrategy()
         result = strategy.query_signals()
 
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 1
         call_args = mock_dependencies["influx_instance"].query.call_args
         query = call_args[0][0]
-        assert "strategy = 'sma_crossover'" in query
+        assert "strategy = 'ConcreteStrategy'" in query
 
     def test_query_signals_with_ticker_filter(self, mock_dependencies):
         """Test querying signals filtered by ticker."""

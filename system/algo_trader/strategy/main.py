@@ -13,7 +13,7 @@ import sys
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.core.executor import execute_strategy
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
 
@@ -107,7 +107,7 @@ def parse_args():
     sma_parser = subparsers.add_parser(
         "sma-crossover", help="Simple Moving Average crossover strategy"
     )
-    SMACrossoverStrategy().add_strategy_arguments(sma_parser)
+    SMACrossover().add_strategy_arguments(sma_parser)
 
     return parser.parse_args()
 
