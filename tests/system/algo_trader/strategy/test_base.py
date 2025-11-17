@@ -72,7 +72,7 @@ class TestBaseStrategyInitialization:
         """Test initialization with default configuration."""
         strategy = ConcreteStrategy()
 
-        assert strategy.strategy_name == "test_strategy"
+        assert strategy.strategy_name == "ConcreteStrategy"
         assert strategy.influx_client is not None
         assert strategy.thread_manager is None
 
