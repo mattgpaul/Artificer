@@ -17,6 +17,9 @@ import pandas as pd
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
 from system.algo_trader.strategy.base import BaseStrategy
+from system.algo_trader.strategy.utils.studies.moving_average.simple_moving_average import (
+    SimpleMovingAverage,
+)
 
 
 class SMACrossoverStrategy(BaseStrategy):
@@ -86,6 +89,9 @@ class SMACrossoverStrategy(BaseStrategy):
         self.short_window = short_window
         self.long_window = long_window
         self.min_confidence = min_confidence
+
+        # Initialize SMA study instances for calculations
+        self.sma_study = SimpleMovingAverage(logger=self.logger)
 
         self.logger.debug(
             f"SMA Crossover initialized: short={short_window}, long={long_window}, "
@@ -281,6 +287,9 @@ class SMACrossoverStrategy(BaseStrategy):
     ) -> tuple[pd.Series, pd.Series, pd.Series] | tuple[None, None, None]:
         """Calculate short and long simple moving averages from OHLCV data.
 
+        Uses SimpleMovingAverage study instances to perform calculations with
+        validation. Returns None values if validation fails.
+
         Args:
             ohlcv_data: DataFrame with OHLCV data indexed by datetime.
                 Must contain 'close' column.
@@ -298,25 +307,21 @@ class SMACrossoverStrategy(BaseStrategy):
             >>> sma_short, sma_long, diff = strategy._calculate_smas(ohlcv_data, 'AAPL')
             >>> assert len(sma_short) == len(ohlcv_data)
         """
-        if ohlcv_data is None or ohlcv_data.empty:
-            self.logger.debug(f"No OHLCV data provided for {ticker}")
+        # Calculate short-period SMA using study
+        sma_short = self.sma_study.compute(
+            ohlcv_data=ohlcv_data, window=self.short_window, ticker=ticker, column="close"
+        )
+        if sma_short is None:
             return None, None, None
 
-        if "close" not in ohlcv_data.columns:
-            self.logger.error(f"OHLCV data for {ticker} missing 'close' column")
+        # Calculate long-period SMA using study
+        sma_long = self.sma_study.compute(
+            ohlcv_data=ohlcv_data, window=self.long_window, ticker=ticker, column="close"
+        )
+        if sma_long is None:
             return None, None, None
 
-        if len(ohlcv_data) < self.long_window:
-            # Only log at debug level - this is expected during early time steps in backtesting
-            self.logger.debug(
-                f"{ticker}: Insufficient data for SMA calculation - {len(ohlcv_data)} rows "
-                f"(need at least {self.long_window} for long_window={self.long_window})"
-            )
-            return None, None, None
-
-        # Calculate simple moving averages
-        sma_short = ohlcv_data["close"].rolling(window=self.short_window).mean()
-        sma_long = ohlcv_data["close"].rolling(window=self.long_window).mean()
+        # Calculate difference between SMAs
         current_diff = sma_short - sma_long
 
         return sma_short, sma_long, current_diff
