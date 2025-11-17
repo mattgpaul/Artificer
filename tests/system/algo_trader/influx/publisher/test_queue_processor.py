@@ -255,16 +255,14 @@ class TestProcessQueueTagColumns:
             assert "backtest_id" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
-    def test_process_queue_tag_columns_backtest_hash(
-        self, mock_queue_broker, mock_market_data_influx
-    ):
-        """Test backtest_hash tag column handling."""
+    def test_process_queue_tag_columns_hash_id(self, mock_queue_broker, mock_market_data_influx):
+        """Test hash_id tag column handling."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = {
             "ticker": "AAPL",
             "strategy_name": "SMACrossoverStrategy",
-            "backtest_hash": "abc123",
+            "hash_id": "abc123",
             "data": {
                 "datetime": [1704067200000],
                 "entry_price": [100.0],
@@ -292,7 +290,7 @@ class TestProcessQueueTagColumns:
 
             assert processed == 1
             call_args = new_mock_client.write.call_args
-            assert "backtest_hash" in call_args[1]["tag_columns"]
+            assert "hash_id" in call_args[1]["tag_columns"]
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_strategy(self, mock_queue_broker, mock_market_data_influx):
@@ -389,7 +387,7 @@ class TestProcessQueueTagColumns:
             "ticker": "AAPL",
             "strategy_name": "SMACrossoverStrategy",
             "backtest_id": None,
-            "backtest_hash": None,
+            "hash_id": None,
             "data": {
                 "datetime": [1704067200000],
                 "entry_price": [100.0],

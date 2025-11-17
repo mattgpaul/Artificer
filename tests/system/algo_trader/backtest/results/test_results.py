@@ -94,6 +94,43 @@ class TestResultsWriter:
 
         assert hash1 != hash2
 
+    def test_compute_backtest_hash_same_with_different_tickers_dates_database(
+        self, mock_queue_broker
+    ):
+        """Test backtest hash is same with different tickers, dates, and databases."""
+        execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
+        strategy_params = {"short_window": 10, "long_window": 20}
+
+        # First hash with AAPL, Jan 2024, test_db
+        hash1 = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="test_db",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        # Second hash with MSFT, Feb 2024, different_db - should be same hash
+        hash2 = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-02-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-02-29", tz="UTC"),
+            step_frequency="daily",
+            database="different_db",
+            tickers=["MSFT", "GOOGL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        # Hash should be the same since tickers, dates, and database are not included
+        assert hash1 == hash2
+        assert len(hash1) == 16
+
     def test_write_trades_empty_dataframe(self, mock_queue_broker):
         """Test write_trades with empty DataFrame."""
         writer = ResultsWriter()
@@ -231,8 +268,8 @@ class TestResultsWriter:
 
         assert result is False
 
-    def test_write_trades_with_backtest_hash(self, mock_queue_broker, sample_trades):
-        """Test write_trades includes backtest_hash when all params provided."""
+    def test_write_trades_with_hash_id(self, mock_queue_broker, sample_trades):
+        """Test write_trades includes hash_id when all params provided."""
         writer = ResultsWriter()
         mock_queue_broker.enqueue.return_value = True
 
@@ -256,8 +293,8 @@ class TestResultsWriter:
             risk_free_rate=0.04,
         )
 
-        # Verify enqueue was called with backtest_hash
+        # Verify enqueue was called with hash_id
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert "backtest_hash" in queue_data
-        assert queue_data["backtest_hash"] is not None
+        assert "hash_id" in queue_data
+        assert queue_data["hash_id"] is not None

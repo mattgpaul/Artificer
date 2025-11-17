@@ -107,7 +107,7 @@ class TestResultsWriterWriteTrades:
         call_args = mock_queue_broker.enqueue.call_args
         assert call_args[1]["queue_name"] == BACKTEST_TRADES_QUEUE_NAME
         assert call_args[1]["ttl"] == BACKTEST_REDIS_TTL
-        assert "backtest_hash" in call_args[1]["data"]
+        assert "hash_id" in call_args[1]["data"]
 
     @pytest.mark.unit
     def test_write_trades_with_hash(self, mock_queue_broker):
@@ -149,8 +149,8 @@ class TestResultsWriterWriteTrades:
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["backtest_hash"] is not None
-        assert len(queue_data["backtest_hash"]) == 16  # 16-char hex hash
+        assert queue_data["hash_id"] is not None
+        assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
     def test_write_trades_without_hash_params(self, mock_queue_broker):
@@ -179,7 +179,7 @@ class TestResultsWriterWriteTrades:
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["backtest_hash"] is None
+        assert queue_data["hash_id"] is None
 
     @pytest.mark.unit
     def test_write_trades_failure(self, mock_queue_broker):
@@ -275,7 +275,7 @@ class TestResultsWriterWriteTrades:
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["backtest_hash"] is not None
+        assert queue_data["hash_id"] is not None
 
     @pytest.mark.unit
     def test_write_trades_dataframe_conversion(self, mock_queue_broker):
@@ -495,8 +495,8 @@ class TestResultsWriterWriteMetrics:
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert "backtest_hash" in queue_data["data"]
-        assert queue_data["backtest_hash"] is not None
+        assert "hash_id" in queue_data["data"]
+        assert queue_data["hash_id"] is not None
 
     @pytest.mark.unit
     def test_write_metrics_failure(self, mock_queue_broker):

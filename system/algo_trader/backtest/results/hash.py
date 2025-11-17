@@ -30,17 +30,20 @@ def compute_backtest_hash(
 ) -> str:
     """Compute deterministic hash from backtest configuration.
 
-    Creates a SHA-256 hash from all backtest parameters to uniquely identify
+    Creates a SHA-256 hash from backtest parameters to uniquely identify
     a backtest configuration. Used for deduplication and result lookup.
+
+    Note: tickers, start_date, end_date, and database are NOT included in the hash
+    to allow comparing results across different time periods, tickers, and databases.
 
     Args:
         strategy_params: Dictionary of strategy parameters.
         execution_config: Execution configuration with slippage and commission.
-        start_date: Start date of backtest period.
-        end_date: End date of backtest period.
+        start_date: Start date of backtest period (not included in hash).
+        end_date: End date of backtest period (not included in hash).
         step_frequency: Frequency for time steps.
-        database: Database name used for data access.
-        tickers: List of ticker symbols (sorted for consistency).
+        database: Database name used for data access (not included in hash).
+        tickers: List of ticker symbols (not included in hash).
         capital_per_trade: Capital allocated per trade.
         risk_free_rate: Risk-free rate for Sharpe ratio calculation.
         walk_forward: Whether walk-forward analysis is used.
@@ -60,12 +63,8 @@ def compute_backtest_hash(
             "fill_delay_minutes": execution_config.fill_delay_minutes,
         },
         "backtest": {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
             "step_frequency": step_frequency,
-            "database": database,
         },
-        "tickers": sorted(tickers),
         "capital_per_trade": capital_per_trade,
         "risk_free_rate": risk_free_rate,
         "walk_forward": walk_forward,

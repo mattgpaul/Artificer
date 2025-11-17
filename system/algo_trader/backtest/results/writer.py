@@ -92,28 +92,24 @@ class ResultsWriter:
             self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
 
-        backtest_hash = None
+        hash_id = None
         if all(
             [
                 strategy_params is not None,
                 execution_config is not None,
-                start_date is not None,
-                end_date is not None,
                 step_frequency is not None,
-                database is not None,
-                tickers is not None,
                 capital_per_trade is not None,
                 risk_free_rate is not None,
             ]
         ):
-            backtest_hash = compute_backtest_hash(
+            hash_id = compute_backtest_hash(
                 strategy_params=strategy_params,
                 execution_config=execution_config,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_date or pd.Timestamp.now(tz="UTC"),
+                end_date=end_date or pd.Timestamp.now(tz="UTC"),
                 step_frequency=step_frequency,
-                database=database,
-                tickers=tickers,
+                database=database or "",
+                tickers=tickers or [],
                 capital_per_trade=capital_per_trade,
                 risk_free_rate=risk_free_rate,
                 walk_forward=walk_forward,
@@ -131,7 +127,7 @@ class ResultsWriter:
             "ticker": ticker,
             "strategy_name": strategy_name,
             "backtest_id": backtest_id,
-            "backtest_hash": backtest_hash,
+            "hash_id": hash_id,
             "strategy_params": strategy_params,  # Include strategy params for tag generation
             "data": trades_dict,
             "database": database,
@@ -207,28 +203,24 @@ class ResultsWriter:
         Returns:
             True if metrics were successfully enqueued, False otherwise.
         """
-        backtest_hash = None
+        hash_id = None
         if all(
             [
                 strategy_params is not None,
                 execution_config is not None,
-                start_date is not None,
-                end_date is not None,
                 step_frequency is not None,
-                database is not None,
-                tickers is not None,
                 capital_per_trade is not None,
                 risk_free_rate is not None,
             ]
         ):
-            backtest_hash = compute_backtest_hash(
+            hash_id = compute_backtest_hash(
                 strategy_params=strategy_params,
                 execution_config=execution_config,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_date or pd.Timestamp.now(tz="UTC"),
+                end_date=end_date or pd.Timestamp.now(tz="UTC"),
                 step_frequency=step_frequency,
-                database=database,
-                tickers=tickers,
+                database=database or "",
+                tickers=tickers or [],
                 capital_per_trade=capital_per_trade,
                 risk_free_rate=risk_free_rate,
                 walk_forward=walk_forward,
@@ -254,8 +246,8 @@ class ResultsWriter:
 
         if backtest_id:
             metrics_data["backtest_id"] = [backtest_id]
-        if backtest_hash:
-            metrics_data["backtest_hash"] = [backtest_hash]
+        if hash_id:
+            metrics_data["hash_id"] = [hash_id]
 
         # Log at debug level
         self.logger.debug(f"Writing metrics to Redis for {ticker}")
@@ -264,7 +256,7 @@ class ResultsWriter:
             "ticker": ticker,
             "strategy_name": strategy_name,
             "backtest_id": backtest_id,
-            "backtest_hash": backtest_hash,
+            "hash_id": hash_id,
             "data": metrics_data,
             "database": database,
         }
