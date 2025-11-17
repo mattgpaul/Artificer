@@ -7,6 +7,7 @@ InfluxDB and persisting signals back to the database.
 
 from __future__ import annotations
 
+import os
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
@@ -36,6 +37,16 @@ strategy_write_config = BatchWriteConfig(
 )
 
 
+def get_signal_database() -> str:
+    """Get the appropriate database for signal storage based on environment.
+
+    Returns:
+        'backtest' for prod environment, 'debug' otherwise.
+    """
+    env = os.getenv("INFLUXDB3_ENVIRONMENT", "").lower()
+    return "backtest" if env == "prod" else "debug"
+
+
 class BaseStrategy(Client):
     """Base class for market trading strategies.
 
@@ -58,7 +69,7 @@ class BaseStrategy(Client):
 
     def __init__(
         self,
-        database: str = "algo-trader-database",
+        database: str | None = None,
         write_config: BatchWriteConfig = strategy_write_config,
         use_threading: bool = False,
         config=None,
@@ -68,7 +79,7 @@ class BaseStrategy(Client):
         """Initialize strategy with InfluxDB connection and optional threading.
 
         Args:
-            database: InfluxDB database name (default: "algo-trader-database").
+            database: InfluxDB database name. If None, uses get_signal_database().
             write_config: Batch write configuration for signal persistence.
             use_threading: Enable ThreadManager for parallel ticker processing.
             config: Optional InfluxDB config. If None, reads from environment.
@@ -80,6 +91,11 @@ class BaseStrategy(Client):
         self.logger = get_logger(self.__class__.__name__)
         self.strategy_name = self.__class__.__name__
         self.strategy_args = strategy_args
+
+        # Use get_signal_database() if database not specified
+        if database is None:
+            database = get_signal_database()
+
         self.influx_client = MarketDataInflux(
             database=database, write_config=write_config, config=config
         )

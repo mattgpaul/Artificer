@@ -64,8 +64,11 @@ def parse_args():
     parser.add_argument(
         "--database",
         type=str,
-        default="algo-trader-database",
-        help="InfluxDB database name (default: algo-trader-database)",
+        default=None,
+        help=(
+            "InfluxDB database name. If not specified, uses 'backtest' for prod "
+            "or 'debug' otherwise."
+        ),
     )
     parser.add_argument(
         "--write", action="store_true", help="Write signals to InfluxDB (default: False)"

@@ -132,6 +132,7 @@ class ResultsWriter:
             "strategy_name": strategy_name,
             "backtest_id": backtest_id,
             "backtest_hash": backtest_hash,
+            "strategy_params": strategy_params,  # Include strategy params for tag generation
             "data": trades_dict,
             "database": database,
         }

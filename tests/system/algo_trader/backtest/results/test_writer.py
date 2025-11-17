@@ -417,6 +417,7 @@ class TestResultsWriterWriteTrades:
         assert queue_data["strategy_name"] == "TestStrategy"
         assert queue_data["backtest_id"] == "test-id"
         assert queue_data["database"] == "debug"
+        assert queue_data["strategy_params"] == {"short_window": 10}
         assert len(queue_data["data"]["datetime"]) == 2
 
 

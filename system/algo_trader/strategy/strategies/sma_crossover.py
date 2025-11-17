@@ -41,7 +41,7 @@ class SMACrossover(BaseStrategy):
         short_window: int = 10,
         long_window: int = 20,
         min_confidence: float = 0.0,
-        database: str = "algo-trader-database",
+        database: str | None = None,
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
         config: Any = None,
@@ -53,7 +53,7 @@ class SMACrossover(BaseStrategy):
             short_window: Period for short-term SMA (must be less than long_window).
             long_window: Period for long-term SMA (must be greater than short_window).
             min_confidence: Minimum confidence threshold (0.0 to 1.0) for filtering signals.
-            database: InfluxDB database name for signal persistence.
+            database: InfluxDB database name. If None, uses get_signal_database().
             write_config: Optional batch write configuration for InfluxDB.
             use_threading: Enable parallel processing for multiple tickers.
             config: Optional InfluxDB configuration override.

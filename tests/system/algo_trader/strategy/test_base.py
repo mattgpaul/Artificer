@@ -5,13 +5,18 @@ multi-ticker workflow (both sequential and threaded), and error handling.
 All external dependencies (InfluxDB, ThreadManager) are mocked.
 """
 
+import os
 from datetime import timezone
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
-from system.algo_trader.strategy.base import BaseStrategy, strategy_write_config
+from system.algo_trader.strategy.base import (
+    BaseStrategy,
+    get_signal_database,
+    strategy_write_config,
+)
 
 
 class ConcreteStrategy(BaseStrategy):
@@ -98,6 +103,52 @@ class TestBaseStrategyInitialization:
         mock_dependencies["influx_class"].assert_called_once_with(
             database="test-database", write_config=custom_config, config=None
         )
+
+    def test_initialization_database_none_uses_get_signal_database(self, mock_dependencies):
+        """Test initialization with database=None uses get_signal_database()."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "prod"}):
+            _ = ConcreteStrategy(database=None)
+
+            mock_dependencies["influx_class"].assert_called_once_with(
+                database="backtest", write_config=strategy_write_config, config=None
+            )
+
+    def test_initialization_database_none_debug_env(self, mock_dependencies):
+        """Test initialization with database=None uses 'debug' in non-prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "dev"}, clear=False):
+            _ = ConcreteStrategy(database=None)
+
+            mock_dependencies["influx_class"].assert_called_once_with(
+                database="debug", write_config=strategy_write_config, config=None
+            )
+
+
+class TestGetSignalDatabase:
+    """Test get_signal_database function."""
+
+    def test_get_signal_database_prod_environment(self):
+        """Test get_signal_database returns 'backtest' for prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "prod"}):
+            result = get_signal_database()
+            assert result == "backtest"
+
+    def test_get_signal_database_non_prod_environment(self):
+        """Test get_signal_database returns 'debug' for non-prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "dev"}, clear=False):
+            result = get_signal_database()
+            assert result == "debug"
+
+    def test_get_signal_database_no_env_var(self):
+        """Test get_signal_database returns 'debug' when env var not set."""
+        with patch.dict(os.environ, {}, clear=True):
+            result = get_signal_database()
+            assert result == "debug"
+
+    def test_get_signal_database_case_insensitive(self):
+        """Test get_signal_database is case-insensitive for environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "PROD"}):
+            result = get_signal_database()
+            assert result == "backtest"
 
 
 class TestQueryOHLCV:
