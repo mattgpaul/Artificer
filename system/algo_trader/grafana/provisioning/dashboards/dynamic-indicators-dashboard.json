@@ -1,0 +1,565 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Example dashboard demonstrating dynamic parameter filtering for backtest results based on strategy selection",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "panels": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-algo-trader-backtest"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 24,
+            "x": 0,
+            "y": 1
+          },
+          "id": 2,
+          "options": {
+            "content": "## SMACrossover Strategy Parameters\n\n**Use the parameter dropdowns in the top bar to filter results.**\n\n**Current Filters:**\n- **Short Window**: $short_window\n- **Long Window**: $long_window\n\nThese parameters are dynamically discovered from the selected strategy table. When you select a different strategy, different parameters will appear.\n\n**Note**: Parameters are stored as tags in InfluxDB, allowing efficient filtering.",
+            "mode": "markdown"
+          },
+          "pluginVersion": "12.2.1",
+          "targets": [],
+          "title": "",
+          "type": "text",
+          "transparent": true
+        }
+      ],
+      "title": "SMACrossover Parameters",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 11,
+      "panels": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-algo-trader-backtest"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          },
+          "id": 3,
+          "options": {
+            "content": "## Other Strategy Parameters\n\n**Use the parameter dropdowns in the top bar to filter results.**\n\n**Current Filters:**\n- **Stop Loss %**: $stop_loss_pct\n- **Take Profit %**: $take_profit_pct\n\nThis row demonstrates how different strategies can have completely different parameters. The parameter variables are dynamically populated based on what tags exist in the selected strategy table.",
+            "mode": "markdown"
+          },
+          "pluginVersion": "12.2.1",
+          "targets": [],
+          "title": "",
+          "type": "text",
+          "transparent": true
+        }
+      ],
+      "title": "Other Strategy Parameters",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-algo-trader-backtest"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "content": "## How This Works\n\n1. **Select a Strategy**: Choose a strategy table (e.g., SMACrossover) from the dropdown\n2. **Parameter Variables Auto-Populate**: The parameter dropdowns (Short Window, Long Window, etc.) automatically query the selected strategy table to find available tag values\n3. **Filter Results**: When you select specific parameter values, all panels filter to show only results matching those parameters\n4. **Dynamic Discovery**: If a strategy doesn't have a parameter (e.g., SMACrossover doesn't have stop_loss_pct), that variable will be empty and won't affect filtering\n\n**Key Concept**: Parameters are stored as **tags** in InfluxDB, allowing efficient filtering. The variables discover available tags dynamically from the selected strategy table.\n\n**Note**: If you see 'No data', it may mean:\n- The selected strategy table doesn't exist or is empty\n- The parameter tag names don't match (check your actual tag column names)\n- The time range doesn't include any data",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [],
+      "title": "How Dynamic Parameter Filtering Works",
+      "type": "text",
+      "transparent": true
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-algo-trader-backtest"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-algo-trader-backtest"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  time,\n  SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$short_window' = '$__all' OR '|' || REPLACE(REPLACE('$short_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(short_window AS STRING) || '|%' OR short_window IS NULL)\n  AND ('$long_window' = '$__all' OR '|' || REPLACE(REPLACE('$long_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(long_window AS STRING) || '|%' OR long_window IS NULL)\n  AND ('$stop_loss_pct' = '$__all' OR '|' || REPLACE(REPLACE('$stop_loss_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(stop_loss_pct AS STRING) || '|%' OR stop_loss_pct IS NULL)\n  AND ('$take_profit_pct' = '$__all' OR '|' || REPLACE(REPLACE('$take_profit_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(take_profit_pct AS STRING) || '|%' OR take_profit_pct IS NULL)\nORDER BY time",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Cumulative Return (Filtered by Parameters)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-algo-trader-backtest"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-algo-trader-backtest"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  COUNT(*) as total_trades\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$short_window' = '$__all' OR '|' || REPLACE(REPLACE('$short_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(short_window AS STRING) || '|%' OR short_window IS NULL)\n  AND ('$long_window' = '$__all' OR '|' || REPLACE(REPLACE('$long_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(long_window AS STRING) || '|%' OR long_window IS NULL)\n  AND ('$stop_loss_pct' = '$__all' OR '|' || REPLACE(REPLACE('$stop_loss_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(stop_loss_pct AS STRING) || '|%' OR stop_loss_pct IS NULL)\n  AND ('$take_profit_pct' = '$__all' OR '|' || REPLACE(REPLACE('$take_profit_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(take_profit_pct AS STRING) || '|%' OR take_profit_pct IS NULL)",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Total Trades (Filtered)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-algo-trader-backtest"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-algo-trader-backtest"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "query": "SELECT\n  SUM(gross_pnl) as total_pnl\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$short_window' = '$__all' OR '|' || REPLACE(REPLACE('$short_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(short_window AS STRING) || '|%' OR short_window IS NULL)\n  AND ('$long_window' = '$__all' OR '|' || REPLACE(REPLACE('$long_window', '(', ''), ')', '') || '|' LIKE '%|' || CAST(long_window AS STRING) || '|%' OR long_window IS NULL)\n  AND ('$stop_loss_pct' = '$__all' OR '|' || REPLACE(REPLACE('$stop_loss_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(stop_loss_pct AS STRING) || '|%' OR stop_loss_pct IS NULL)\n  AND ('$take_profit_pct' = '$__all' OR '|' || REPLACE(REPLACE('$take_profit_pct', '(', ''), ')', '') || '|' LIKE '%|' || CAST(take_profit_pct AS STRING) || '|%' OR take_profit_pct IS NULL)",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Total P&L (Filtered)",
+      "type": "stat"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "backtest",
+    "dynamic",
+    "parameters",
+    "filtering"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Backtest",
+          "value": "influxdb-algo-trader-backtest"
+        },
+        "includeAll": false,
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [
+          {
+            "selected": true,
+            "text": "Backtest",
+            "value": "influxdb-algo-trader-backtest"
+          },
+          {
+            "selected": false,
+            "text": "Debug",
+            "value": "influxdb-algo-trader-debug"
+          }
+        ],
+        "query": "influxdb",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Strategy",
+        "multi": false,
+        "name": "strategy",
+        "options": [],
+        "query": {
+          "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT DISTINCT short_window\nFROM \"$strategy\"\nWHERE short_window IS NOT NULL\nORDER BY CAST(short_window AS INTEGER)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Short Window",
+        "multi": true,
+        "name": "short_window",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT short_window\nFROM \"$strategy\"\nWHERE short_window IS NOT NULL\nORDER BY CAST(short_window AS INTEGER)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT DISTINCT long_window\nFROM \"$strategy\"\nWHERE long_window IS NOT NULL\nORDER BY CAST(long_window AS INTEGER)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Long Window",
+        "multi": true,
+        "name": "long_window",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT long_window\nFROM \"$strategy\"\nWHERE long_window IS NOT NULL\nORDER BY CAST(long_window AS INTEGER)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT DISTINCT stop_loss_pct\nFROM \"$strategy\"\nWHERE stop_loss_pct IS NOT NULL\nORDER BY CAST(stop_loss_pct AS FLOAT)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Stop Loss %",
+        "multi": true,
+        "name": "stop_loss_pct",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT stop_loss_pct\nFROM \"$strategy\"\nWHERE stop_loss_pct IS NOT NULL\nORDER BY CAST(stop_loss_pct AS FLOAT)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT DISTINCT take_profit_pct\nFROM \"$strategy\"\nWHERE take_profit_pct IS NOT NULL\nORDER BY CAST(take_profit_pct AS FLOAT)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Take Profit %",
+        "multi": true,
+        "name": "take_profit_pct",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT take_profit_pct\nFROM \"$strategy\"\nWHERE take_profit_pct IS NOT NULL\nORDER BY CAST(take_profit_pct AS FLOAT)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dynamic Backtest Parameter Filtering",
+  "uid": "dynamic-indicators",
+  "version": 1
+}

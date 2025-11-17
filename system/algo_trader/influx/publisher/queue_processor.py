@@ -105,7 +105,7 @@ def process_queue(
                     dynamic_table_name = f"{strategy_name}_summary"
 
             backtest_id = data.get("backtest_id")
-            backtest_hash = data.get("backtest_hash")
+            hash_id = data.get("hash_id")
 
             data_length = len(time_series_data.get("datetime", []))
             if data_length == 0:
@@ -118,10 +118,10 @@ def process_queue(
                 if "backtest_id" not in time_series_data:
                     time_series_data["backtest_id"] = [backtest_id] * data_length
                 tag_columns.append("backtest_id")
-            if backtest_hash:
-                if "backtest_hash" not in time_series_data:
-                    time_series_data["backtest_hash"] = [backtest_hash] * data_length
-                tag_columns.append("backtest_hash")
+            if hash_id:
+                if "hash_id" not in time_series_data:
+                    time_series_data["hash_id"] = [hash_id] * data_length
+                tag_columns.append("hash_id")
 
             if strategy_name:
                 if "strategy" not in time_series_data:
