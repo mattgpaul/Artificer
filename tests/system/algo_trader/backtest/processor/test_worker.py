@@ -27,13 +27,13 @@ class TestCreateStrategyInstance:
     def test_create_strategy_instance_sma_crossover(self):
         """Test creating SMA crossover strategy instance."""
         with patch(
-            "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
+            "system.algo_trader.backtest.processor.worker.SMACrossover"
         ) as mock_strategy_class:
             mock_strategy = MagicMock()
             mock_strategy_class.return_value = mock_strategy
 
             result = create_strategy_instance(
-                "SMACrossoverStrategy", {"short_window": 10, "long_window": 20}
+                "SMACrossover", {"short_window": 10, "long_window": 20}
             )
 
             assert result == mock_strategy
@@ -49,12 +49,12 @@ class TestCreateStrategyInstance:
     def test_create_strategy_instance_missing_params(self):
         """Test creating strategy with missing parameters."""
         with patch(
-            "system.algo_trader.backtest.processor.worker.SMACrossoverStrategy"
+            "system.algo_trader.backtest.processor.worker.SMACrossover"
         ) as mock_strategy_class:
             mock_strategy_class.side_effect = KeyError("Missing parameter")
 
             with pytest.raises(KeyError):
-                create_strategy_instance("SMACrossoverStrategy", {})
+                create_strategy_instance("SMACrossover", {})
 
 
 class TestLogBacktestResults:
@@ -297,7 +297,7 @@ class TestBacktestTickerWorker:
             mock_results = BacktestResults()
             mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
             mock_results.metrics = {"total_trades": 1}
-            mock_results.strategy_name = "SMACrossoverStrategy"
+            mock_results.strategy_name = "SMACrossover"
             mock_engine.run_ticker.return_value = mock_results
             mock_engine.influx_client = MagicMock()
             mock_engine.influx_client.close = MagicMock()
@@ -307,7 +307,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -363,7 +363,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -413,7 +413,7 @@ class TestBacktestTickerWorker:
             mock_results = BacktestResults()
             mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
             mock_results.metrics = {"total_trades": 1}
-            mock_results.strategy_name = "SMACrossoverStrategy"
+            mock_results.strategy_name = "SMACrossover"
             mock_engine.run_ticker.return_value = mock_results
             mock_engine.influx_client = MagicMock()
             mock_engine.influx_client.close = MagicMock()
@@ -423,7 +423,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -458,7 +458,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -506,7 +506,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -553,7 +553,7 @@ class TestBacktestTickerWorker:
             mock_engine = MagicMock()
             mock_results = BacktestResults()
             mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.strategy_name = "SMACrossoverStrategy"
+            mock_results.strategy_name = "SMACrossover"
             mock_engine.run_ticker.return_value = mock_results
             mock_engine.influx_client = MagicMock()
             mock_engine.influx_client.close.side_effect = Exception("Close error")
@@ -563,7 +563,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -617,7 +617,7 @@ class TestBacktestTickerWorker:
                 }
             )
             mock_results.metrics = {"total_trades": 5, "total_profit": 475.0}
-            mock_results.strategy_name = "SMACrossoverStrategy"
+            mock_results.strategy_name = "SMACrossover"
             mock_engine.run_ticker.return_value = mock_results
             mock_engine.influx_client = MagicMock()
             mock_engine.influx_client.close = MagicMock()
@@ -627,7 +627,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -685,7 +685,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-01-31", tz="UTC"),
@@ -733,7 +733,7 @@ class TestBacktestTickerWorker:
             mock_engine = MagicMock()
             mock_results = BacktestResults()
             mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.strategy_name = "SMACrossoverStrategy"
+            mock_results.strategy_name = "SMACrossover"
             mock_engine.run_ticker.return_value = mock_results
             mock_engine.influx_client = MagicMock()
             mock_engine.influx_client.close = MagicMock()
@@ -743,7 +743,7 @@ class TestBacktestTickerWorker:
 
             args = (
                 "AAPL",
-                "SMACrossoverStrategy",
+                "SMACrossover",
                 {"short_window": 10, "long_window": 20},
                 pd.Timestamp("2024-01-01", tz="UTC"),
                 pd.Timestamp("2024-12-31", tz="UTC"),

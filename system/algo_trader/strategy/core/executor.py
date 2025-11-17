@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from system.algo_trader.strategy.journal.journal import TradeJournal
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossoverStrategy
+from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.utils.cli_utils import (
     format_group_summary,
     format_journal_summary,
@@ -27,7 +27,7 @@ def create_strategy(args, logger):
         logger: Logger instance for logging initialization messages.
 
     Returns:
-        Initialized strategy instance (e.g., SMACrossoverStrategy).
+        Initialized strategy instance (e.g., SMACrossover).
 
     Raises:
         ValueError: If strategy type is unknown or invalid.
@@ -35,7 +35,7 @@ def create_strategy(args, logger):
     Example:
         >>> args = MagicMock(strategy='sma-crossover', short=10, long=20)
         >>> strategy = create_strategy(args, logger)
-        >>> assert isinstance(strategy, SMACrossoverStrategy)
+        >>> assert isinstance(strategy, SMACrossover)
     """
     from infrastructure.config import ThreadConfig  # noqa: PLC0415
 
@@ -49,7 +49,7 @@ def create_strategy(args, logger):
 
     if args.strategy == "sma-crossover":
         logger.info(f"Initializing SMA Crossover: short={args.short}, long={args.long}")
-        return SMACrossoverStrategy(
+        return SMACrossover(
             short_window=args.short,
             long_window=args.long,
             database=args.database,

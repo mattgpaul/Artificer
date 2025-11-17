@@ -74,7 +74,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         args = processor._build_worker_args(
             tickers=["AAPL"],
-            strategy_type="SMACrossoverStrategy",
+            strategy_type="SMACrossover",
             strategy_params={"short_window": 10, "long_window": 20},
             start_date=pd.Timestamp("2024-01-01", tz="UTC"),
             end_date=pd.Timestamp("2024-01-31", tz="UTC"),
@@ -93,7 +93,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         assert len(args) == 1
         assert args[0][0] == "AAPL"
-        assert args[0][1] == "SMACrossoverStrategy"
+        assert args[0][1] == "SMACrossover"
         assert args[0][2] == {"short_window": 10, "long_window": 20}
         assert args[0][5] == "daily"
         assert args[0][6] == "test_db"
@@ -112,7 +112,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         args = processor._build_worker_args(
             tickers=["AAPL", "MSFT", "GOOGL"],
-            strategy_type="SMACrossoverStrategy",
+            strategy_type="SMACrossover",
             strategy_params={},
             start_date=pd.Timestamp("2024-01-01", tz="UTC"),
             end_date=pd.Timestamp("2024-01-31", tz="UTC"),
@@ -142,7 +142,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         args = processor._build_worker_args(
             tickers=["AAPL"],
-            strategy_type="SMACrossoverStrategy",
+            strategy_type="SMACrossover",
             strategy_params={},
             start_date=pd.Timestamp("2024-01-01", tz="UTC"),
             end_date=pd.Timestamp("2024-01-31", tz="UTC"),
@@ -172,7 +172,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         args = processor._build_worker_args(
             tickers=["AAPL"],
-            strategy_type="SMACrossoverStrategy",
+            strategy_type="SMACrossover",
             strategy_params={},
             start_date=pd.Timestamp("2024-01-01", tz="UTC"),
             end_date=pd.Timestamp("2024-01-31", tz="UTC"),
@@ -199,7 +199,7 @@ class TestBacktestProcessorBuildWorkerArgs:
 
         args = processor._build_worker_args(
             tickers=["AAPL"],
-            strategy_type="SMACrossoverStrategy",
+            strategy_type="SMACrossover",
             strategy_params={},
             start_date=pd.Timestamp("2024-01-01", tz="UTC"),
             end_date=pd.Timestamp("2024-01-31", tz="UTC"),
@@ -307,7 +307,7 @@ class TestBacktestProcessorProcessTickers:
     def test_process_tickers_determines_strategy_type(self, mock_logger, mock_strategy):
         """Test process_tickers determines strategy type from instance."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -335,7 +335,7 @@ class TestBacktestProcessorProcessTickers:
             # Verify worker args were built with correct strategy type
             call_args = mock_sequential.call_args
             worker_args = call_args[0][0]
-            assert worker_args[0][1] == "SMACrossoverStrategy"
+            assert worker_args[0][1] == "SMACrossover"
 
 
 class TestBacktestProcessorSequentialMode:
@@ -345,7 +345,7 @@ class TestBacktestProcessorSequentialMode:
     def test_process_tickers_sequential_mode(self, mock_logger, mock_strategy):
         """Test process_tickers in sequential mode."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -379,7 +379,7 @@ class TestBacktestProcessorSequentialMode:
     def test_sequential_workflow_complete(self, mock_logger, mock_strategy):
         """Test complete sequential processing workflow."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -418,7 +418,7 @@ class TestBacktestProcessorMultiprocessingMode:
     def test_process_tickers_multiprocessing_mode(self, mock_logger, mock_strategy):
         """Test process_tickers in multiprocessing mode."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -453,7 +453,7 @@ class TestBacktestProcessorMultiprocessingMode:
     def test_process_tickers_custom_max_processes(self, mock_logger, mock_strategy):
         """Test process_tickers with custom max_processes."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -486,7 +486,7 @@ class TestBacktestProcessorMultiprocessingMode:
     def test_multiprocessing_workflow_complete(self, mock_logger, mock_strategy):
         """Test complete multiprocessing workflow."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -526,7 +526,7 @@ class TestBacktestProcessorEdgeCases:
     def test_process_tickers_all_parameters(self, mock_logger, mock_strategy):
         """Test process_tickers with all parameters specified."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(
@@ -576,7 +576,7 @@ class TestBacktestProcessorEdgeCases:
     def test_error_propagation_from_workers(self, mock_logger, mock_strategy):
         """Test error propagation from worker failures."""
         processor = BacktestProcessor(logger=mock_logger)
-        mock_strategy.__class__.__name__ = "SMACrossoverStrategy"
+        mock_strategy.__class__.__name__ = "SMACrossover"
 
         with (
             patch(

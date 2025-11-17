@@ -6,7 +6,7 @@ above the long-period SMA (bullish crossover), and a sell signal occurs when
 the short-period SMA crosses below the long-period SMA (bearish crossover).
 
 Typical usage:
-    >>> strategy = SMACrossoverStrategy(short_window=10, long_window=20)
+    >>> strategy = SMACrossover(short_window=10, long_window=20)
     >>> signals = strategy.run_strategy('AAPL', start_time='2024-01-01')
 """
 
@@ -22,7 +22,7 @@ from system.algo_trader.strategy.utils.studies.moving_average.simple_moving_aver
 )
 
 
-class SMACrossoverStrategy(BaseStrategy):
+class SMACrossover(BaseStrategy):
     """SMA crossover strategy for generating buy/sell trading signals.
 
     This strategy detects crossover points between two simple moving averages:
@@ -41,7 +41,7 @@ class SMACrossoverStrategy(BaseStrategy):
         short_window: int = 10,
         long_window: int = 20,
         min_confidence: float = 0.0,
-        database: str = "algo-trader-database",
+        database: str | None = None,
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
         config: Any = None,
@@ -53,7 +53,7 @@ class SMACrossoverStrategy(BaseStrategy):
             short_window: Period for short-term SMA (must be less than long_window).
             long_window: Period for long-term SMA (must be greater than short_window).
             min_confidence: Minimum confidence threshold (0.0 to 1.0) for filtering signals.
-            database: InfluxDB database name for signal persistence.
+            database: InfluxDB database name. If None, uses get_signal_database().
             write_config: Optional batch write configuration for InfluxDB.
             use_threading: Enable parallel processing for multiple tickers.
             config: Optional InfluxDB configuration override.
@@ -71,15 +71,19 @@ class SMACrossoverStrategy(BaseStrategy):
         if not 0.0 <= min_confidence <= 1.0:
             raise ValueError(f"min_confidence must be in [0.0, 1.0], got {min_confidence}")
 
-        strategy_name = f"sma_crossover_{short_window}_{long_window}"
+        # Store strategy arguments for InfluxDB tagging
+        strategy_args = {
+            "short_window": short_window,
+            "long_window": long_window,
+        }
 
         # Use default write_config from base class if not provided
         init_kwargs = {
-            "strategy_name": strategy_name,
             "database": database,
             "use_threading": use_threading,
             "config": config,
             "thread_config": thread_config,
+            "strategy_args": strategy_args,
         }
         if write_config is not None:
             init_kwargs["write_config"] = write_config

@@ -5,13 +5,18 @@ multi-ticker workflow (both sequential and threaded), and error handling.
 All external dependencies (InfluxDB, ThreadManager) are mocked.
 """
 
+import os
 from datetime import timezone
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
-from system.algo_trader.strategy.base import BaseStrategy, strategy_write_config
+from system.algo_trader.strategy.base import (
+    BaseStrategy,
+    get_signal_database,
+    strategy_write_config,
+)
 
 
 class ConcreteStrategy(BaseStrategy):
@@ -21,14 +26,14 @@ class ConcreteStrategy(BaseStrategy):
 
     def __init__(
         self,
-        strategy_name: str = "test_strategy",
         database: str = "test-database",
         write_config: BatchWriteConfig = strategy_write_config,
         use_threading: bool = False,
         config=None,
+        strategy_args: dict | None = None,
     ):
         """Initialize concrete strategy for testing."""
-        super().__init__(strategy_name, database, write_config, use_threading, config)
+        super().__init__(database, write_config, use_threading, config, strategy_args=strategy_args)
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
         """Mock buy signal generation."""
@@ -67,7 +72,7 @@ class TestBaseStrategyInitialization:
         """Test initialization with default configuration."""
         strategy = ConcreteStrategy()
 
-        assert strategy.strategy_name == "test_strategy"
+        assert strategy.strategy_name == "ConcreteStrategy"
         assert strategy.influx_client is not None
         assert strategy.thread_manager is None
 
@@ -98,6 +103,52 @@ class TestBaseStrategyInitialization:
         mock_dependencies["influx_class"].assert_called_once_with(
             database="test-database", write_config=custom_config, config=None
         )
+
+    def test_initialization_database_none_uses_get_signal_database(self, mock_dependencies):
+        """Test initialization with database=None uses get_signal_database()."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "prod"}):
+            _ = ConcreteStrategy(database=None)
+
+            mock_dependencies["influx_class"].assert_called_once_with(
+                database="backtest", write_config=strategy_write_config, config=None
+            )
+
+    def test_initialization_database_none_debug_env(self, mock_dependencies):
+        """Test initialization with database=None uses 'debug' in non-prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "dev"}, clear=False):
+            _ = ConcreteStrategy(database=None)
+
+            mock_dependencies["influx_class"].assert_called_once_with(
+                database="debug", write_config=strategy_write_config, config=None
+            )
+
+
+class TestGetSignalDatabase:
+    """Test get_signal_database function."""
+
+    def test_get_signal_database_prod_environment(self):
+        """Test get_signal_database returns 'backtest' for prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "prod"}):
+            result = get_signal_database()
+            assert result == "backtest"
+
+    def test_get_signal_database_non_prod_environment(self):
+        """Test get_signal_database returns 'debug' for non-prod environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "dev"}, clear=False):
+            result = get_signal_database()
+            assert result == "debug"
+
+    def test_get_signal_database_no_env_var(self):
+        """Test get_signal_database returns 'debug' when env var not set."""
+        with patch.dict(os.environ, {}, clear=True):
+            result = get_signal_database()
+            assert result == "debug"
+
+    def test_get_signal_database_case_insensitive(self):
+        """Test get_signal_database is case-insensitive for environment."""
+        with patch.dict(os.environ, {"INFLUXDB3_ENVIRONMENT": "PROD"}):
+            result = get_signal_database()
+            assert result == "backtest"
 
 
 class TestQueryOHLCV:
@@ -219,7 +270,7 @@ class TestWriteSignals:
         """Test that signals have ticker, strategy, and timestamp metadata added."""
         mock_dependencies["influx_instance"].write.return_value = True
 
-        strategy = ConcreteStrategy(strategy_name="sma_crossover")
+        strategy = ConcreteStrategy()
         signals = pd.DataFrame(
             {"signal_type": ["buy"], "price": [100.0]},
             index=pd.DatetimeIndex(["2024-01-01"], tz=timezone.utc),
@@ -482,14 +533,14 @@ class TestQuerySignals:
         mock_signals = pd.DataFrame({"ticker": ["AAPL"], "signal_type": ["buy"], "price": [100.0]})
         mock_dependencies["influx_instance"].query.return_value = mock_signals
 
-        strategy = ConcreteStrategy(strategy_name="sma_crossover")
+        strategy = ConcreteStrategy()
         result = strategy.query_signals()
 
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 1
         call_args = mock_dependencies["influx_instance"].query.call_args
         query = call_args[0][0]
-        assert "strategy = 'sma_crossover'" in query
+        assert "strategy = 'ConcreteStrategy'" in query
 
     def test_query_signals_with_ticker_filter(self, mock_dependencies):
         """Test querying signals filtered by ticker."""

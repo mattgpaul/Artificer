@@ -5,6 +5,7 @@ strategies to InfluxDB for persistence and analysis.
 """
 
 from datetime import datetime, timezone
+from typing import Any
 
 import pandas as pd
 
@@ -22,18 +23,27 @@ class SignalWriter:
         influx_client: InfluxDB client instance for writing signals.
         strategy_name: Name of the strategy generating signals.
         logger: Optional logger instance. If not provided, creates a new logger.
+        strategy_args: Optional dictionary of strategy arguments to store as tags.
     """
 
-    def __init__(self, influx_client: MarketDataInflux, strategy_name: str, logger=None):
+    def __init__(
+        self,
+        influx_client: MarketDataInflux,
+        strategy_name: str,
+        logger=None,
+        strategy_args: dict[str, Any] | None = None,
+    ):
         """Initialize SignalWriter with InfluxDB client.
 
         Args:
             influx_client: InfluxDB client instance for writing signals.
             strategy_name: Name of the strategy generating signals.
             logger: Optional logger instance. If not provided, creates a new logger.
+            strategy_args: Optional dictionary of strategy arguments to store as tags.
         """
         self.influx_client = influx_client
         self.strategy_name = strategy_name
+        self.strategy_args = strategy_args
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def write_signals(self, signals: pd.DataFrame, ticker: str) -> bool:
@@ -64,6 +74,13 @@ class SignalWriter:
         signals_copy["strategy"] = self.strategy_name
         signals_copy["generated_at"] = datetime.now(timezone.utc).isoformat()
 
+        # Add strategy arguments as columns if provided
+        tag_columns = ["ticker", "strategy"]
+        if self.strategy_args:
+            for key, value in self.strategy_args.items():
+                signals_copy[key] = value
+                tag_columns.append(key)
+
         if not isinstance(signals_copy.index, pd.DatetimeIndex):
             self.logger.error("Signals DataFrame must have DatetimeIndex")
             return False
@@ -78,7 +95,9 @@ class SignalWriter:
         signal_records = signals_copy.to_dict("records")
 
         try:
-            success = self.influx_client.write(data=signal_records, ticker=ticker, table="strategy")
+            success = self.influx_client.write(
+                data=signal_records, ticker=ticker, table="strategy", tag_columns=tag_columns
+            )
             if success:
                 self.logger.info(f"Wrote {len(signal_records)} signals for {ticker} to InfluxDB")
             return success

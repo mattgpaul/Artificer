@@ -128,6 +128,16 @@ def process_queue(
                     time_series_data["strategy"] = [strategy_name] * data_length
                 tag_columns.append("strategy")
 
+            # Add strategy parameters as tags if provided
+            strategy_params = data.get("strategy_params")
+            if strategy_params and isinstance(strategy_params, dict):
+                for param_key, param_value in strategy_params.items():
+                    # Convert param value to string for tag storage
+                    param_str = str(param_value)
+                    if param_key not in time_series_data:
+                        time_series_data[param_key] = [param_str] * data_length
+                    tag_columns.append(param_key)
+
         # Validate data before writing
         if isinstance(time_series_data, dict):
             # Validate datetime array exists and has correct length
