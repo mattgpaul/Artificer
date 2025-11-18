@@ -15,6 +15,7 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
+from system.algo_trader.strategy.strategies.valley_long import ValleyLong
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
 
 
@@ -36,6 +37,28 @@ def create_strategy(args, logger):
         return SMACrossover(
             short_window=args.short,
             long_window=args.long,
+            database=args.database,
+            use_threading=False,
+        )
+    elif args.strategy == "valley-long":
+        logger.info(
+            f"Initializing Valley Long: valley_distance={args.valley_distance}, "
+            f"peak_distance={args.peak_distance}, nearness_threshold={args.nearness_threshold}"
+        )
+        return ValleyLong(
+            valley_distance=args.valley_distance,
+            valley_prominence=args.valley_prominence,
+            valley_height=args.valley_height,
+            valley_width=args.valley_width,
+            valley_threshold=args.valley_threshold,
+            peak_distance=args.peak_distance,
+            peak_prominence=args.peak_prominence,
+            peak_height=args.peak_height,
+            peak_width=args.peak_width,
+            peak_threshold=args.peak_threshold,
+            nearness_threshold=args.nearness_threshold,
+            sell_nearness_threshold=args.sell_nearness_threshold,
+            min_confidence=args.min_confidence,
             database=args.database,
             use_threading=False,
         )
@@ -168,6 +191,9 @@ def parse_args():
     )
     SMACrossover().add_strategy_arguments(sma_parser)
 
+    valley_parser = subparsers.add_parser("valley-long", help="Valley-based long strategy")
+    ValleyLong().add_strategy_arguments(valley_parser)
+
     return parser.parse_args()
 
 
@@ -219,6 +245,22 @@ def main():
         strategy_params = {
             "short_window": args.short,
             "long_window": args.long,
+        }
+    elif args.strategy == "valley-long":
+        strategy_params = {
+            "valley_distance": args.valley_distance,
+            "valley_prominence": args.valley_prominence,
+            "valley_height": args.valley_height,
+            "valley_width": args.valley_width,
+            "valley_threshold": args.valley_threshold,
+            "peak_distance": args.peak_distance,
+            "peak_prominence": args.peak_prominence,
+            "peak_height": args.peak_height,
+            "peak_width": args.peak_width,
+            "peak_threshold": args.peak_threshold,
+            "nearness_threshold": args.nearness_threshold,
+            "sell_nearness_threshold": args.sell_nearness_threshold,
+            "min_confidence": args.min_confidence,
         }
 
     try:
