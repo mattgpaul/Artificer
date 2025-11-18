@@ -14,18 +14,18 @@ class ValleyLong(BaseStrategy):
 
     def __init__(
         self,
-        valley_distance: int = 10,
+        valley_distance: int = 50,
         valley_prominence: float | None = None,
         valley_height: float | tuple[float, float] | None = None,
         valley_width: int | None = None,
         valley_threshold: float | None = None,
-        peak_distance: int = 10,
+        peak_distance: int = 50,
         peak_prominence: float | None = None,
         peak_height: float | tuple[float, float] | None = None,
         peak_width: int | None = None,
         peak_threshold: float | None = None,
-        nearness_threshold: float = 1.0,
-        min_confidence: float = 0.3,
+        nearness_threshold: float = 0.5,
+        min_confidence: float = 0.0,
         database: str | None = None,
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
@@ -95,12 +95,15 @@ class ValleyLong(BaseStrategy):
             return pd.DataFrame()
 
         buy_signals = []
+        prices = ohlcv_data["close"]
+        
         for idx in ohlcv_data.index:
-            price = ohlcv_data.loc[idx, "close"]
+            price = prices.loc[idx]
             valley_match = self._find_near_value(price, all_valleys)
             if valley_match is not None:
-                signal = self._create_buy_signal(idx, ohlcv_data, price, valley_match)
-                buy_signals.append(signal)
+                if self._is_coming_down(prices, idx):
+                    signal = self._create_buy_signal(idx, ohlcv_data, price, valley_match)
+                    buy_signals.append(signal)
 
         if not buy_signals:
             self.logger.debug(f"No buy signals detected for {ticker}")
@@ -187,8 +190,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--valley-distance",
             type=int,
-            default=10,
-            help="Minimum distance between valleys (default: 10)",
+            default=50,
+            help="Minimum distance between valleys (default: 50)",
         )
         parser.add_argument(
             "--valley-prominence",
@@ -217,8 +220,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--peak-distance",
             type=int,
-            default=10,
-            help="Minimum distance between peaks (default: 10)",
+            default=50,
+            help="Minimum distance between peaks (default: 50)",
         )
         parser.add_argument(
             "--peak-prominence",
@@ -247,14 +250,14 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--nearness-threshold",
             type=float,
-            default=1.0,
-            help="Percentage threshold for 'near' a valley/peak (default: 1.0)",
+            default=0.5,
+            help="Percentage threshold for 'near' a valley/peak (default: 0.5)",
         )
         parser.add_argument(
             "--min-confidence",
             type=float,
-            default=0.3,
-            help="Minimum confidence threshold (default: 0.3)",
+            default=0.0,
+            help="Minimum confidence threshold (default: 0.0)",
         )
 
     def _compute_valleys(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame | None:
@@ -306,6 +309,23 @@ class ValleyLong(BaseStrategy):
             if pct_diff <= threshold_pct:
                 return target_value
         return None
+
+    def _is_coming_down(self, prices: pd.Series, current_idx: pd.Timestamp, lookback_periods: int = 5) -> bool:
+        try:
+            current_pos = prices.index.get_loc(current_idx)
+            if current_pos < lookback_periods:
+                return False
+            
+            current_price = prices.loc[current_idx]
+            recent_prices = prices.iloc[current_pos - lookback_periods:current_pos]
+            
+            if len(recent_prices) == 0:
+                return False
+            
+            avg_recent_price = recent_prices.mean()
+            return current_price < avg_recent_price
+        except (KeyError, IndexError):
+            return False
 
     def _calculate_confidence(self, price: float, target_value: float) -> float:
         if target_value == 0.0:
