@@ -13,9 +13,7 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.parallel import process_in_parallel
 from system.algo_trader.backtest.processor.sequential import process_sequentially
-from system.algo_trader.backtest.utils.utils import (
-    BACKTEST_TRADES_QUEUE_NAME,
-)
+from system.algo_trader.backtest.results.hash import compute_backtest_hash
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
@@ -126,7 +124,7 @@ class BacktestProcessor:
             for ticker in tickers
         ]
 
-    def _print_summary(self, summary: dict[str, int]) -> None:
+    def _print_summary(self, summary: dict[str, int | str]) -> None:
         """Print backtest processing summary to console.
 
         Args:
@@ -135,13 +133,13 @@ class BacktestProcessor:
         print(f"\n{'=' * 50}")
         print("Backtest Processing Summary")
         print(f"{'=' * 50}")
+        if "hash_id" in summary:
+            print(f"Hash ID: {summary['hash_id']}")
+        if "backtest_id" in summary:
+            print(f"Backtest ID: {summary['backtest_id']}")
         print(f"Total Tickers: {summary['total']}")
         print(f"Successfully Processed: {summary['successful']}")
         print(f"Failed: {summary['failed']}")
-        print(f"Trades Queue: {BACKTEST_TRADES_QUEUE_NAME}")
-        print("Redis TTL: 3600s")
-        print("\nResults will be published to InfluxDB by the influx-publisher service.")
-        print("Summary metrics can be calculated from trades in Grafana with filtering.")
         print(f"{'=' * 50}\n")
 
     def process_tickers(
@@ -231,9 +229,34 @@ class BacktestProcessor:
             trade_percentage=trade_percentage,
         )
 
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency=step_frequency,
+            database=database,
+            tickers=tickers,
+            capital_per_trade=capital_per_trade,
+            risk_free_rate=risk_free_rate,
+            walk_forward=walk_forward,
+            train_days=train_days,
+            test_days=test_days,
+            train_split=train_split,
+        )
+
         if use_multiprocessing:
-            summary = process_in_parallel(worker_args, tickers, max_processes, self.logger)
+            summary = process_in_parallel(
+                worker_args,
+                tickers,
+                max_processes,
+                self.logger,
+                hash_id=hash_id,
+                backtest_id=backtest_id,
+            )
         else:
-            summary = process_sequentially(worker_args, tickers, self.logger)
+            summary = process_sequentially(
+                worker_args, tickers, self.logger, hash_id=hash_id, backtest_id=backtest_id
+            )
 
         self._print_summary(summary)

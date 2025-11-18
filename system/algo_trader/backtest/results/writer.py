@@ -21,6 +21,60 @@ from system.algo_trader.backtest.utils.utils import (
 from system.algo_trader.redis.queue_broker import QueueBroker
 
 
+def _determine_action(side: str, is_entry: bool) -> str:
+    if side == "LONG":
+        return "buy_to_open" if is_entry else "sell_to_close"
+    else:
+        return "sell_to_open" if is_entry else "buy_to_close"
+
+
+def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
+    if trades.empty:
+        return pd.DataFrame()
+
+    required_cols = ["entry_time", "exit_time", "entry_price", "exit_price", "shares"]
+    missing_cols = [col for col in required_cols if col not in trades.columns]
+    if missing_cols:
+        raise ValueError(f"Missing required columns in trades DataFrame: {missing_cols}")
+
+    journal_rows = []
+
+    for _, trade in trades.iterrows():
+        side = trade.get("side", "LONG")
+        ticker = trade.get("ticker", "")
+        strategy = trade.get("strategy", "")
+
+        commission = trade.get("commission", 0.0)
+
+        entry_row = {
+            "datetime": trade["entry_time"],
+            "ticker": ticker,
+            "strategy": strategy,
+            "side": side,
+            "price": trade["entry_price"],
+            "shares": trade["shares"],
+            "commission": commission,
+            "action": _determine_action(side, True),
+        }
+
+        exit_row = {
+            "datetime": trade["exit_time"],
+            "ticker": ticker,
+            "strategy": strategy,
+            "side": side,
+            "price": trade["exit_price"],
+            "shares": trade["shares"],
+            "commission": commission,
+            "action": _determine_action(side, False),
+        }
+
+        journal_rows.append(entry_row)
+        journal_rows.append(exit_row)
+
+    journal_df = pd.DataFrame(journal_rows)
+    return journal_df
+
+
 class ResultsWriter:
     """Writes backtest results to Redis queues.
 
@@ -118,10 +172,13 @@ class ResultsWriter:
                 train_split=train_split,
             )
 
-        trades_dict = dataframe_to_dict(trades)
+        journal_rows = _transform_trades_to_journal_rows(trades)
+        trades_dict = dataframe_to_dict(journal_rows)
 
-        # Log at debug level
-        self.logger.debug(f"Writing {len(trades)} trades to Redis for {ticker}")
+        row_count = len(journal_rows)
+        self.logger.debug(
+            f"Writing {row_count} journal rows ({len(trades)} trades) to Redis for {ticker}"
+        )
 
         queue_data = {
             "ticker": ticker,
@@ -145,7 +202,8 @@ class ResultsWriter:
 
             if success:
                 self.logger.debug(
-                    f"Enqueued {len(trades)} trades for {ticker} to {BACKTEST_TRADES_QUEUE_NAME}"
+                    f"Enqueued {row_count} journal rows ({len(trades)} trades) for {ticker} "
+                    f"to {BACKTEST_TRADES_QUEUE_NAME}"
                 )
                 return True
             else:
