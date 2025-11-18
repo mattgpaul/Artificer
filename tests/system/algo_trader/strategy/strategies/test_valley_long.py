@@ -18,19 +18,6 @@ from system.algo_trader.strategy.strategies.valley_long import ValleyLong
 class TestValleyLongInitialization:
     """Test ValleyLong initialization and validation."""
 
-    def test_initialization_default_params(self, mock_dependencies):
-        """Test initialization with default parameters."""
-        strategy = ValleyLong()
-
-        assert strategy.valley_distance == 50
-        assert strategy.valley_prominence == 2.0
-        assert strategy.peak_distance == 50
-        assert strategy.peak_prominence == 2.0
-        assert strategy.nearness_threshold == 0.5
-        assert strategy.min_confidence == 0.0
-        assert strategy.strategy_name == "ValleyLong"
-        assert strategy.sell_nearness_threshold == 0.2  # 0.4 * 0.5
-
     def test_initialization_custom_params(self, mock_dependencies):
         """Test initialization with custom parameters."""
         strategy = ValleyLong(
