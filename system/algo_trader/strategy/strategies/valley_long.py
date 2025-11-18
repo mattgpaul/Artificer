@@ -33,7 +33,7 @@ class ValleyLong(BaseStrategy):
     def __init__(
         self,
         valley_distance: int = 50,
-        valley_prominence: float | None = 2.0,
+        valley_prominence: float | None = 2.5,
         valley_height: float | tuple[float, float] | None = None,
         valley_width: int | None = None,
         valley_threshold: float | None = None,
