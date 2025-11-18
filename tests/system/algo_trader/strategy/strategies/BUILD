@@ -16,3 +16,19 @@ py_library(
         requirement("pytest"),
     ],
 )
+
+py_library(
+    name = "test_valley_long_lib",
+    testonly = True,
+    srcs = ["test_valley_long.py"],
+    visibility = ["//system/algo_trader/strategy:__pkg__"],
+    deps = [
+        "//infrastructure/influxdb",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/strategy:strategies",
+        "//tests/system/algo_trader/strategy:conftest_lib",
+        requirement("numpy"),
+        requirement("pandas"),
+        requirement("pytest"),
+    ],
+)

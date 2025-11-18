@@ -15,6 +15,7 @@ py_library(
         "journal/journal.py",
         "journal/trade_matching.py",
         "strategies/sma_crossover.py",
+        "strategies/valley_long.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
@@ -27,6 +28,8 @@ py_library(
         "//infrastructure/threads:thread_manager",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/strategy/utils/studies/moving_average:simple_moving_average",
+        "//system/algo_trader/strategy/utils/studies/support_resistance:find_peaks",
+        "//system/algo_trader/strategy/utils/studies/support_resistance:find_valleys",
         requirement("numpy"),
         requirement("pandas"),
     ],
@@ -122,6 +125,14 @@ pytest_test(
     coverage_path = "system.algo_trader.strategy.strategies.sma_crossover",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/strategy/strategies:test_sma_crossover_lib",
+)
+
+pytest_test(
+    name = "test_valley_long",
+    size = "small",
+    coverage_path = "system.algo_trader.strategy.strategies.valley_long",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/strategy/strategies:test_valley_long_lib",
 )
 
 pytest_test(

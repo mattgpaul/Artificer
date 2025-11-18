@@ -174,6 +174,44 @@ class TestCreateStrategy:
             )
 
     @pytest.mark.unit
+    def test_create_strategy_valley_long(self, mock_logger):
+        """Test creating ValleyLong strategy."""
+        args = MagicMock()
+        args.strategy = "valley-long"
+        args.valley_distance = 50
+        args.valley_prominence = 2.0
+        args.valley_height = None
+        args.valley_width = None
+        args.valley_threshold = None
+        args.peak_distance = 50
+        args.peak_prominence = 2.0
+        args.peak_height = None
+        args.peak_width = None
+        args.peak_threshold = None
+        args.nearness_threshold = 0.5
+        args.sell_nearness_threshold = None
+        args.min_confidence = 0.0
+        args.database = "test_db"
+
+        with patch("system.algo_trader.backtest.main.ValleyLong") as mock_strategy_class:
+            mock_strategy = MagicMock()
+            mock_strategy_class.return_value = mock_strategy
+
+            result = create_strategy(args, mock_logger)
+
+            assert result == mock_strategy
+            mock_strategy_class.assert_called_once()
+            call_kwargs = mock_strategy_class.call_args[1]
+            assert call_kwargs["valley_distance"] == 50
+            assert call_kwargs["valley_prominence"] == 2.0
+            assert call_kwargs["peak_distance"] == 50
+            assert call_kwargs["peak_prominence"] == 2.0
+            assert call_kwargs["nearness_threshold"] == 0.5
+            assert call_kwargs["min_confidence"] == 0.0
+            assert call_kwargs["database"] == "test_db"
+            assert call_kwargs["use_threading"] is False
+
+    @pytest.mark.unit
     def test_create_strategy_unknown_strategy(self, mock_logger):
         """Test creating unknown strategy raises ValueError."""
         args = MagicMock()
