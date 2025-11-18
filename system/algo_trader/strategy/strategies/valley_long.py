@@ -197,25 +197,25 @@ class ValleyLong(BaseStrategy):
             "--valley-prominence",
             type=float,
             default=2.0,
-            help="Minimum prominence for valley detection (default: 2.0)",
+            help="Minimum prominence for valley detection as percentage (default: 2.0%%)",
         )
         parser.add_argument(
             "--valley-height",
             type=float,
             default=None,
-            help="Height constraint for valley detection (default: None)",
+            help="Height constraint for valley detection as percentage (default: None)",
         )
         parser.add_argument(
             "--valley-width",
             type=int,
             default=None,
-            help="Width constraint for valley detection (default: None)",
+            help="Width constraint for valley detection in periods (default: None)",
         )
         parser.add_argument(
             "--valley-threshold",
             type=float,
             default=None,
-            help="Threshold for valley detection (default: None)",
+            help="Threshold for valley detection as percentage (default: None)",
         )
         parser.add_argument(
             "--peak-distance",
@@ -227,25 +227,25 @@ class ValleyLong(BaseStrategy):
             "--peak-prominence",
             type=float,
             default=2.0,
-            help="Minimum prominence for peak detection (default: 2.0)",
+            help="Minimum prominence for peak detection as percentage (default: 2.0%%)",
         )
         parser.add_argument(
             "--peak-height",
             type=float,
             default=None,
-            help="Height constraint for peak detection (default: None)",
+            help="Height constraint for peak detection as percentage (default: None)",
         )
         parser.add_argument(
             "--peak-width",
             type=int,
             default=None,
-            help="Width constraint for peak detection (default: None)",
+            help="Width constraint for peak detection in periods (default: None)",
         )
         parser.add_argument(
             "--peak-threshold",
             type=float,
             default=None,
-            help="Threshold for peak detection (default: None)",
+            help="Threshold for peak detection as percentage (default: None)",
         )
         parser.add_argument(
             "--nearness-threshold",
@@ -264,14 +264,34 @@ class ValleyLong(BaseStrategy):
         kwargs = {}
         if self.valley_distance is not None:
             kwargs["distance"] = self.valley_distance
+        
+        needs_avg_price = (
+            self.valley_prominence is not None
+            or self.valley_height is not None
+            or self.valley_threshold is not None
+        )
+        avg_price = ohlcv_data["close"].mean() if needs_avg_price else None
+        
         if self.valley_prominence is not None:
-            kwargs["prominence"] = self.valley_prominence
+            kwargs["prominence"] = avg_price * (self.valley_prominence / 100.0)
         if self.valley_height is not None:
-            kwargs["height"] = self.valley_height
+            if isinstance(self.valley_height, tuple):
+                kwargs["height"] = (
+                    avg_price * (self.valley_height[0] / 100.0),
+                    avg_price * (self.valley_height[1] / 100.0),
+                )
+            else:
+                kwargs["height"] = avg_price * (self.valley_height / 100.0)
         if self.valley_width is not None:
             kwargs["width"] = self.valley_width
         if self.valley_threshold is not None:
-            kwargs["threshold"] = self.valley_threshold
+            if isinstance(self.valley_threshold, tuple):
+                kwargs["threshold"] = (
+                    avg_price * (self.valley_threshold[0] / 100.0),
+                    avg_price * (self.valley_threshold[1] / 100.0),
+                )
+            else:
+                kwargs["threshold"] = avg_price * (self.valley_threshold / 100.0)
 
         return self.valley_study.compute(ohlcv_data=ohlcv_data, ticker=ticker, column="close", **kwargs)
 
@@ -279,14 +299,34 @@ class ValleyLong(BaseStrategy):
         kwargs = {}
         if self.peak_distance is not None:
             kwargs["distance"] = self.peak_distance
+        
+        needs_avg_price = (
+            self.peak_prominence is not None
+            or self.peak_height is not None
+            or self.peak_threshold is not None
+        )
+        avg_price = ohlcv_data["close"].mean() if needs_avg_price else None
+        
         if self.peak_prominence is not None:
-            kwargs["prominence"] = self.peak_prominence
+            kwargs["prominence"] = avg_price * (self.peak_prominence / 100.0)
         if self.peak_height is not None:
-            kwargs["height"] = self.peak_height
+            if isinstance(self.peak_height, tuple):
+                kwargs["height"] = (
+                    avg_price * (self.peak_height[0] / 100.0),
+                    avg_price * (self.peak_height[1] / 100.0),
+                )
+            else:
+                kwargs["height"] = avg_price * (self.peak_height / 100.0)
         if self.peak_width is not None:
             kwargs["width"] = self.peak_width
         if self.peak_threshold is not None:
-            kwargs["threshold"] = self.peak_threshold
+            if isinstance(self.peak_threshold, tuple):
+                kwargs["threshold"] = (
+                    avg_price * (self.peak_threshold[0] / 100.0),
+                    avg_price * (self.peak_threshold[1] / 100.0),
+                )
+            else:
+                kwargs["threshold"] = avg_price * (self.peak_threshold / 100.0)
 
         return self.peak_study.compute(ohlcv_data=ohlcv_data, ticker=ticker, column="close", **kwargs)
 
