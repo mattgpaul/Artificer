@@ -101,7 +101,7 @@ class ValleyLong(BaseStrategy):
             price = prices.loc[idx]
             valley_match = self._find_near_value(price, all_valleys)
             if valley_match is not None:
-                if self._is_coming_down(prices, idx):
+                if self._is_coming_down(prices, idx, valley_match):
                     signal = self._create_buy_signal(idx, ohlcv_data, price, valley_match)
                     buy_signals.append(signal)
 
@@ -350,7 +350,7 @@ class ValleyLong(BaseStrategy):
                 return target_value
         return None
 
-    def _is_coming_down(self, prices: pd.Series, current_idx: pd.Timestamp, lookback_periods: int = 5) -> bool:
+    def _is_coming_down(self, prices: pd.Series, current_idx: pd.Timestamp, valley_value: float, lookback_periods: int = 5) -> bool:
         try:
             current_pos = prices.index.get_loc(current_idx)
             if current_pos < lookback_periods:
@@ -363,7 +363,7 @@ class ValleyLong(BaseStrategy):
                 return False
             
             avg_recent_price = recent_prices.mean()
-            return current_price < avg_recent_price
+            return current_price < avg_recent_price and avg_recent_price > valley_value
         except (KeyError, IndexError):
             return False
 
