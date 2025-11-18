@@ -191,9 +191,7 @@ def parse_args():
     )
     SMACrossover().add_strategy_arguments(sma_parser)
 
-    valley_parser = subparsers.add_parser(
-        "valley-long", help="Valley-based long strategy"
-    )
+    valley_parser = subparsers.add_parser("valley-long", help="Valley-based long strategy")
     ValleyLong().add_strategy_arguments(valley_parser)
 
     return parser.parse_args()

@@ -128,6 +128,14 @@ pytest_test(
 )
 
 pytest_test(
+    name = "test_valley_long",
+    size = "small",
+    coverage_path = "system.algo_trader.strategy.strategies.valley_long",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/strategy/strategies:test_valley_long_lib",
+)
+
+pytest_test(
     name = "test_executor",
     size = "small",
     coverage_path = "system.algo_trader.strategy.core.executor",

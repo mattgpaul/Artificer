@@ -1,3 +1,9 @@
+"""Peak detection study using scipy.signal.find_peaks.
+
+This module provides a study class for detecting peaks in OHLCV price data
+using scipy's peak detection algorithm.
+"""
+
 import pandas as pd
 from scipy.signal import find_peaks
 
@@ -5,7 +11,19 @@ from system.algo_trader.strategy.utils.studies.base_study import BaseStudy
 
 
 class FindPeaks(BaseStudy):
+    """Study for detecting peaks in price data.
+
+    Uses scipy.signal.find_peaks to identify local maxima in price series.
+    Supports various filtering parameters including height, distance, prominence,
+    width, and threshold.
+    """
+
     def __init__(self, logger=None):
+        """Initialize FindPeaks study.
+
+        Args:
+            logger: Optional logger instance. If not provided, creates a new logger.
+        """
         super().__init__(logger)
 
     def _validate_study_specific(self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs) -> bool:
@@ -17,9 +35,23 @@ class FindPeaks(BaseStudy):
             return False
         return True
 
-    def calculate(
-        self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs
-    ) -> pd.DataFrame | None:
+    def calculate(self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs) -> pd.DataFrame | None:
+        """Calculate peaks in the price data.
+
+        Args:
+            ohlcv_data: DataFrame with OHLCV data.
+            ticker: Stock ticker symbol (for logging).
+            **kwargs: Additional parameters:
+                column: Column name to use for peak detection (default: "close").
+                height: Minimum height of peaks.
+                distance: Minimum distance between peaks.
+                prominence: Minimum prominence of peaks.
+                width: Minimum width of peaks.
+                threshold: Minimum threshold for peak detection.
+
+        Returns:
+            DataFrame with peak values in columns (peak1, peak2, ...) or None on error.
+        """
         column = kwargs.get("column", "close")
 
         if column not in ohlcv_data.columns:
@@ -55,13 +87,11 @@ class FindPeaks(BaseStudy):
         for i, peak_value in enumerate(peak_values, start=1):
             result_dict[f"peak{i}"] = peak_value
 
-        result_df = pd.DataFrame(
-            result_dict, index=ohlcv_data.index
-        )
+        result_df = pd.DataFrame(result_dict, index=ohlcv_data.index)
 
         return result_df
 
-    def compute(
+    def compute(  # noqa: PLR0913
         self,
         ohlcv_data: pd.DataFrame | None,
         ticker: str,
@@ -72,6 +102,21 @@ class FindPeaks(BaseStudy):
         width=None,
         threshold=None,
     ) -> pd.DataFrame | None:
+        """Compute peaks with validation and error handling.
+
+        Args:
+            ohlcv_data: DataFrame with OHLCV data or None.
+            ticker: Stock ticker symbol (for logging).
+            column: Column name to use for peak detection (default: "close").
+            height: Minimum height of peaks.
+            distance: Minimum distance between peaks.
+            prominence: Minimum prominence of peaks.
+            width: Minimum width of peaks.
+            threshold: Minimum threshold for peak detection.
+
+        Returns:
+            DataFrame with peak values or None on error/validation failure.
+        """
         kwargs = {
             "required_columns": [column],
             "column": column,
@@ -88,4 +133,3 @@ class FindPeaks(BaseStudy):
             kwargs["threshold"] = threshold
 
         return super().compute(ohlcv_data=ohlcv_data, ticker=ticker, **kwargs)
-
