@@ -81,6 +81,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -123,6 +124,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -166,6 +168,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -195,6 +198,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -221,6 +225,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -247,6 +252,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -291,6 +297,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -307,6 +314,8 @@ class TestResultsWriterWriteTrades:
         assert "data" in queue_data
         assert "datetime" in queue_data["data"]
         assert isinstance(queue_data["data"]["datetime"], list)
+        # Each trade becomes 2 journal rows (entry + exit)
+        assert len(queue_data["data"]["datetime"]) == 2
 
     @pytest.mark.unit
     def test_write_trades_nan_handling(self, mock_queue_broker):
@@ -322,6 +331,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
                 "optional_field": [None],  # NaN value
             }
@@ -353,6 +363,7 @@ class TestResultsWriterWriteTrades:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
                 "all_nan_col": [None],  # All NaN column
             }
@@ -387,6 +398,7 @@ class TestResultsWriterWriteTrades:
                 ],
                 "entry_price": [100.0, 200.0],
                 "exit_price": [105.0, 210.0],
+                "shares": [100.0, 100.0],
                 "gross_pnl": [500.0, 1000.0],
             }
         )
@@ -418,7 +430,8 @@ class TestResultsWriterWriteTrades:
         assert queue_data["backtest_id"] == "test-id"
         assert queue_data["database"] == "debug"
         assert queue_data["strategy_params"] == {"short_window": 10}
-        assert len(queue_data["data"]["datetime"]) == 2
+        # Each trade becomes 2 journal rows (entry + exit), so 2 trades = 4 rows
+        assert len(queue_data["data"]["datetime"]) == 4
 
 
 class TestResultsWriterWriteMetrics:
@@ -710,8 +723,11 @@ class TestResultsWriterDataFrameConversion:
         trades = pd.DataFrame(
             {
                 "ticker": ["AAPL"] * 5,
+                "entry_time": dates,
+                "exit_time": dates + pd.Timedelta(days=1),
                 "entry_price": [100.0] * 5,
                 "exit_price": [105.0] * 5,
+                "shares": [100.0] * 5,
                 "gross_pnl": [500.0] * 5,
             },
             index=dates,
@@ -727,7 +743,8 @@ class TestResultsWriterDataFrameConversion:
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
         assert "datetime" in queue_data["data"]
-        assert len(queue_data["data"]["datetime"]) == 5
+        # Each trade becomes 2 journal rows (entry + exit), so 5 trades = 10 rows
+        assert len(queue_data["data"]["datetime"]) == 10
 
     @pytest.mark.unit
     def test_dataframe_to_dict_datetime_column(self, mock_queue_broker):
@@ -738,10 +755,12 @@ class TestResultsWriterDataFrameConversion:
 
         trades = pd.DataFrame(
             {
-                "datetime": pd.date_range("2024-01-01", periods=3, freq="D", tz="UTC"),
                 "ticker": ["AAPL"] * 3,
+                "entry_time": pd.date_range("2024-01-01", periods=3, freq="D", tz="UTC"),
+                "exit_time": pd.date_range("2024-01-02", periods=3, freq="D", tz="UTC"),
                 "entry_price": [100.0] * 3,
                 "exit_price": [105.0] * 3,
+                "shares": [100.0] * 3,
                 "gross_pnl": [500.0] * 3,
             }
         )
@@ -772,6 +791,7 @@ class TestResultsWriterDataFrameConversion:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -801,6 +821,7 @@ class TestResultsWriterDataFrameConversion:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
                 "optional_str": [None],  # NaN string column
             }
@@ -829,6 +850,7 @@ class TestResultsWriterDataFrameConversion:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
                 "optional_num": [None],  # NaN numeric column
             }
@@ -857,6 +879,7 @@ class TestResultsWriterDataFrameConversion:
                 "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
                 "entry_price": [100.0],
                 "exit_price": [105.0],
+                "shares": [100.0],
                 "gross_pnl": [500.0],
             }
         )
@@ -870,9 +893,13 @@ class TestResultsWriterDataFrameConversion:
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        # Datetime columns should be converted to milliseconds
-        assert isinstance(queue_data["data"]["entry_time"], list)
-        assert isinstance(queue_data["data"]["entry_time"][0], int)
+        # Journal rows have datetime column (not entry_time/exit_time)
+        assert "datetime" in queue_data["data"]
+        assert isinstance(queue_data["data"]["datetime"], list)
+        assert isinstance(queue_data["data"]["datetime"][0], int)
+        # Journal rows have price column (not entry_price/exit_price)
+        assert "price" in queue_data["data"]
+        assert isinstance(queue_data["data"]["price"], list)
 
     @pytest.mark.integration
     def test_dataframe_to_dict_complete_conversion(self, mock_queue_broker):
@@ -894,6 +921,7 @@ class TestResultsWriterDataFrameConversion:
                 ],
                 "entry_price": [100.0, 200.0],
                 "exit_price": [105.0, 210.0],
+                "shares": [100.0, 100.0],
                 "gross_pnl": [500.0, 1000.0],
                 "side": ["LONG", "LONG"],
                 "efficiency": [75.5, 80.0],
@@ -910,6 +938,9 @@ class TestResultsWriterDataFrameConversion:
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
         data_dict = queue_data["data"]
-        assert len(data_dict["datetime"]) == 2
-        assert len(data_dict["ticker"]) == 2
-        assert len(data_dict["gross_pnl"]) == 2
+        # Each trade becomes 2 journal rows (entry + exit), so 2 trades = 4 rows
+        assert len(data_dict["datetime"]) == 4
+        assert len(data_dict["ticker"]) == 4
+        # Note: gross_pnl may not be in journal rows, check for price instead
+        assert "price" in data_dict
+        assert len(data_dict["price"]) == 4
