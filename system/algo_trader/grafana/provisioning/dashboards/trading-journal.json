@@ -40,8 +40,8 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
-            "drawStyle": "points",
-            "fillOpacity": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -81,32 +81,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "ENTRY"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": true,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 11,
@@ -168,14 +143,64 @@
           }
         },
         {
+          "dataset": "iox",
           "datasource": {
-            "type": "datasource",
-            "uid": "-- Dashboard --"
+            "type": "influxdb",
+            "uid": "${datasource}"
           },
+          "editorMode": "code",
+          "format": "table",
           "hide": false,
           "panelId": 4,
+          "rawQuery": true,
+          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT\n  s.price AS entry,\n  s.time\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\n  AND s.action = 'buy_to_open'\nORDER BY s.time DESC;\n",
           "refId": "B",
-          "withTransforms": true
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          },
+          "withTransforms": false
+        },
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT\n  s.price AS exit,\n  s.time\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\n  AND s.action = 'sell_to_close'\nORDER BY s.time DESC;\n",
+          "refId": "C",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
         }
       ],
       "title": "$symbol OHLCV",
@@ -272,19 +297,9 @@
             "include": {
               "names": [
                 "backtest_id",
-                "nearness_threshold",
-                "peak_distance",
-                "peak_height",
-                "peak_prominence",
-                "peak_threshold",
-                "peak_width",
-                "sell_nearness_threshold",
                 "strategy",
-                "valley_distance",
-                "valley_height",
-                "valley_prominence",
-                "valley_threshold",
-                "valley_width"
+                "long_window",
+                "short_window"
               ]
             }
           }
@@ -647,10 +662,40 @@
           },
           "editorMode": "code",
           "format": "table",
+          "hide": true,
           "query": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
           "rawQuery": true,
           "rawSql": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'\nORDER BY time DESC",
           "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        },
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT s.*\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\nORDER BY s.time DESC;\n",
+          "refId": "B",
           "sql": {
             "columns": [
               {
@@ -1216,5 +1261,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 85
+  "version": 97
 }
