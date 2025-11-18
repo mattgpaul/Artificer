@@ -25,6 +25,7 @@ class ValleyLong(BaseStrategy):
         peak_width: int | None = None,
         peak_threshold: float | None = None,
         nearness_threshold: float = 0.5,
+        sell_nearness_threshold: float | None = None,
         min_confidence: float = 0.0,
         database: str | None = None,
         write_config: BatchWriteConfig | None = None,
@@ -49,6 +50,7 @@ class ValleyLong(BaseStrategy):
             "peak_width": peak_width,
             "peak_threshold": peak_threshold,
             "nearness_threshold": nearness_threshold,
+            "sell_nearness_threshold": sell_nearness_threshold,
         }
 
         init_kwargs = {
@@ -74,6 +76,7 @@ class ValleyLong(BaseStrategy):
         self.peak_width = peak_width
         self.peak_threshold = peak_threshold
         self.nearness_threshold = nearness_threshold
+        self.sell_nearness_threshold = sell_nearness_threshold if sell_nearness_threshold is not None else nearness_threshold * 0.4
         self.min_confidence = min_confidence
 
         self.valley_study = FindValleys(logger=self.logger)
@@ -82,7 +85,7 @@ class ValleyLong(BaseStrategy):
         self.logger.debug(
             f"ValleyLong initialized: valley_distance={valley_distance}, "
             f"peak_distance={peak_distance}, nearness_threshold={nearness_threshold}, "
-            f"min_confidence={min_confidence}"
+            f"sell_nearness_threshold={self.sell_nearness_threshold}, min_confidence={min_confidence}"
         )
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -130,21 +133,24 @@ class ValleyLong(BaseStrategy):
 
         sell_signals = []
         most_recent_valley = None
+        prices = ohlcv_data["close"]
 
         for idx in ohlcv_data.index:
-            price = ohlcv_data.loc[idx, "close"]
+            price = prices.loc[idx]
             signal = None
 
             if all_peaks:
-                peak_match = self._find_near_value(price, all_peaks)
+                peak_match = self._find_near_value_sell(price, all_peaks)
                 if peak_match is not None:
-                    signal = self._create_sell_signal(idx, ohlcv_data, price, peak_match, "peak")
+                    if self._is_coming_up(prices, idx, peak_match):
+                        signal = self._create_sell_signal(idx, ohlcv_data, price, peak_match, "peak")
 
             if signal is None and all_valleys:
-                valley_match = self._find_near_value(price, all_valleys)
+                valley_match = self._find_near_value_sell(price, all_valleys)
                 if valley_match is not None:
                     if most_recent_valley is None or abs(valley_match - most_recent_valley) > 0.0001:
-                        signal = self._create_sell_signal(idx, ohlcv_data, price, valley_match, "valley")
+                        if self._is_coming_up(prices, idx, valley_match):
+                            signal = self._create_sell_signal(idx, ohlcv_data, price, valley_match, "valley")
                     most_recent_valley = valley_match
 
             if signal is not None:
@@ -251,7 +257,13 @@ class ValleyLong(BaseStrategy):
             "--nearness-threshold",
             type=float,
             default=0.5,
-            help="Percentage threshold for 'near' a valley/peak (default: 0.5)",
+            help="Percentage threshold for 'near' a valley/peak for buy signals (default: 0.5)",
+        )
+        parser.add_argument(
+            "--sell-nearness-threshold",
+            type=float,
+            default=None,
+            help="Percentage threshold for 'near' a valley/peak for sell signals (default: 40%% of buy threshold)",
         )
         parser.add_argument(
             "--min-confidence",
@@ -350,6 +362,18 @@ class ValleyLong(BaseStrategy):
                 return target_value
         return None
 
+    def _find_near_value_sell(self, price: float, target_values: list[float]) -> float | None:
+        if not target_values:
+            return None
+        threshold_pct = self.sell_nearness_threshold / 100.0
+        for target_value in target_values:
+            if target_value == 0.0:
+                continue
+            pct_diff = abs((price - target_value) / target_value)
+            if pct_diff <= threshold_pct:
+                return target_value
+        return None
+
     def _is_coming_down(self, prices: pd.Series, current_idx: pd.Timestamp, valley_value: float, lookback_periods: int = 5) -> bool:
         try:
             current_pos = prices.index.get_loc(current_idx)
@@ -364,6 +388,23 @@ class ValleyLong(BaseStrategy):
             
             avg_recent_price = recent_prices.mean()
             return current_price < avg_recent_price and avg_recent_price > valley_value
+        except (KeyError, IndexError):
+            return False
+
+    def _is_coming_up(self, prices: pd.Series, current_idx: pd.Timestamp, target_value: float, lookback_periods: int = 5) -> bool:
+        try:
+            current_pos = prices.index.get_loc(current_idx)
+            if current_pos < lookback_periods:
+                return False
+            
+            current_price = prices.loc[current_idx]
+            recent_prices = prices.iloc[current_pos - lookback_periods:current_pos]
+            
+            if len(recent_prices) == 0:
+                return False
+            
+            avg_recent_price = recent_prices.mean()
+            return current_price > avg_recent_price and avg_recent_price < target_value
         except (KeyError, IndexError):
             return False
 

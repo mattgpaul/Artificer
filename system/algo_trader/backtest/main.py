@@ -57,6 +57,7 @@ def create_strategy(args, logger):
             peak_width=args.peak_width,
             peak_threshold=args.peak_threshold,
             nearness_threshold=args.nearness_threshold,
+            sell_nearness_threshold=args.sell_nearness_threshold,
             min_confidence=args.min_confidence,
             database=args.database,
             use_threading=False,
@@ -260,6 +261,7 @@ def main():
             "peak_width": args.peak_width,
             "peak_threshold": args.peak_threshold,
             "nearness_threshold": args.nearness_threshold,
+            "sell_nearness_threshold": args.sell_nearness_threshold,
             "min_confidence": args.min_confidence,
         }
 

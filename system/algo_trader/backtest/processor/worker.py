@@ -51,6 +51,7 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "Base
             peak_width=strategy_params.get("peak_width"),
             peak_threshold=strategy_params.get("peak_threshold"),
             nearness_threshold=strategy_params.get("nearness_threshold", 0.5),
+            sell_nearness_threshold=strategy_params.get("sell_nearness_threshold"),
             min_confidence=strategy_params.get("min_confidence", 0.0),
         )
     raise ValueError(f"Unknown strategy type: {strategy_type}")
