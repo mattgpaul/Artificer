@@ -223,25 +223,6 @@ class TestBacktestProcessorBuildWorkerArgs:
         assert args[0][17] == 0.10  # trade_percentage
 
 
-class TestBacktestProcessorPrintSummary:
-    """Test _print_summary method."""
-
-    @pytest.mark.unit
-    def test_print_summary(self, mock_logger, capsys):
-        """Test summary printing."""
-        processor = BacktestProcessor(logger=mock_logger)
-        summary = {"total": 10, "successful": 8, "failed": 2}
-
-        processor._print_summary(summary)
-
-        captured = capsys.readouterr()
-        assert "Backtest Processing Summary" in captured.out
-        assert "Total Tickers: 10" in captured.out
-        assert "Successfully Processed: 8" in captured.out
-        assert "Failed: 2" in captured.out
-        assert "backtest_trades_queue" in captured.out
-
-
 class TestBacktestProcessorProcessTickers:
     """Test process_tickers method."""
 

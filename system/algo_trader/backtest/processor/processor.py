@@ -14,9 +14,6 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.parallel import process_in_parallel
 from system.algo_trader.backtest.processor.sequential import process_sequentially
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
-from system.algo_trader.backtest.utils.utils import (
-    BACKTEST_TRADES_QUEUE_NAME,
-)
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
@@ -250,7 +247,12 @@ class BacktestProcessor:
 
         if use_multiprocessing:
             summary = process_in_parallel(
-                worker_args, tickers, max_processes, self.logger, hash_id=hash_id, backtest_id=backtest_id
+                worker_args,
+                tickers,
+                max_processes,
+                self.logger,
+                hash_id=hash_id,
+                backtest_id=backtest_id,
             )
         else:
             summary = process_sequentially(

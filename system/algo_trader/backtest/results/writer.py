@@ -176,7 +176,9 @@ class ResultsWriter:
         trades_dict = dataframe_to_dict(journal_rows)
 
         row_count = len(journal_rows)
-        self.logger.debug(f"Writing {row_count} journal rows ({len(trades)} trades) to Redis for {ticker}")
+        self.logger.debug(
+            f"Writing {row_count} journal rows ({len(trades)} trades) to Redis for {ticker}"
+        )
 
         queue_data = {
             "ticker": ticker,
@@ -200,7 +202,8 @@ class ResultsWriter:
 
             if success:
                 self.logger.debug(
-                    f"Enqueued {row_count} journal rows ({len(trades)} trades) for {ticker} to {BACKTEST_TRADES_QUEUE_NAME}"
+                    f"Enqueued {row_count} journal rows ({len(trades)} trades) for {ticker} "
+                    f"to {BACKTEST_TRADES_QUEUE_NAME}"
                 )
                 return True
             else:
