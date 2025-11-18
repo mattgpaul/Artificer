@@ -14,18 +14,18 @@ class ValleyLong(BaseStrategy):
 
     def __init__(
         self,
-        valley_distance: int = 5,
+        valley_distance: int = 10,
         valley_prominence: float | None = None,
         valley_height: float | tuple[float, float] | None = None,
         valley_width: int | None = None,
         valley_threshold: float | None = None,
-        peak_distance: int = 5,
+        peak_distance: int = 10,
         peak_prominence: float | None = None,
         peak_height: float | tuple[float, float] | None = None,
         peak_width: int | None = None,
         peak_threshold: float | None = None,
-        nearness_threshold: float = 2.0,
-        min_confidence: float = 0.0,
+        nearness_threshold: float = 1.0,
+        min_confidence: float = 0.3,
         database: str | None = None,
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
@@ -187,8 +187,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--valley-distance",
             type=int,
-            default=5,
-            help="Minimum distance between valleys (default: 5)",
+            default=10,
+            help="Minimum distance between valleys (default: 10)",
         )
         parser.add_argument(
             "--valley-prominence",
@@ -217,8 +217,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--peak-distance",
             type=int,
-            default=5,
-            help="Minimum distance between peaks (default: 5)",
+            default=10,
+            help="Minimum distance between peaks (default: 10)",
         )
         parser.add_argument(
             "--peak-prominence",
@@ -247,14 +247,14 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--nearness-threshold",
             type=float,
-            default=2.0,
-            help="Percentage threshold for 'near' a valley/peak (default: 2.0)",
+            default=1.0,
+            help="Percentage threshold for 'near' a valley/peak (default: 1.0)",
         )
         parser.add_argument(
             "--min-confidence",
             type=float,
-            default=0.0,
-            help="Minimum confidence threshold (default: 0.0)",
+            default=0.3,
+            help="Minimum confidence threshold (default: 0.3)",
         )
 
     def _compute_valleys(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame | None:

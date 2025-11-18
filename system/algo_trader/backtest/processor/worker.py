@@ -40,18 +40,18 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "Base
         )
     elif strategy_type == "ValleyLong":
         return ValleyLong(
-            valley_distance=strategy_params.get("valley_distance", 5),
+            valley_distance=strategy_params.get("valley_distance", 10),
             valley_prominence=strategy_params.get("valley_prominence"),
             valley_height=strategy_params.get("valley_height"),
             valley_width=strategy_params.get("valley_width"),
             valley_threshold=strategy_params.get("valley_threshold"),
-            peak_distance=strategy_params.get("peak_distance", 5),
+            peak_distance=strategy_params.get("peak_distance", 10),
             peak_prominence=strategy_params.get("peak_prominence"),
             peak_height=strategy_params.get("peak_height"),
             peak_width=strategy_params.get("peak_width"),
             peak_threshold=strategy_params.get("peak_threshold"),
-            nearness_threshold=strategy_params.get("nearness_threshold", 2.0),
-            min_confidence=strategy_params.get("min_confidence", 0.0),
+            nearness_threshold=strategy_params.get("nearness_threshold", 1.0),
+            min_confidence=strategy_params.get("min_confidence", 0.3),
         )
     raise ValueError(f"Unknown strategy type: {strategy_type}")
 
