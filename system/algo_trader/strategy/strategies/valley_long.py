@@ -15,12 +15,12 @@ class ValleyLong(BaseStrategy):
     def __init__(
         self,
         valley_distance: int = 50,
-        valley_prominence: float | None = None,
+        valley_prominence: float | None = 2.0,
         valley_height: float | tuple[float, float] | None = None,
         valley_width: int | None = None,
         valley_threshold: float | None = None,
         peak_distance: int = 50,
-        peak_prominence: float | None = None,
+        peak_prominence: float | None = 2.0,
         peak_height: float | tuple[float, float] | None = None,
         peak_width: int | None = None,
         peak_threshold: float | None = None,
@@ -196,8 +196,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--valley-prominence",
             type=float,
-            default=None,
-            help="Minimum prominence for valley detection (default: None)",
+            default=2.0,
+            help="Minimum prominence for valley detection (default: 2.0)",
         )
         parser.add_argument(
             "--valley-height",
@@ -226,8 +226,8 @@ class ValleyLong(BaseStrategy):
         parser.add_argument(
             "--peak-prominence",
             type=float,
-            default=None,
-            help="Minimum prominence for peak detection (default: None)",
+            default=2.0,
+            help="Minimum prominence for peak detection (default: 2.0)",
         )
         parser.add_argument(
             "--peak-height",
