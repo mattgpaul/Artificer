@@ -67,6 +67,7 @@ class BacktestProcessor:
         train_split: float | None,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        position_manager_config_dict: dict | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -120,6 +121,7 @@ class BacktestProcessor:
                 train_split,
                 initial_account_value,
                 trade_percentage,
+                position_manager_config_dict,
             )
             for ticker in tickers
         ]
@@ -164,6 +166,7 @@ class BacktestProcessor:
         use_multiprocessing: bool = True,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        position_manager_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -227,6 +230,7 @@ class BacktestProcessor:
             train_split=train_split,
             initial_account_value=initial_account_value,
             trade_percentage=trade_percentage,
+            position_manager_config_dict=position_manager_config_dict,
         )
 
         hash_id = compute_backtest_hash(
@@ -243,6 +247,7 @@ class BacktestProcessor:
             train_days=train_days,
             test_days=test_days,
             train_split=train_split,
+            position_manager_params=position_manager_config_dict,
         )
 
         if use_multiprocessing:
