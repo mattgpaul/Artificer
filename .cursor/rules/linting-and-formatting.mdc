@@ -31,7 +31,7 @@ line-ending = "auto"
 **Usage**:
 ```bash
 # Format all Python files
-bazel run //tools:ruff -- format .
+bazel run //:format
 
 # Check formatting without changes
 bazel run //tools:ruff -- format --check .
@@ -111,7 +111,7 @@ section-order = [
 **Usage**:
 ```bash
 # Lint all Python files
-bazel run //tools:ruff -- check .
+bazel run //:lint
 
 # Auto-fix issues
 bazel run //tools:ruff -- check --fix .

@@ -92,6 +92,8 @@ class BacktestProcessor:
             train_split: Training split ratio for walk-forward.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            position_manager_config_dict: Optional dictionary containing position
+                manager configuration. If None, position manager is not used.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -197,6 +199,8 @@ class BacktestProcessor:
                 If False, processes sequentially.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            position_manager_config_dict: Optional dictionary containing position
+                manager configuration. If None, position manager is not used.
         """
         if not tickers:
             self.logger.error("No tickers provided")

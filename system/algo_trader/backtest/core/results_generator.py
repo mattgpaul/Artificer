@@ -4,9 +4,9 @@ This module provides functionality to generate backtest results from trading sig
 including trade matching, execution simulation, and performance metrics calculation.
 """
 
-import pandas as pd
-
 from typing import TYPE_CHECKING
+
+import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionSimulator

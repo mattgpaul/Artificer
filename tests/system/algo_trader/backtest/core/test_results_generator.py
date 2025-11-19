@@ -635,3 +635,193 @@ class TestResultsGeneratorForAllTickers:
             for call_args in call_args_list:
                 assert call_args[1]["initial_account_value"] == 50000.0
                 assert call_args[1]["trade_percentage"] == 0.10
+
+
+class TestResultsGeneratorPositionManager:
+    """Test ResultsGenerator with PositionManager integration."""
+
+    @pytest.mark.integration
+    def test_generate_results_from_signals_with_position_manager_filters_entries(
+        self, mock_strategy, position_manager
+    ):
+        """Test position_manager filters multiple entry signals correctly."""
+        execution_simulator = ExecutionSimulator(ExecutionConfig())
+        generator = ResultsGenerator(
+            strategy=mock_strategy,
+            execution_simulator=execution_simulator,
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+            position_manager=position_manager,
+        )
+
+        # Signals with multiple buy attempts (should filter duplicates)
+        signals = pd.DataFrame(
+            {
+                "ticker": ["AAPL", "AAPL", "AAPL", "AAPL"],
+                "signal_time": [
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                    pd.Timestamp("2024-01-07", tz="UTC"),
+                    pd.Timestamp("2024-01-10", tz="UTC"),
+                ],
+                "signal_type": ["buy", "buy", "buy", "sell"],
+                "price": [100.0, 101.0, 102.0, 105.0],
+                "side": ["LONG", "LONG", "LONG", "LONG"],
+            }
+        )
+        ticker_data = pd.DataFrame()
+
+        with patch(
+            "system.algo_trader.backtest.core.results_generator.TradeJournal"
+        ) as mock_journal_class:
+            mock_journal = MagicMock()
+            # Only first buy and sell should result in trades
+            mock_trades = pd.DataFrame(
+                {
+                    "ticker": ["AAPL"],
+                    "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                    "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+                    "entry_price": [100.0],
+                    "exit_price": [105.0],
+                    "gross_pnl": [500.0],
+                }
+            )
+            mock_journal.generate_report.return_value = (
+                {"total_trades": 1, "total_profit": 500.0},
+                mock_trades,
+            )
+            mock_journal_class.return_value = mock_journal
+
+            execution_simulator.apply_execution = MagicMock(return_value=mock_trades)
+
+            results = generator.generate_results_from_signals(signals, "AAPL", ticker_data)
+
+            # Position manager should filter to only first buy and sell
+            assert isinstance(results, BacktestResults)
+            assert len(results.signals) == 2  # First buy and sell only
+            assert results.signals.iloc[0]["signal_type"] == "buy"
+            assert results.signals.iloc[1]["signal_type"] == "sell"
+            assert not results.trades.empty
+
+    @pytest.mark.integration
+    def test_generate_results_from_signals_with_position_manager_filters_all_signals(
+        self, mock_strategy, position_manager
+    ):
+        """Test position_manager filters all signals when exit comes before entry."""
+        execution_simulator = ExecutionSimulator(ExecutionConfig())
+        generator = ResultsGenerator(
+            strategy=mock_strategy,
+            execution_simulator=execution_simulator,
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+            position_manager=position_manager,
+        )
+
+        # Exit signal before entry (should filter exit, then allow entry)
+        signals = pd.DataFrame(
+            {
+                "ticker": ["AAPL", "AAPL"],
+                "signal_time": [
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                ],
+                "signal_type": ["sell", "buy"],
+                "price": [100.0, 101.0],
+                "side": ["LONG", "LONG"],
+            }
+        )
+        ticker_data = pd.DataFrame()
+
+        with patch(
+            "system.algo_trader.backtest.core.results_generator.TradeJournal"
+        ) as mock_journal_class:
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            results = generator.generate_results_from_signals(signals, "AAPL", ticker_data)
+
+            # Position manager should filter exit (no position), allow buy
+            assert isinstance(results, BacktestResults)
+            assert len(results.signals) == 1
+            assert results.signals.iloc[0]["signal_type"] == "buy"
+            assert results.trades.empty
+
+    @pytest.mark.integration
+    def test_generate_results_for_all_tickers_with_position_manager(
+        self, mock_strategy, position_manager
+    ):
+        """Test position_manager integration with multiple tickers."""
+        execution_simulator = ExecutionSimulator(ExecutionConfig())
+        generator = ResultsGenerator(
+            strategy=mock_strategy,
+            execution_simulator=execution_simulator,
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+            position_manager=position_manager,
+        )
+
+        # Multiple tickers with multiple entry attempts
+        combined_signals = pd.DataFrame(
+            {
+                "ticker": ["AAPL", "AAPL", "MSFT", "MSFT", "MSFT"],
+                "signal_time": [
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-10", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                    pd.Timestamp("2024-01-07", tz="UTC"),
+                    pd.Timestamp("2024-01-11", tz="UTC"),
+                ],
+                "signal_type": ["buy", "sell", "buy", "buy", "sell"],
+                "price": [100.0, 105.0, 200.0, 201.0, 210.0],
+                "side": ["LONG", "LONG", "LONG", "LONG", "LONG"],
+            }
+        )
+        data_cache = {
+            "AAPL": pd.DataFrame(),
+            "MSFT": pd.DataFrame(),
+        }
+
+        with patch(
+            "system.algo_trader.backtest.core.results_generator.TradeJournal"
+        ) as mock_journal_class:
+            mock_journal = MagicMock()
+            mock_trades_aapl = pd.DataFrame(
+                {
+                    "ticker": ["AAPL"],
+                    "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                    "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+                    "entry_price": [100.0],
+                    "exit_price": [105.0],
+                    "gross_pnl": [500.0],
+                }
+            )
+            mock_trades_msft = pd.DataFrame(
+                {
+                    "ticker": ["MSFT"],
+                    "entry_time": [pd.Timestamp("2024-01-06", tz="UTC")],
+                    "exit_time": [pd.Timestamp("2024-01-11", tz="UTC")],
+                    "entry_price": [200.0],
+                    "exit_price": [210.0],
+                    "gross_pnl": [1000.0],
+                }
+            )
+            mock_journal.generate_report.side_effect = [
+                ({}, mock_trades_aapl),
+                ({}, mock_trades_msft),
+            ]
+            mock_journal.calculate_metrics.return_value = {
+                "total_trades": 2,
+                "total_profit": 1500.0,
+            }
+            mock_journal_class.return_value = mock_journal
+
+            combined_trades = pd.concat([mock_trades_aapl, mock_trades_msft], ignore_index=True)
+            execution_simulator.apply_execution = MagicMock(return_value=combined_trades)
+
+            results = generator.generate_results_for_all_tickers(combined_signals, data_cache)
+
+            # Position manager should filter MSFT's second buy (duplicate entry)
+            assert isinstance(results, BacktestResults)
+            assert len(results.signals) == 4  # AAPL: buy+sell, MSFT: buy+sell (second buy filtered)
+            assert results.metrics["total_trades"] == 2

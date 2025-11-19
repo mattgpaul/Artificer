@@ -1,3 +1,10 @@
+"""Configuration loader for position manager.
+
+This module provides functionality to load PositionManagerConfig from YAML
+files, supporting both named configs from the strategies directory and
+explicit file paths.
+"""
+
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +24,7 @@ def _resolve_config_path(config_name: str) -> Path:
     local `strategies` directory as `<name>.yaml`.
     """
     candidate = Path(config_name)
-    if candidate.suffix in {".yaml", ".yml"} or any(
-        sep in config_name for sep in ("/", "\\")
-    ):
+    if candidate.suffix in {".yaml", ".yml"} or any(sep in config_name for sep in ("/", "\\")):
         return candidate
 
     base_dir = Path(__file__).resolve().parent
@@ -59,24 +64,16 @@ def load_position_manager_config(
             config_dict = yaml.safe_load(f) or {}
 
         if not isinstance(config_dict, dict):
-            logger.error(
-                "Position manager config must be a dictionary, "
-                f"got {type(config_dict)}"
-            )
+            logger.error(f"Position manager config must be a dictionary, got {type(config_dict)}")
             return None
 
-        if "position_manager" in config_dict and isinstance(
-            config_dict["position_manager"], dict
-        ):
+        if "position_manager" in config_dict and isinstance(config_dict["position_manager"], dict):
             position_manager_dict: dict[str, Any] = config_dict["position_manager"]
         else:
             position_manager_dict = config_dict
 
         config = PositionManagerConfig.from_dict(position_manager_dict)
-        logger.info(
-            "Loaded position manager config from "
-            f"{config_file}: {config.to_dict()}"
-        )
+        logger.info(f"Loaded position manager config from {config_file}: {config.to_dict()}")
         return config
 
     except Exception as e:  # pragma: no cover - defensive logging
