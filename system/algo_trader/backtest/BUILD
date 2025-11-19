@@ -34,6 +34,7 @@ py_library(
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/strategy:cli_utils",
         "//system/algo_trader/strategy:strategies",
+        "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
         requirement("tqdm"),
     ],
@@ -51,6 +52,7 @@ py_library(
         "//infrastructure/logging:logger",
         "//system/algo_trader/strategy:cli_utils",
         "//system/algo_trader/strategy:strategies",
+        "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
     ],
     # Note: main.py imports from subdirectories via backtest_lib

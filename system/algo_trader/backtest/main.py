@@ -14,6 +14,9 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
+from system.algo_trader.strategy.position_manager.config_loader import (
+    load_position_manager_config,
+)
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategies.valley_long import ValleyLong
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
@@ -182,6 +185,16 @@ def parse_args():
         action="store_true",
         help="Disable multiprocessing and process tickers sequentially (default: False)",
     )
+    parser.add_argument(
+        "--position-manager",
+        type=str,
+        default=None,
+        help=(
+            "Name of position manager YAML config under "
+            "'system/algo_trader/strategy/position_manager/strategies' "
+            "(without .yaml), or an explicit path to a YAML file (optional)"
+        ),
+    )
 
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to backtest"
@@ -240,6 +253,11 @@ def main():
         commission_per_share=args.commission,
     )
 
+    position_manager_config = load_position_manager_config(args.position_manager, logger)
+    position_manager_config_dict = None
+    if position_manager_config is not None:
+        position_manager_config_dict = position_manager_config.to_dict()
+
     strategy_params = {}
     if args.strategy == "sma-crossover":
         strategy_params = {
@@ -292,6 +310,7 @@ def main():
             use_multiprocessing=not args.no_multiprocessing,
             initial_account_value=args.account_value,
             trade_percentage=args.trade_percentage,
+            position_manager_config_dict=position_manager_config_dict,
         )
 
         return 0

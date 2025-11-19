@@ -12,6 +12,10 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.engine import BacktestEngine, BacktestResults
 from system.algo_trader.backtest.results.writer import ResultsWriter
+from system.algo_trader.strategy.position_manager.position_manager import (
+    PositionManager,
+    PositionManagerConfig,
+)
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.base import BaseStrategy
@@ -193,6 +197,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         train_split_local,
         initial_account_value_local,
         trade_percentage_local,
+        position_manager_config_dict,
     ) = args
 
     engine = None
@@ -209,6 +214,11 @@ def backtest_ticker_worker(args: tuple) -> dict:
             commission_per_share=execution_config_dict["commission_per_share"],
         )
 
+        position_manager = None
+        if position_manager_config_dict is not None:
+            pm_config = PositionManagerConfig.from_dict(position_manager_config_dict)
+            position_manager = PositionManager(pm_config, logger)
+
         engine = BacktestEngine(
             strategy=strategy_instance,
             tickers=[ticker],
@@ -221,6 +231,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             risk_free_rate=risk_free_rate_local,
             initial_account_value=initial_account_value_local,
             trade_percentage=trade_percentage_local,
+            position_manager=position_manager,
         )
 
         results = engine.run_ticker(ticker)

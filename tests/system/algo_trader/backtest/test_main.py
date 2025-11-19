@@ -11,6 +11,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from system.algo_trader.backtest.main import create_strategy, main, parse_args
+from system.algo_trader.strategy.position_manager.position_manager import (
+    PositionManagerConfig,
+)
 
 
 class TestParseArgs:
@@ -691,3 +694,103 @@ class TestMainExecution:
 
             assert result == 1
             mock_strategy.close.assert_called_once()  # Should still close strategy
+
+    @pytest.mark.e2e
+    def test_main_with_position_manager(self, mock_logger):
+        """Test complete workflow with position_manager config."""
+        test_args = [
+            "--tickers",
+            "AAPL",
+            "--start-date",
+            "2024-01-01",
+            "--end-date",
+            "2024-01-31",
+            "--database",
+            "debug",
+            "--position-manager",
+            "default",
+            "sma-crossover",
+            "--short",
+            "10",
+            "--long",
+            "20",
+        ]
+
+        with (
+            patch.object(sys, "argv", ["backtest", *test_args]),
+            patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
+            patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
+            patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
+            patch("system.algo_trader.backtest.main.get_backtest_database") as mock_get_db,
+            patch("system.algo_trader.backtest.main.uuid4") as mock_uuid,
+            patch("system.algo_trader.backtest.main.load_position_manager_config") as mock_load_pm,
+            patch("system.algo_trader.backtest.main.get_logger") as mock_get_logger,
+        ):
+            mock_resolve.return_value = ["AAPL"]
+            mock_strategy = MagicMock()
+            mock_strategy.close = MagicMock()
+            mock_create.return_value = mock_strategy
+            mock_processor_instance = MagicMock()
+            mock_processor_class.return_value = mock_processor_instance
+            mock_get_db.return_value = "debug"
+            mock_uuid.return_value = MagicMock()
+            mock_uuid.return_value.__str__ = lambda x: "test-backtest-id"
+            mock_get_logger.return_value = mock_logger
+
+            # Mock position manager config loading
+            pm_config = PositionManagerConfig(allow_scale_in=False)
+            mock_load_pm.return_value = pm_config
+
+            result = main()
+
+            assert result == 0
+            mock_load_pm.assert_called_once_with("default", mock_logger)
+            call_args = mock_processor_instance.process_tickers.call_args
+            assert call_args[1]["position_manager_config_dict"] == pm_config.to_dict()
+
+    @pytest.mark.e2e
+    def test_main_with_position_manager_none(self, mock_logger):
+        """Test workflow when position_manager config is None."""
+        test_args = [
+            "--tickers",
+            "AAPL",
+            "--start-date",
+            "2024-01-01",
+            "--end-date",
+            "2024-01-31",
+            "--database",
+            "debug",
+            "sma-crossover",
+            "--short",
+            "10",
+            "--long",
+            "20",
+        ]
+
+        with (
+            patch.object(sys, "argv", ["backtest", *test_args]),
+            patch("system.algo_trader.backtest.main.resolve_tickers") as mock_resolve,
+            patch("system.algo_trader.backtest.main.create_strategy") as mock_create,
+            patch("system.algo_trader.backtest.main.BacktestProcessor") as mock_processor_class,
+            patch("system.algo_trader.backtest.main.get_backtest_database") as mock_get_db,
+            patch("system.algo_trader.backtest.main.uuid4") as mock_uuid,
+            patch("system.algo_trader.backtest.main.load_position_manager_config") as mock_load_pm,
+        ):
+            mock_resolve.return_value = ["AAPL"]
+            mock_strategy = MagicMock()
+            mock_strategy.close = MagicMock()
+            mock_create.return_value = mock_strategy
+            mock_processor_instance = MagicMock()
+            mock_processor_class.return_value = mock_processor_instance
+            mock_get_db.return_value = "debug"
+            mock_uuid.return_value = MagicMock()
+            mock_uuid.return_value.__str__ = lambda x: "test-backtest-id"
+
+            # Mock position manager config loading returning None
+            mock_load_pm.return_value = None
+
+            result = main()
+
+            assert result == 0
+            call_args = mock_processor_instance.process_tickers.call_args
+            assert call_args[1]["position_manager_config_dict"] is None
