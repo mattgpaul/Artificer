@@ -10,6 +10,10 @@ import pandas as pd
 import pytest
 
 from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.strategy.position_manager.position_manager import (
+    PositionManager,
+    PositionManagerConfig,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -182,5 +186,36 @@ def sample_mock_signals_multiple_tickers():
             "signal_type": ["buy", "buy"],
             "price": [100.0, 200.0],
             "side": ["LONG", "LONG"],
+        }
+    )
+
+
+@pytest.fixture
+def position_manager_config():
+    """Create PositionManagerConfig for testing."""
+    return PositionManagerConfig(allow_scale_in=False)
+
+
+@pytest.fixture
+def position_manager(position_manager_config):
+    """Create PositionManager instance for testing."""
+    return PositionManager(position_manager_config)
+
+
+@pytest.fixture
+def sample_mock_signals_with_multiple_entries():
+    """Sample signals DataFrame with multiple entry attempts (for position_manager filtering)."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "AAPL", "AAPL", "AAPL"],
+            "signal_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-06", tz="UTC"),
+                pd.Timestamp("2024-01-07", tz="UTC"),
+                pd.Timestamp("2024-01-10", tz="UTC"),
+            ],
+            "signal_type": ["buy", "buy", "buy", "sell"],
+            "price": [100.0, 101.0, 102.0, 105.0],
+            "side": ["LONG", "LONG", "LONG", "LONG"],
         }
     )

@@ -67,6 +67,7 @@ class BacktestProcessor:
         train_split: float | None,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        position_manager_config_dict: dict | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -91,6 +92,8 @@ class BacktestProcessor:
             train_split: Training split ratio for walk-forward.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            position_manager_config_dict: Optional dictionary containing position
+                manager configuration. If None, position manager is not used.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -120,6 +123,7 @@ class BacktestProcessor:
                 train_split,
                 initial_account_value,
                 trade_percentage,
+                position_manager_config_dict,
             )
             for ticker in tickers
         ]
@@ -164,6 +168,7 @@ class BacktestProcessor:
         use_multiprocessing: bool = True,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        position_manager_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -194,6 +199,8 @@ class BacktestProcessor:
                 If False, processes sequentially.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            position_manager_config_dict: Optional dictionary containing position
+                manager configuration. If None, position manager is not used.
         """
         if not tickers:
             self.logger.error("No tickers provided")
@@ -227,6 +234,7 @@ class BacktestProcessor:
             train_split=train_split,
             initial_account_value=initial_account_value,
             trade_percentage=trade_percentage,
+            position_manager_config_dict=position_manager_config_dict,
         )
 
         hash_id = compute_backtest_hash(
@@ -243,6 +251,7 @@ class BacktestProcessor:
             train_days=train_days,
             test_days=test_days,
             train_split=train_split,
+            position_manager_params=position_manager_config_dict,
         )
 
         if use_multiprocessing:

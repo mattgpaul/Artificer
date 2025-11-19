@@ -11,6 +11,7 @@ py_library(
     ],
     deps = [
         "//system/algo_trader/backtest:backtest_lib",
+        "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
         requirement("pytest"),
     ],

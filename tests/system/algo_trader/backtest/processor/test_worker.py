@@ -348,6 +348,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -404,6 +405,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -464,6 +466,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -499,6 +502,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -547,6 +551,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -604,6 +609,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             # Should not raise exception
@@ -668,6 +674,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -724,8 +731,9 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
-                50000.0,
-                0.10,
+                50000.0,  # initial_account_value
+                0.10,  # trade_percentage
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -778,12 +786,13 @@ class TestBacktestTickerWorker:
                 10000.0,
                 0.04,
                 "test-backtest-id",
-                True,
-                90,
-                30,
-                None,
-                None,
-                None,
+                True,  # walk_forward
+                90,  # train_days
+                30,  # test_days
+                None,  # train_split
+                None,  # initial_account_value
+                None,  # trade_percentage
+                None,  # position_manager_config_dict
             )
 
             result = backtest_ticker_worker(args)

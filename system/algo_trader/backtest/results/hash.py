@@ -27,6 +27,7 @@ def compute_backtest_hash(
     train_days: int | None = None,
     test_days: int | None = None,
     train_split: float | None = None,
+    position_manager_params: dict[str, Any] | None = None,
 ) -> str:
     """Compute deterministic hash from backtest configuration.
 
@@ -50,6 +51,7 @@ def compute_backtest_hash(
         train_days: Number of training days (if walk-forward).
         test_days: Number of test days (if walk-forward).
         train_split: Training split ratio (if walk-forward).
+        position_manager_params: Optional dictionary of position manager configuration.
 
     Returns:
         16-character hexadecimal hash string representing the configuration.
@@ -72,5 +74,7 @@ def compute_backtest_hash(
         "test_days": test_days,
         "train_split": train_split,
     }
+    if position_manager_params is not None:
+        args_dict["position_manager"] = position_manager_params
     args_json = json.dumps(args_dict, sort_keys=True, default=str)
     return hashlib.sha256(args_json.encode()).hexdigest()[:16]

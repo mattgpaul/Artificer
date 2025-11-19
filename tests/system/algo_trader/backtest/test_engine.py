@@ -845,3 +845,66 @@ class TestBacktestEngineEdgeCases:
         # Engine should handle timezone conversion internally
         assert engine.start_date.tz is not None or engine.start_date.tz is None
         assert engine.end_date.tz is not None or engine.end_date.tz is None
+
+    @pytest.mark.integration
+    def test_run_ticker_with_position_manager_filters_signals(
+        self,
+        mock_strategy,
+        mock_market_data_influx,
+        sample_ohlcv_data_with_time,
+        position_manager,
+        sample_mock_signals_with_multiple_entries,
+    ):
+        """Test run_ticker with position_manager filters duplicate entry signals."""
+        engine = BacktestEngine(
+            strategy=mock_strategy,
+            tickers=["AAPL"],
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="debug",
+            position_manager=position_manager,
+        )
+
+        mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
+        mock_strategy.run_strategy.return_value = sample_mock_signals_with_multiple_entries
+
+        with (
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_journal = MagicMock()
+            mock_trades = pd.DataFrame(
+                {
+                    "ticker": ["AAPL"],
+                    "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                    "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+                    "entry_price": [100.0],
+                    "exit_price": [105.0],
+                    "shares": [100.0],  # Required by ExecutionSimulator
+                    "side": ["LONG"],
+                    "gross_pnl": [500.0],
+                }
+            )
+            mock_journal.generate_report.return_value = (
+                {"total_trades": 1, "total_profit": 500.0},
+                mock_trades,
+            )
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = mock_trades
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            results = engine.run_ticker("AAPL")
+
+            # Position manager should filter to only first buy and sell
+            assert isinstance(results, BacktestResults)
+            assert len(results.signals) == 2  # First buy and sell only
+            assert results.signals.iloc[0]["signal_type"] == "buy"
+            assert results.signals.iloc[1]["signal_type"] == "sell"
+            assert not results.trades.empty

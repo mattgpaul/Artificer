@@ -4,11 +4,16 @@ This module provides functionality to generate backtest results from trading sig
 including trade matching, execution simulation, and performance metrics calculation.
 """
 
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionSimulator
 from system.algo_trader.strategy.journal.journal import TradeJournal
+
+if TYPE_CHECKING:
+    from system.algo_trader.strategy.position_manager.position_manager import PositionManager
 
 
 class BacktestResults:
@@ -55,6 +60,7 @@ class ResultsGenerator:
         logger=None,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        position_manager: "PositionManager | None" = None,
     ):
         """Initialize ResultsGenerator with strategy and configuration.
 
@@ -66,6 +72,7 @@ class ResultsGenerator:
             logger: Optional logger instance. If not provided, creates a new logger.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            position_manager: Optional PositionManager instance for filtering signals.
         """
         self.strategy = strategy
         self.execution_simulator = execution_simulator
@@ -73,6 +80,7 @@ class ResultsGenerator:
         self.risk_free_rate = risk_free_rate
         self.initial_account_value = initial_account_value
         self.trade_percentage = trade_percentage
+        self.position_manager = position_manager
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def generate_results_from_signals(
@@ -92,11 +100,23 @@ class ResultsGenerator:
             BacktestResults object containing signals, trades, and metrics.
         """
         results = BacktestResults()
-        results.signals = signals
         results.strategy_name = self.strategy.strategy_name
 
+        if self.position_manager is not None:
+            ohlcv_by_ticker = {ticker: ticker_data}
+            filtered_signals = self.position_manager.apply(signals, ohlcv_by_ticker)
+            if filtered_signals.empty:
+                self.logger.debug(f"{ticker}: Position manager filtered all signals")
+                results.signals = signals
+                return results
+            results.signals = filtered_signals
+            signals_to_use = filtered_signals
+        else:
+            results.signals = signals
+            signals_to_use = signals
+
         journal = TradeJournal(
-            signals=signals,
+            signals=signals_to_use,
             strategy_name=self.strategy.strategy_name,
             ohlcv_data=ticker_data,
             capital_per_trade=self.capital_per_trade,
@@ -132,14 +152,25 @@ class ResultsGenerator:
             and aggregate performance metrics.
         """
         results = BacktestResults()
-        results.signals = combined_signals
         results.strategy_name = self.strategy.strategy_name
 
-        unique_tickers = combined_signals["ticker"].unique()
+        if self.position_manager is not None:
+            filtered_signals = self.position_manager.apply(combined_signals, data_cache)
+            if filtered_signals.empty:
+                self.logger.debug("Position manager filtered all signals")
+                results.signals = combined_signals
+                return results
+            results.signals = filtered_signals
+            signals_to_use = filtered_signals
+        else:
+            results.signals = combined_signals
+            signals_to_use = combined_signals
+
+        unique_tickers = signals_to_use["ticker"].unique()
         all_trades = []
 
         for ticker in unique_tickers:
-            ticker_signals = combined_signals[combined_signals["ticker"] == ticker]
+            ticker_signals = signals_to_use[signals_to_use["ticker"] == ticker]
             ohlcv_data = data_cache.get(ticker)
 
             journal = TradeJournal(
