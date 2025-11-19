@@ -39,9 +39,9 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "barWidthFactor": 0.6,
+            "barWidthFactor": 0.1,
             "drawStyle": "bars",
-            "fillOpacity": 60,
+            "fillOpacity": 50,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -153,7 +153,7 @@
           "hide": false,
           "panelId": 4,
           "rawQuery": true,
-          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT\n  s.price AS entry,\n  s.time\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\n  AND s.action = 'buy_to_open'\nORDER BY s.time DESC;\n",
+          "rawSql": "SELECT price as entry,\n  time\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND action = 'buy_to_open'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "B",
           "sql": {
             "columns": [
@@ -183,7 +183,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT\n  s.price AS exit,\n  s.time\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\n  AND s.action = 'sell_to_close'\nORDER BY s.time DESC;\n",
+          "rawSql": "SELECT price as exit,\n  time\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND action = 'sell_to_close'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "C",
           "sql": {
             "columns": [
@@ -268,7 +268,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT DISTINCT\n  *\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND hash_id = '$hash_id'\nORDER BY time DESC\nLIMIT 1\n",
+          "rawSql": "SELECT \n  *\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nLIMIT 1\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -293,13 +293,21 @@
         {
           "id": "filterFieldsByName",
           "options": {
-            "byVariable": false,
             "include": {
               "names": [
-                "backtest_id",
-                "strategy",
-                "long_window",
-                "short_window"
+                "nearness_threshold",
+                "peak_distance",
+                "peak_height",
+                "peak_prominence",
+                "peak_threshold",
+                "peak_width",
+                "sell_nearness_threshold",
+                "valley_distance",
+                "valley_height",
+                "valley_prominence",
+                "valley_threshold",
+                "valley_width",
+                "hash_id"
               ]
             }
           }
@@ -307,8 +315,7 @@
         {
           "id": "transpose",
           "options": {
-            "emptyValue": "null",
-            "firstFieldName": "Backtest ID"
+            "firstFieldName": "Hash ID"
           }
         }
       ],
@@ -368,7 +375,7 @@
               }
             ]
           },
-          "unit": "currencyUSD"
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -402,9 +409,9 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "query": "SELECT\n  time,\n  SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time",
+          "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  SUM(gross_pnl) OVER (ORDER BY time) as cumulative_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'\nORDER BY time",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -662,39 +669,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "hide": true,
-          "query": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\nORDER BY time DESC",
-          "rawQuery": true,
-          "rawSql": "SELECT\n  CASE WHEN gross_pnl > 0 THEN 'WIN' ELSE 'LOSS' END as result,\n  status,\n  side,\n  ticker as symbol,\n  CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP) as open_date,\n  entry_price as entry,\n  shares as size,\n  time as close_date,\n  exit_price as exit,\n  (entry_price * shares) as cost,\n  gross_pnl as net_return,\n  gross_pnl_pct as net_return_pct,\n  CAST((EXTRACT(EPOCH FROM time) - EXTRACT(EPOCH FROM CAST(CAST(entry_time AS BIGINT) / 1000 AS TIMESTAMP))) / 86400 AS INTEGER) as time_held\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'\nORDER BY time DESC",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ]
-          }
-        },
-        {
-          "dataset": "iox",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "$datasource"
-          },
-          "editorMode": "code",
-          "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "WITH one_id AS (\n  SELECT backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n  ORDER BY time DESC\n  LIMIT 1\n)\nSELECT s.*\nFROM \"$strategy\" s\nJOIN one_id o\n  ON s.backtest_id = o.backtest_id\nWHERE s.hash_id = '$hash_id'\n  AND s.ticker = '$symbol'\n  AND s.time >= $__timeFrom\n  AND s.time <= $__timeTo\nORDER BY s.time DESC;\n",
+          "rawSql": "SELECT \n  action,\n  commission,\n  price,\n  shares,\n  side,\n  time,\n  trade_id,\n  hash_id,\n  backtest_id\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY trade_id ASC;\n",
           "refId": "B",
           "sql": {
             "columns": [
@@ -715,46 +692,6 @@
         }
       ],
       "title": "Trades",
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "time": true
-            },
-            "indexByName": {
-              "close_date": 7,
-              "cost": 9,
-              "entry": 5,
-              "exit": 8,
-              "net_return": 10,
-              "net_return_pct": 11,
-              "open_date": 4,
-              "result": 0,
-              "side": 2,
-              "size": 6,
-              "status": 1,
-              "symbol": 3,
-              "time_held": 12
-            },
-            "renameByName": {
-              "close_date": "CLOSE DATE",
-              "cost": "COST",
-              "entry": "ENTRY",
-              "exit": "EXIT",
-              "net_return": "NET RETURN",
-              "net_return_pct": "NET RETURN %",
-              "open_date": "OPEN DATE",
-              "result": "RESULT",
-              "side": "SIDE",
-              "size": "SIZE",
-              "status": "STATUS",
-              "symbol": "SYMBOL",
-              "time_held": "TIME HELD"
-            }
-          }
-        }
-      ],
       "type": "table"
     },
     {
@@ -815,9 +752,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT\n  AVG(gross_pnl) as avg_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  AVG(pnl) as avg_return\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "SELECT\n  AVG(gross_pnl) as avg_return\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  AVG(pnl) as avg_return\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -898,9 +835,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT\n  AVG(gross_pnl_pct) as avg_return_pct\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_value > 0 AND entry_value > 0\n)\nSELECT\n  AVG(return_pct) as avg_return_pct\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "SELECT\n  AVG(gross_pnl_pct) as avg_return_pct\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_value > 0 AND entry_value > 0\n)\nSELECT\n  AVG(return_pct) as avg_return_pct\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -991,9 +928,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  (COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as win_percentage\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (COUNT(CASE WHEN gross_pnl > 0 THEN 1 END) * 100.0 / COUNT(*)) as win_percentage\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  (COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as win_percentage\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1074,9 +1011,9 @@
           },
           "editorMode": "code",
           "format": "table",
-          "query": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')",
+          "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  CASE\n    WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) /\n      SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "SELECT\n  CASE\n    WHEN SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN gross_pnl > 0 THEN gross_pnl ELSE 0 END) /\n      SUM(CASE WHEN gross_pnl < 0 THEN ABS(gross_pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\n  AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n  AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n  AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n  AND hash_id = '$hash_id'",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  CASE\n    WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) /\n      SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1250,6 +1187,29 @@
         "refresh": 1,
         "regex": "",
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "217486aa-080f-46d8-9adb-8af4c0345dd2",
+          "value": "217486aa-080f-46d8-9adb-8af4c0345dd2"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "definition": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
+        "description": "",
+        "label": "Backtest ID",
+        "name": "backtest_id",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -1261,5 +1221,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 97
+  "version": 105
 }
