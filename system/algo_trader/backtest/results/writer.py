@@ -43,6 +43,7 @@ def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
         side = trade.get("side", "LONG")
         ticker = trade.get("ticker", "")
         strategy = trade.get("strategy", "")
+        trade_id = trade.get("trade_id")
 
         commission = trade.get("commission", 0.0)
 
@@ -56,6 +57,8 @@ def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
             "commission": commission,
             "action": _determine_action(side, True),
         }
+        if trade_id is not None:
+            entry_row["trade_id"] = trade_id
 
         exit_row = {
             "datetime": trade["exit_time"],
@@ -67,6 +70,8 @@ def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
             "commission": commission,
             "action": _determine_action(side, False),
         }
+        if trade_id is not None:
+            exit_row["trade_id"] = trade_id
 
         journal_rows.append(entry_row)
         journal_rows.append(exit_row)
