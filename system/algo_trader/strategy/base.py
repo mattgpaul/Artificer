@@ -230,7 +230,6 @@ class BaseStrategy(Client):
         Example:
             >>> summary = strategy.run_strategy('AAPL', start_time='2024-01-01')
         """
-        self.logger.debug(f"Running {self.strategy_name} strategy for {ticker}")
 
         ohlcv_data = self.query_ohlcv(ticker, start_time, end_time, limit)
         if ohlcv_data is None or ohlcv_data.empty:
@@ -272,12 +271,6 @@ class BaseStrategy(Client):
         summary["ticker"] = ticker
         summary["signal_time"] = summary.index
         summary = summary.reset_index(drop=True)
-
-        self.logger.debug(
-            f"Strategy complete for {ticker}: {len(summary)} signals "
-            f"({(summary['signal_type'] == 'buy').sum()} buys, "
-            f"{(summary['signal_type'] == 'sell').sum()} sells)"
-        )
 
         return summary
 

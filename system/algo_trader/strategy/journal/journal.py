@@ -34,6 +34,8 @@ class TradeJournal:
         risk_free_rate: float = 0.04,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        mode: str = "pm_managed",
+        pm_config: dict | None = None,
     ):
         """Initialize TradeJournal with signals and configuration.
 
@@ -53,6 +55,8 @@ class TradeJournal:
         self.risk_free_rate = risk_free_rate
         self.initial_account_value = initial_account_value
         self.trade_percentage = trade_percentage
+        self.mode = mode
+        self.pm_config = pm_config
         self.logger = get_logger(self.__class__.__name__)
 
         self.logger.debug(
@@ -76,6 +80,8 @@ class TradeJournal:
             self.logger,
             self.initial_account_value,
             self.trade_percentage,
+            self.mode,
+            self.pm_config,
         )
 
     def calculate_metrics(self, trades: pd.DataFrame) -> dict:

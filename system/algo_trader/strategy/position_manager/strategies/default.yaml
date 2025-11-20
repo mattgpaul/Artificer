@@ -1,2 +1,3 @@
   position_manager:
     allow_scale_in: false
+    allow_scale_out: false

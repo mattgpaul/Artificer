@@ -115,6 +115,9 @@ class ResultsGenerator:
             results.signals = signals
             signals_to_use = signals
 
+        mode = "raw" if self.position_manager is None else "pm_managed"
+        pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+
         journal = TradeJournal(
             signals=signals_to_use,
             strategy_name=self.strategy.strategy_name,
@@ -123,6 +126,8 @@ class ResultsGenerator:
             risk_free_rate=self.risk_free_rate,
             initial_account_value=self.initial_account_value,
             trade_percentage=self.trade_percentage,
+            mode=mode,
+            pm_config=pm_config,
         )
 
         metrics, trades = journal.generate_report()
@@ -173,6 +178,9 @@ class ResultsGenerator:
             ticker_signals = signals_to_use[signals_to_use["ticker"] == ticker]
             ohlcv_data = data_cache.get(ticker)
 
+            mode = "raw" if self.position_manager is None else "pm_managed"
+            pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+
             journal = TradeJournal(
                 signals=ticker_signals,
                 strategy_name=self.strategy.strategy_name,
@@ -181,6 +189,8 @@ class ResultsGenerator:
                 risk_free_rate=self.risk_free_rate,
                 initial_account_value=self.initial_account_value,
                 trade_percentage=self.trade_percentage,
+                mode=mode,
+                pm_config=pm_config,
             )
 
             _metrics, trades = journal.generate_report()
@@ -191,6 +201,9 @@ class ResultsGenerator:
             combined_trades = pd.concat(all_trades, ignore_index=True)
             executed_trades = self.execution_simulator.apply_execution(combined_trades, data_cache)
 
+            mode = "raw" if self.position_manager is None else "pm_managed"
+            pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+
             group_journal = TradeJournal(
                 signals=pd.DataFrame(),
                 strategy_name=self.strategy.strategy_name,
@@ -198,6 +211,8 @@ class ResultsGenerator:
                 risk_free_rate=self.risk_free_rate,
                 initial_account_value=self.initial_account_value,
                 trade_percentage=self.trade_percentage,
+                mode=mode,
+                pm_config=pm_config,
             )
             results.metrics = group_journal.calculate_metrics(executed_trades)
             results.trades = executed_trades
