@@ -131,7 +131,16 @@ def process_queue(
             # Add strategy parameters as tags if provided
             strategy_params = data.get("strategy_params")
             if strategy_params and isinstance(strategy_params, dict):
-                for param_key, param_value in strategy_params.items():
+                for raw_key, param_value in strategy_params.items():
+                    # Preserve historic tag names for SMA crossover parameters to
+                    # avoid line protocol issues and maintain dashboard queries.
+                    if raw_key == "short":
+                        param_key = "short_window"
+                    elif raw_key == "long":
+                        param_key = "long_window"
+                    else:
+                        param_key = raw_key
+
                     # Convert param value to string for tag storage
                     param_str = str(param_value)
                     if param_key not in time_series_data:

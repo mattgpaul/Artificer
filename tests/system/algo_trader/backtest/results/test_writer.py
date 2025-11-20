@@ -378,6 +378,77 @@ class TestResultsWriterWriteTrades:
         assert result is True
         # All-NaN column should be dropped
 
+    @pytest.mark.unit
+    def test_write_trades_schema_validation_failure_mismatched_lengths(
+        self, mock_queue_broker
+    ):
+        """Test that schema validation failure prevents enqueue."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        trades = pd.DataFrame(
+            {
+                "ticker": ["AAPL"],
+                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+                "entry_price": [100.0],
+                "exit_price": [105.0],
+                "shares": [100.0],
+                "gross_pnl": [500.0],
+            }
+        )
+
+        # Force an invalid time-series payload with mismatched column lengths.
+        with patch(
+            "system.algo_trader.backtest.results.writer.dataframe_to_dict"
+        ) as mock_df_to_dict:
+            mock_df_to_dict.return_value = {
+                "datetime": [1704067200000, 1704153600000],  # two timestamps
+                "price": [100.0],  # only one price -> length mismatch
+            }
+
+            result = writer.write_trades(
+                trades=trades,
+                strategy_name="TestStrategy",
+                ticker="AAPL",
+            )
+
+        assert result is False
+        mock_queue_broker.enqueue.assert_not_called()
+
+    @pytest.mark.unit
+    def test_write_trades_schema_validation_failure_invalid_strategy_params(
+        self, mock_queue_broker
+    ):
+        """Test that invalid strategy_params keys cause validation failure."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        trades = pd.DataFrame(
+            {
+                "ticker": ["AAPL"],
+                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+                "entry_price": [100.0],
+                "exit_price": [105.0],
+                "shares": [100.0],
+                "gross_pnl": [500.0],
+            }
+        )
+
+        # strategy_params with an empty key should fail BacktestTradesPayload validation.
+        result = writer.write_trades(
+            trades=trades,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            strategy_params={"": 10},
+        )
+
+        assert result is False
+        mock_queue_broker.enqueue.assert_not_called()
+
     @pytest.mark.integration
     def test_write_trades_complete_workflow(self, mock_queue_broker):
         """Test complete workflow: DataFrame → dict → Redis."""
@@ -527,6 +598,27 @@ class TestResultsWriterWriteMetrics:
         )
 
         assert result is False
+
+    @pytest.mark.unit
+    def test_write_metrics_schema_validation_failure_invalid_ticker(
+        self, mock_queue_broker
+    ):
+        """Test that invalid ticker causes metrics payload validation failure."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        # Minimal metrics dictionary; hashing will be skipped.
+        metrics = {"total_trades": 1}
+
+        result = writer.write_metrics(
+            metrics=metrics,
+            strategy_name="TestStrategy",
+            ticker="",  # invalid (empty) ticker
+        )
+
+        assert result is False
+        mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.unit
     def test_write_metrics_exception(self, mock_queue_broker):

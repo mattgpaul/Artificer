@@ -17,9 +17,9 @@ py_library(
         "processor/worker.py",
         "results/hash.py",
         "results/results.py",
+        "results/schema.py",
         "results/writer.py",
         "utils/progress.py",
-        "utils/strategy_wrapper.py",
         "utils/utils.py",
     ],
     visibility = [
@@ -150,6 +150,14 @@ pytest_test(
         "unit",
     ],
     test_lib = "//tests/system/algo_trader/backtest/results:test_writer_lib",
+)
+
+pytest_test(
+    name = "test_schema",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.results.schema",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/backtest/results:test_schema_lib",
 )
 
 pytest_test(
