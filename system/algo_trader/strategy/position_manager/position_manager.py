@@ -20,9 +20,13 @@ class PositionManagerConfig:
         allow_scale_in: If True, allows multiple entry signals for the same
             ticker. If False, filters out entry signals when a position is
             already open.
+        allow_scale_out: If True, allows partial exits. If False, only full exits allowed.
+        close_full_on_exit: If True, first exit signal closes entire position.
     """
 
     allow_scale_in: bool = False
+    allow_scale_out: bool = True
+    close_full_on_exit: bool = True
 
     @classmethod
     def from_dict(cls, config_dict: dict[str, Any]) -> "PositionManagerConfig":
@@ -38,6 +42,8 @@ class PositionManagerConfig:
         """
         return cls(
             allow_scale_in=config_dict.get("allow_scale_in", False),
+            allow_scale_out=config_dict.get("allow_scale_out", True),
+            close_full_on_exit=config_dict.get("close_full_on_exit", True),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -48,6 +54,8 @@ class PositionManagerConfig:
         """
         return {
             "allow_scale_in": self.allow_scale_in,
+            "allow_scale_out": self.allow_scale_out,
+            "close_full_on_exit": self.close_full_on_exit,
         }
 
 
@@ -151,8 +159,12 @@ class PositionManager:
         idx = signal_info["idx"]
 
         if pos["position_size"] > 0:
-            pos["position_size"] = 0.0
-            pos["side"] = None
+            if self.config.close_full_on_exit:
+                pos["position_size"] = 0.0
+                pos["side"] = None
+            elif not self.config.allow_scale_out:
+                pos["position_size"] = 0.0
+                pos["side"] = None
             filtered_indices.append(idx)
         else:
             self.logger.debug(

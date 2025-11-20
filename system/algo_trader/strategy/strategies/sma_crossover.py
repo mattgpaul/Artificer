@@ -145,7 +145,6 @@ class SMACrossover(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.debug(f"Generated {len(signals_df)} buy signals for {ticker}")
         return signals_df
 
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -191,7 +190,6 @@ class SMACrossover(BaseStrategy):
         signals_df = signals_df.set_index("timestamp")
         signals_df.index.name = None
 
-        self.logger.debug(f"Generated {len(signals_df)} sell signals for {ticker}")
         return signals_df
 
     def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
