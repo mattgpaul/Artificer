@@ -138,6 +138,26 @@ def write_backtest_results(
         train_split=train_split,
     )
 
+    studies_success = writer.write_studies(
+        studies=results.studies,
+        strategy_name=results.strategy_name,
+        ticker=ticker,
+        backtest_id=backtest_id,
+        strategy_params=strategy_params,
+        execution_config=execution_config,
+        start_date=start_date,
+        end_date=end_date,
+        step_frequency=step_frequency,
+        database=database,
+        tickers=[ticker],
+        capital_per_trade=capital_per_trade,
+        risk_free_rate=risk_free_rate,
+        walk_forward=walk_forward,
+        train_days=train_days,
+        test_days=test_days,
+        train_split=train_split,
+    )
+
     return trades_success
 
 

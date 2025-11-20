@@ -92,6 +92,7 @@ def init_influx_clients(config: dict[str, Any], logger=None) -> dict[str, Market
         "trading_journal_queue": (TRADING_JOURNAL_DATABASE, TRADING_JOURNAL_BATCH_SIZE),
         "backtest_trades_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
         "backtest_metrics_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
+        "backtest_studies_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
     }
 
     influx_clients: dict[str, MarketDataInflux] = {}

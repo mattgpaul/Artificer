@@ -16,6 +16,7 @@ from system.algo_trader.backtest.core.results_generator import BacktestResults, 
 from system.algo_trader.backtest.core.signal_collector import SignalCollector
 from system.algo_trader.backtest.core.time_stepper import TimeStepper
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
+from system.algo_trader.strategy.studies.base_study import StudySpec
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.position_manager.position_manager import PositionManager
@@ -102,6 +103,56 @@ class BacktestEngine:
             position_manager,
         )
 
+    def _collect_studies_for_ticker(
+        self, ticker: str, ticker_data: pd.DataFrame, step_intervals: pd.DatetimeIndex
+    ) -> pd.DataFrame:
+        study_specs = self.strategy.get_study_specs()
+        if not study_specs:
+            return pd.DataFrame()
+
+        processed_bars: dict[pd.Timestamp, dict] = {}
+
+        for current_time in step_intervals:
+            window = self.signal_collector._slice_window(ticker_data, current_time)
+            if window.empty:
+                continue
+
+            bar_timestamp = window.index[-1]
+            if bar_timestamp in processed_bars:
+                continue
+
+            row_data: dict = {}
+            last_bar = window.iloc[-1]
+
+            for col in ticker_data.columns:
+                if col in last_bar:
+                    row_data[col] = last_bar[col]
+
+            for spec in study_specs:
+                min_bars = spec.min_bars or spec.params.get("window", 0)
+                if len(window) < min_bars:
+                    row_data[spec.name] = None
+                    continue
+
+                try:
+                    study_result = spec.study.compute(window, ticker, **spec.params)
+                    if study_result is not None and len(study_result) > 0:
+                        row_data[spec.name] = float(study_result.iloc[-1])
+                    else:
+                        row_data[spec.name] = None
+                except Exception as e:
+                    self.logger.debug(f"{ticker}: Error computing {spec.name} at {bar_timestamp}: {e}")
+                    row_data[spec.name] = None
+
+            processed_bars[bar_timestamp] = row_data
+
+        if not processed_bars:
+            return pd.DataFrame()
+
+        studies_df = pd.DataFrame.from_dict(processed_bars, orient="index")
+        studies_df.index.name = "datetime"
+        return studies_df
+
     def run_ticker(self, ticker: str) -> BacktestResults:
         """Run backtest for a single ticker.
 
@@ -143,9 +194,14 @@ class BacktestEngine:
         combined_signals = pd.DataFrame(all_signals).sort_values("signal_time")
         self.logger.debug(f"{ticker}: Generated {len(combined_signals)} unique signals")
 
-        return self.results_generator.generate_results_from_signals(
+        results = self.results_generator.generate_results_from_signals(
             combined_signals, ticker, ticker_data
         )
+
+        studies_df = self._collect_studies_for_ticker(ticker, ticker_data, step_intervals)
+        results.studies = studies_df
+
+        return results
 
     def run(self) -> BacktestResults:
         """Run backtest for all tickers.

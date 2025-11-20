@@ -33,6 +33,7 @@ class BacktestResults:
         """Initialize empty BacktestResults container."""
         self.signals: pd.DataFrame = pd.DataFrame()
         self.trades: pd.DataFrame = pd.DataFrame()
+        self.studies: pd.DataFrame = pd.DataFrame()
         self.metrics: dict = {}
         self.strategy_name: str = ""
 
