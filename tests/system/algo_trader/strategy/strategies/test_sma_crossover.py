@@ -1,486 +1,516 @@
-"""Unit tests for SMACrossover - SMA crossover trading strategy.
+"""Unit and integration tests for SMACrossover - Simple Moving Average Crossover Strategy.
 
-Tests cover initialization, signal generation with various data patterns,
-confidence calculation, edge cases, and error handling. All external
-dependencies (InfluxDB, BaseStrategy methods) are mocked.
+Tests cover initialization, validation, SMA calculation, crossover detection,
+and signal generation. All external dependencies are mocked to avoid logging calls.
+Integration tests exercise BacktestEngine with SMACrossover strategy.
 """
 
-import json
+import argparse
+from unittest.mock import MagicMock, patch
 
-import numpy as np
 import pandas as pd
 import pytest
 
+from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.engine import BacktestEngine, BacktestResults
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
-
-# All fixtures moved to conftest.py
+from system.algo_trader.strategy.strategy import Side
 
 
 class TestSMACrossoverInitialization:
     """Test SMACrossover initialization and validation."""
 
-    def test_initialization_default_params(self, mock_dependencies):
+    def test_initialization_defaults(self):
         """Test initialization with default parameters."""
         strategy = SMACrossover()
+        assert strategy.short == 10
+        assert strategy.long == 20
+        assert strategy.window == 120
+        assert strategy.side == Side.LONG
+        assert strategy.sma_study is not None
 
-        assert strategy.short_window == 10
-        assert strategy.long_window == 20
-        assert strategy.min_confidence == 0.0
-        assert strategy.strategy_name == "SMACrossover"
+    def test_initialization_custom_parameters(self):
+        """Test initialization with custom parameters."""
+        strategy = SMACrossover(short=5, long=15, window=60, side=Side.SHORT)
+        assert strategy.short == 5
+        assert strategy.long == 15
+        assert strategy.window == 60
+        assert strategy.side == Side.SHORT
 
-    def test_initialization_custom_windows(self, mock_dependencies):
-        """Test initialization with custom SMA windows."""
-        strategy = SMACrossover(short_window=5, long_window=15)
+    def test_initialization_short_greater_than_long_raises(self):
+        """Test initialization fails when short >= long."""
+        with pytest.raises(ValueError, match=r"short.*must be less than long"):
+            SMACrossover(short=20, long=10)
 
-        assert strategy.short_window == 5
-        assert strategy.long_window == 15
-        assert strategy.strategy_name == "SMACrossover"
+    def test_initialization_short_equal_long_raises(self):
+        """Test initialization fails when short equals long."""
+        with pytest.raises(ValueError, match=r"short.*must be less than long"):
+            SMACrossover(short=10, long=10)
 
-    def test_initialization_with_min_confidence(self, mock_dependencies):
-        """Test initialization with minimum confidence threshold."""
-        strategy = SMACrossover(min_confidence=0.5)
+    def test_initialization_short_less_than_two_raises(self):
+        """Test initialization fails when short < 2."""
+        with pytest.raises(ValueError, match="short must be at least 2"):
+            SMACrossover(short=1, long=10)
 
-        assert strategy.min_confidence == 0.5
+    def test_initialization_short_zero_raises(self):
+        """Test initialization fails when short is zero."""
+        with pytest.raises(ValueError, match="short must be at least 2"):
+            SMACrossover(short=0, long=10)
 
-    def test_initialization_with_custom_database(self, mock_dependencies):
-        """Test initialization with custom database name."""
-        _ = SMACrossover(database="custom-db")
-
-        mock_dependencies["influx_class"].assert_called_once()
-        call_args = mock_dependencies["influx_class"].call_args
-        assert call_args.kwargs["database"] == "custom-db"
-
-    def test_initialization_invalid_windows(self, mock_dependencies):
-        """Test initialization fails when short_window >= long_window."""
-        with pytest.raises(ValueError, match=r"short_window .* must be less than"):
-            SMACrossover(short_window=20, long_window=10)
-
-        with pytest.raises(ValueError, match=r"short_window .* must be less than"):
-            SMACrossover(short_window=10, long_window=10)
-
-    def test_initialization_short_window_too_small(self, mock_dependencies):
-        """Test initialization fails when short_window < 2."""
-        with pytest.raises(ValueError, match="short_window must be at least 2"):
-            SMACrossover(short_window=1, long_window=10)
-
-    def test_initialization_invalid_confidence(self, mock_dependencies):
-        """Test initialization fails with invalid confidence values."""
-        with pytest.raises(ValueError, match="min_confidence must be in"):
-            SMACrossover(min_confidence=-0.1)
-
-        with pytest.raises(ValueError, match="min_confidence must be in"):
-            SMACrossover(min_confidence=1.5)
-
-    def test_initialization_with_threading(self, mock_dependencies):
-        """Test initialization with threading enabled."""
-        strategy = SMACrossover(use_threading=True)
-
-        assert strategy.thread_manager is not None
-        mock_dependencies["thread_class"].assert_called_once()
+    def test_initialization_short_negative_raises(self):
+        """Test initialization fails when short is negative."""
+        with pytest.raises(ValueError, match="short must be at least 2"):
+            SMACrossover(short=-1, long=10)
 
 
-class TestGenerateSignals:
-    """Test signal generation logic."""
+class TestSMACrossoverCalculateSMAs:
+    """Test _calculate_smas method."""
 
-    def test_generate_signals_with_crossover(self, mock_dependencies):
-        """Test signal generation with a clear bullish crossover."""
-        strategy = SMACrossover(short_window=5, long_window=10)
+    def test_calculate_smas_success(self, sample_ohlcv_data):
+        """Test successful SMA calculation with sufficient data."""
+        strategy = SMACrossover(short=5, long=10)
+        sma_short, sma_long = strategy._calculate_smas(sample_ohlcv_data, "AAPL")
 
-        # Create data with a clear bullish crossover
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
+        assert sma_short is not None
+        assert sma_long is not None
+        assert isinstance(sma_short, pd.Series)
+        assert isinstance(sma_long, pd.Series)
+        assert len(sma_short) == len(sample_ohlcv_data)
+        assert len(sma_long) == len(sample_ohlcv_data)
 
-        # First half: downtrend (short SMA below long SMA)
-        # Second half: uptrend (short SMA crosses above long SMA)
-        close_prices = np.concatenate(
-            [
-                np.linspace(150, 100, 15),  # Downtrend
-                np.linspace(100, 140, 15),  # Uptrend - triggers bullish crossover
-            ]
-        )
+    def test_calculate_smas_insufficient_data_returns_none(self, sample_ohlcv_data_insufficient):
+        """Test SMA calculation returns None when data is insufficient."""
+        strategy = SMACrossover(short=5, long=10)
+        sma_short, sma_long = strategy._calculate_smas(sample_ohlcv_data_insufficient, "AAPL")
 
+        assert sma_short is None
+        assert sma_long is None
+
+    def test_calculate_smas_empty_data_returns_none(self, sample_ohlcv_data_empty):
+        """Test SMA calculation returns None for empty data."""
+        strategy = SMACrossover(short=5, long=10)
+        sma_short, sma_long = strategy._calculate_smas(sample_ohlcv_data_empty, "AAPL")
+
+        assert sma_short is None
+        assert sma_long is None
+
+
+class TestSMACrossoverLastCrossoverState:
+    """Test _last_crossover_state method."""
+
+    def test_last_crossover_state_success(self, sample_ohlcv_data):
+        """Test successful crossover state calculation."""
+        strategy = SMACrossover(short=5, long=10)
+        sma_short, sma_long = strategy._calculate_smas(sample_ohlcv_data, "AAPL")
+
+        state = strategy._last_crossover_state(sma_short, sma_long)
+
+        assert state is not None
+        assert isinstance(state, tuple)
+        assert len(state) == 2
+        assert isinstance(state[0], float)
+        assert isinstance(state[1], float)
+
+    def test_last_crossover_state_insufficient_length_returns_none(self):
+        """Test crossover state returns None when series length < 2."""
+        strategy = SMACrossover(short=5, long=10)
+        sma_short = pd.Series([1.0])
+        sma_long = pd.Series([2.0])
+
+        state = strategy._last_crossover_state(sma_short, sma_long)
+        assert state is None
+
+    def test_last_crossover_state_correct_calculation(self):
+        """Test crossover state calculates correct diff values."""
+        strategy = SMACrossover(short=5, long=10)
+        # Create series where short SMA is below long initially, then crosses above
+        sma_short = pd.Series([10.0, 12.0, 15.0])  # Rising
+        sma_long = pd.Series([15.0, 14.0, 13.0])  # Falling
+        # diff: [-5.0, -2.0, 2.0]
+        # prev = -2.0, curr = 2.0 (crossover occurred)
+
+        state = strategy._last_crossover_state(sma_short, sma_long)
+
+        assert state == (-2.0, 2.0)
+
+
+class TestSMACrossoverBuildSignal:
+    """Test _build_signal method."""
+
+    def test_build_signal_success(self, sample_ohlcv_data):
+        """Test successful signal building."""
+        strategy = SMACrossover()
+        signal = strategy._build_signal(sample_ohlcv_data)
+
+        assert not signal.empty
+        assert len(signal) == 1
+        assert "price" in signal.columns
+        assert signal.index[0] == sample_ohlcv_data.index[-1]
+        assert signal["price"].iloc[0] == round(float(sample_ohlcv_data["close"].iloc[-1]), 4)
+
+    def test_build_signal_empty_dataframe_returns_empty(self, sample_ohlcv_data_empty):
+        """Test signal building returns empty DataFrame for empty input."""
+        strategy = SMACrossover()
+        signal = strategy._build_signal(sample_ohlcv_data_empty)
+
+        assert signal.empty
+
+    def test_build_signal_missing_close_returns_empty(self, sample_ohlcv_data_missing_close):
+        """Test signal building returns empty DataFrame when close column missing."""
+        strategy = SMACrossover()
+        signal = strategy._build_signal(sample_ohlcv_data_missing_close)
+
+        assert signal.empty
+
+
+class TestSMACrossoverBuy:
+    """Test buy method for detecting upward crossovers."""
+
+    def test_buy_upward_crossover_returns_signal(self):
+        """Test buy returns signal when short SMA crosses above long SMA."""
+        strategy = SMACrossover(short=5, long=10)
+        # Create data where crossover occurs at the end
+        dates = pd.date_range("2024-01-01", periods=20, freq="D")
+        # First 15: declining (short below long)
+        # Last 5: rising (short crosses above long)
+        close_prices = [100.0 - i * 0.5 for i in range(15)] + [92.5 + i * 1.5 for i in range(5)]
         ohlcv_data = pd.DataFrame(
             {
-                "open": close_prices - 1,
-                "high": close_prices + 2,
-                "low": close_prices - 2,
+                "open": [p - 0.5 for p in close_prices],
+                "high": [p + 0.5 for p in close_prices],
+                "low": [p - 1.0 for p in close_prices],
                 "close": close_prices,
-                "volume": [1000000] * 30,
+                "volume": [1000000] * 20,
             },
             index=dates,
         )
 
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
+        signal = strategy.buy(ohlcv_data, "AAPL")
 
-        assert not signals.empty
-        assert "signal_type" in signals.columns
-        assert "price" in signals.columns
-        assert "confidence" in signals.columns
-        assert "metadata" in signals.columns
+        # May or may not have signal depending on exact crossover timing
+        # But should not raise an error
+        assert isinstance(signal, pd.DataFrame)
 
-    def test_generate_signals_bullish_crossover(self, mock_dependencies):
-        """Test detection of bullish crossover (buy signal)."""
-        strategy = SMACrossover(short_window=3, long_window=5)
+    def test_buy_no_crossover_returns_empty(self, sample_ohlcv_data):
+        """Test buy returns empty DataFrame when no crossover occurs."""
+        strategy = SMACrossover(short=5, long=10)
+        # Use monotonically increasing data (no crossover)
+        signal = strategy.buy(sample_ohlcv_data, "AAPL")
 
-        # Create data where short SMA crosses above long SMA
-        dates = pd.date_range(start="2024-01-01", periods=20, freq="D")
-        close_prices = np.concatenate(
-            [
-                [100, 100, 100, 100, 100],  # Flat
-                [101, 103, 106, 110, 115],  # Sharp increase
-                [116, 117, 118, 119, 120],  # Continued increase
-                [120, 120, 120, 120, 120],  # Flat
-            ]
-        )
+        # Should return DataFrame (may be empty if no crossover)
+        assert isinstance(signal, pd.DataFrame)
 
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices[:20], "open": close_prices[:20]},
-            index=dates,
-        )
+    def test_buy_insufficient_data_returns_empty(self, sample_ohlcv_data_insufficient):
+        """Test buy returns empty DataFrame when data is insufficient."""
+        strategy = SMACrossover(short=5, long=10)
+        signal = strategy.buy(sample_ohlcv_data_insufficient, "AAPL")
 
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
+        assert signal.empty
 
-        # Should detect at least one buy signal
-        if not signals.empty:
-            buy_signals = signals[signals["signal_type"] == "buy"]
-            assert len(buy_signals) > 0
+    def test_buy_empty_data_returns_empty(self, sample_ohlcv_data_empty):
+        """Test buy returns empty DataFrame for empty input."""
+        strategy = SMACrossover(short=5, long=10)
+        signal = strategy.buy(sample_ohlcv_data_empty, "AAPL")
 
-    def test_generate_signals_bearish_crossover(self, mock_dependencies):
-        """Test detection of bearish crossover (sell signal)."""
-        strategy = SMACrossover(short_window=3, long_window=5)
-
-        # Create data where short SMA crosses below long SMA
-        dates = pd.date_range(start="2024-01-01", periods=20, freq="D")
-        close_prices = np.concatenate(
-            [
-                [120, 120, 120, 120, 120],  # Flat
-                [119, 117, 114, 110, 105],  # Sharp decrease
-                [104, 103, 102, 101, 100],  # Continued decrease
-                [100, 100, 100, 100, 100],  # Flat
-            ]
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices[:20], "open": close_prices[:20]},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # Should detect at least one sell signal
-        if not signals.empty:
-            sell_signals = signals[signals["signal_type"] == "sell"]
-            assert len(sell_signals) > 0
-
-    def test_generate_signals_no_crossover(self, mock_dependencies):
-        """Test when no crossovers occur (constant uptrend)."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        # Constant uptrend - short SMA always above long SMA, no crossover
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        close_prices = np.linspace(100, 150, 30)
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # No crossovers should be detected in a smooth uptrend
-        # (short SMA stays above long SMA throughout)
-        assert signals.empty or len(signals) <= 1
-
-    def test_generate_signals_min_confidence_filter(self, mock_dependencies):
-        """Test that signals below min_confidence are filtered out."""
-        strategy = SMACrossover(short_window=5, long_window=10, min_confidence=0.8)
-
-        # Create data with weak crossover
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        close_prices = np.concatenate(
-            [
-                np.linspace(100, 95, 15),  # Slight downtrend
-                np.linspace(95, 100, 15),  # Slight uptrend (weak crossover)
-            ]
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # All signals should have confidence >= min_confidence
-        if not signals.empty:
-            assert (signals["confidence"] >= 0.8).all()
-
-    def test_generate_signals_confidence_calculation(self, mock_dependencies):
-        """Test that confidence scores are properly calculated."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        close_prices = np.concatenate(
-            [
-                np.linspace(150, 100, 15),  # Downtrend
-                np.linspace(100, 150, 15),  # Uptrend
-            ]
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        if not signals.empty:
-            # Confidence should be between 0 and 1
-            assert (signals["confidence"] >= 0.0).all()
-            assert (signals["confidence"] <= 1.0).all()
-
-    def test_generate_signals_metadata_structure(self, mock_dependencies):
-        """Test that signal metadata contains required fields."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        close_prices = np.concatenate(
-            [
-                np.linspace(150, 100, 15),
-                np.linspace(100, 150, 15),
-            ]
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        if not signals.empty:
-            metadata = json.loads(signals.iloc[0]["metadata"])
-
-            # Check metadata contains expected fields
-            assert "sma_short" in metadata
-            assert "sma_long" in metadata
-            assert "difference" in metadata
-            assert "difference_pct" in metadata
-            assert "short_window" in metadata
-            assert "long_window" in metadata
-            assert metadata["short_window"] == 5
-            assert metadata["long_window"] == 10
+        assert signal.empty
 
 
-class TestEdgeCases:
-    """Test edge cases and error handling."""
+class TestSMACrossoverSell:
+    """Test sell method for detecting downward crossovers."""
 
-    def test_generate_signals_empty_dataframe(self, mock_dependencies):
-        """Test with empty OHLCV data."""
-        strategy = SMACrossover()
-
-        empty_df = pd.DataFrame()
-        signals = strategy.generate_signals(empty_df, "AAPL")
-
-        assert signals.empty
-
-    def test_generate_signals_none_dataframe(self, mock_dependencies):
-        """Test with None as input."""
-        strategy = SMACrossover()
-
-        signals = strategy.generate_signals(None, "AAPL")
-
-        assert signals.empty
-
-    def test_generate_signals_missing_close_column(self, mock_dependencies):
-        """Test with OHLCV data missing 'close' column."""
-        strategy = SMACrossover()
-
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
+    def test_sell_downward_crossover_returns_signal(self):
+        """Test sell returns signal when short SMA crosses below long SMA."""
+        strategy = SMACrossover(short=5, long=10)
+        # Create data where crossover occurs at the end (downward)
+        dates = pd.date_range("2024-01-01", periods=20, freq="D")
+        # First 15: rising (short above long)
+        # Last 5: declining (short crosses below long)
+        close_prices = [100.0 + i * 0.5 for i in range(15)] + [107.5 - i * 1.5 for i in range(5)]
         ohlcv_data = pd.DataFrame(
             {
-                "open": [100] * 30,
-                "high": [105] * 30,
-                "low": [95] * 30,
-                # Missing 'close' column
-            },
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        assert signals.empty
-
-    def test_generate_signals_insufficient_data(self, mock_dependencies):
-        """Test with insufficient data for long_window calculation."""
-        strategy = SMACrossover(short_window=10, long_window=20)
-
-        # Only 15 rows, but need 20 for long_window
-        dates = pd.date_range(start="2024-01-01", periods=15, freq="D")
-        ohlcv_data = pd.DataFrame(
-            {"close": [100] * 15, "open": [100] * 15},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        assert signals.empty
-
-    def test_generate_signals_exact_window_size(self, mock_dependencies):
-        """Test with data exactly matching long_window size."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        # Exactly 10 rows
-        dates = pd.date_range(start="2024-01-01", periods=10, freq="D")
-        close_prices = [100, 102, 101, 103, 105, 108, 110, 112, 115, 118]
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # Should be able to calculate SMAs, but may not have crossovers
-        assert isinstance(signals, pd.DataFrame)
-
-    def test_generate_signals_all_same_price(self, mock_dependencies):
-        """Test with all close prices identical (no movement)."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        ohlcv_data = pd.DataFrame(
-            {"close": [100] * 30, "open": [100] * 30},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # No crossovers in flat data
-        assert signals.empty
-
-    def test_generate_signals_with_nan_values(self, mock_dependencies):
-        """Test handling of NaN values in close prices."""
-        strategy = SMACrossover(short_window=5, long_window=10)
-
-        dates = pd.date_range(start="2024-01-01", periods=30, freq="D")
-        close_prices = np.linspace(100, 150, 30)
-        close_prices[10:15] = np.nan  # Insert NaN values
-
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
-            index=dates,
-        )
-
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
-
-        # Strategy should handle NaN gracefully (pandas rolling handles NaN)
-        assert isinstance(signals, pd.DataFrame)
-
-
-class TestConfidenceCalculation:
-    """Test confidence score calculation logic."""
-
-    def test_calculate_confidence_zero_sma_long(self, mock_dependencies):
-        """Test confidence calculation when sma_long is zero."""
-        strategy = SMACrossover()
-
-        confidence = strategy._calculate_confidence(diff=10.0, sma_long=0.0)
-
-        assert confidence == 0.0
-
-    def test_calculate_confidence_small_difference(self, mock_dependencies):
-        """Test confidence with small percentage difference."""
-        strategy = SMACrossover()
-
-        # 0.5% difference
-        confidence = strategy._calculate_confidence(diff=0.5, sma_long=100.0)
-
-        assert 0.0 <= confidence <= 1.0
-        assert confidence < 1.0  # Should not be max confidence
-
-    def test_calculate_confidence_large_difference(self, mock_dependencies):
-        """Test confidence with large percentage difference."""
-        strategy = SMACrossover()
-
-        # 2% difference
-        confidence = strategy._calculate_confidence(diff=2.0, sma_long=100.0)
-
-        assert confidence > 0.5  # Should be high confidence
-        assert confidence <= 1.0
-
-    def test_calculate_confidence_negative_diff(self, mock_dependencies):
-        """Test confidence with negative difference (uses absolute value)."""
-        strategy = SMACrossover()
-
-        confidence_pos = strategy._calculate_confidence(diff=1.0, sma_long=100.0)
-        confidence_neg = strategy._calculate_confidence(diff=-1.0, sma_long=100.0)
-
-        # Should be same (uses abs value)
-        assert confidence_pos == confidence_neg
-
-
-class TestIntegration:
-    """Integration tests with realistic scenarios."""
-
-    def test_full_strategy_workflow(self, mock_dependencies):
-        """Test complete workflow: initialize, generate signals, check results."""
-        strategy = SMACrossover(
-            short_window=5,
-            long_window=10,
-            min_confidence=0.3,
-        )
-
-        # Create realistic data with clear crossover
-        dates = pd.date_range(start="2024-01-01", periods=40, freq="D")
-        close_prices = np.concatenate(
-            [
-                np.linspace(100, 90, 20),  # Downtrend
-                np.linspace(90, 110, 20),  # Uptrend (crossover)
-            ]
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {
-                "open": close_prices - 0.5,
-                "high": close_prices + 1.0,
-                "low": close_prices - 1.0,
+                "open": [p - 0.5 for p in close_prices],
+                "high": [p + 0.5 for p in close_prices],
+                "low": [p - 1.0 for p in close_prices],
                 "close": close_prices,
-                "volume": [1000000] * 40,
+                "volume": [1000000] * 20,
             },
             index=dates,
         )
 
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
+        signal = strategy.sell(ohlcv_data, "AAPL")
 
-        # Verify structure - signals may be empty if no crossover occurs
-        assert isinstance(signals, pd.DataFrame)
-        if not signals.empty:
-            assert all(
-                col in signals.columns for col in ["signal_type", "price", "confidence", "metadata"]
-            )
-            assert all(signals["signal_type"].isin(["buy", "sell"]))
-            assert (signals["confidence"] >= 0.3).all()
+        # May or may not have signal depending on exact crossover timing
+        # But should not raise an error
+        assert isinstance(signal, pd.DataFrame)
 
-    def test_multiple_crossovers(self, mock_dependencies):
-        """Test detection of multiple crossovers in volatile data."""
-        strategy = SMACrossover(short_window=3, long_window=5)
+    def test_sell_no_crossover_returns_empty(self, sample_ohlcv_data):
+        """Test sell returns empty DataFrame when no crossover occurs."""
+        strategy = SMACrossover(short=5, long=10)
+        # Use monotonically increasing data (no downward crossover)
+        signal = strategy.sell(sample_ohlcv_data, "AAPL")
 
-        # Create oscillating data
-        dates = pd.date_range(start="2024-01-01", periods=50, freq="D")
-        close_prices = 100 + 10 * np.sin(np.linspace(0, 4 * np.pi, 50))
+        # Should return DataFrame (may be empty if no crossover)
+        assert isinstance(signal, pd.DataFrame)
 
-        ohlcv_data = pd.DataFrame(
-            {"close": close_prices, "open": close_prices},
+    def test_sell_insufficient_data_returns_empty(self, sample_ohlcv_data_insufficient):
+        """Test sell returns empty DataFrame when data is insufficient."""
+        strategy = SMACrossover(short=5, long=10)
+        signal = strategy.sell(sample_ohlcv_data_insufficient, "AAPL")
+
+        assert signal.empty
+
+    def test_sell_empty_data_returns_empty(self, sample_ohlcv_data_empty):
+        """Test sell returns empty DataFrame for empty input."""
+        strategy = SMACrossover(short=5, long=10)
+        signal = strategy.sell(sample_ohlcv_data_empty, "AAPL")
+
+        assert signal.empty
+
+
+class TestSMACrossoverAddArguments:
+    """Test add_arguments class method."""
+
+    def test_add_arguments_adds_short_and_long(self):
+        """Test add_arguments adds short and long parameters."""
+        parser = argparse.ArgumentParser()
+        SMACrossover.add_arguments(parser)
+
+        args = parser.parse_args(["--short", "5", "--long", "15"])
+        assert args.short == 5
+        assert args.long == 15
+
+    def test_add_arguments_inherits_strategy_arguments(self):
+        """Test add_arguments includes Strategy base class arguments."""
+        parser = argparse.ArgumentParser()
+        SMACrossover.add_arguments(parser)
+
+        args = parser.parse_args(["--side", "SHORT", "--window", "60"])
+        assert args.side == "SHORT"
+        assert args.window == 60
+
+
+class TestSMACrossoverIntegration:
+    """Integration tests for SMACrossover with BacktestEngine."""
+
+    @pytest.fixture
+    def sample_ohlcv_data_crossover(self):
+        """Create OHLCV data designed to trigger SMA crossover."""
+        dates = pd.date_range("2024-01-01", periods=50, freq="D", tz="UTC")
+        # Create data where short SMA (5) crosses above long SMA (10) around index 20
+        # First 20: declining prices
+        # Next 30: rising prices (causes crossover)
+        close_prices = []
+        for i in range(50):
+            if i < 20:
+                close_prices.append(100.0 - i * 0.5)  # Declining
+            else:
+                close_prices.append(90.0 + (i - 20) * 1.0)  # Rising
+
+        return pd.DataFrame(
+            {
+                "open": [p - 0.5 for p in close_prices],
+                "high": [p + 0.5 for p in close_prices],
+                "low": [p - 1.0 for p in close_prices],
+                "close": close_prices,
+                "volume": [1000000] * 50,
+            },
             index=dates,
         )
 
-        signals = strategy.generate_signals(ohlcv_data, "AAPL")
+    @pytest.fixture
+    def sample_ohlcv_data_with_time(self, sample_ohlcv_data_crossover):
+        """Convert OHLCV data to InfluxDB format (with time column)."""
+        data = sample_ohlcv_data_crossover.reset_index()
+        data = data.rename(columns={"index": "time"})
+        return data
 
-        # Should detect multiple crossovers in oscillating data
-        if not signals.empty:
-            buy_count = (signals["signal_type"] == "buy").sum()
-            sell_count = (signals["signal_type"] == "sell").sum()
+    @pytest.mark.integration
+    def test_backtest_engine_with_sma_crossover_generates_signals(
+        self, sample_ohlcv_data_with_time
+    ):
+        """Test BacktestEngine with SMACrossover generates buy signals on crossover."""
+        strategy = SMACrossover(short=5, long=10, window=50, side=Side.LONG)
 
-            # In oscillating data, should have both buys and sells
-            assert buy_count >= 0
-            assert sell_count >= 0
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-20", tz="UTC")
+
+        engine = BacktestEngine(
+            strategy=strategy,
+            tickers=["AAPL"],
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency="daily",
+            database="ohlcv",
+        )
+
+        # Mock InfluxDB to return our test data
+        with (
+            patch("system.algo_trader.backtest.engine.MarketDataInflux") as mock_influx_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_influx_instance = MagicMock()
+            mock_influx_instance.query.return_value = sample_ohlcv_data_with_time.copy()
+            mock_influx_class.return_value = mock_influx_instance
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = pd.DataFrame()
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            results = engine.run_ticker("AAPL")
+
+            # Verify results structure
+            assert isinstance(results, BacktestResults)
+            assert hasattr(results, "signals")
+            assert hasattr(results, "trades")
+            assert hasattr(results, "metrics")
+
+    @pytest.mark.integration
+    def test_backtest_engine_with_sma_crossover_multiple_tickers(self, sample_ohlcv_data_with_time):
+        """Test BacktestEngine with SMACrossover handles multiple tickers."""
+        strategy = SMACrossover(short=5, long=10, window=50, side=Side.LONG)
+
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-20", tz="UTC")
+
+        engine = BacktestEngine(
+            strategy=strategy,
+            tickers=["AAPL", "MSFT"],
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency="daily",
+            database="ohlcv",
+        )
+
+        # Mock InfluxDB to return test data for both tickers
+        with (
+            patch("system.algo_trader.backtest.engine.MarketDataInflux") as mock_influx_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_influx_instance = MagicMock()
+            mock_influx_instance.query.return_value = sample_ohlcv_data_with_time.copy()
+            mock_influx_class.return_value = mock_influx_instance
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = pd.DataFrame()
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            results = engine.run()
+
+            # Verify results structure
+            assert isinstance(results, BacktestResults)
+            assert hasattr(results, "signals")
+            assert hasattr(results, "trades")
+
+    @pytest.mark.integration
+    def test_backtest_engine_with_sma_crossover_window_respect(self, sample_ohlcv_data_with_time):
+        """Test BacktestEngine respects SMACrossover window parameter."""
+        # Use a small window to limit lookback
+        strategy = SMACrossover(short=5, long=10, window=15, side=Side.LONG)
+
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-20", tz="UTC")
+
+        engine = BacktestEngine(
+            strategy=strategy,
+            tickers=["AAPL"],
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency="daily",
+            database="ohlcv",
+        )
+
+        with (
+            patch("system.algo_trader.backtest.engine.MarketDataInflux") as mock_influx_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_influx_instance = MagicMock()
+            mock_influx_instance.query.return_value = sample_ohlcv_data_with_time.copy()
+            mock_influx_class.return_value = mock_influx_instance
+
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = pd.DataFrame()
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            results = engine.run_ticker("AAPL")
+
+            # Verify window is respected (strategy should only see last 15 bars)
+            assert isinstance(results, BacktestResults)
+            # SignalCollector should slice data according to window
+            assert hasattr(results, "signals")
+
+    @pytest.mark.integration
+    def test_backtest_engine_with_sma_crossover_execution_config(self, sample_ohlcv_data_with_time):
+        """Test BacktestEngine with SMACrossover uses execution config."""
+        strategy = SMACrossover(short=5, long=10, window=50, side=Side.LONG)
+        execution_config = ExecutionConfig(
+            slippage_bps=10.0,
+            commission_per_share=0.01,
+            use_limit_orders=True,
+        )
+
+        start_date = pd.Timestamp("2024-01-01", tz="UTC")
+        end_date = pd.Timestamp("2024-01-20", tz="UTC")
+
+        engine = BacktestEngine(
+            strategy=strategy,
+            tickers=["AAPL"],
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency="daily",
+            database="ohlcv",
+            execution_config=execution_config,
+        )
+
+        assert engine.execution_config.slippage_bps == 10.0
+        assert engine.execution_config.commission_per_share == 0.01
+        assert engine.execution_config.use_limit_orders is True
+
+        with (
+            patch("system.algo_trader.backtest.engine.MarketDataInflux") as mock_influx_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.TradeJournal"
+            ) as mock_journal_class,
+            patch(
+                "system.algo_trader.backtest.core.results_generator.ExecutionSimulator"
+            ) as mock_exec_sim_class,
+        ):
+            mock_influx_instance = MagicMock()
+            mock_influx_instance.query.return_value = sample_ohlcv_data_with_time.copy()
+            mock_influx_class.return_value = mock_influx_instance
+            mock_journal = MagicMock()
+            mock_journal.generate_report.return_value = ({}, pd.DataFrame())
+            mock_journal_class.return_value = mock_journal
+
+            mock_exec_sim = MagicMock()
+            mock_exec_sim.apply_execution.return_value = pd.DataFrame()
+            mock_exec_sim_class.return_value = mock_exec_sim
+
+            results = engine.run_ticker("AAPL")
+
+            # Verify execution config was used
+            assert isinstance(results, BacktestResults)

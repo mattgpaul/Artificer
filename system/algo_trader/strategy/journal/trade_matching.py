@@ -242,13 +242,15 @@ def _match_trades_raw(
         if is_entry:
             shares = capital_per_trade / price
             trade_id_counters[ticker] += 1
-            entry_queues[ticker].append({
-                "entry_time": timestamp,
-                "entry_price": price,
-                "shares": shares,
-                "side": side,
-                "trade_id": trade_id_counters[ticker],
-            })
+            entry_queues[ticker].append(
+                {
+                    "entry_time": timestamp,
+                    "entry_price": price,
+                    "shares": shares,
+                    "side": side,
+                    "trade_id": trade_id_counters[ticker],
+                }
+            )
         elif is_exit:
             queue = entry_queues[ticker]
             if queue:
@@ -339,6 +341,7 @@ def _process_exit_signal(
         ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
         strategy_name: Strategy name.
         logger: Logger instance.
+        close_full_on_exit: Whether to close full position on exit signal.
     """
     ticker = signal["ticker"]
     price = signal["price"]
@@ -431,6 +434,8 @@ def match_trades(
         logger: Optional logger instance. If not provided, creates a new logger.
         initial_account_value: Optional initial account value for account tracking.
         trade_percentage: Optional percentage of account to use per trade.
+        mode: Position management mode. Defaults to "pm_managed".
+        pm_config: Optional position manager configuration dictionary.
 
     Returns:
         DataFrame containing matched trades with columns:
@@ -443,9 +448,7 @@ def match_trades(
         return pd.DataFrame()
 
     if mode == "raw":
-        return _match_trades_raw(
-            signals, strategy_name, capital_per_trade, ohlcv_data, logger
-        )
+        return _match_trades_raw(signals, strategy_name, capital_per_trade, ohlcv_data, logger)
 
     signals = signals.sort_values(["ticker", "signal_time"])
     matched_trades = []

@@ -18,6 +18,7 @@ from system.algo_trader.backtest.processor.worker import (
     log_backtest_results,
     write_backtest_results,
 )
+from system.algo_trader.strategy.strategy import Side
 
 
 class TestCreateStrategyInstance:
@@ -32,36 +33,12 @@ class TestCreateStrategyInstance:
             mock_strategy = MagicMock()
             mock_strategy_class.return_value = mock_strategy
 
-            result = create_strategy_instance(
-                "SMACrossover", {"short_window": 10, "long_window": 20}
-            )
+            result = create_strategy_instance("SMACrossover", {"short": 10, "long": 20})
 
             assert result == mock_strategy
-            mock_strategy_class.assert_called_once_with(short_window=10, long_window=20)
-
-    @pytest.mark.unit
-    def test_create_strategy_instance_valley_long(self):
-        """Test creating ValleyLong strategy instance."""
-        with patch(
-            "system.algo_trader.backtest.processor.worker.ValleyLong"
-        ) as mock_strategy_class:
-            mock_strategy = MagicMock()
-            mock_strategy_class.return_value = mock_strategy
-
-            result = create_strategy_instance(
-                "ValleyLong",
-                {
-                    "valley_distance": 50,
-                    "valley_prominence": 2.0,
-                    "peak_distance": 50,
-                    "peak_prominence": 2.0,
-                    "nearness_threshold": 0.5,
-                    "min_confidence": 0.0,
-                },
+            mock_strategy_class.assert_called_once_with(
+                short=10, long=20, window=120, side=Side("LONG")
             )
-
-            assert result == mock_strategy
-            mock_strategy_class.assert_called_once()
 
     @pytest.mark.unit
     def test_create_strategy_instance_unknown_type(self):

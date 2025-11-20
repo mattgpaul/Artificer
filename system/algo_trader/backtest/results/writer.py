@@ -12,6 +12,11 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
+from system.algo_trader.backtest.results.schema import (
+    BacktestMetricsPayload,
+    BacktestTradesPayload,
+    ValidationError,
+)
 from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
@@ -185,15 +190,25 @@ class ResultsWriter:
             f"Writing {row_count} journal rows ({len(trades)} trades) to Redis for {ticker}"
         )
 
-        queue_data = {
-            "ticker": ticker,
-            "strategy_name": strategy_name,
-            "backtest_id": backtest_id,
-            "hash_id": hash_id,
-            "strategy_params": strategy_params,  # Include strategy params for tag generation
-            "data": trades_dict,
-            "database": database,
-        }
+        # Validate payload structure with Pydantic before enqueueing.
+        try:
+            payload = BacktestTradesPayload(
+                ticker=ticker,
+                strategy_name=strategy_name,
+                backtest_id=backtest_id,
+                hash_id=hash_id,
+                strategy_params=strategy_params,
+                data=trades_dict,
+                database=database,
+            )
+        except ValidationError as e:
+            self.logger.error(
+                "Validation error building backtest trades payload for "
+                f"{ticker} / {strategy_name}: {e}"
+            )
+            return False
+
+        queue_data = payload.model_dump()
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}"
 
@@ -315,14 +330,24 @@ class ResultsWriter:
         # Log at debug level
         self.logger.debug(f"Writing metrics to Redis for {ticker}")
 
-        queue_data = {
-            "ticker": ticker,
-            "strategy_name": strategy_name,
-            "backtest_id": backtest_id,
-            "hash_id": hash_id,
-            "data": metrics_data,
-            "database": database,
-        }
+        # Validate payload structure with Pydantic before enqueueing.
+        try:
+            payload = BacktestMetricsPayload(
+                ticker=ticker,
+                strategy_name=strategy_name,
+                backtest_id=backtest_id,
+                hash_id=hash_id,
+                data=metrics_data,
+                database=database,
+            )
+        except ValidationError as e:
+            self.logger.error(
+                "Validation error building backtest metrics payload for "
+                f"{ticker} / {strategy_name}: {e}"
+            )
+            return False
+
+        queue_data = payload.model_dump()
 
         item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}_metrics"
 

@@ -10,7 +10,7 @@ py_library(
         "//infrastructure/logging:logger",
         "//system/algo_trader/strategy/studies:base_study",
         "//system/algo_trader/strategy/studies/moving_average:simple_moving_average",
-        "//tests/system/algo_trader/strategy/utils/studies:conftest_lib",
+        "//tests/system/algo_trader/strategy/studies:conftest_lib",
         requirement("numpy"),
         requirement("pandas"),
         requirement("pytest"),

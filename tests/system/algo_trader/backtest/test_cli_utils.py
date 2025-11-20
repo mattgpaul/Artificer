@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.utils.cli_utils import (
+from system.algo_trader.backtest.cli_utils import (
     format_journal_summary,
     format_signal_summary,
     format_trade_details,
@@ -166,7 +166,7 @@ class TestResolveTickers:
         assert "NVDA" in result
 
         # Verify InfluxDB client was created with correct database
-        mock_influx_client["class"].assert_called_once_with(database="algo-trader-ohlcv")
+        mock_influx_client["class"].assert_called_once_with(database="ohlcv")
         mock_influx_client["instance"].query.assert_called_once_with(
             "SELECT DISTINCT ticker FROM ohlcv"
         )
@@ -461,9 +461,9 @@ class TestFormatTradeDetails:
 
         assert result == "No completed trades to display"
 
-    def test_format_trade_details_standard(self, sample_trades):
+    def test_format_trade_details_standard(self, sample_trades_cli):
         """Test formatting standard trade details."""
-        result = format_trade_details(sample_trades)
+        result = format_trade_details(sample_trades_cli)
 
         assert "Detailed Trade History" in result
         assert "ENTRY DATE" in result
@@ -522,18 +522,18 @@ class TestFormatTradeDetails:
         assert "500.00" in result
         assert "5.00" in result and "%" in result  # Format has spaces: "5.00      %"
 
-    def test_format_trade_details_multiple_trades(self, sample_trades):
+    def test_format_trade_details_multiple_trades(self, sample_trades_cli):
         """Test formatting multiple trades."""
-        result = format_trade_details(sample_trades)
+        result = format_trade_details(sample_trades_cli)
 
         # Check all three trades are present
         assert "500.00" in result  # First trade
         assert "-300.00" in result  # Second trade
         assert "800.00" in result  # Third trade
 
-    def test_format_trade_details_structure(self, sample_trades):
+    def test_format_trade_details_structure(self, sample_trades_cli):
         """Test output structure with separators and headers."""
-        result = format_trade_details(sample_trades)
+        result = format_trade_details(sample_trades_cli)
 
         lines = result.split("\n")
 
@@ -593,7 +593,7 @@ class TestFormatTradeDetails:
 class TestGetSP500Tickers:
     """Test S&P 500 ticker retrieval functionality."""
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    @patch("system.algo_trader.backtest.cli_utils.pd.read_html")
     def test_get_sp500_tickers_success(self, mock_read_html):
         """Test successful retrieval of S&P 500 tickers from Wikipedia."""
         # Mock pandas read_html to return a DataFrame with Symbol column
@@ -609,7 +609,7 @@ class TestGetSP500Tickers:
         assert "BRK-B" in result  # Dot should be replaced with dash
         assert "AMZN" in result
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    @patch("system.algo_trader.backtest.cli_utils.pd.read_html")
     def test_get_sp500_tickers_wikipedia_failure(self, mock_read_html):
         """Test fallback to static list when Wikipedia fetch fails."""
         mock_read_html.side_effect = Exception("Network error")
@@ -623,7 +623,7 @@ class TestGetSP500Tickers:
         assert "AAPL" in result
         assert "MSFT" in result
 
-    @patch("system.algo_trader.strategy.utils.cli_utils.pd.read_html")
+    @patch("system.algo_trader.backtest.cli_utils.pd.read_html")
     def test_get_sp500_tickers_symbol_normalization(self, mock_read_html):
         """Test that ticker symbols with dots are normalized to dashes."""
         mock_df = pd.DataFrame({"Symbol": ["BRK.B", "BF.B", "BRK.A"]})

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from system.algo_trader.strategy.utils.studies.support_resistance.find_valleys import FindValleys
+from system.algo_trader.strategy.studies.support_resistance.find_valleys import FindValleys
 
 
 class TestFindValleysInitialization:
@@ -440,7 +440,7 @@ class TestFindValleysCalculation:
         """Test exception handling during valley detection."""
         study = FindValleys(logger=mock_logger)
         with patch(
-            "system.algo_trader.strategy.utils.studies.support_resistance.find_valleys.find_peaks",
+            "system.algo_trader.strategy.studies.support_resistance.find_valleys.find_peaks",
             side_effect=Exception("Test error"),
         ):
             result = study.calculate(sample_ohlcv_data, "AAPL", column="close")

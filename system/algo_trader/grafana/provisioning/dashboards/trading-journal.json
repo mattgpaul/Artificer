@@ -1063,8 +1063,8 @@
           },
           {
             "selected": false,
-            "text": "Debug",
-            "value": "influxdb-algo-trader-debug"
+            "text": "Backtest Dev",
+            "value": "influxdb-algo-trader-backtest-dev"
           }
         ],
         "query": "influxdb",

@@ -10,7 +10,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/utils/studies:base_study",
+        "//system/algo_trader/strategy/studies:base_study",
         requirement("pandas"),
     ],
 )
@@ -18,7 +18,7 @@ py_library(
 pytest_test(
     name = "test_simple_moving_average",
     size = "small",
-    coverage_path = "system.algo_trader.strategy.utils.studies.moving_average.simple_moving_average",
+    coverage_path = "system.algo_trader.strategy.studies.moving_average.simple_moving_average",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy/utils/studies/moving_average:test_simple_moving_average_lib",
+    test_lib = "//tests/system/algo_trader/strategy/studies/moving_average:test_simple_moving_average_lib",
 )

@@ -8,6 +8,7 @@ py_library(
     visibility = [
         "//system/algo_trader/backtest:__pkg__",
         "//tests/system/algo_trader/backtest:__subpackages__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
         "//system/algo_trader/backtest:backtest_lib",
@@ -40,6 +41,21 @@ py_library(
         ":conftest_lib",
         "//system/algo_trader/backtest:backtest_lib",
         "//system/algo_trader/backtest:main_lib",
+        requirement("pandas"),
+        requirement("pytest"),
+    ],
+)
+
+py_library(
+    name = "test_cli_utils_lib",
+    testonly = True,
+    srcs = ["test_cli_utils.py"],
+    visibility = ["//system/algo_trader/backtest:__pkg__"],
+    deps = [
+        ":conftest_lib",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/backtest:cli_utils",
+        "//system/algo_trader/datasource/sec:tickers_lib",
         requirement("pandas"),
         requirement("pytest"),
     ],

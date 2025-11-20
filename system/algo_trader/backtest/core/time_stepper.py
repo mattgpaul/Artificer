@@ -101,6 +101,8 @@ class TimeStepper:
             freq_str = self.step_frequency
 
         try:
+            # Generate sequential time steps - backtest engine will iterate through these
+            # one at a time, calling strategy.run_strategy() at each step
             intervals = pd.date_range(
                 start=self.start_date, end=self.end_date, freq=freq_str, tz="UTC"
             )

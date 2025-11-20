@@ -12,11 +12,11 @@ import sys
 from typing import Any
 
 from infrastructure.logging.logger import get_logger
+from system.algo_trader.backtest.cli_utils import get_sp500_tickers
 from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 from system.algo_trader.redis.queue_broker import QueueBroker
-from system.algo_trader.strategy.utils.cli_utils import get_sp500_tickers
 
 
 def check_redis_queue(queue_broker: QueueBroker) -> dict[str, Any]:

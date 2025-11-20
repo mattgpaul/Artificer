@@ -10,7 +10,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.utils.cli_utils import (
+from system.algo_trader.backtest.cli_utils import (
     format_journal_summary,
     format_signal_summary,
     format_trade_details,

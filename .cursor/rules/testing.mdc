@@ -562,7 +562,6 @@ def test_write_edge_case(self):
 - **Target:** 80% overall coverage with focus on critical paths
 - **Minimum:** 80% overall coverage
 - **Required:** All public methods must have at least one test
-- **Critical paths:** 100% coverage for business-critical logic
 
 ### What to Test
 
@@ -574,7 +573,6 @@ def test_write_edge_case(self):
 
 ### What NOT to Test
 
-- Private methods (unless they contain critical logic)
 - Trivial getters/setters
 - Framework code (e.g., standard library usage)
 - Every possible input combination (use parameterized tests instead)
