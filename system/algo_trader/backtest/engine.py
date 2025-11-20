@@ -16,7 +16,6 @@ from system.algo_trader.backtest.core.results_generator import BacktestResults, 
 from system.algo_trader.backtest.core.signal_collector import SignalCollector
 from system.algo_trader.backtest.core.time_stepper import TimeStepper
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
-from system.algo_trader.strategy.studies.base_study import StudySpec
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.position_manager.position_manager import PositionManager
@@ -141,7 +140,9 @@ class BacktestEngine:
                     else:
                         row_data[spec.name] = None
                 except Exception as e:
-                    self.logger.debug(f"{ticker}: Error computing {spec.name} at {bar_timestamp}: {e}")
+                    self.logger.debug(
+                        f"{ticker}: Error computing {spec.name} at {bar_timestamp}: {e}"
+                    )
                     row_data[spec.name] = None
 
             processed_bars[bar_timestamp] = row_data

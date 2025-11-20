@@ -17,6 +17,20 @@ from infrastructure.logging.logger import get_logger
 
 @dataclass
 class StudySpec:
+    """Specification for a technical study (indicator) to be computed.
+
+    This dataclass defines the configuration for a single technical study
+    that will be computed during strategy execution. It includes the study
+    instance, parameters, and minimum data requirements.
+
+    Attributes:
+        name: Unique name identifier for this study (e.g., "sma_short").
+        study: BaseStudy instance that will perform the calculation.
+        params: Dictionary of parameters to pass to the study's compute method.
+        min_bars: Minimum number of bars required before study can be computed.
+            None means no minimum requirement.
+    """
+
     name: str
     study: "BaseStudy"
     params: dict[str, Any]

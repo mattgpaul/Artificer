@@ -11,8 +11,8 @@ from typing import Any
 
 import pandas as pd
 
-from system.algo_trader.strategy.studies.base_study import StudySpec
 from system.algo_trader.strategy.strategy import Side, Strategy
+from system.algo_trader.strategy.studies.base_study import StudySpec
 from system.algo_trader.strategy.studies.moving_average.simple_moving_average import (
     SimpleMovingAverage,
 )
@@ -91,6 +91,15 @@ class SMACrossover(Strategy):
         )
 
     def get_study_specs(self) -> list[StudySpec]:
+        """Get study specifications for this strategy.
+
+        Returns a list of StudySpec objects defining the technical studies
+        (indicators) used by this strategy. For SMA crossover, this includes
+        both short-term and long-term SMA studies.
+
+        Returns:
+            List of StudySpec objects defining the studies to compute.
+        """
         return [
             StudySpec(
                 name="sma_short",
