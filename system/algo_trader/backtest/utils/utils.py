@@ -8,6 +8,7 @@ import pandas as pd
 
 BACKTEST_TRADES_QUEUE_NAME = "backtest_trades_queue"
 BACKTEST_METRICS_QUEUE_NAME = "backtest_metrics_queue"
+BACKTEST_STUDIES_QUEUE_NAME = "backtest_studies_queue"
 BACKTEST_REDIS_TTL = 3600
 
 

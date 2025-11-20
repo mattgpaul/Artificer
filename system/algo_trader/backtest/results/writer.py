@@ -14,12 +14,14 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.backtest.results.schema import (
     BacktestMetricsPayload,
+    BacktestStudiesPayload,
     BacktestTradesPayload,
     ValidationError,
 )
 from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
+    BACKTEST_STUDIES_QUEUE_NAME,
     BACKTEST_TRADES_QUEUE_NAME,
     dataframe_to_dict,
 )
@@ -368,4 +370,101 @@ class ResultsWriter:
 
         except Exception as e:
             self.logger.error(f"Error enqueueing metrics for {ticker}: {e}")
+            return False
+
+    def write_studies(
+        self,
+        studies: pd.DataFrame,
+        strategy_name: str,
+        ticker: str,
+        backtest_id: str | None = None,
+        strategy_params: dict[str, Any] | None = None,
+        execution_config: ExecutionConfig | None = None,
+        start_date: pd.Timestamp | None = None,
+        end_date: pd.Timestamp | None = None,
+        step_frequency: str | None = None,
+        database: str | None = None,
+        tickers: list[str] | None = None,
+        capital_per_trade: float | None = None,
+        risk_free_rate: float | None = None,
+        walk_forward: bool = False,
+        train_days: int | None = None,
+        test_days: int | None = None,
+        train_split: float | None = None,
+    ) -> bool:
+        if studies.empty:
+            self.logger.debug(f"No studies to enqueue for {ticker}")
+            return True
+
+        hash_id = None
+        if all(
+            [
+                strategy_params is not None,
+                execution_config is not None,
+                step_frequency is not None,
+                capital_per_trade is not None,
+                risk_free_rate is not None,
+            ]
+        ):
+            hash_id = compute_backtest_hash(
+                strategy_params=strategy_params,
+                execution_config=execution_config,
+                start_date=start_date or pd.Timestamp.now(tz="UTC"),
+                end_date=end_date or pd.Timestamp.now(tz="UTC"),
+                step_frequency=step_frequency,
+                database=database or "",
+                tickers=tickers or [],
+                capital_per_trade=capital_per_trade,
+                risk_free_rate=risk_free_rate,
+                walk_forward=walk_forward,
+                train_days=train_days,
+                test_days=test_days,
+                train_split=train_split,
+            )
+
+        studies_dict = dataframe_to_dict(studies)
+
+        row_count = len(studies)
+        self.logger.debug(f"Writing {row_count} study rows to Redis for {ticker}")
+
+        try:
+            payload = BacktestStudiesPayload(
+                ticker=ticker,
+                strategy_name=strategy_name,
+                backtest_id=backtest_id,
+                hash_id=hash_id,
+                strategy_params=strategy_params,
+                data=studies_dict,
+                database=database,
+            )
+        except ValidationError as e:
+            self.logger.error(
+                "Validation error building backtest studies payload for "
+                f"{ticker} / {strategy_name}: {e}"
+            )
+            return False
+
+        queue_data = payload.model_dump()
+
+        item_id = f"{ticker}_{strategy_name}_{backtest_id or 'no_id'}_studies"
+
+        try:
+            success = self.queue_broker.enqueue(
+                queue_name=BACKTEST_STUDIES_QUEUE_NAME,
+                item_id=item_id,
+                data=queue_data,
+                ttl=BACKTEST_REDIS_TTL,
+            )
+
+            if success:
+                self.logger.debug(
+                    f"Enqueued {row_count} study rows for {ticker} to {BACKTEST_STUDIES_QUEUE_NAME}"
+                )
+                return True
+            else:
+                self.logger.error(f"Failed to enqueue studies for {ticker} to Redis")
+                return False
+
+        except Exception as e:
+            self.logger.error(f"Error enqueueing studies for {ticker}: {e}")
             return False

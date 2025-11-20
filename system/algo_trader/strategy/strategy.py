@@ -8,9 +8,12 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from system.algo_trader.strategy.studies.base_study import StudySpec
 
 
 class Side(str, Enum):
@@ -96,3 +99,12 @@ class Strategy(ABC):
             DatetimeIndex for signal_time. Empty DataFrame if no signals.
         """
         raise NotImplementedError
+
+    def get_study_specs(self) -> list["StudySpec"]:
+        """Get study specifications for persistence during backtests.
+
+        Returns:
+            List of StudySpec instances describing which studies should be
+            captured and persisted. Default implementation returns empty list.
+        """
+        return []

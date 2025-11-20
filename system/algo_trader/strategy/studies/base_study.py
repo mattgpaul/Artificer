@@ -7,11 +7,20 @@ study-specific validation and calculation logic.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
+
+
+@dataclass
+class StudySpec:
+    name: str
+    study: "BaseStudy"
+    params: dict[str, Any]
+    min_bars: int | None = None
 
 
 class BaseStudy(ABC):
