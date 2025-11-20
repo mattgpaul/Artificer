@@ -28,3 +28,15 @@ py_library(
         requirement("pytest"),
     ],
 )
+
+py_library(
+    name = "test_schema_lib",
+    testonly = True,
+    srcs = ["test_schema.py"],
+    visibility = ["//system/algo_trader/backtest:__pkg__"],
+    deps = [
+        "//system/algo_trader/backtest:backtest_lib",
+        "//tests/system/algo_trader/backtest:conftest_lib",
+        requirement("pytest"),
+    ],
+)

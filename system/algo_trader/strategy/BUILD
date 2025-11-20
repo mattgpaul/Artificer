@@ -14,6 +14,7 @@ py_library(
         "journal/efficiency.py",
         "journal/journal.py",
         "journal/trade_matching.py",
+        "simple_strategy.py",
         "strategies/sma_crossover.py",
         "strategies/valley_long.py",
     ],
@@ -49,44 +50,6 @@ py_library(
     ],
 )
 
-py_library(
-    name = "executor",
-    srcs = ["core/executor.py"],
-    visibility = [
-        "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/strategy:__subpackages__",
-    ],
-    deps = [
-        ":cli_utils",
-        ":strategies",
-        "//infrastructure/logging:logger",
-    ],
-)
-
-py_library(
-    name = "main_lib",
-    srcs = ["main.py"],
-    visibility = [
-        "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/strategy:__pkg__",
-    ],
-    deps = [
-        ":cli_utils",
-        ":executor",
-        ":strategies",
-        "//infrastructure/logging:logger",
-    ],
-)
-
-py_binary(
-    name = "main",
-    srcs = ["main.py"],
-    main = "main.py",
-    visibility = ["//visibility:public"],
-    deps = [
-        ":main_lib",
-    ],
-)
 
 # Test targets
 pytest_test(
@@ -136,14 +99,6 @@ pytest_test(
 )
 
 pytest_test(
-    name = "test_executor",
-    size = "small",
-    coverage_path = "system.algo_trader.strategy.core.executor",
-    tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy/core:test_executor_lib",
-)
-
-pytest_test(
     name = "test_cli_utils",
     size = "small",
     coverage_path = "system.algo_trader.strategy.utils.cli_utils",
@@ -151,10 +106,3 @@ pytest_test(
     test_lib = "//tests/system/algo_trader/strategy/utils:test_cli_utils_lib",
 )
 
-pytest_test(
-    name = "test_main",
-    size = "small",
-    coverage_path = "system.algo_trader.strategy.main",
-    tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy:test_main_lib",
-)

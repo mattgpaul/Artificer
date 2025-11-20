@@ -274,24 +274,34 @@ def main():
         strategy_params = {
             "short": args.short,
             "long": args.long,
-            "window": args.window,
             "side": args.side,
         }
+        if args.window is not None:
+            strategy_params["window"] = args.window
     elif args.strategy == "valley-long":
         strategy_params = {
             "valley_distance": args.valley_distance,
             "valley_prominence": args.valley_prominence,
-            "valley_height": args.valley_height,
-            "valley_width": args.valley_width,
-            "valley_threshold": args.valley_threshold,
-            "peak_distance": args.peak_distance,
-            "peak_prominence": args.peak_prominence,
-            "peak_height": args.peak_height,
-            "peak_width": args.peak_width,
-            "peak_threshold": args.peak_threshold,
             "nearness_threshold": args.nearness_threshold,
-            "sell_nearness_threshold": args.sell_nearness_threshold,
         }
+        if args.valley_height is not None:
+            strategy_params["valley_height"] = args.valley_height
+        if args.valley_width is not None:
+            strategy_params["valley_width"] = args.valley_width
+        if args.valley_threshold is not None:
+            strategy_params["valley_threshold"] = args.valley_threshold
+        if args.peak_distance is not None:
+            strategy_params["peak_distance"] = args.peak_distance
+        if args.peak_prominence is not None:
+            strategy_params["peak_prominence"] = args.peak_prominence
+        if args.peak_height is not None:
+            strategy_params["peak_height"] = args.peak_height
+        if args.peak_width is not None:
+            strategy_params["peak_width"] = args.peak_width
+        if args.peak_threshold is not None:
+            strategy_params["peak_threshold"] = args.peak_threshold
+        if args.sell_nearness_threshold is not None:
+            strategy_params["sell_nearness_threshold"] = args.sell_nearness_threshold
 
     try:
         backtest_id = str(uuid4())
@@ -330,9 +340,6 @@ def main():
     except Exception as e:
         logger.error(f"Backtest failed: {e}", exc_info=True)
         return 1
-    finally:
-        strategy.close()
-
 
 if __name__ == "__main__":
     sys.exit(main())

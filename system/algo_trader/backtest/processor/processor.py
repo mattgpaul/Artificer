@@ -23,10 +23,10 @@ def get_backtest_database() -> str:
     """Get the appropriate database for backtest results based on environment.
 
     Returns:
-        'backtest' for prod environment, 'debug' otherwise.
+        'backtest' for prod environment, 'backtest-dev' otherwise.
     """
     env = os.getenv("INFLUXDB3_ENVIRONMENT", "").lower()
-    return "backtest" if env == "prod" else "debug"
+    return "backtest" if env == "prod" else "backtest-dev"
 
 
 class BacktestProcessor:
