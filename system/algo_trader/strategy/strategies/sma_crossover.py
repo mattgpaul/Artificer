@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from system.algo_trader.strategy.strategy import Side, Strategy
+from system.algo_trader.strategy.studies.base_study import StudySpec
 from system.algo_trader.strategy.studies.moving_average.simple_moving_average import (
     SimpleMovingAverage,
 )
@@ -88,6 +89,31 @@ class SMACrossover(Strategy):
             default=20,
             help="Long-term SMA window period (default: 20)",
         )
+
+    def get_study_specs(self) -> list[StudySpec]:
+        """Get study specifications for this strategy.
+
+        Returns a list of StudySpec objects defining the technical studies
+        (indicators) used by this strategy. For SMA crossover, this includes
+        both short-term and long-term SMA studies.
+
+        Returns:
+            List of StudySpec objects defining the studies to compute.
+        """
+        return [
+            StudySpec(
+                name="sma_short",
+                study=self.sma_study,
+                params={"window": self.short, "column": "close"},
+                min_bars=self.short,
+            ),
+            StudySpec(
+                name="sma_long",
+                study=self.sma_study,
+                params={"window": self.long, "column": "close"},
+                min_bars=self.long,
+            ),
+        ]
 
     def _calculate_smas(
         self, ohlcv_data: pd.DataFrame, ticker: str

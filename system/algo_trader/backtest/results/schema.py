@@ -140,8 +140,57 @@ class BacktestMetricsPayload(BaseModel):
         return value
 
 
+class BacktestStudiesPayload(BaseModel):
+    """Schema for items written to the backtest studies Redis queue."""
+
+    ticker: str
+    strategy_name: str
+    backtest_id: str | None = None
+    hash_id: str | None = None
+    strategy_params: dict[str, Any] | None = None
+    data: BacktestTimeSeriesData
+    database: str | None = None
+
+    @field_validator("ticker", "strategy_name")
+    @classmethod
+    def non_empty_string(cls, value: str) -> str:
+        """Validate that ticker and strategy_name are non-empty strings.
+
+        Args:
+            value: String value to validate.
+
+        Returns:
+            Validated non-empty string.
+
+        Raises:
+            ValueError: If value is not a string or is empty/whitespace.
+        """
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("ticker and strategy_name must be non-empty strings")
+        return value
+
+    @field_validator("strategy_params")
+    @classmethod
+    def validate_strategy_params(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        """Ensure strategy parameter keys are non-empty strings.
+
+        The actual mapping from strategy parameters to Influx tag names is
+        handled in the queue processor; here we only enforce a minimal contract.
+        """
+        if value is None:
+            return value
+
+        cleaned: dict[str, Any] = {}
+        for raw_key, raw_val in value.items():
+            if not isinstance(raw_key, str) or not raw_key.strip():
+                raise ValueError("strategy parameter keys must be non-empty strings")
+            cleaned[raw_key] = raw_val
+        return cleaned
+
+
 __all__ = [
     "BacktestMetricsPayload",
+    "BacktestStudiesPayload",
     "BacktestTimeSeriesData",
     "BacktestTradesPayload",
     "ValidationError",
