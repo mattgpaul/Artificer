@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from system.algo_trader.strategy.utils.studies.support_resistance.find_peaks import FindPeaks
+from system.algo_trader.strategy.studies.support_resistance.find_peaks import FindPeaks
 
 
 class TestFindPeaksInitialization:
@@ -314,7 +314,7 @@ class TestFindPeaksCalculation:
         """Test exception handling during peak detection."""
         study = FindPeaks(logger=mock_logger)
         with patch(
-            "system.algo_trader.strategy.utils.studies.support_resistance.find_peaks.find_peaks",
+            "system.algo_trader.strategy.studies.support_resistance.find_peaks.find_peaks",
             side_effect=Exception("Test error"),
         ):
             result = study.calculate(sample_ohlcv_data, "AAPL", column="close")

@@ -15,11 +15,11 @@ py_library(
         "//infrastructure:config",
         "//infrastructure/logging:logger",
         "//infrastructure/threads:thread_manager",
+        "//system/algo_trader/backtest:cli_utils",
         "//system/algo_trader/datasource/populate:argument_base",
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/mysql:bad_ticker_client",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
-        "//system/algo_trader/strategy:cli_utils",
     ],
 )

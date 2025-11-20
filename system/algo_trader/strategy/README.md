@@ -24,12 +24,12 @@ Each DataFrame must have:
 - **Required columns**: `price` (float)
 - **Optional columns**: `metadata` (JSON string)
 
-The `BaseStrategy` class automatically:
-- Combines buy and sell signals via `generate_signals()`
+The backtest engine automatically:
+- Combines buy and sell signals from your strategy's `buy()` and `sell()` methods
 - Adds `signal_type` column ("buy" or "sell")
-- Adds `side` column ("LONG" or "SHORT" based on `strategy_type`)
+- Adds `side` column ("LONG" or "SHORT" based on your strategy's `side` attribute)
 - Adds `ticker` and `signal_time` columns
-- Optionally writes signals to InfluxDB
+- Processes signals through the trade journal and execution simulator
 
 ## Execution Workflow
 
@@ -42,17 +42,16 @@ graph TD
     C --> D[TimeStepper]
     D --> E[SignalCollector]
     E --> F[BacktestStrategyWrapper]
-    F --> G[strategy.run_strategy]
-    G --> H[BaseStrategy.run_strategy]
-    H --> I[query_ohlcv with lookback]
-    I --> J[generate_signals]
-    J --> K[buy/sell methods]
-    K --> L[Combined signals]
-    L --> M[ResultsGenerator]
+    F --> G[strategy.buy/sell]
+    G --> H[Combined signals]
+    H --> I[ResultsGenerator]
+    I --> J[TradeJournal]
+    J --> K[ExecutionSimulator]
+    K --> L[BacktestResults]
     
     D -->|Sequential time steps| E
-    F -->|Filters data to <= current_time| I
-    I -->|Applies lookback_bars limit| J
+    F -->|Filters data to <= current_time| G
+    F -->|Applies lookback_bars limit| G
 ```
 
 ### Key Points
@@ -77,34 +76,24 @@ The base orchestration is identical for both types; the execution layer interpre
 
 ## Writing Your Own Strategy
 
-### Step 1: Subclass BaseStrategy
+### Step 1: Subclass Strategy
 
 ```python
-from system.algo_trader.strategy.base import BaseStrategy
+from system.algo_trader.strategy.strategy import Side, Strategy
 import pandas as pd
 
-class MyStrategy(BaseStrategy):
-    strategy_type = "LONG"  # or "SHORT"
-    
-    def __init__(self, my_param: int, lookback_bars: int | None = None, ...):
+class MyStrategy(Strategy):
+    def __init__(self, my_param: int, side: Side = Side.LONG, window: int | None = None, **kwargs):
         # Validate parameters
         if my_param < 1:
             raise ValueError("my_param must be >= 1")
         
-        # Build strategy_args for InfluxDB tagging
-        strategy_args = {"my_param": my_param}
-        
-        # Pass lookback_bars to base class
-        super().__init__(strategy_args=strategy_args, lookback_bars=lookback_bars)
+        # Initialize base class with side and optional window
+        super().__init__(side=side, window=window, **kwargs)
         
         self.my_param = my_param
         # Initialize any studies you need
-        # self.my_study = SomeStudy(logger=self.logger)
-    
-    def _get_required_min_bars(self) -> int:
-        # Return minimum bars needed for your calculations
-        # This is validated against lookback_bars if set
-        return self.my_param
+        # self.my_study = SomeStudy()
 ```
 
 ### Step 2: Implement buy() and sell()
@@ -139,10 +128,12 @@ def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
     ...
 ```
 
-### Step 3: Implement add_strategy_arguments()
+### Step 3: Implement add_arguments() class method
 
 ```python
-def add_strategy_arguments(self, parser):
+@classmethod
+def add_arguments(cls, parser):
+    Strategy.add_arguments(parser)  # Adds --side and --window
     parser.add_argument(
         "--my-param",
         type=int,
@@ -156,26 +147,27 @@ def add_strategy_arguments(self, parser):
 See `system/algo_trader/strategy/strategies/sma_crossover.py` for a complete working example:
 
 - Uses `SimpleMovingAverage` study
-- Implements `_get_required_min_bars()` based on window sizes
+- Accepts `side`, `window`, `short`, and `long` parameters
 - Detects crossovers in `buy()` and `sell()`
-- Returns signals with `price` and `metadata` (no confidence)
+- Returns signals with `price` column
 
 ## Available Studies
 
 The `studies` layer provides reusable technical indicators:
 
-- **Moving Averages**: `SimpleMovingAverage` (see `strategy/utils/studies/moving_average/`)
-- **Support/Resistance**: `FindValleys`, `FindPeaks` (see `strategy/utils/studies/support_resistance/`)
+- **Moving Averages**: `SimpleMovingAverage` (see `strategy/studies/moving_average/`)
+- **Support/Resistance**: `FindValleys`, `FindPeaks` (see `strategy/studies/support_resistance/`)
 
 All studies inherit from `BaseStudy` and provide a `compute()` method that handles validation and returns Series or DataFrames.
 
-## Lookback Window Validation
+## Lookback Window
 
-Strategies must implement `_get_required_min_bars()` to specify their minimum data requirements. If `lookback_bars` is set smaller than this minimum, the strategy will raise a `ValueError` with a clear error message.
+Strategies can accept an optional `window` parameter that specifies the maximum number of historical bars to use. The backtest engine automatically filters OHLCV data to respect this window size before passing it to your strategy's `buy()` and `sell()` methods.
 
 Example:
-- `SMACrossover` with `long_window=20` requires at least 20 bars
-- If `lookback_bars=10` is set, validation fails immediately
+- `SMACrossover` with `long=20` typically needs at least 20 bars
+- If `window=10` is set, the strategy will only receive the last 10 bars of data
+- Your strategy should handle cases where insufficient data is available (return empty DataFrame)
 
-This prevents strategies from running with insufficient data that would produce unreliable signals.
+The backtest engine ensures strategies never see future data, maintaining proper temporal isolation.
 

@@ -11,12 +11,12 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.backtest.results.schema import (
     BacktestMetricsPayload,
     BacktestTradesPayload,
     ValidationError,
 )
-from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,

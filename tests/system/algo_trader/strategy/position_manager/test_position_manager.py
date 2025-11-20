@@ -45,7 +45,11 @@ class TestPositionManagerConfig:
         """Test to_dict serialization."""
         config = PositionManagerConfig(allow_scale_in=True)
         result = config.to_dict()
-        assert result == {"allow_scale_in": True}
+        assert result == {
+            "allow_scale_in": True,
+            "allow_scale_out": True,
+            "close_full_on_exit": True,
+        }
 
 
 class TestPositionManagerInitialization:

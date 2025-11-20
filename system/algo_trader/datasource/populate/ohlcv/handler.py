@@ -6,13 +6,13 @@ Low, Close, Volume) data population from Schwab API.
 
 import argparse
 
+from system.algo_trader.backtest.cli_utils import get_sp500_tickers
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.populate.ohlcv.processor import OHLCVProcessor
 from system.algo_trader.datasource.populate.ohlcv.verifier import BadTickerVerifier
 from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
 from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
-from system.algo_trader.strategy.utils.cli_utils import get_sp500_tickers
 
 
 class OHLCVArgumentHandler(ArgumentHandler):

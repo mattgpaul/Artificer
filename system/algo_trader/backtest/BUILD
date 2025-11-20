@@ -3,6 +3,21 @@ load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
+    name = "cli_utils",
+    srcs = ["cli_utils.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/backtest:__subpackages__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
+    ],
+    deps = [
+        "//system/algo_trader/datasource/sec:tickers_lib",
+        "//system/algo_trader/influx:market_data_influx",
+        requirement("pandas"),
+    ],
+)
+
+py_library(
     name = "backtest_lib",
     srcs = [
         "core/data_loader.py",
@@ -25,14 +40,15 @@ py_library(
     visibility = [
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/backtest:__subpackages__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
+        ":cli_utils",
         "//infrastructure:config",
         "//infrastructure/logging:logger",
         "//infrastructure/multiprocess:process_manager",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/redis:redis_services",
-        "//system/algo_trader/strategy:cli_utils",
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
@@ -49,8 +65,8 @@ py_library(
     ],
     deps = [
         ":backtest_lib",
+        ":cli_utils",
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy:cli_utils",
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
@@ -166,4 +182,12 @@ pytest_test(
     coverage_path = "system.algo_trader.backtest.utils.utils",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/backtest/utils:test_utils_lib",
+)
+
+pytest_test(
+    name = "test_cli_utils",
+    size = "small",
+    coverage_path = "system.algo_trader.backtest.cli_utils",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/backtest:test_cli_utils_lib",
 )

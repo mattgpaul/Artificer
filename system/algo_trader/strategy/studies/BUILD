@@ -17,7 +17,7 @@ py_library(
 pytest_test(
     name = "test_base_study",
     size = "small",
-    coverage_path = "system.algo_trader.strategy.utils.studies.base_study",
+    coverage_path = "system.algo_trader.strategy.studies.base_study",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/strategy/utils/studies:test_base_study_lib",
+    test_lib = "//tests/system/algo_trader/strategy/studies:test_base_study_lib",
 )

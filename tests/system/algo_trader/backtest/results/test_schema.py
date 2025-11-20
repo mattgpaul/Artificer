@@ -122,5 +122,3 @@ class TestBacktestMetricsPayload:
                 strategy_name="TestStrategy",
                 data=data,
             )
-
-

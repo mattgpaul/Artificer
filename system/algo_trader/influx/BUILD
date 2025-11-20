@@ -56,10 +56,10 @@ py_library(
     deps = [
         ":market_data_influx",
         "//infrastructure/logging:logger",
+        "//system/algo_trader/backtest:cli_utils",
         "//system/algo_trader/datasource/sec:tickers_lib",
         "//system/algo_trader/mysql:bad_ticker_client",
         "//system/algo_trader/redis:redis_services",
-        "//system/algo_trader/strategy:cli_utils",
     ],
 )
 
