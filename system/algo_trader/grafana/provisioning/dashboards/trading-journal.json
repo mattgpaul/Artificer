@@ -714,7 +714,7 @@
               }
             ]
           },
-          "unit": "currencyUSD"
+          "unit": "d"
         },
         "overrides": []
       },
@@ -754,7 +754,7 @@
           "format": "table",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  AVG(pnl) as avg_return\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash_id,\n    backtest_id\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  AVG(pnl) as avg_return\nFROM trade_metrics",
+          "rawSql": "WITH paired(trade_id, hold_duration) AS (\n  SELECT\n    trade_id,\n    MAX(time) - MIN(time)     -- this is hold_duration\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ticker = '$symbol'\n  GROUP BY trade_id\n)\nSELECT\n  EXTRACT(EPOCH FROM AVG(hold_duration)) / 86400 AS average_days_held\nFROM paired;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -774,7 +774,7 @@
           }
         }
       ],
-      "title": "AVG RETURN",
+      "title": "AVG TIME HELD",
       "type": "stat"
     },
     {
@@ -1221,5 +1221,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 105
+  "version": 108
 }
