@@ -130,10 +130,12 @@ class TestWriteBacktestResults:
         ) as mock_writer_class:
             mock_writer = MagicMock()
             mock_writer.write_trades.return_value = True
+            mock_writer.write_studies.return_value = True
             mock_writer_class.return_value = mock_writer
 
             results = BacktestResults()
             results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
+            results.studies = pd.DataFrame()
             results.strategy_name = "TestStrategy"
 
             execution_config = ExecutionConfig()
@@ -157,6 +159,60 @@ class TestWriteBacktestResults:
 
             assert result is True
             mock_writer.write_trades.assert_called_once()
+            mock_writer.write_studies.assert_called_once()
+
+    @pytest.mark.unit
+    def test_write_backtest_results_with_studies(self):
+        """Test writing results with studies data."""
+        with patch(
+            "system.algo_trader.backtest.processor.worker.ResultsWriter"
+        ) as mock_writer_class:
+            mock_writer = MagicMock()
+            mock_writer.write_trades.return_value = True
+            mock_writer.write_studies.return_value = True
+            mock_writer_class.return_value = mock_writer
+
+            results = BacktestResults()
+            results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
+            results.studies = pd.DataFrame(
+                {
+                    "close": [100.0, 101.0],
+                    "sma_10": [99.0, 100.0],
+                },
+                index=[
+                    pd.Timestamp("2024-01-05", tz="UTC"),
+                    pd.Timestamp("2024-01-06", tz="UTC"),
+                ],
+            )
+            results.strategy_name = "TestStrategy"
+
+            execution_config = ExecutionConfig()
+            result = write_backtest_results(
+                results=results,
+                ticker="AAPL",
+                backtest_id="test-id",
+                strategy_params={},
+                execution_config=execution_config,
+                start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+                end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+                step_frequency="daily",
+                database="debug",
+                capital_per_trade=10000.0,
+                risk_free_rate=0.04,
+                walk_forward=False,
+                train_days=None,
+                test_days=None,
+                train_split=None,
+            )
+
+            assert result is True
+            mock_writer.write_trades.assert_called_once()
+            mock_writer.write_studies.assert_called_once()
+            # Verify studies were passed correctly
+            studies_call = mock_writer.write_studies.call_args
+            assert studies_call[1]["studies"].equals(results.studies)
+            assert studies_call[1]["ticker"] == "AAPL"
+            assert studies_call[1]["strategy_name"] == "TestStrategy"
 
     @pytest.mark.unit
     def test_write_backtest_results_empty_trades(self):
@@ -166,10 +222,12 @@ class TestWriteBacktestResults:
         ) as mock_writer_class:
             mock_writer = MagicMock()
             mock_writer.write_trades.return_value = True
+            mock_writer.write_studies.return_value = True
             mock_writer_class.return_value = mock_writer
 
             results = BacktestResults()
             results.trades = pd.DataFrame()
+            results.studies = pd.DataFrame()
             results.strategy_name = "TestStrategy"
 
             execution_config = ExecutionConfig()
@@ -192,8 +250,9 @@ class TestWriteBacktestResults:
             )
 
             assert result is True
-            # Should still call write_trades even with empty DataFrame
+            # Should still call write_trades and write_studies even with empty DataFrames
             mock_writer.write_trades.assert_called_once()
+            mock_writer.write_studies.assert_called_once()
 
     @pytest.mark.unit
     def test_write_backtest_results_failure(self):
@@ -203,10 +262,12 @@ class TestWriteBacktestResults:
         ) as mock_writer_class:
             mock_writer = MagicMock()
             mock_writer.write_trades.return_value = False
+            mock_writer.write_studies.return_value = True
             mock_writer_class.return_value = mock_writer
 
             results = BacktestResults()
             results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
+            results.studies = pd.DataFrame()
             results.strategy_name = "TestStrategy"
 
             execution_config = ExecutionConfig()
@@ -229,6 +290,8 @@ class TestWriteBacktestResults:
             )
 
             assert result is False
+            # Should still call write_studies even if trades fail
+            mock_writer.write_studies.assert_called_once()
 
     @pytest.mark.unit
     def test_write_backtest_results_walk_forward(self):
@@ -238,10 +301,12 @@ class TestWriteBacktestResults:
         ) as mock_writer_class:
             mock_writer = MagicMock()
             mock_writer.write_trades.return_value = True
+            mock_writer.write_studies.return_value = True
             mock_writer_class.return_value = mock_writer
 
             results = BacktestResults()
             results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
+            results.studies = pd.DataFrame()
             results.strategy_name = "TestStrategy"
 
             execution_config = ExecutionConfig()
@@ -268,6 +333,11 @@ class TestWriteBacktestResults:
             assert call_args[1]["walk_forward"] is True
             assert call_args[1]["train_days"] == 90
             assert call_args[1]["test_days"] == 30
+            # Verify studies also get walk-forward parameters
+            studies_call = mock_writer.write_studies.call_args
+            assert studies_call[1]["walk_forward"] is True
+            assert studies_call[1]["train_days"] == 90
+            assert studies_call[1]["test_days"] == 30
 
 
 class TestBacktestTickerWorker:

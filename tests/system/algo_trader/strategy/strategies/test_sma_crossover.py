@@ -15,6 +15,7 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.engine import BacktestEngine, BacktestResults
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategy import Side
+from system.algo_trader.strategy.studies.base_study import StudySpec
 
 
 class TestSMACrossoverInitialization:
@@ -265,6 +266,56 @@ class TestSMACrossoverSell:
         signal = strategy.sell(sample_ohlcv_data_empty, "AAPL")
 
         assert signal.empty
+
+
+class TestSMACrossoverGetStudySpecs:
+    """Test get_study_specs method."""
+
+    def test_get_study_specs_returns_two_specs(self):
+        """Test get_study_specs returns two StudySpec instances."""
+        strategy = SMACrossover(short=10, long=20)
+        specs = strategy.get_study_specs()
+
+        assert isinstance(specs, list)
+        assert len(specs) == 2
+        assert all(isinstance(spec, StudySpec) for spec in specs)
+
+    def test_get_study_specs_short_spec(self):
+        """Test get_study_specs returns correct short SMA spec."""
+        strategy = SMACrossover(short=10, long=20)
+        specs = strategy.get_study_specs()
+
+        short_spec = next(spec for spec in specs if spec.name == "sma_short")
+        assert short_spec.name == "sma_short"
+        assert short_spec.params["window"] == 10
+        assert short_spec.params["column"] == "close"
+        assert short_spec.min_bars == 10
+        assert short_spec.study == strategy.sma_study
+
+    def test_get_study_specs_long_spec(self):
+        """Test get_study_specs returns correct long SMA spec."""
+        strategy = SMACrossover(short=10, long=20)
+        specs = strategy.get_study_specs()
+
+        long_spec = next(spec for spec in specs if spec.name == "sma_long")
+        assert long_spec.name == "sma_long"
+        assert long_spec.params["window"] == 20
+        assert long_spec.params["column"] == "close"
+        assert long_spec.min_bars == 20
+        assert long_spec.study == strategy.sma_study
+
+    def test_get_study_specs_custom_parameters(self):
+        """Test get_study_specs with custom parameters."""
+        strategy = SMACrossover(short=5, long=15)
+        specs = strategy.get_study_specs()
+
+        short_spec = next(spec for spec in specs if spec.name == "sma_short")
+        long_spec = next(spec for spec in specs if spec.name == "sma_long")
+
+        assert short_spec.params["window"] == 5
+        assert short_spec.min_bars == 5
+        assert long_spec.params["window"] == 15
+        assert long_spec.min_bars == 15
 
 
 class TestSMACrossoverAddArguments:
