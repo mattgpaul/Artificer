@@ -242,13 +242,15 @@ def _match_trades_raw(
         if is_entry:
             shares = capital_per_trade / price
             trade_id_counters[ticker] += 1
-            entry_queues[ticker].append({
-                "entry_time": timestamp,
-                "entry_price": price,
-                "shares": shares,
-                "side": side,
-                "trade_id": trade_id_counters[ticker],
-            })
+            entry_queues[ticker].append(
+                {
+                    "entry_time": timestamp,
+                    "entry_price": price,
+                    "shares": shares,
+                    "side": side,
+                    "trade_id": trade_id_counters[ticker],
+                }
+            )
         elif is_exit:
             queue = entry_queues[ticker]
             if queue:
@@ -443,9 +445,7 @@ def match_trades(
         return pd.DataFrame()
 
     if mode == "raw":
-        return _match_trades_raw(
-            signals, strategy_name, capital_per_trade, ohlcv_data, logger
-        )
+        return _match_trades_raw(signals, strategy_name, capital_per_trade, ohlcv_data, logger)
 
     signals = signals.sort_values(["ticker", "signal_time"])
     matched_trades = []

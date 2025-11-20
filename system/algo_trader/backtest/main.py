@@ -17,6 +17,7 @@ from system.algo_trader.backtest.processor.processor import BacktestProcessor, g
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config,
 )
+from system.algo_trader.strategy.simple_strategy import Side
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategies.valley_long import ValleyLong
 from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
@@ -36,12 +37,16 @@ def create_strategy(args, logger):
         ValueError: If strategy type is unknown.
     """
     if args.strategy == "sma-crossover":
-        logger.info(f"Initializing SMA Crossover: short={args.short}, long={args.long}")
+        logger.info(
+            "Initializing SMA Crossover: "
+            f"short={args.short}, long={args.long}, window={args.window}, side={args.side}"
+        )
+        side = Side(args.side)
         return SMACrossover(
-            short_window=args.short,
-            long_window=args.long,
-            database=args.database,
-            use_threading=False,
+            short=args.short,
+            long=args.long,
+            window=args.window,
+            side=side,
         )
     elif args.strategy == "valley-long":
         logger.info(
@@ -61,9 +66,9 @@ def create_strategy(args, logger):
             peak_threshold=args.peak_threshold,
             nearness_threshold=args.nearness_threshold,
             sell_nearness_threshold=args.sell_nearness_threshold,
-            min_confidence=args.min_confidence,
             database=args.database,
             use_threading=False,
+            lookback_bars=getattr(args, "lookback_bars", None),
         )
     else:
         raise ValueError(f"Unknown strategy: {args.strategy}")
@@ -195,6 +200,12 @@ def parse_args():
             "(without .yaml), or an explicit path to a YAML file (optional)"
         ),
     )
+    parser.add_argument(
+        "--lookback-bars",
+        type=int,
+        default=None,
+        help="Maximum number of historical bars to use per time step (default: use all available)",
+    )
 
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to backtest"
@@ -202,7 +213,7 @@ def parse_args():
     sma_parser = subparsers.add_parser(
         "sma-crossover", help="Simple Moving Average crossover strategy"
     )
-    SMACrossover().add_strategy_arguments(sma_parser)
+    SMACrossover.add_arguments(sma_parser)
 
     valley_parser = subparsers.add_parser("valley-long", help="Valley-based long strategy")
     ValleyLong().add_strategy_arguments(valley_parser)
@@ -261,8 +272,10 @@ def main():
     strategy_params = {}
     if args.strategy == "sma-crossover":
         strategy_params = {
-            "short_window": args.short,
-            "long_window": args.long,
+            "short": args.short,
+            "long": args.long,
+            "window": args.window,
+            "side": args.side,
         }
     elif args.strategy == "valley-long":
         strategy_params = {
@@ -278,7 +291,6 @@ def main():
             "peak_threshold": args.peak_threshold,
             "nearness_threshold": args.nearness_threshold,
             "sell_nearness_threshold": args.sell_nearness_threshold,
-            "min_confidence": args.min_confidence,
         }
 
     try:

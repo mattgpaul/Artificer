@@ -44,12 +44,12 @@ class ValleyLong(BaseStrategy):
         peak_threshold: float | None = None,
         nearness_threshold: float = 0.5,
         sell_nearness_threshold: float | None = None,
-        min_confidence: float = 0.0,
         database: str | None = None,
         write_config: BatchWriteConfig | None = None,
         use_threading: bool = False,
         config: Any = None,
         thread_config: Any = None,
+        lookback_bars: int | None = None,
     ):
         """Initialize ValleyLong strategy.
 
@@ -67,18 +67,16 @@ class ValleyLong(BaseStrategy):
             nearness_threshold: Percentage threshold for 'near' detection (buy signals).
             sell_nearness_threshold: Percentage threshold for 'near' detection (sell signals).
                 If None, defaults to 40% of nearness_threshold.
-            min_confidence: Minimum confidence threshold (0.0-1.0) for signal filtering.
             database: Optional database name for data access.
             write_config: Optional batch write configuration.
             use_threading: Whether to use threading for parallel processing.
             config: Optional configuration object.
             thread_config: Optional thread configuration.
+            lookback_bars: Optional maximum number of historical bars to use per time step.
 
         Raises:
-            ValueError: If min_confidence is not in [0.0, 1.0] or nearness_threshold <= 0.0.
+            ValueError: If nearness_threshold <= 0.0.
         """
-        if not 0.0 <= min_confidence <= 1.0:
-            raise ValueError(f"min_confidence must be in [0.0, 1.0], got {min_confidence}")
         if nearness_threshold <= 0.0:
             raise ValueError(f"nearness_threshold must be > 0.0, got {nearness_threshold}")
 
@@ -103,6 +101,7 @@ class ValleyLong(BaseStrategy):
             "config": config,
             "thread_config": thread_config,
             "strategy_args": strategy_args,
+            "lookback_bars": lookback_bars,
         }
         if write_config is not None:
             init_kwargs["write_config"] = write_config
@@ -125,7 +124,6 @@ class ValleyLong(BaseStrategy):
             if sell_nearness_threshold is not None
             else nearness_threshold * 0.4
         )
-        self.min_confidence = min_confidence
 
         self.valley_study = FindValleys(logger=self.logger)
         self.peak_study = FindPeaks(logger=self.logger)
@@ -133,8 +131,7 @@ class ValleyLong(BaseStrategy):
         self.logger.debug(
             f"ValleyLong initialized: valley_distance={valley_distance}, "
             f"peak_distance={peak_distance}, nearness_threshold={nearness_threshold}, "
-            f"sell_nearness_threshold={self.sell_nearness_threshold}, "
-            f"min_confidence={min_confidence}"
+            f"sell_nearness_threshold={self.sell_nearness_threshold}"
         )
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -145,7 +142,7 @@ class ValleyLong(BaseStrategy):
             ticker: Stock ticker symbol.
 
         Returns:
-            DataFrame with buy signals (timestamp, price, confidence, metadata).
+            DataFrame with buy signals (timestamp, price, metadata).
         """
         valleys_df = self._compute_valleys(ohlcv_data, ticker)
         if valleys_df is None or valleys_df.empty:
@@ -184,7 +181,7 @@ class ValleyLong(BaseStrategy):
             ticker: Stock ticker symbol.
 
         Returns:
-            DataFrame with sell signals (timestamp, price, confidence, metadata).
+            DataFrame with sell signals (timestamp, price, metadata).
         """
         peaks_df = self._compute_peaks(ohlcv_data, ticker)
         valleys_df = self._compute_valleys(ohlcv_data, ticker)
@@ -247,39 +244,17 @@ class ValleyLong(BaseStrategy):
 
         return signals_df
 
-    def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
-        """Generate combined buy and sell signals.
-
-        Args:
-            ohlcv_data: DataFrame with OHLCV data.
-            ticker: Stock ticker symbol.
-
-        Returns:
-            DataFrame with combined signals, filtered by min_confidence if set.
-        """
-        if ohlcv_data is None or ohlcv_data.empty:
-            return pd.DataFrame()
-
-        buy_signals = self.buy(ohlcv_data, ticker)
-        sell_signals = self.sell(ohlcv_data, ticker)
-
-        all_signals = []
-        if not buy_signals.empty:
-            buy_signals["signal_type"] = "buy"
-            all_signals.append(buy_signals)
-        if not sell_signals.empty:
-            sell_signals["signal_type"] = "sell"
-            all_signals.append(sell_signals)
-
-        if not all_signals:
-            return pd.DataFrame()
-
-        combined = pd.concat(all_signals).sort_index()
-
-        if self.min_confidence > 0.0 and "confidence" in combined.columns:
-            combined = combined[combined["confidence"] >= self.min_confidence]
-
-        return combined
+    def _get_required_min_bars(self) -> int:
+        required_values = [3]
+        if self.valley_distance is not None:
+            required_values.append(self.valley_distance)
+        if self.peak_distance is not None:
+            required_values.append(self.peak_distance)
+        if self.valley_width is not None:
+            required_values.append(self.valley_width)
+        if self.peak_width is not None:
+            required_values.append(self.peak_width)
+        return max(required_values)
 
     def add_strategy_arguments(self, parser):
         """Add strategy-specific command-line arguments.
@@ -361,12 +336,6 @@ class ValleyLong(BaseStrategy):
                 "Percentage threshold for 'near' a valley/peak for sell signals "
                 "(default: 40%% of buy threshold)"
             ),
-        )
-        parser.add_argument(
-            "--min-confidence",
-            type=float,
-            default=0.0,
-            help="Minimum confidence threshold (default: 0.0)",
         )
 
     def _compute_valleys(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame | None:
@@ -521,18 +490,9 @@ class ValleyLong(BaseStrategy):
         except (KeyError, IndexError):
             return False
 
-    def _calculate_confidence(self, price: float, target_value: float) -> float:
-        if target_value == 0.0:
-            return 0.0
-        pct_diff = abs((price - target_value) / target_value)
-        threshold_pct = self.nearness_threshold / 100.0
-        confidence = max(0.0, 1.0 - (pct_diff / threshold_pct))
-        return round(min(1.0, confidence), 4)
-
     def _create_buy_signal(
         self, timestamp: pd.Timestamp, ohlcv_data: pd.DataFrame, price: float, valley_value: float
     ) -> dict[str, Any]:
-        confidence = self._calculate_confidence(price, valley_value)
         metadata = {
             "valley_value": round(valley_value, 4),
             "price_diff": round(price - valley_value, 4),
@@ -542,7 +502,6 @@ class ValleyLong(BaseStrategy):
         return {
             "timestamp": timestamp,
             "price": round(price, 4),
-            "confidence": confidence,
             "metadata": json.dumps(metadata),
         }
 
@@ -554,7 +513,6 @@ class ValleyLong(BaseStrategy):
         target_value: float,
         signal_source: str,
     ) -> dict[str, Any]:
-        confidence = self._calculate_confidence(price, target_value)
         metadata = {
             "target_value": round(target_value, 4),
             "signal_source": signal_source,
@@ -565,6 +523,5 @@ class ValleyLong(BaseStrategy):
         return {
             "timestamp": timestamp,
             "price": round(price, 4),
-            "confidence": confidence,
             "metadata": json.dumps(metadata),
         }

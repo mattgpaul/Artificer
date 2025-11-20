@@ -4,8 +4,6 @@ This module provides worker functions that execute backtests for individual
 tickers, including strategy creation, execution, and result writing.
 """
 
-from typing import TYPE_CHECKING
-
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
@@ -16,15 +14,12 @@ from system.algo_trader.strategy.position_manager.position_manager import (
     PositionManager,
     PositionManagerConfig,
 )
-
-if TYPE_CHECKING:
-    from system.algo_trader.strategy.base import BaseStrategy
-
+from system.algo_trader.strategy.simple_strategy import Side
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategies.valley_long import ValleyLong
 
 
-def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "BaseStrategy":
+def create_strategy_instance(strategy_type: str, strategy_params: dict):
     """Create a strategy instance from type and parameters.
 
     Args:
@@ -38,9 +33,13 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict) -> "Base
         ValueError: If strategy_type is not recognized.
     """
     if strategy_type == "SMACrossover":
+        side_value = strategy_params.get("side", "LONG")
+        side = Side(side_value) if isinstance(side_value, str) else side_value
         return SMACrossover(
-            short_window=strategy_params["short_window"],
-            long_window=strategy_params["long_window"],
+            short=strategy_params.get("short", 10),
+            long=strategy_params.get("long", 20),
+            window=strategy_params.get("window", 120),
+            side=side,
         )
     elif strategy_type == "ValleyLong":
         return ValleyLong(
