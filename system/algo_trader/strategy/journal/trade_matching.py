@@ -209,6 +209,97 @@ def _create_trade_record(
     }
 
 
+def _match_trades_raw(
+    signals: pd.DataFrame,
+    strategy_name: str,
+    capital_per_trade: float,
+    ohlcv_data: pd.DataFrame | None,
+    logger,
+) -> pd.DataFrame:
+    signals = signals.sort_values(["ticker", "signal_time"])
+    matched_trades = []
+    entry_queues: dict[str, list] = {}
+    trade_id_counters: dict[str, int] = {}
+
+    for _, signal in signals.iterrows():
+        ticker = signal["ticker"]
+        signal_type = signal["signal_type"]
+        side = signal.get("side", "LONG")
+        price = signal["price"]
+        timestamp = signal["signal_time"]
+
+        if ticker not in entry_queues:
+            entry_queues[ticker] = []
+            trade_id_counters[ticker] = 0
+
+        is_entry = (side == "LONG" and signal_type == "buy") or (
+            side == "SHORT" and signal_type == "sell"
+        )
+        is_exit = (side == "LONG" and signal_type == "sell") or (
+            side == "SHORT" and signal_type == "buy"
+        )
+
+        if is_entry:
+            shares = capital_per_trade / price
+            trade_id_counters[ticker] += 1
+            entry_queues[ticker].append({
+                "entry_time": timestamp,
+                "entry_price": price,
+                "shares": shares,
+                "side": side,
+                "trade_id": trade_id_counters[ticker],
+            })
+        elif is_exit:
+            queue = entry_queues[ticker]
+            if queue:
+                entry = queue.pop(0)
+                exit_time = timestamp
+                exit_price = price
+                shares = entry["shares"]
+
+                gross_pnl = _calculate_pnl(shares, exit_price, entry["entry_price"], entry["side"])
+                capital_used = shares * entry["entry_price"]
+                gross_pnl_pct = (gross_pnl / capital_used) * 100 if capital_used > 0 else 0.0
+
+                time_held = (exit_time - entry["entry_time"]).total_seconds() / 3600
+
+                efficiency = calculate_efficiency(
+                    ticker,
+                    entry["entry_time"],
+                    exit_time,
+                    entry["entry_price"],
+                    exit_price,
+                    ohlcv_data,
+                    logger,
+                )
+
+                trade_record = {
+                    "ticker": ticker,
+                    "entry_time": entry["entry_time"],
+                    "entry_price": entry["entry_price"],
+                    "exit_time": exit_time,
+                    "exit_price": exit_price,
+                    "shares": shares,
+                    "gross_pnl": gross_pnl,
+                    "gross_pnl_pct": gross_pnl_pct,
+                    "side": entry["side"],
+                    "status": "CLOSED",
+                    "strategy": strategy_name,
+                    "efficiency": efficiency,
+                    "time_held": time_held,
+                    "trade_id": entry["trade_id"],
+                }
+                matched_trades.append(trade_record)
+
+    if not matched_trades:
+        logger.warning("No trades could be matched")
+        return pd.DataFrame()
+
+    trades_df = pd.DataFrame(matched_trades)
+    logger.debug(f"Matched {len(trades_df)} completed trades (raw mode)")
+    return trades_df
+
+
 def _reset_position(pos: dict) -> None:
     """Reset position state to empty.
 
@@ -233,6 +324,7 @@ def _process_exit_signal(
     ohlcv_data: pd.DataFrame | None,
     strategy_name: str,
     logger,
+    close_full_on_exit: bool = False,
 ) -> None:
     """Process an exit signal and create a trade record.
 
@@ -265,7 +357,10 @@ def _process_exit_signal(
         ticker,
     )
 
-    shares_to_close = min(exit_shares, pos["position_size"])
+    if close_full_on_exit:
+        shares_to_close = pos["position_size"]
+    else:
+        shares_to_close = min(exit_shares, pos["position_size"])
     capital_used = shares_to_close * pos["avg_entry_price"]
 
     gross_pnl = _calculate_pnl(shares_to_close, price, pos["avg_entry_price"], pos["side"])
@@ -318,6 +413,8 @@ def match_trades(
     logger=None,
     initial_account_value: float | None = None,
     trade_percentage: float | None = None,
+    mode: str = "pm_managed",
+    pm_config: dict | None = None,
 ) -> pd.DataFrame:
     """Match trading signals into executed trades.
 
@@ -345,6 +442,11 @@ def match_trades(
         logger.warning("No signals to match")
         return pd.DataFrame()
 
+    if mode == "raw":
+        return _match_trades_raw(
+            signals, strategy_name, capital_per_trade, ohlcv_data, logger
+        )
+
     signals = signals.sort_values(["ticker", "signal_time"])
     matched_trades = []
     position_state = {}
@@ -355,6 +457,10 @@ def match_trades(
     if use_account_tracking:
         for ticker in signals["ticker"].unique():
             ticker_accounts[ticker] = initial_account_value
+
+    close_full_on_exit = False
+    if pm_config and pm_config.get("close_full_on_exit", False):
+        close_full_on_exit = True
 
     for _, signal in signals.iterrows():
         ticker = signal["ticker"]
@@ -392,6 +498,7 @@ def match_trades(
                 ohlcv_data,
                 strategy_name,
                 logger,
+                close_full_on_exit,
             )
 
     total_unmatched = sum(1 for pos in position_state.values() if pos["position_size"] > 0)
