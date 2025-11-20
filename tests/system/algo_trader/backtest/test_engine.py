@@ -386,16 +386,16 @@ class TestBacktestEngineSignalCollection:
             step_frequency="daily",
         )
 
-        # Mock strategy to return signals
-        mock_signals = pd.DataFrame(
+        # Mock strategy buy() and sell() methods to return signals
+        buy_signals = pd.DataFrame(
             {
-                "ticker": ["AAPL"],
-                "signal_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "signal_type": ["buy"],
                 "price": [100.0],
-            }
+            },
+            index=[pd.Timestamp("2024-01-05", tz="UTC")],
         )
-        mock_strategy.run_strategy.return_value = mock_signals
+        sell_signals = pd.DataFrame()
+        mock_strategy.buy.return_value = buy_signals
+        mock_strategy.sell.return_value = sell_signals
 
         data_cache = {"AAPL": sample_ohlcv_data}
         step_intervals = engine.time_stepper.determine_step_intervals(data_cache)
@@ -443,18 +443,31 @@ class TestBacktestEngineSignalCollection:
             step_frequency="daily",
         )
 
-        mock_signals = pd.DataFrame(
+        # Mock strategy buy() and sell() methods to return signals
+        buy_signals_aapl = pd.DataFrame(
             {
-                "ticker": ["AAPL", "MSFT"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                ],
-                "signal_type": ["buy", "buy"],
-                "price": [100.0, 200.0],
-            }
+                "price": [100.0],
+            },
+            index=[pd.Timestamp("2024-01-05", tz="UTC")],
         )
-        mock_strategy.run_strategy.return_value = mock_signals
+        buy_signals_msft = pd.DataFrame(
+            {
+                "price": [200.0],
+            },
+            index=[pd.Timestamp("2024-01-06", tz="UTC")],
+        )
+        sell_signals = pd.DataFrame()
+
+        # Return different signals based on ticker
+        def buy_side_effect(window, ticker):
+            if ticker == "AAPL":
+                return buy_signals_aapl
+            elif ticker == "MSFT":
+                return buy_signals_msft
+            return pd.DataFrame()
+
+        mock_strategy.buy.side_effect = buy_side_effect
+        mock_strategy.sell.return_value = sell_signals
 
         data_cache = {"AAPL": sample_ohlcv_data, "MSFT": sample_ohlcv_data}
         step_intervals = engine.time_stepper.determine_step_intervals(data_cache)
@@ -522,7 +535,8 @@ class TestBacktestEngineRunTicker:
         )
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = pd.DataFrame()
+        mock_strategy.buy.return_value = pd.DataFrame()
+        mock_strategy.sell.return_value = pd.DataFrame()
 
         results = engine.run_ticker("AAPL")
 
@@ -571,8 +585,14 @@ class TestBacktestEngineRunTicker:
         # Setup data
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
 
-        # Setup signals
-        mock_strategy.run_strategy.return_value = sample_mock_signals
+        # Setup signals - convert sample_mock_signals to buy/sell format
+        buy_signals = sample_mock_signals[sample_mock_signals["signal_type"] == "buy"].copy()
+        buy_signals = buy_signals.set_index("signal_time")[["price"]]
+        sell_signals = sample_mock_signals[sample_mock_signals["signal_type"] == "sell"].copy()
+        sell_signals = sell_signals.set_index("signal_time")[["price"]]
+
+        mock_strategy.buy.return_value = buy_signals
+        mock_strategy.sell.return_value = sell_signals
 
         # Mock TradeJournal and ExecutionSimulator
         with (
@@ -622,7 +642,15 @@ class TestBacktestEngineRunTicker:
         )
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = sample_mock_signals
+
+        # Setup signals - convert sample_mock_signals to buy/sell format
+        buy_signals = sample_mock_signals[sample_mock_signals["signal_type"] == "buy"].copy()
+        buy_signals = buy_signals.set_index("signal_time")[["price"]]
+        sell_signals = sample_mock_signals[sample_mock_signals["signal_type"] == "sell"].copy()
+        sell_signals = sell_signals.set_index("signal_time")[["price"]]
+
+        mock_strategy.buy.return_value = buy_signals
+        mock_strategy.sell.return_value = sell_signals
 
         with patch(
             "system.algo_trader.backtest.core.results_generator.TradeJournal"
@@ -635,6 +663,7 @@ class TestBacktestEngineRunTicker:
 
             # Verify account tracking parameters were passed
             call_args = mock_journal_class.call_args
+            assert call_args is not None
             assert call_args[1]["initial_account_value"] == 50000.0
             assert call_args[1]["trade_percentage"] == 0.10
 
@@ -694,7 +723,8 @@ class TestBacktestEngineRun:
         )
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = pd.DataFrame()
+        mock_strategy.buy.return_value = pd.DataFrame()
+        mock_strategy.sell.return_value = pd.DataFrame()
 
         results = engine.run()
 
@@ -721,7 +751,24 @@ class TestBacktestEngineRun:
         )
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = sample_mock_signals_multiple_tickers
+
+        # Setup signals - convert sample_mock_signals_multiple_tickers to buy/sell format
+        buy_signals = sample_mock_signals_multiple_tickers[
+            sample_mock_signals_multiple_tickers["signal_type"] == "buy"
+        ].copy()
+        buy_signals = buy_signals.set_index("signal_time")[["price"]]
+        sell_signals = pd.DataFrame()
+
+        # Return different signals based on ticker
+        def buy_side_effect(window, ticker):
+            if ticker == "AAPL":
+                return buy_signals[buy_signals.index == pd.Timestamp("2024-01-05", tz="UTC")]
+            elif ticker == "MSFT":
+                return buy_signals[buy_signals.index == pd.Timestamp("2024-01-06", tz="UTC")]
+            return pd.DataFrame()
+
+        mock_strategy.buy.side_effect = buy_side_effect
+        mock_strategy.sell.return_value = sell_signals
 
         with (
             patch(
@@ -766,7 +813,14 @@ class TestBacktestEngineRun:
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
         # Generate signals so close() is called (close() only called when signals exist)
-        mock_strategy.run_strategy.return_value = sample_mock_signals_single
+        buy_signals = sample_mock_signals_single[
+            sample_mock_signals_single["signal_type"] == "buy"
+        ].copy()
+        buy_signals = buy_signals.set_index("signal_time")[["price"]]
+        sell_signals = pd.DataFrame()
+
+        mock_strategy.buy.return_value = buy_signals
+        mock_strategy.sell.return_value = sell_signals
 
         with (
             patch(
@@ -867,7 +921,19 @@ class TestBacktestEngineEdgeCases:
         )
 
         mock_market_data_influx["instance"].query.return_value = sample_ohlcv_data_with_time.copy()
-        mock_strategy.run_strategy.return_value = sample_mock_signals_with_multiple_entries
+
+        # Setup signals - convert sample_mock_signals_with_multiple_entries to buy/sell format
+        buy_signals = sample_mock_signals_with_multiple_entries[
+            sample_mock_signals_with_multiple_entries["signal_type"] == "buy"
+        ].copy()
+        buy_signals = buy_signals.set_index("signal_time")[["price"]]
+        sell_signals = sample_mock_signals_with_multiple_entries[
+            sample_mock_signals_with_multiple_entries["signal_type"] == "sell"
+        ].copy()
+        sell_signals = sell_signals.set_index("signal_time")[["price"]]
+
+        mock_strategy.buy.return_value = buy_signals
+        mock_strategy.sell.return_value = sell_signals
 
         with (
             patch(

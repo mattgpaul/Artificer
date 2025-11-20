@@ -26,17 +26,17 @@ class TestGetBacktestDatabase:
 
     @pytest.mark.unit
     def test_get_backtest_database_non_prod(self):
-        """Test returns 'debug' for non-prod environment."""
+        """Test returns 'backtest-dev' for non-prod environment."""
         with patch.dict("os.environ", {"INFLUXDB3_ENVIRONMENT": "dev"}, clear=True):
             result = get_backtest_database()
-            assert result == "debug"
+            assert result == "backtest-dev"
 
     @pytest.mark.unit
     def test_get_backtest_database_no_env(self):
-        """Test returns 'debug' when environment variable not set."""
+        """Test returns 'backtest-dev' when environment variable not set."""
         with patch.dict("os.environ", {}, clear=True):
             result = get_backtest_database()
-            assert result == "debug"
+            assert result == "backtest-dev"
 
 
 class TestBacktestProcessorInitialization:

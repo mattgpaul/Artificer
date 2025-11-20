@@ -21,33 +21,6 @@ def mock_logger():
 
 
 @pytest.fixture
-def mock_dependencies():
-    """Fixture to mock all external dependencies for BaseStrategy tests."""
-    with (
-        patch("infrastructure.logging.logger.get_logger") as mock_logger,
-        patch("system.algo_trader.strategy.base.MarketDataInflux") as mock_influx_class,
-        patch("system.algo_trader.strategy.base.ThreadManager") as mock_thread_class,
-    ):
-        mock_logger_instance = MagicMock()
-        mock_logger.return_value = mock_logger_instance
-
-        mock_influx_instance = MagicMock()
-        mock_influx_class.return_value = mock_influx_instance
-
-        mock_thread_instance = MagicMock()
-        mock_thread_class.return_value = mock_thread_instance
-
-        yield {
-            "logger": mock_logger,
-            "logger_instance": mock_logger_instance,
-            "influx_class": mock_influx_class,
-            "influx_instance": mock_influx_instance,
-            "thread_class": mock_thread_class,
-            "thread_instance": mock_thread_instance,
-        }
-
-
-@pytest.fixture
 def mock_args():
     """Mock command-line arguments for executor tests."""
     args = MagicMock()
@@ -125,7 +98,7 @@ def sample_trades():
 @pytest.fixture
 def mock_influx_client():
     """Fixture to mock MarketDataInflux client for cli_utils tests."""
-    with patch("system.algo_trader.strategy.utils.cli_utils.MarketDataInflux") as mock_influx_class:
+    with patch("system.algo_trader.backtest.cli_utils.MarketDataInflux") as mock_influx_class:
         mock_client = MagicMock()
         mock_influx_class.return_value = mock_client
         yield {"class": mock_influx_class, "instance": mock_client}
@@ -134,7 +107,7 @@ def mock_influx_client():
 @pytest.fixture
 def mock_tickers_class():
     """Fixture to mock SEC Tickers class for cli_utils tests."""
-    with patch("system.algo_trader.strategy.utils.cli_utils.Tickers") as mock_class:
+    with patch("system.algo_trader.backtest.cli_utils.Tickers") as mock_class:
         mock_instance = MagicMock()
         mock_class.return_value = mock_instance
         yield {"class": mock_class, "instance": mock_instance}
@@ -143,5 +116,5 @@ def mock_tickers_class():
 @pytest.fixture
 def mock_get_sp500():
     """Fixture to mock get_sp500_tickers function for cli_utils tests."""
-    with patch("system.algo_trader.strategy.utils.cli_utils.get_sp500_tickers") as mock_func:
+    with patch("system.algo_trader.backtest.cli_utils.get_sp500_tickers") as mock_func:
         yield mock_func

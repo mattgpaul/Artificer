@@ -7,7 +7,7 @@ All external dependencies are mocked to avoid logging calls.
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.utils.studies.base_study import BaseStudy
+from system.algo_trader.strategy.studies.base_study import BaseStudy
 
 
 class ConcreteStudy(BaseStudy):

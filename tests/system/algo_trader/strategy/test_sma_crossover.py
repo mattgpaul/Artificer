@@ -2,7 +2,7 @@
 
 Tests cover initialization, signal generation with various data patterns,
 confidence calculation, edge cases, and error handling. All external
-dependencies (InfluxDB, BaseStrategy methods) are mocked.
+dependencies (InfluxDB, Strategy methods) are mocked.
 """
 
 import json

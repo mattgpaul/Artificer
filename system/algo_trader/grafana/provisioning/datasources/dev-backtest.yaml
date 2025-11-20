@@ -1,15 +1,15 @@
 apiVersion: 1
 
 datasources:
-  - name: Debug
-    uid: influxdb-algo-trader-debug
+  - name: Backtest Dev
+    uid: influxdb-algo-trader-backtest-dev
     type: influxdb
     access: proxy
     url: http://influxdb:8181
-    database: debug
+    database: backtest-dev
     jsonData:
       version: SQL
-      dbName: debug
+      dbName: backtest-dev
       httpMode: POST
       insecureGrpc: true
       tlsSkipVerify: true
