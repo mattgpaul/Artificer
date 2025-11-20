@@ -198,9 +198,11 @@ py_library(
 
 ## Reusable Fixtures - MANDATORY conftest.py Usage
 
-### CRITICAL: Always Use conftest.py for Shared Fixtures
+### ⚠️ CRITICAL: Always Use conftest.py for Shared Fixtures
 
-**Rule:** **ALL shared fixtures MUST be defined in `conftest.py` files, NOT in individual test files.** This is mandatory to eliminate code duplication and ensure consistency.
+**MANDATORY RULE:** **ALL shared fixtures, mocks, and test data MUST be defined in `conftest.py` files, NEVER in individual test files.** 
+
+**This is NOT optional** - it is a mandatory requirement to eliminate code duplication, ensure consistency, and maintain test quality. Any fixture defined in a test file instead of `conftest.py` is a violation of testing standards.
 
 ### Why conftest.py is Required
 
@@ -377,8 +379,18 @@ Use `autouse=True` for fixtures that should always be active (e.g., preventing n
 class TestSchwabClient:
     @pytest.fixture
     def mock_dependencies(self):
-        """Duplicate fixture definition"""
+        """Duplicate fixture definition - VIOLATION: Should be in conftest.py"""
         # ... fixture code
+```
+
+**❌ BAD: Creating mocks inline in test methods**
+
+```python
+# test_schwab_client.py
+def test_something(self):
+    """Creating mocks inline - VIOLATION: Should use conftest.py fixtures"""
+    with patch("module.Class") as mock_class:
+        # ... test code
 ```
 
 **✅ GOOD: Using fixtures from conftest.py**
@@ -387,9 +399,30 @@ class TestSchwabClient:
 # test_schwab_client.py
 class TestSchwabClient:
     def test_something(self, mock_dependencies_token_management):
-        """Uses fixture from conftest.py"""
+        """Uses fixture from conftest.py - CORRECT"""
         # ... test code
 ```
+
+**✅ GOOD: Using autouse fixtures automatically**
+
+```python
+# test_schwab_client.py
+class TestSchwabClient:
+    def test_something(self, mock_logger):
+        """mock_logger is automatically available from conftest.py"""
+        # ... test code
+```
+
+### Enforcement Checklist
+
+Before committing any test code, verify:
+
+- [ ] **NO** `@pytest.fixture` decorators in test files (only in `conftest.py`)
+- [ ] **NO** inline `patch()` or `MagicMock()` creation in test methods (use fixtures)
+- [ ] **ALL** common mocks are defined in `conftest.py`
+- [ ] **ALL** test data fixtures are defined in `conftest.py`
+- [ ] Test files only reference fixtures by name in method parameters
+- [ ] Each test package has its own `conftest.py` with appropriate fixtures
 
 ---
 
@@ -847,8 +880,11 @@ When creating tests, verify:
 - [ ] Test BUILD file defines `py_library` with `testonly = True`
 - [ ] Implementation BUILD file defines `pytest_test` target
 - [ ] Implementation grants visibility to test package
-- [ ] Shared fixtures defined in `conftest.py` (not duplicated in test files)
-- [ ] All external dependencies are mocked
+- [ ] **CRITICAL: Shared fixtures defined in `conftest.py` (NEVER in test files)**
+- [ ] **CRITICAL: NO `@pytest.fixture` decorators in test files**
+- [ ] **CRITICAL: NO inline mocks/patches - use fixtures from `conftest.py`**
+- [ ] Each test package has its own `conftest.py` with appropriate fixtures
+- [ ] All external dependencies are mocked via fixtures
 - [ ] Thread tests use `@pytest.mark.timeout(10)`
 - [ ] Test count is 5-15 per module (not excessive)
 - [ ] Tests use parameterized tests for similar scenarios

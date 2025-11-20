@@ -100,7 +100,7 @@ class Strategy(ABC):
         """
         raise NotImplementedError
 
-    def get_study_specs(self) -> list["StudySpec"]:
+    def get_study_specs(self) -> list[StudySpec]:
         """Get study specifications for persistence during backtests.
 
         Returns:

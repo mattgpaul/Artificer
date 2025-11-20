@@ -138,7 +138,7 @@ def write_backtest_results(
         train_split=train_split,
     )
 
-    studies_success = writer.write_studies(
+    writer.write_studies(
         studies=results.studies,
         strategy_name=results.strategy_name,
         ticker=ticker,

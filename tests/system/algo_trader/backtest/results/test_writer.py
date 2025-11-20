@@ -16,6 +16,7 @@ from system.algo_trader.backtest.results.writer import ResultsWriter
 from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
+    BACKTEST_STUDIES_QUEUE_NAME,
     BACKTEST_TRADES_QUEUE_NAME,
 )
 
@@ -1032,3 +1033,262 @@ class TestResultsWriterDataFrameConversion:
         # Note: gross_pnl may not be in journal rows, check for price instead
         assert "price" in data_dict
         assert len(data_dict["price"]) == 4
+
+
+class TestResultsWriterWriteStudies:
+    """Test write_studies method."""
+
+    @pytest.mark.unit
+    def test_write_studies_empty(self, mock_queue_broker):
+        """Test writing empty studies DataFrame."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+
+        result = writer.write_studies(
+            studies=pd.DataFrame(),
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+        )
+
+        assert result is True
+        mock_queue_broker.enqueue.assert_not_called()
+
+    @pytest.mark.unit
+    def test_write_studies_success(
+        self, mock_queue_broker, sample_studies_data_minimal, execution_config
+    ):
+        """Test writing studies successfully."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+        result = writer.write_studies(
+            studies=sample_studies_data_minimal,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            backtest_id="test-id",
+            strategy_params={"short_window": 10},
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="debug",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        assert result is True
+        mock_queue_broker.enqueue.assert_called_once()
+        call_args = mock_queue_broker.enqueue.call_args
+        assert call_args[1]["queue_name"] == BACKTEST_STUDIES_QUEUE_NAME
+        assert call_args[1]["ttl"] == BACKTEST_REDIS_TTL
+        assert "hash_id" in call_args[1]["data"]
+
+    @pytest.mark.unit
+    def test_write_studies_with_hash(
+        self, mock_queue_broker, sample_studies_data_minimal, execution_config
+    ):
+        """Test writing studies with backtest hash computation."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+        strategy_params = {"short_window": 10, "long_window": 20}
+
+        result = writer.write_studies(
+            studies=sample_studies_data_minimal,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            backtest_id="test-id",
+            strategy_params={"short_window": 10, "long_window": 20},
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="debug",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        assert result is True
+        call_args = mock_queue_broker.enqueue.call_args
+        queue_data = call_args[1]["data"]
+        assert queue_data["hash_id"] is not None
+        assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
+
+    @pytest.mark.unit
+    def test_write_studies_without_hash_params(self, mock_queue_broker, sample_studies_data_single):
+        """Test writing studies without hash computation parameters."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        result = writer.write_studies(
+            studies=sample_studies_data_single,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+        )
+
+        assert result is True
+        call_args = mock_queue_broker.enqueue.call_args
+        queue_data = call_args[1]["data"]
+        assert queue_data["hash_id"] is None
+
+    @pytest.mark.unit
+    def test_write_studies_failure(self, mock_queue_broker, sample_studies_data_single):
+        """Test writing studies failure."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = False
+
+        result = writer.write_studies(
+            studies=sample_studies_data_single,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+        )
+
+        assert result is False
+
+    @pytest.mark.unit
+    def test_write_studies_exception(self, mock_queue_broker, sample_studies_data_single):
+        """Test writing studies exception handling."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.side_effect = Exception("Redis error")
+
+        result = writer.write_studies(
+            studies=sample_studies_data_single,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+        )
+
+        assert result is False
+
+    @pytest.mark.unit
+    def test_write_studies_schema_validation_failure(self, mock_queue_broker):
+        """Test that schema validation failure prevents enqueue."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        studies = pd.DataFrame(
+            {
+                "close": [100.0, 101.0],
+                "sma_10": [99.0],
+            },
+            index=[
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-06", tz="UTC"),
+            ],
+        )
+
+        # Force an invalid time-series payload with mismatched column lengths.
+        with patch(
+            "system.algo_trader.backtest.results.writer.dataframe_to_dict"
+        ) as mock_df_to_dict:
+            mock_df_to_dict.return_value = {
+                "datetime": [1704067200000, 1704153600000],  # two timestamps
+                "sma_10": [99.0],  # only one value -> length mismatch
+            }
+
+            result = writer.write_studies(
+                studies=studies,
+                strategy_name="TestStrategy",
+                ticker="AAPL",
+            )
+
+        assert result is False
+        mock_queue_broker.enqueue.assert_not_called()
+
+    @pytest.mark.unit
+    def test_write_studies_invalid_strategy_params(
+        self, mock_queue_broker, sample_studies_data_single
+    ):
+        """Test that invalid strategy_params keys cause validation failure."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        # strategy_params with an empty key should fail BacktestStudiesPayload validation.
+        result = writer.write_studies(
+            studies=sample_studies_data_single,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            strategy_params={"": 10},
+        )
+
+        assert result is False
+        mock_queue_broker.enqueue.assert_not_called()
+
+    @pytest.mark.unit
+    def test_write_studies_walk_forward_hash(
+        self, mock_queue_broker, sample_studies_data_single, execution_config
+    ):
+        """Test hash computation includes walk-forward parameters."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        result = writer.write_studies(
+            studies=sample_studies_data_single,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            backtest_id="test-id",
+            strategy_params={},
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="debug",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+            walk_forward=True,
+            train_days=90,
+            test_days=30,
+            train_split=None,
+        )
+
+        assert result is True
+        call_args = mock_queue_broker.enqueue.call_args
+        queue_data = call_args[1]["data"]
+        assert queue_data["hash_id"] is not None
+
+    @pytest.mark.integration
+    def test_write_studies_complete_workflow(
+        self, mock_queue_broker, sample_studies_data, execution_config
+    ):
+        """Test complete workflow: DataFrame → dict → Redis."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        result = writer.write_studies(
+            studies=sample_studies_data,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+            backtest_id="test-id",
+            strategy_params={"short_window": 10, "long_window": 20},
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="debug",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        assert result is True
+        call_args = mock_queue_broker.enqueue.call_args
+        assert call_args[1]["queue_name"] == BACKTEST_STUDIES_QUEUE_NAME
+        assert call_args[1]["item_id"] == "AAPL_TestStrategy_test-id_studies"
+        queue_data = call_args[1]["data"]
+        assert queue_data["ticker"] == "AAPL"
+        assert queue_data["strategy_name"] == "TestStrategy"
+        assert queue_data["backtest_id"] == "test-id"
+        assert queue_data["database"] == "debug"
+        assert queue_data["strategy_params"] == {"short_window": 10, "long_window": 20}
+        assert len(queue_data["data"]["datetime"]) == 3
+        assert "sma_10" in queue_data["data"]
+        assert len(queue_data["data"]["sma_10"]) == 3

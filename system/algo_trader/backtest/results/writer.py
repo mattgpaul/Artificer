@@ -392,6 +392,34 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
     ) -> bool:
+        """Write study results to Redis queue for InfluxDB publication.
+
+        Enqueues study data (technical indicators) to Redis for later batch
+        publication to InfluxDB. Studies are written with metadata including
+        strategy parameters, execution config, and backtest context.
+
+        Args:
+            studies: DataFrame containing study results to enqueue.
+            strategy_name: Name of the strategy that generated the studies.
+            ticker: Ticker symbol for the studies.
+            backtest_id: Unique identifier for this backtest run.
+            strategy_params: Dictionary of strategy parameters.
+            execution_config: Execution configuration used.
+            start_date: Start date of backtest period.
+            end_date: End date of backtest period.
+            step_frequency: Frequency used for time steps.
+            database: Database name used for data access.
+            tickers: List of tickers in the backtest.
+            capital_per_trade: Capital allocated per trade.
+            risk_free_rate: Risk-free rate used for Sharpe ratio.
+            walk_forward: Whether walk-forward analysis was used.
+            train_days: Number of training days (if walk-forward).
+            test_days: Number of test days (if walk-forward).
+            train_split: Training split ratio (if walk-forward).
+
+        Returns:
+            True if studies were successfully enqueued, False otherwise.
+        """
         if studies.empty:
             self.logger.debug(f"No studies to enqueue for {ticker}")
             return True
