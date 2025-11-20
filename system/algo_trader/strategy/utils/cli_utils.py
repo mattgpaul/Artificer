@@ -1,8 +1,4 @@
-"""CLI utility functions for strategy execution.
-
-This module provides utility functions for ticker resolution, signal formatting,
-and journal formatting used by the strategy execution CLI.
-"""
+"""CLI utility functions shared across backtest and data-population tools."""
 
 import pandas as pd
 

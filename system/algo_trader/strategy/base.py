@@ -75,6 +75,7 @@ class BaseStrategy(Client):
         config=None,
         thread_config: ThreadConfig | None = None,
         strategy_args: dict[str, Any] | None = None,
+        lookback_bars: int | None = None,
     ):
         """Initialize strategy with InfluxDB connection and optional threading.
 
@@ -91,6 +92,7 @@ class BaseStrategy(Client):
         self.logger = get_logger(self.__class__.__name__)
         self.strategy_name = self.__class__.__name__
         self.strategy_args = strategy_args
+        self.lookback_bars = lookback_bars
 
         # Use get_signal_database() if database not specified
         if database is None:
@@ -151,6 +153,27 @@ class BaseStrategy(Client):
         """
         pass
 
+    def _get_required_min_bars(self) -> int:
+        return 0
+
+    def generate_signals(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        buy_signals = self.buy(ohlcv_data, ticker)
+        sell_signals = self.sell(ohlcv_data, ticker)
+
+        if not buy_signals.empty:
+            buy_signals["signal_type"] = "buy"
+        if not sell_signals.empty:
+            sell_signals["signal_type"] = "sell"
+
+        if buy_signals.empty and sell_signals.empty:
+            return pd.DataFrame()
+        elif buy_signals.empty:
+            return sell_signals
+        elif sell_signals.empty:
+            return buy_signals
+        else:
+            return pd.concat([buy_signals, sell_signals]).sort_index()
+
     def query_ohlcv(
         self,
         ticker: str,
@@ -181,7 +204,7 @@ class BaseStrategy(Client):
         Args:
             signals: DataFrame with signal data indexed by datetime.
                     Must contain at minimum: signal_type, price
-                    Optional: confidence, metadata
+                    Optional: metadata
             ticker: Stock ticker symbol the signals are for.
 
         Returns:
@@ -190,8 +213,7 @@ class BaseStrategy(Client):
         Example:
             >>> signals_df = pd.DataFrame({
             ...     'signal_type': ['buy', 'sell'],
-            ...     'price': [150.0, 155.0],
-            ...     'confidence': [0.85, 0.92]
+            ...     'price': [150.0, 155.0]
             ... }, index=pd.to_datetime(['2024-01-01', '2024-01-02']))
             >>> strategy.write_signals(signals_df, 'AAPL')
         """
@@ -204,6 +226,7 @@ class BaseStrategy(Client):
         end_time: str | None = None,
         limit: int | None = None,
         write_signals: bool = True,
+        lookback_bars: int | None = None,
     ) -> pd.DataFrame:
         """Execute complete strategy workflow for a single ticker.
 
@@ -216,6 +239,7 @@ class BaseStrategy(Client):
             end_time: Optional end timestamp for OHLCV query.
             limit: Optional limit on OHLCV records to fetch.
             write_signals: Whether to write signals to InfluxDB (default: True).
+            lookback_bars: Optional override for lookback window size.
 
         Returns:
             DataFrame with signal summary:
@@ -230,35 +254,34 @@ class BaseStrategy(Client):
         Example:
             >>> summary = strategy.run_strategy('AAPL', start_time='2024-01-01')
         """
+        effective_lookback = lookback_bars if lookback_bars is not None else self.lookback_bars
+        required_min_bars = self._get_required_min_bars()
 
-        ohlcv_data = self.query_ohlcv(ticker, start_time, end_time, limit)
+        if effective_lookback is not None and effective_lookback < required_min_bars:
+            error_msg = (
+                f"Invalid lookback_bars={effective_lookback} for strategy '{self.strategy_name}'. "
+                f"Required minimum: {required_min_bars} bars"
+            )
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        query_limit = effective_lookback if effective_lookback is not None else limit
+        ohlcv_data = self.query_ohlcv(ticker, start_time, end_time, query_limit)
         if ohlcv_data is None or ohlcv_data.empty:
             self.logger.debug(f"No OHLCV data available for {ticker}")
             return pd.DataFrame()
 
         try:
-            buy_signals = self.buy(ohlcv_data, ticker)
-            sell_signals = self.sell(ohlcv_data, ticker)
+            signals = self.generate_signals(ohlcv_data, ticker)
         except Exception as e:
             self.logger.error(f"Signal generation failed for {ticker}: {e}")
             return pd.DataFrame()
 
-        if not buy_signals.empty:
-            buy_signals["signal_type"] = "buy"
-            buy_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
-        if not sell_signals.empty:
-            sell_signals["signal_type"] = "sell"
-            sell_signals["side"] = self.strategy_type if self.strategy_type else "LONG"
-
-        if buy_signals.empty and sell_signals.empty:
+        if signals.empty:
             self.logger.debug(f"No signals generated for {ticker}")
             return pd.DataFrame()
-        elif buy_signals.empty:
-            signals = sell_signals
-        elif sell_signals.empty:
-            signals = buy_signals
-        else:
-            signals = pd.concat([buy_signals, sell_signals]).sort_index()
+
+        signals["side"] = self.strategy_type if self.strategy_type else "LONG"
 
         if write_signals:
             write_success = self.write_signals(signals, ticker)
