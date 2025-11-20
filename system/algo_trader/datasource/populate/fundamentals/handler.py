@@ -6,11 +6,11 @@ population from SEC company facts API.
 
 import argparse
 
+from system.algo_trader.backtest.cli_utils import get_sp500_tickers
 from system.algo_trader.datasource.populate.argument_base import ArgumentHandler
 from system.algo_trader.datasource.populate.fundamentals.processor import FundamentalsProcessor
 from system.algo_trader.datasource.sec.tickers.main import Tickers
 from system.algo_trader.mysql.bad_ticker_client import BadTickerClient
-from system.algo_trader.strategy.utils.cli_utils import get_sp500_tickers
 
 MAX_THREADS = 4
 

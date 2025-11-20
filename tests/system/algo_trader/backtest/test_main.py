@@ -14,6 +14,7 @@ from system.algo_trader.backtest.main import create_strategy, main, parse_args
 from system.algo_trader.strategy.position_manager.position_manager import (
     PositionManagerConfig,
 )
+from system.algo_trader.strategy.strategy import Side
 
 
 class TestParseArgs:
@@ -163,7 +164,8 @@ class TestCreateStrategy:
         args.strategy = "sma-crossover"
         args.short = 10
         args.long = 20
-        args.database = "test_db"
+        args.window = 120
+        args.side = "LONG"
 
         with patch("system.algo_trader.backtest.main.SMACrossover") as mock_strategy_class:
             mock_strategy = MagicMock()
@@ -173,46 +175,8 @@ class TestCreateStrategy:
 
             assert result == mock_strategy
             mock_strategy_class.assert_called_once_with(
-                short_window=10, long_window=20, database="test_db", use_threading=False
+                short=10, long=20, window=120, side=Side("LONG")
             )
-
-    @pytest.mark.unit
-    def test_create_strategy_valley_long(self, mock_logger):
-        """Test creating ValleyLong strategy."""
-        args = MagicMock()
-        args.strategy = "valley-long"
-        args.valley_distance = 50
-        args.valley_prominence = 2.0
-        args.valley_height = None
-        args.valley_width = None
-        args.valley_threshold = None
-        args.peak_distance = 50
-        args.peak_prominence = 2.0
-        args.peak_height = None
-        args.peak_width = None
-        args.peak_threshold = None
-        args.nearness_threshold = 0.5
-        args.sell_nearness_threshold = None
-        args.min_confidence = 0.0
-        args.database = "test_db"
-
-        with patch("system.algo_trader.backtest.main.ValleyLong") as mock_strategy_class:
-            mock_strategy = MagicMock()
-            mock_strategy_class.return_value = mock_strategy
-
-            result = create_strategy(args, mock_logger)
-
-            assert result == mock_strategy
-            mock_strategy_class.assert_called_once()
-            call_kwargs = mock_strategy_class.call_args[1]
-            assert call_kwargs["valley_distance"] == 50
-            assert call_kwargs["valley_prominence"] == 2.0
-            assert call_kwargs["peak_distance"] == 50
-            assert call_kwargs["peak_prominence"] == 2.0
-            assert call_kwargs["nearness_threshold"] == 0.5
-            assert call_kwargs["min_confidence"] == 0.0
-            assert call_kwargs["database"] == "test_db"
-            assert call_kwargs["use_threading"] is False
 
     @pytest.mark.unit
     def test_create_strategy_unknown_strategy(self, mock_logger):
@@ -454,7 +418,6 @@ class TestMainExecution:
         ):
             mock_resolve.return_value = ["AAPL"]
             mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
             mock_create.return_value = mock_strategy
             mock_processor_instance = MagicMock()
             mock_processor_class.return_value = mock_processor_instance
@@ -468,7 +431,6 @@ class TestMainExecution:
             mock_resolve.assert_called_once()
             mock_create.assert_called_once()
             mock_processor_instance.process_tickers.assert_called_once()
-            mock_strategy.close.assert_called_once()
 
     @pytest.mark.e2e
     def test_main_walk_forward_workflow(self, mock_logger):
@@ -684,7 +646,6 @@ class TestMainExecution:
         ):
             mock_resolve.return_value = ["AAPL"]
             mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
             mock_create.return_value = mock_strategy
             mock_processor_instance = MagicMock()
             mock_processor_instance.process_tickers.side_effect = Exception("Processing error")
@@ -693,7 +654,6 @@ class TestMainExecution:
             result = main()
 
             assert result == 1
-            mock_strategy.close.assert_called_once()  # Should still close strategy
 
     @pytest.mark.e2e
     def test_main_with_position_manager(self, mock_logger):

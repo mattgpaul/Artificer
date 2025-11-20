@@ -7,7 +7,7 @@ price data by inverting the data and using scipy's peak detection algorithm.
 import pandas as pd
 from scipy.signal import find_peaks
 
-from system.algo_trader.strategy.utils.studies.base_study import BaseStudy
+from system.algo_trader.strategy.studies.base_study import BaseStudy
 
 
 class FindValleys(BaseStudy):

@@ -5,7 +5,7 @@ py_library(
     name = "conftest_lib",
     testonly = True,
     srcs = ["conftest.py"],
-    visibility = ["//tests/system/algo_trader/strategy/utils/studies:__subpackages__"],
+    visibility = ["//tests/system/algo_trader/strategy/studies:__subpackages__"],
     deps = [
         requirement("pandas"),
         requirement("pytest"),

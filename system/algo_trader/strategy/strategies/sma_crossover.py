@@ -1,16 +1,41 @@
+"""Simple Moving Average (SMA) crossover trading strategy.
+
+This module implements a classic SMA crossover strategy that generates buy
+signals when the short-term SMA crosses above the long-term SMA, and sell
+signals when it crosses below.
+"""
+
 from __future__ import annotations
 
 from typing import Any
 
 import pandas as pd
 
-from system.algo_trader.strategy.simple_strategy import Side, Strategy
-from system.algo_trader.strategy.utils.studies.moving_average.simple_moving_average import (
+from system.algo_trader.strategy.strategy import Side, Strategy
+from system.algo_trader.strategy.studies.moving_average.simple_moving_average import (
     SimpleMovingAverage,
 )
 
 
 class SMACrossover(Strategy):
+    """Simple Moving Average crossover trading strategy.
+
+    Generates buy signals when short-term SMA crosses above long-term SMA,
+    and sell signals when short-term SMA crosses below long-term SMA.
+
+    Args:
+        short: Short-term SMA window period. Must be less than long and >= 2.
+            Defaults to 10.
+        long: Long-term SMA window period. Must be greater than short.
+            Defaults to 20.
+        window: Lookback window in bars. Defaults to 120.
+        side: Trade side (LONG or SHORT). Defaults to LONG.
+        **extra: Additional keyword arguments passed to base Strategy.
+
+    Raises:
+        ValueError: If short >= long or short < 2.
+    """
+
     def __init__(
         self,
         short: int = 10,
@@ -19,6 +44,20 @@ class SMACrossover(Strategy):
         side: Side = Side.LONG,
         **extra: Any,
     ) -> None:
+        """Initialize SMACrossover strategy.
+
+        Args:
+            short: Short-term SMA window period. Must be less than long and >= 2.
+                Defaults to 10.
+            long: Long-term SMA window period. Must be greater than short.
+                Defaults to 20.
+            window: Lookback window in bars. Defaults to 120.
+            side: Trade side (LONG or SHORT). Defaults to LONG.
+            **extra: Additional keyword arguments passed to base Strategy.
+
+        Raises:
+            ValueError: If short >= long or short < 2.
+        """
         if short >= long:
             raise ValueError(f"short ({short}) must be less than long ({long})")
         if short < 2:
@@ -31,6 +70,11 @@ class SMACrossover(Strategy):
 
     @classmethod
     def add_arguments(cls, parser) -> None:
+        """Add strategy-specific arguments to argument parser.
+
+        Args:
+            parser: ArgumentParser instance to add arguments to.
+        """
         Strategy.add_arguments(parser)
         parser.add_argument(
             "--short",
@@ -89,6 +133,15 @@ class SMACrossover(Strategy):
         )
 
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate buy signals when short SMA crosses above long SMA.
+
+        Args:
+            ohlcv_data: OHLCV DataFrame for analysis.
+            ticker: Ticker symbol.
+
+        Returns:
+            DataFrame with buy signals (empty if no crossover detected).
+        """
         sma_short, sma_long = self._calculate_smas(ohlcv_data, ticker)
         if sma_short is None:
             return pd.DataFrame()
@@ -103,6 +156,15 @@ class SMACrossover(Strategy):
         return pd.DataFrame()
 
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate sell signals when short SMA crosses below long SMA.
+
+        Args:
+            ohlcv_data: OHLCV DataFrame for analysis.
+            ticker: Ticker symbol.
+
+        Returns:
+            DataFrame with sell signals (empty if no crossover detected).
+        """
         sma_short, sma_long = self._calculate_smas(ohlcv_data, ticker)
         if sma_short is None:
             return pd.DataFrame()
@@ -115,5 +177,3 @@ class SMACrossover(Strategy):
         if prev > 0.0 and curr < 0.0:
             return self._build_signal(ohlcv_data)
         return pd.DataFrame()
-
-

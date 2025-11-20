@@ -16,7 +16,7 @@ from system.algo_trader.backtest.processor.sequential import process_sequentiall
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
 
 if TYPE_CHECKING:
-    from system.algo_trader.strategy.base import BaseStrategy
+    from system.algo_trader.strategy.strategy import Strategy
 
 
 def get_backtest_database() -> str:
@@ -148,7 +148,7 @@ class BacktestProcessor:
 
     def process_tickers(
         self,
-        strategy: "BaseStrategy",
+        strategy: "Strategy",
         tickers: list[str],
         start_date: pd.Timestamp,
         end_date: pd.Timestamp,

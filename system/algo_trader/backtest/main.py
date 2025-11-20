@@ -12,15 +12,14 @@ from uuid import uuid4
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
+from system.algo_trader.backtest.cli_utils import resolve_tickers
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config,
 )
-from system.algo_trader.strategy.simple_strategy import Side
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
-from system.algo_trader.strategy.strategies.valley_long import ValleyLong
-from system.algo_trader.strategy.utils.cli_utils import resolve_tickers
+from system.algo_trader.strategy.strategy import Side
 
 
 def create_strategy(args, logger):
@@ -47,28 +46,6 @@ def create_strategy(args, logger):
             long=args.long,
             window=args.window,
             side=side,
-        )
-    elif args.strategy == "valley-long":
-        logger.info(
-            f"Initializing Valley Long: valley_distance={args.valley_distance}, "
-            f"peak_distance={args.peak_distance}, nearness_threshold={args.nearness_threshold}"
-        )
-        return ValleyLong(
-            valley_distance=args.valley_distance,
-            valley_prominence=args.valley_prominence,
-            valley_height=args.valley_height,
-            valley_width=args.valley_width,
-            valley_threshold=args.valley_threshold,
-            peak_distance=args.peak_distance,
-            peak_prominence=args.peak_prominence,
-            peak_height=args.peak_height,
-            peak_width=args.peak_width,
-            peak_threshold=args.peak_threshold,
-            nearness_threshold=args.nearness_threshold,
-            sell_nearness_threshold=args.sell_nearness_threshold,
-            database=args.database,
-            use_threading=False,
-            lookback_bars=getattr(args, "lookback_bars", None),
         )
     else:
         raise ValueError(f"Unknown strategy: {args.strategy}")
@@ -215,9 +192,6 @@ def parse_args():
     )
     SMACrossover.add_arguments(sma_parser)
 
-    valley_parser = subparsers.add_parser("valley-long", help="Valley-based long strategy")
-    ValleyLong().add_strategy_arguments(valley_parser)
-
     return parser.parse_args()
 
 
@@ -278,30 +252,6 @@ def main():
         }
         if args.window is not None:
             strategy_params["window"] = args.window
-    elif args.strategy == "valley-long":
-        strategy_params = {
-            "valley_distance": args.valley_distance,
-            "valley_prominence": args.valley_prominence,
-            "nearness_threshold": args.nearness_threshold,
-        }
-        if args.valley_height is not None:
-            strategy_params["valley_height"] = args.valley_height
-        if args.valley_width is not None:
-            strategy_params["valley_width"] = args.valley_width
-        if args.valley_threshold is not None:
-            strategy_params["valley_threshold"] = args.valley_threshold
-        if args.peak_distance is not None:
-            strategy_params["peak_distance"] = args.peak_distance
-        if args.peak_prominence is not None:
-            strategy_params["peak_prominence"] = args.peak_prominence
-        if args.peak_height is not None:
-            strategy_params["peak_height"] = args.peak_height
-        if args.peak_width is not None:
-            strategy_params["peak_width"] = args.peak_width
-        if args.peak_threshold is not None:
-            strategy_params["peak_threshold"] = args.peak_threshold
-        if args.sell_nearness_threshold is not None:
-            strategy_params["sell_nearness_threshold"] = args.sell_nearness_threshold
 
     try:
         backtest_id = str(uuid4())
@@ -340,6 +290,7 @@ def main():
     except Exception as e:
         logger.error(f"Backtest failed: {e}", exc_info=True)
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -14,9 +14,8 @@ from system.algo_trader.strategy.position_manager.position_manager import (
     PositionManager,
     PositionManagerConfig,
 )
-from system.algo_trader.strategy.simple_strategy import Side
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
-from system.algo_trader.strategy.strategies.valley_long import ValleyLong
+from system.algo_trader.strategy.strategy import Side
 
 
 def create_strategy_instance(strategy_type: str, strategy_params: dict):
@@ -25,6 +24,8 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict):
     Args:
         strategy_type: Type of strategy to create (e.g., 'SMACrossover').
         strategy_params: Dictionary of strategy parameters.
+            Supports both old parameter names (short_window/long_window) and
+            new parameter names (short/long) for backward compatibility.
 
     Returns:
         Strategy instance of the specified type.
@@ -35,27 +36,18 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict):
     if strategy_type == "SMACrossover":
         side_value = strategy_params.get("side", "LONG")
         side = Side(side_value) if isinstance(side_value, str) else side_value
+        # Support both old (short_window/long_window) and new (short/long) parameter names
+        short = strategy_params.get("short")
+        if short is None:
+            short = strategy_params.get("short_window", 10)
+        long = strategy_params.get("long")
+        if long is None:
+            long = strategy_params.get("long_window", 20)
         return SMACrossover(
-            short=strategy_params.get("short", 10),
-            long=strategy_params.get("long", 20),
+            short=short,
+            long=long,
             window=strategy_params.get("window", 120),
             side=side,
-        )
-    elif strategy_type == "ValleyLong":
-        return ValleyLong(
-            valley_distance=strategy_params.get("valley_distance", 50),
-            valley_prominence=strategy_params.get("valley_prominence", 2.0),
-            valley_height=strategy_params.get("valley_height"),
-            valley_width=strategy_params.get("valley_width"),
-            valley_threshold=strategy_params.get("valley_threshold"),
-            peak_distance=strategy_params.get("peak_distance", 50),
-            peak_prominence=strategy_params.get("peak_prominence", 2.0),
-            peak_height=strategy_params.get("peak_height"),
-            peak_width=strategy_params.get("peak_width"),
-            peak_threshold=strategy_params.get("peak_threshold"),
-            nearness_threshold=strategy_params.get("nearness_threshold", 0.5),
-            sell_nearness_threshold=strategy_params.get("sell_nearness_threshold"),
-            min_confidence=strategy_params.get("min_confidence", 0.0),
         )
     raise ValueError(f"Unknown strategy type: {strategy_type}")
 

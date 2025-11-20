@@ -18,8 +18,8 @@ from system.algo_trader.backtest.core.time_stepper import TimeStepper
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 if TYPE_CHECKING:
-    from system.algo_trader.strategy.simple_strategy import Strategy
     from system.algo_trader.strategy.position_manager.position_manager import PositionManager
+    from system.algo_trader.strategy.strategy import Strategy
 
 
 class BacktestEngine:

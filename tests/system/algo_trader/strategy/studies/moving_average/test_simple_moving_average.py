@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.utils.studies.moving_average.simple_moving_average import (
+from system.algo_trader.strategy.studies.moving_average.simple_moving_average import (
     SimpleMovingAverage,
 )
 

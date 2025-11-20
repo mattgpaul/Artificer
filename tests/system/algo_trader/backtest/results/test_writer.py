@@ -379,9 +379,7 @@ class TestResultsWriterWriteTrades:
         # All-NaN column should be dropped
 
     @pytest.mark.unit
-    def test_write_trades_schema_validation_failure_mismatched_lengths(
-        self, mock_queue_broker
-    ):
+    def test_write_trades_schema_validation_failure_mismatched_lengths(self, mock_queue_broker):
         """Test that schema validation failure prevents enqueue."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
@@ -600,9 +598,7 @@ class TestResultsWriterWriteMetrics:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_metrics_schema_validation_failure_invalid_ticker(
-        self, mock_queue_broker
-    ):
+    def test_write_metrics_schema_validation_failure_invalid_ticker(self, mock_queue_broker):
         """Test that invalid ticker causes metrics payload validation failure."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker

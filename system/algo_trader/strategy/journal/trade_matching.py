@@ -341,6 +341,7 @@ def _process_exit_signal(
         ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
         strategy_name: Strategy name.
         logger: Logger instance.
+        close_full_on_exit: Whether to close full position on exit signal.
     """
     ticker = signal["ticker"]
     price = signal["price"]
@@ -433,6 +434,8 @@ def match_trades(
         logger: Optional logger instance. If not provided, creates a new logger.
         initial_account_value: Optional initial account value for account tracking.
         trade_percentage: Optional percentage of account to use per trade.
+        mode: Position management mode. Defaults to "pm_managed".
+        pm_config: Optional position manager configuration dictionary.
 
     Returns:
         DataFrame containing matched trades with columns:

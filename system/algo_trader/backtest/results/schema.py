@@ -6,7 +6,7 @@ the backtest layer and the InfluxDB publisher, reducing the chance of
 invalid or inconsistent data reaching InfluxDB.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, model_validator
 
@@ -23,16 +23,16 @@ class BacktestTimeSeriesData(BaseModel):
     # Allow dynamic columns in addition to the required datetime column.
     model_config = ConfigDict(extra="allow")
 
-    datetime: List[int]
+    datetime: list[int]
 
     @field_validator("datetime")
     @classmethod
-    def validate_datetime(cls, value: List[int]) -> List[int]:
+    def validate_datetime(cls, value: list[int]) -> list[int]:
         """Validate datetime list contains integers and is non-empty."""
         if not value:
             raise ValueError("datetime array must not be empty")
         # Coerce all values to int and ensure they are non-negative.
-        coerced: List[int] = []
+        coerced: list[int] = []
         for v in value:
             try:
                 iv = int(v)
@@ -68,24 +68,33 @@ class BacktestTradesPayload(BaseModel):
 
     ticker: str
     strategy_name: str
-    backtest_id: Optional[str] = None
-    hash_id: Optional[str] = None
-    strategy_params: Optional[Dict[str, Any]] = None
+    backtest_id: str | None = None
+    hash_id: str | None = None
+    strategy_params: dict[str, Any] | None = None
     data: BacktestTimeSeriesData
-    database: Optional[str] = None
+    database: str | None = None
 
     @field_validator("ticker", "strategy_name")
     @classmethod
     def non_empty_string(cls, value: str) -> str:
+        """Validate that ticker and strategy_name are non-empty strings.
+
+        Args:
+            value: String value to validate.
+
+        Returns:
+            Validated non-empty string.
+
+        Raises:
+            ValueError: If value is not a string or is empty/whitespace.
+        """
         if not isinstance(value, str) or not value.strip():
             raise ValueError("ticker and strategy_name must be non-empty strings")
         return value
 
     @field_validator("strategy_params")
     @classmethod
-    def validate_strategy_params(
-        cls, value: Optional[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+    def validate_strategy_params(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
         """Ensure strategy parameter keys are non-empty strings.
 
         The actual mapping from strategy parameters to Influx tag names is
@@ -94,7 +103,7 @@ class BacktestTradesPayload(BaseModel):
         if value is None:
             return value
 
-        cleaned: Dict[str, Any] = {}
+        cleaned: dict[str, Any] = {}
         for raw_key, raw_val in value.items():
             if not isinstance(raw_key, str) or not raw_key.strip():
                 raise ValueError("strategy parameter keys must be non-empty strings")
@@ -107,24 +116,33 @@ class BacktestMetricsPayload(BaseModel):
 
     ticker: str
     strategy_name: str
-    backtest_id: Optional[str] = None
-    hash_id: Optional[str] = None
+    backtest_id: str | None = None
+    hash_id: str | None = None
     data: BacktestTimeSeriesData
-    database: Optional[str] = None
+    database: str | None = None
 
     @field_validator("ticker", "strategy_name")
     @classmethod
     def non_empty_string(cls, value: str) -> str:
+        """Validate that ticker and strategy_name are non-empty strings.
+
+        Args:
+            value: String value to validate.
+
+        Returns:
+            Validated non-empty string.
+
+        Raises:
+            ValueError: If value is not a string or is empty/whitespace.
+        """
         if not isinstance(value, str) or not value.strip():
             raise ValueError("ticker and strategy_name must be non-empty strings")
         return value
 
 
 __all__ = [
+    "BacktestMetricsPayload",
     "BacktestTimeSeriesData",
     "BacktestTradesPayload",
-    "BacktestMetricsPayload",
     "ValidationError",
 ]
-
-

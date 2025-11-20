@@ -47,6 +47,8 @@ class TradeJournal:
             risk_free_rate: Annual risk-free rate for Sharpe ratio. Defaults to 0.04.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            mode: Position management mode. Defaults to "pm_managed".
+            pm_config: Optional position manager configuration dictionary.
         """
         self.signals = signals.copy()
         self.strategy_name = strategy_name
