@@ -1,0 +1,1046 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "exposure_time_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "equity_final"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "equity_peak"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "return_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "buy_hold_return_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "return_ann_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "volatility_ann_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max_drawdown_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": -10
+                    },
+                    {
+                      "color": "red",
+                      "value": -20
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_drawdown_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max_drawdown_duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_drawdown_duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "num_trades"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "win_rate_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 40
+                    },
+                    {
+                      "color": "green",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "best_trade_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "worst_trade_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_trade_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max_trade_duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg_trade_duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dtdurations"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "profit_factor"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    },
+                    {
+                      "color": "green",
+                      "value": 1.5
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expectancy_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    MIN(time) as entry_time,\n    MAX(time) as exit_time,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    trade_id,\n    entry_time,\n    exit_time,\n    EXTRACT(EPOCH FROM (exit_time - entry_time)) / 86400.0 as hold_duration_days,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL AND entry_value > 0\n),\nbacktest_period AS (\n  SELECT \n    MIN(time) as start_time,\n    MAX(time) as end_time,\n    EXTRACT(EPOCH FROM (MAX(time) - MIN(time))) / 86400.0 as duration_days\n  FROM fills\n),\nexposure_time AS (\n  SELECT \n    SUM(hold_duration_days) as total_exposure_days\n  FROM trade_metrics\n),\nequity_curve AS (\n  SELECT \n    exit_time as time,\n    SUM(pnl) OVER (ORDER BY exit_time) as cumulative_pnl,\n    100000.0 + SUM(pnl) OVER (ORDER BY exit_time) as equity\n  FROM trade_metrics\n  ORDER BY exit_time\n),\nequity_stats AS (\n  SELECT \n    MAX(equity) as equity_peak,\n    (SELECT equity FROM equity_curve ORDER BY time DESC LIMIT 1) as equity_final\n  FROM equity_curve\n),\ndrawdowns AS (\n  SELECT \n    time,\n    equity,\n    MAX(equity) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as running_peak,\n    CASE \n      WHEN MAX(equity) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) > 0 THEN\n        (equity - MAX(equity) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) / MAX(equity) OVER (ORDER BY time ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) * 100.0\n      ELSE 0.0\n    END as drawdown_pct\n  FROM equity_curve\n),\ndrawdown_periods AS (\n  SELECT \n    time,\n    drawdown_pct,\n    LAG(drawdown_pct) OVER (ORDER BY time) as prev_drawdown,\n    CASE \n      WHEN drawdown_pct < 0 AND (LAG(drawdown_pct) OVER (ORDER BY time) >= 0 OR LAG(drawdown_pct) OVER (ORDER BY time) IS NULL) THEN 1\n      ELSE 0\n    END as drawdown_start\n  FROM drawdowns\n),\ndrawdown_groups AS (\n  SELECT \n    time,\n    drawdown_pct,\n    SUM(drawdown_start) OVER (ORDER BY time) as drawdown_group_id\n  FROM drawdown_periods\n  WHERE drawdown_pct < 0\n),\ndrawdown_metrics AS (\n  SELECT \n    MIN(drawdown_pct) as max_drawdown_pct,\n    AVG(drawdown_pct) as avg_drawdown_pct,\n    MAX(EXTRACT(EPOCH FROM (MAX(time) - MIN(time))) / 86400.0) as max_drawdown_duration_days\n  FROM drawdown_groups\n  GROUP BY drawdown_group_id\n),\nall_drawdown_durations AS (\n  SELECT \n    EXTRACT(EPOCH FROM (MAX(time) - MIN(time))) / 86400.0 as drawdown_duration_days\n  FROM drawdown_groups\n  GROUP BY drawdown_group_id\n),\ntrade_stats AS (\n  SELECT \n    COUNT(*) as num_trades,\n    CASE \n      WHEN COUNT(*) > 0 THEN COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / COUNT(*)\n      ELSE 0.0\n    END as win_rate_pct,\n    MAX(return_pct) as best_trade_pct,\n    MIN(return_pct) as worst_trade_pct,\n    AVG(return_pct) as avg_trade_pct,\n    MAX(hold_duration_days) as max_trade_duration_days,\n    AVG(hold_duration_days) as avg_trade_duration_days,\n    CASE \n      WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0 THEN\n        SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) / SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END)\n      ELSE 0.0\n    END as profit_factor,\n    AVG(return_pct) as expectancy_pct\n  FROM trade_metrics\n),\nreturns_calc AS (\n  SELECT \n    (es.equity_final - 100000.0) / 100000.0 * 100.0 as return_pct,\n    CASE \n      WHEN bp.duration_days > 0 THEN\n        (POWER(es.equity_final / 100000.0, 365.0 / bp.duration_days) - 1.0) * 100.0\n      ELSE 0.0\n    END as return_ann_pct\n  FROM equity_stats es, backtest_period bp\n),\nvolatility_calc AS (\n  SELECT \n    CASE \n      WHEN COUNT(*) > 1 AND bp.duration_days > 0 THEN\n        SQRT(VARIANCE(tm.return_pct) * 365.0 / bp.duration_days) * 100.0\n      ELSE 0.0\n    END as volatility_ann_pct\n  FROM trade_metrics tm, backtest_period bp\n),\nbuy_hold_return AS (\n  SELECT \n    0.0 as buy_hold_return_pct\n)\nSELECT \n  bp.start_time as start,\n  bp.end_time as end,\n  bp.duration_days as duration,\n  CASE \n    WHEN bp.duration_days > 0 THEN\n      (et.total_exposure_days / bp.duration_days) * 100.0\n    ELSE 0.0\n  END as exposure_time_pct,\n  es.equity_final as equity_final,\n  es.equity_peak as equity_peak,\n  rc.return_pct as return_pct,\n  COALESCE(bhr.buy_hold_return_pct, 0.0) as buy_hold_return_pct,\n  rc.return_ann_pct as return_ann_pct,\n  vc.volatility_ann_pct as volatility_ann_pct,\n  COALESCE((SELECT MIN(max_drawdown_pct) FROM drawdown_metrics), 0.0) as max_drawdown_pct,\n  COALESCE((SELECT AVG(avg_drawdown_pct) FROM drawdown_metrics), 0.0) as avg_drawdown_pct,\n  COALESCE((SELECT MAX(max_drawdown_duration_days) FROM drawdown_metrics), 0.0) as max_drawdown_duration,\n  COALESCE((SELECT AVG(drawdown_duration_days) FROM all_drawdown_durations), 0.0) as avg_drawdown_duration,\n  ts.num_trades as num_trades,\n  ts.win_rate_pct as win_rate_pct,\n  ts.best_trade_pct as best_trade_pct,\n  ts.worst_trade_pct as worst_trade_pct,\n  ts.avg_trade_pct as avg_trade_pct,\n  ts.max_trade_duration_days as max_trade_duration,\n  ts.avg_trade_duration_days as avg_trade_duration,\n  ts.profit_factor as profit_factor,\n  ts.expectancy_pct as expectancy_pct\nFROM backtest_period bp\nCROSS JOIN exposure_time et\nCROSS JOIN equity_stats es\nCROSS JOIN returns_calc rc\nCROSS JOIN volatility_calc vc\nCROSS JOIN trade_stats ts\nCROSS JOIN buy_hold_return bhr\nLIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Performance Metrics",
+      "transformations": [
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Metric"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL AND entry_value > 0\n)\nSELECT\n  time,\n  100000.0 + SUM(pnl) OVER (ORDER BY time) as equity\nFROM trade_metrics\nORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Equity Curve",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL AND entry_value > 0\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Cumulative Return %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 4,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n  *\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nLIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Backtest Metadata",
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "nearness_threshold",
+                "peak_distance",
+                "peak_height",
+                "peak_prominence",
+                "peak_threshold",
+                "peak_width",
+                "sell_nearness_threshold",
+                "valley_distance",
+                "valley_height",
+                "valley_prominence",
+                "valley_threshold",
+                "valley_width",
+                "hash_id",
+                "backtest_id"
+              ]
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Parameter"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "$datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "$datasource"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL AND entry_value > 0\n)\nSELECT\n  time,\n  return_pct\nFROM trade_metrics\nORDER BY time",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
+        }
+      ],
+      "title": "Trade Returns Distribution",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "backtest",
+    "summary",
+    "performance"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Backtest",
+          "value": "influxdb-algo-trader-backtest"
+        },
+        "includeAll": false,
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [
+          {
+            "selected": true,
+            "text": "Backtest",
+            "value": "influxdb-algo-trader-backtest"
+          },
+          {
+            "selected": false,
+            "text": "Backtest Dev",
+            "value": "influxdb-algo-trader-backtest-dev"
+          }
+        ],
+        "query": "influxdb",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "$datasource"
+        },
+        "definition": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+        "includeAll": false,
+        "label": "Strategy",
+        "name": "strategy",
+        "options": [],
+        "query": {
+          "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "definition": "SELECT DISTINCT hash_id FROM \"$strategy\"",
+        "label": "Hash ID",
+        "name": "hash_id",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT hash_id FROM \"$strategy\"",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${datasource}"
+        },
+        "definition": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
+        "description": "",
+        "label": "Backtest ID",
+        "name": "backtest_id",
+        "options": [],
+        "query": {
+          "query": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Backtest Summary",
+  "uid": "backtest-summary",
+  "version": 1
+}
+
