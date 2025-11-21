@@ -15,7 +15,10 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.cli_utils import resolve_tickers
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
-from system.algo_trader.strategy.filters.config_loader import load_filter_configs
+from system.algo_trader.strategy.filters.config_loader import (
+    load_filter_config_dicts,
+    load_filter_configs,
+)
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config,
 )
@@ -257,6 +260,7 @@ def main():
         position_manager_config_dict = position_manager_config.to_dict()
 
     filter_pipeline = load_filter_configs(args.filter, logger)
+    filter_config_dict = load_filter_config_dicts(args.filter, logger)
 
     strategy_params = {}
     if args.strategy == "sma-crossover":
@@ -299,6 +303,7 @@ def main():
             trade_percentage=args.trade_percentage,
             filter_pipeline=filter_pipeline,
             position_manager_config_dict=position_manager_config_dict,
+            filter_config_dict=filter_config_dict,
         )
 
         return 0

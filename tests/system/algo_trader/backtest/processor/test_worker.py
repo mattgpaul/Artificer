@@ -82,8 +82,8 @@ class TestLogBacktestResults:
 
             log_backtest_results("AAPL", results)
 
-            mock_logger.info.assert_called_once()
-            call_args_str = str(mock_logger.info.call_args)
+            mock_logger.debug.assert_called_once()
+            call_args_str = str(mock_logger.debug.call_args)
             assert "AAPL" in call_args_str
             assert "TestStrategy" in call_args_str
             assert "10" in call_args_str
@@ -101,7 +101,7 @@ class TestLogBacktestResults:
 
             log_backtest_results("AAPL", results)
 
-            mock_logger.info.assert_not_called()
+            mock_logger.debug.assert_not_called()
 
     @pytest.mark.unit
     def test_log_backtest_results_partial_metrics(self):
@@ -116,7 +116,7 @@ class TestLogBacktestResults:
 
             log_backtest_results("AAPL", results)
 
-            mock_logger.info.assert_called_once()
+            mock_logger.debug.assert_called_once()
 
 
 class TestWriteBacktestResults:
@@ -397,6 +397,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -455,6 +456,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -517,6 +519,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -554,6 +557,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -604,6 +608,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -663,6 +668,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             # Should not raise exception
@@ -729,6 +735,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -789,6 +796,7 @@ class TestBacktestTickerWorker:
                 0.10,  # trade_percentage
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
@@ -849,6 +857,7 @@ class TestBacktestTickerWorker:
                 None,  # trade_percentage
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
+                None,  # filter_config_dict
             )
 
             result = backtest_ticker_worker(args)
