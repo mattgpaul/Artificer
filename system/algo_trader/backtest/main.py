@@ -15,6 +15,10 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.cli_utils import resolve_tickers
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
+from system.algo_trader.strategy.filters.config_loader import (
+    load_filter_config_dicts,
+    load_filter_configs,
+)
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config,
 )
@@ -178,6 +182,18 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--filter",
+        type=str,
+        action="append",
+        default=None,
+        help=(
+            "Name of filter YAML config under "
+            "'system/algo_trader/strategy/filters/strategies' "
+            "(without .yaml), or an explicit path to a YAML file. "
+            "Can be specified multiple times to combine filters (optional)"
+        ),
+    )
+    parser.add_argument(
         "--lookback-bars",
         type=int,
         default=None,
@@ -243,6 +259,9 @@ def main():
     if position_manager_config is not None:
         position_manager_config_dict = position_manager_config.to_dict()
 
+    filter_pipeline = load_filter_configs(args.filter, logger)
+    filter_config_dict = load_filter_config_dicts(args.filter, logger)
+
     strategy_params = {}
     if args.strategy == "sma-crossover":
         strategy_params = {
@@ -282,7 +301,9 @@ def main():
             use_multiprocessing=not args.no_multiprocessing,
             initial_account_value=args.account_value,
             trade_percentage=args.trade_percentage,
+            filter_pipeline=filter_pipeline,
             position_manager_config_dict=position_manager_config_dict,
+            filter_config_dict=filter_config_dict,
         )
 
         return 0

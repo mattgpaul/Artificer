@@ -16,6 +16,7 @@ from system.algo_trader.backtest.processor.sequential import process_sequentiall
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
 
 if TYPE_CHECKING:
+    from system.algo_trader.strategy.filters.core import FilterPipeline
     from system.algo_trader.strategy.strategy import Strategy
 
 
@@ -67,7 +68,9 @@ class BacktestProcessor:
         train_split: float | None,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_dict: dict | None = None,
+        filter_config_dict: dict | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -92,8 +95,11 @@ class BacktestProcessor:
             train_split: Training split ratio for walk-forward.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager_config_dict: Optional dictionary containing position
                 manager configuration. If None, position manager is not used.
+            filter_config_dict: Optional dictionary containing filter configuration
+                for hash computation. If None, filters are not included in hash.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -123,7 +129,9 @@ class BacktestProcessor:
                 train_split,
                 initial_account_value,
                 trade_percentage,
+                filter_pipeline,
                 position_manager_config_dict,
+                filter_config_dict,
             )
             for ticker in tickers
         ]
@@ -168,7 +176,9 @@ class BacktestProcessor:
         use_multiprocessing: bool = True,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_dict: dict | None = None,
+        filter_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -199,8 +209,11 @@ class BacktestProcessor:
                 If False, processes sequentially.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager_config_dict: Optional dictionary containing position
                 manager configuration. If None, position manager is not used.
+            filter_config_dict: Optional dictionary containing filter configuration.
+                If None, filters are not used.
         """
         if not tickers:
             self.logger.error("No tickers provided")
@@ -234,7 +247,9 @@ class BacktestProcessor:
             train_split=train_split,
             initial_account_value=initial_account_value,
             trade_percentage=trade_percentage,
+            filter_pipeline=filter_pipeline,
             position_manager_config_dict=position_manager_config_dict,
+            filter_config_dict=filter_config_dict,
         )
 
         hash_id = compute_backtest_hash(
@@ -252,6 +267,7 @@ class BacktestProcessor:
             test_days=test_days,
             train_split=train_split,
             position_manager_params=position_manager_config_dict,
+            filter_params=filter_config_dict,
         )
 
         if use_multiprocessing:

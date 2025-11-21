@@ -13,6 +13,7 @@ from system.algo_trader.backtest.core.execution import ExecutionSimulator
 from system.algo_trader.strategy.journal.journal import TradeJournal
 
 if TYPE_CHECKING:
+    from system.algo_trader.strategy.filters.core import FilterPipeline
     from system.algo_trader.strategy.position_manager.position_manager import PositionManager
 
 
@@ -61,6 +62,7 @@ class ResultsGenerator:
         logger=None,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        filter_pipeline: "FilterPipeline | None" = None,
         position_manager: "PositionManager | None" = None,
     ):
         """Initialize ResultsGenerator with strategy and configuration.
@@ -73,6 +75,7 @@ class ResultsGenerator:
             logger: Optional logger instance. If not provided, creates a new logger.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager: Optional PositionManager instance for filtering signals.
         """
         self.strategy = strategy
@@ -81,6 +84,7 @@ class ResultsGenerator:
         self.risk_free_rate = risk_free_rate
         self.initial_account_value = initial_account_value
         self.trade_percentage = trade_percentage
+        self.filter_pipeline = filter_pipeline
         self.position_manager = position_manager
         self.logger = logger or get_logger(self.__class__.__name__)
 
@@ -103,18 +107,26 @@ class ResultsGenerator:
         results = BacktestResults()
         results.strategy_name = self.strategy.strategy_name
 
-        if self.position_manager is not None:
-            ohlcv_by_ticker = {ticker: ticker_data}
-            filtered_signals = self.position_manager.apply(signals, ohlcv_by_ticker)
+        ohlcv_by_ticker = {ticker: ticker_data}
+        signals_to_use = signals
+
+        if self.filter_pipeline is not None:
+            filtered_signals = self.filter_pipeline.apply(signals, ohlcv_by_ticker)
             if filtered_signals.empty:
-                self.logger.debug(f"{ticker}: Position manager filtered all signals")
+                self.logger.debug(f"{ticker}: Filter pipeline filtered all signals")
                 results.signals = signals
                 return results
-            results.signals = filtered_signals
             signals_to_use = filtered_signals
-        else:
-            results.signals = signals
-            signals_to_use = signals
+
+        if self.position_manager is not None:
+            filtered_signals = self.position_manager.apply(signals_to_use, ohlcv_by_ticker)
+            if filtered_signals.empty:
+                self.logger.debug(f"{ticker}: Position manager filtered all signals")
+                results.signals = signals_to_use
+                return results
+            signals_to_use = filtered_signals
+
+        results.signals = signals_to_use
 
         mode = "raw" if self.position_manager is None else "pm_managed"
         pm_config = self.position_manager.config.to_dict() if self.position_manager else None
@@ -160,17 +172,25 @@ class ResultsGenerator:
         results = BacktestResults()
         results.strategy_name = self.strategy.strategy_name
 
-        if self.position_manager is not None:
-            filtered_signals = self.position_manager.apply(combined_signals, data_cache)
+        signals_to_use = combined_signals
+
+        if self.filter_pipeline is not None:
+            filtered_signals = self.filter_pipeline.apply(combined_signals, data_cache)
             if filtered_signals.empty:
-                self.logger.debug("Position manager filtered all signals")
+                self.logger.debug("Filter pipeline filtered all signals")
                 results.signals = combined_signals
                 return results
-            results.signals = filtered_signals
             signals_to_use = filtered_signals
-        else:
-            results.signals = combined_signals
-            signals_to_use = combined_signals
+
+        if self.position_manager is not None:
+            filtered_signals = self.position_manager.apply(signals_to_use, data_cache)
+            if filtered_signals.empty:
+                self.logger.debug("Position manager filtered all signals")
+                results.signals = signals_to_use
+                return results
+            signals_to_use = filtered_signals
+
+        results.signals = signals_to_use
 
         unique_tickers = signals_to_use["ticker"].unique()
         all_trades = []
