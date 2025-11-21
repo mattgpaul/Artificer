@@ -90,6 +90,7 @@ def write_backtest_results(
     train_days: int | None,
     test_days: int | None,
     train_split: float | None,
+    filter_config_dict: dict | None = None,
 ) -> bool:
     """Write backtest results to Redis queues.
 
@@ -113,6 +114,8 @@ def write_backtest_results(
         train_days: Number of training days (if walk-forward).
         test_days: Number of test days (if walk-forward).
         train_split: Training split ratio (if walk-forward).
+        filter_config_dict: Optional dictionary containing filter configuration
+            for hash computation. If None, filters are not included in hash.
 
     Returns:
         True if trades were successfully enqueued, False otherwise.
@@ -136,6 +139,7 @@ def write_backtest_results(
         train_days=train_days,
         test_days=test_days,
         train_split=train_split,
+        filter_params=filter_config_dict,
     )
 
     writer.write_studies(
@@ -156,6 +160,7 @@ def write_backtest_results(
         train_days=train_days,
         test_days=test_days,
         train_split=train_split,
+        filter_params=filter_config_dict,
     )
 
     return trades_success
@@ -189,6 +194,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - trade_percentage_local: Trade percentage
             - filter_pipeline: FilterPipeline instance (may be None)
             - position_manager_config_dict: Position manager config dict
+            - filter_config_dict: Filter config dict for hash computation
 
     Returns:
         Dictionary with 'success' boolean and optional 'error' message.
@@ -214,6 +220,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         trade_percentage_local,
         filter_pipeline,
         position_manager_config_dict,
+        filter_config_dict,
     ) = args
 
     engine = None
@@ -275,6 +282,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             train_days=train_days_local,
             test_days=test_days_local,
             train_split=train_split_local,
+            filter_config_dict=filter_config_dict,
         )
 
         if trades_success:

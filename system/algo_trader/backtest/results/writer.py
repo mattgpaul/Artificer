@@ -126,6 +126,7 @@ class ResultsWriter:
         train_days: int | None = None,
         test_days: int | None = None,
         train_split: float | None = None,
+        filter_params: dict[str, Any] | None = None,
     ) -> bool:
         """Write backtest trades to Redis queue.
 
@@ -150,6 +151,8 @@ class ResultsWriter:
             train_days: Number of training days (if walk-forward).
             test_days: Number of test days (if walk-forward).
             train_split: Training split ratio (if walk-forward).
+            filter_params: Optional dictionary containing filter configuration
+                for hash computation. If None, filters are not included in hash.
 
         Returns:
             True if trades were successfully enqueued, False otherwise.
@@ -182,6 +185,7 @@ class ResultsWriter:
                 train_days=train_days,
                 test_days=test_days,
                 train_split=train_split,
+                filter_params=filter_params,
             )
 
         journal_rows = _transform_trades_to_journal_rows(trades)
@@ -255,6 +259,7 @@ class ResultsWriter:
         train_days: int | None = None,
         test_days: int | None = None,
         train_split: float | None = None,
+        filter_params: dict[str, Any] | None = None,
     ) -> bool:
         """Write backtest metrics to Redis queue.
 
@@ -279,6 +284,8 @@ class ResultsWriter:
             train_days: Number of training days (if walk-forward).
             test_days: Number of test days (if walk-forward).
             train_split: Training split ratio (if walk-forward).
+            filter_params: Optional dictionary containing filter configuration
+                for hash computation. If None, filters are not included in hash.
 
         Returns:
             True if metrics were successfully enqueued, False otherwise.
@@ -307,6 +314,7 @@ class ResultsWriter:
                 train_days=train_days,
                 test_days=test_days,
                 train_split=train_split,
+                filter_params=filter_params,
             )
 
         datetime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -391,6 +399,7 @@ class ResultsWriter:
         train_days: int | None = None,
         test_days: int | None = None,
         train_split: float | None = None,
+        filter_params: dict[str, Any] | None = None,
     ) -> bool:
         """Write study results to Redis queue for InfluxDB publication.
 
@@ -416,6 +425,8 @@ class ResultsWriter:
             train_days: Number of training days (if walk-forward).
             test_days: Number of test days (if walk-forward).
             train_split: Training split ratio (if walk-forward).
+            filter_params: Optional dictionary containing filter configuration
+                for hash computation. If None, filters are not included in hash.
 
         Returns:
             True if studies were successfully enqueued, False otherwise.
@@ -448,6 +459,7 @@ class ResultsWriter:
                 train_days=train_days,
                 test_days=test_days,
                 train_split=train_split,
+                filter_params=filter_params,
             )
 
         studies_dict = dataframe_to_dict(studies)

@@ -4,9 +4,12 @@ load("@rules_python//python:defs.bzl", "py_library")
 py_library(
     name = "filters_lib",
     srcs = [
+        "base.py",
         "config_loader.py",
         "core.py",
         "filters.py",
+        "price_comparison.py",
+        "sma_comparison.py",
     ],
     data = glob(["strategies/*.yaml"]),
     visibility = [
@@ -21,4 +24,3 @@ py_library(
         requirement("pyyaml"),
     ],
 )
-

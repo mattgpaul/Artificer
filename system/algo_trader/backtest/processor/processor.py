@@ -70,6 +70,7 @@ class BacktestProcessor:
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_dict: dict | None = None,
+        filter_config_dict: dict | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -97,6 +98,8 @@ class BacktestProcessor:
             filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager_config_dict: Optional dictionary containing position
                 manager configuration. If None, position manager is not used.
+            filter_config_dict: Optional dictionary containing filter configuration
+                for hash computation. If None, filters are not included in hash.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -128,6 +131,7 @@ class BacktestProcessor:
                 trade_percentage,
                 filter_pipeline,
                 position_manager_config_dict,
+                filter_config_dict,
             )
             for ticker in tickers
         ]
@@ -174,6 +178,7 @@ class BacktestProcessor:
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_dict: dict | None = None,
+        filter_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
 
@@ -207,6 +212,8 @@ class BacktestProcessor:
             filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager_config_dict: Optional dictionary containing position
                 manager configuration. If None, position manager is not used.
+            filter_config_dict: Optional dictionary containing filter configuration.
+                If None, filters are not used.
         """
         if not tickers:
             self.logger.error("No tickers provided")
@@ -242,6 +249,7 @@ class BacktestProcessor:
             trade_percentage=trade_percentage,
             filter_pipeline=filter_pipeline,
             position_manager_config_dict=position_manager_config_dict,
+            filter_config_dict=filter_config_dict,
         )
 
         hash_id = compute_backtest_hash(
@@ -259,6 +267,7 @@ class BacktestProcessor:
             test_days=test_days,
             train_split=train_split,
             position_manager_params=position_manager_config_dict,
+            filter_params=filter_config_dict,
         )
 
         if use_multiprocessing:
