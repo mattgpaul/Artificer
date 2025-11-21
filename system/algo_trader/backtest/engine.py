@@ -18,6 +18,7 @@ from system.algo_trader.backtest.core.time_stepper import TimeStepper
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 if TYPE_CHECKING:
+    from system.algo_trader.strategy.filters.core import FilterPipeline
     from system.algo_trader.strategy.position_manager.position_manager import PositionManager
     from system.algo_trader.strategy.strategy import Strategy
 
@@ -53,6 +54,7 @@ class BacktestEngine:
         risk_free_rate: float = 0.04,
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
+        filter_pipeline: "FilterPipeline | None" = None,
         position_manager: "PositionManager | None" = None,
     ) -> None:
         """Initialize BacktestEngine with strategy and configuration.
@@ -69,6 +71,7 @@ class BacktestEngine:
             risk_free_rate: Risk-free rate for performance calculations.
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
+            filter_pipeline: Optional FilterPipeline instance for filtering signals.
             position_manager: Optional PositionManager instance for filtering signals.
         """
         self.strategy = strategy
@@ -99,6 +102,7 @@ class BacktestEngine:
             self.logger,
             initial_account_value,
             trade_percentage,
+            filter_pipeline,
             position_manager,
         )
 

@@ -1,0 +1,7 @@
+filters:
+  - type: price_comparison
+    params:
+      field: price
+      operator: ">="
+      value: 1.0
+

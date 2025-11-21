@@ -395,6 +395,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -452,6 +453,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -513,6 +515,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -549,6 +552,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -598,6 +602,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -656,6 +661,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -721,6 +727,7 @@ class TestBacktestTickerWorker:
                 None,
                 None,
                 None,
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -780,6 +787,7 @@ class TestBacktestTickerWorker:
                 None,
                 50000.0,  # initial_account_value
                 0.10,  # trade_percentage
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 
@@ -839,6 +847,7 @@ class TestBacktestTickerWorker:
                 None,  # train_split
                 None,  # initial_account_value
                 None,  # trade_percentage
+                None,  # filter_pipeline
                 None,  # position_manager_config_dict
             )
 

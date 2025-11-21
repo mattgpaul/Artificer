@@ -61,7 +61,7 @@ def log_backtest_results(ticker: str, results: "BacktestResults") -> None:
     """
     logger = get_logger("BacktestWorker")
     if results.metrics:
-        logger.info(
+        logger.debug(
             f"\n{ticker} Backtest Results:\n"
             f"  Strategy: {results.strategy_name}\n"
             f"  Total Trades: {results.metrics.get('total_trades', 0)}\n"
@@ -185,6 +185,10 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - train_days_local: Training days (if walk-forward)
             - test_days_local: Test days (if walk-forward)
             - train_split_local: Training split (if walk-forward)
+            - initial_account_value_local: Initial account value
+            - trade_percentage_local: Trade percentage
+            - filter_pipeline: FilterPipeline instance (may be None)
+            - position_manager_config_dict: Position manager config dict
 
     Returns:
         Dictionary with 'success' boolean and optional 'error' message.
@@ -208,6 +212,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         train_split_local,
         initial_account_value_local,
         trade_percentage_local,
+        filter_pipeline,
         position_manager_config_dict,
     ) = args
 
@@ -242,6 +247,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             risk_free_rate=risk_free_rate_local,
             initial_account_value=initial_account_value_local,
             trade_percentage=trade_percentage_local,
+            filter_pipeline=filter_pipeline,
             position_manager=position_manager,
         )
 
