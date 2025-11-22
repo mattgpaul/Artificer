@@ -7,6 +7,11 @@ py_library(
     srcs = [
         "config_loader.py",
         "position_manager.py",
+        "rules/base.py",
+        "rules/pipeline.py",
+        "rules/scaling.py",
+        "rules/stop_loss.py",
+        "rules/take_profit.py",
     ],
     data = glob(["strategies/*.yaml"]),
     visibility = [
