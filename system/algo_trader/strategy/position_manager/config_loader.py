@@ -1,19 +1,13 @@
-"""Configuration loader for position manager.
-
-This module provides functionality to load PositionManagerConfig from YAML
-files, supporting both named configs from the strategies directory and
-explicit file paths.
-"""
-
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManagerConfig,
-)
+from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
+from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
+from system.algo_trader.strategy.position_manager.rules.stop_loss import StopLossRule
+from system.algo_trader.strategy.position_manager.rules.take_profit import TakeProfitRule
 
 
 def _resolve_config_path(config_name: str) -> Path:
@@ -32,18 +26,53 @@ def _resolve_config_path(config_name: str) -> Path:
     return strategies_dir / f"{config_name}.yaml"
 
 
+def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None):
+    if rule_name == "scaling":
+        allow_scale_in = params.get("allow_scale_in", False)
+        allow_scale_out = params.get("allow_scale_out", True)
+        return ScalingRule(allow_scale_in=allow_scale_in, allow_scale_out=allow_scale_out, logger=logger)
+    elif rule_name == "take_profit":
+        field_price = params.get("field_price")
+        target_pct = params.get("target_pct")
+        fraction = params.get("fraction")
+        if field_price is None or target_pct is None or fraction is None:
+            logger.error("take_profit rule missing required params: field_price, target_pct, fraction")
+            return None
+        try:
+            return TakeProfitRule(
+                field_price=field_price,
+                target_pct=float(target_pct),
+                fraction=float(fraction),
+                logger=logger,
+            )
+        except (ValueError, TypeError) as e:
+            logger.error(f"take_profit rule params must be numeric: {e}")
+            return None
+    elif rule_name == "stop_loss":
+        field_price = params.get("field_price")
+        loss_pct = params.get("loss_pct")
+        fraction = params.get("fraction")
+        if field_price is None or loss_pct is None or fraction is None:
+            logger.error("stop_loss rule missing required params: field_price, loss_pct, fraction")
+            return None
+        try:
+            return StopLossRule(
+                field_price=field_price,
+                loss_pct=float(loss_pct),
+                fraction=float(fraction),
+                logger=logger,
+            )
+        except (ValueError, TypeError) as e:
+            logger.error(f"stop_loss rule params must be numeric: {e}")
+            return None
+    else:
+        logger.error(f"Unknown rule type: {rule_name}")
+        return None
+
+
 def load_position_manager_config(
     config_name: str | None, logger=None
-) -> PositionManagerConfig | None:
-    """Load a PositionManagerConfig from a named YAML file or explicit path.
-
-    Args:
-        config_name: Either
-            - the base name of a YAML file under
-              `strategy/position_manager/strategies` (without `.yaml`), or
-            - an explicit filesystem path to a YAML file.
-        logger: Optional logger instance.
-    """
+) -> PositionRulePipeline | None:
     if config_name is None:
         return None
 
@@ -67,15 +96,70 @@ def load_position_manager_config(
             logger.error(f"Position manager config must be a dictionary, got {type(config_dict)}")
             return None
 
-        if "position_manager" in config_dict and isinstance(config_dict["position_manager"], dict):
-            position_manager_dict: dict[str, Any] = config_dict["position_manager"]
-        else:
-            position_manager_dict = config_dict
+        rules_list = config_dict.get("rules", [])
+        if not isinstance(rules_list, list):
+            logger.error(f"Position manager config 'rules' must be a list, got {type(rules_list)}")
+            return None
 
-        config = PositionManagerConfig.from_dict(position_manager_dict)
-        logger.info(f"Loaded position manager config from {config_file}: {config.to_dict()}")
-        return config
+        rule_instances = []
+        allow_scale_out = True
 
-    except Exception as e:  # pragma: no cover - defensive logging
+        for idx, rule_item in enumerate(rules_list):
+            if not isinstance(rule_item, dict):
+                logger.error(f"Rule at index {idx} must be a dictionary")
+                continue
+
+            if len(rule_item) != 1:
+                logger.error(f"Rule at index {idx} must have exactly one key (rule name)")
+                continue
+
+            rule_name = list(rule_item.keys())[0]
+            params = rule_item[rule_name]
+
+            if not isinstance(params, dict):
+                logger.error(f"Rule '{rule_name}' params must be a dictionary")
+                continue
+
+            rule_instance = _create_rule_from_config(rule_name, params, logger)
+            if rule_instance is not None:
+                rule_instances.append(rule_instance)
+                if rule_name == "scaling":
+                    allow_scale_out = params.get("allow_scale_out", True)
+
+        if not rule_instances:
+            logger.warning(f"No valid rules loaded from {config_file}")
+            return None
+
+        pipeline = PositionRulePipeline(rule_instances, logger)
+        logger.info(f"Loaded {len(rule_instances)} rule(s) from {config_file}")
+        return pipeline
+
+    except Exception as e:
         logger.error(f"Failed to load position manager config: {e}", exc_info=True)
+        return None
+
+
+def load_position_manager_config_dict(
+    config_name: str | None, logger=None
+) -> dict[str, Any] | None:
+    if config_name is None:
+        return None
+
+    logger = logger or get_logger("PositionManagerConfigLoader")
+
+    try:
+        config_file = _resolve_config_path(config_name)
+        if not config_file.exists():
+            return None
+
+        with open(config_file, encoding="utf-8") as f:
+            config_dict = yaml.safe_load(f) or {}
+
+        if not isinstance(config_dict, dict):
+            return None
+
+        return config_dict
+
+    except Exception as e:
+        logger.error(f"Failed to load position manager config dict: {e}", exc_info=True)
         return None
