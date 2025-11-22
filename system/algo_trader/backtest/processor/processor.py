@@ -71,6 +71,7 @@ class BacktestProcessor:
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_dict: dict | None = None,
         filter_config_dict: dict | None = None,
+        hash_id: str | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -132,6 +133,7 @@ class BacktestProcessor:
                 filter_pipeline,
                 position_manager_config_dict,
                 filter_config_dict,
+                hash_id,
             )
             for ticker in tickers
         ]
@@ -228,6 +230,24 @@ class BacktestProcessor:
 
         strategy_type = type(strategy).__name__
 
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency=step_frequency,
+            database=database,
+            tickers=tickers,
+            capital_per_trade=capital_per_trade,
+            risk_free_rate=risk_free_rate,
+            walk_forward=walk_forward,
+            train_days=train_days,
+            test_days=test_days,
+            train_split=train_split,
+            position_manager_params=position_manager_config_dict,
+            filter_params=filter_config_dict,
+        )
+
         worker_args = self._build_worker_args(
             tickers=tickers,
             strategy_type=strategy_type,
@@ -250,24 +270,7 @@ class BacktestProcessor:
             filter_pipeline=filter_pipeline,
             position_manager_config_dict=position_manager_config_dict,
             filter_config_dict=filter_config_dict,
-        )
-
-        hash_id = compute_backtest_hash(
-            strategy_params=strategy_params,
-            execution_config=execution_config,
-            start_date=start_date,
-            end_date=end_date,
-            step_frequency=step_frequency,
-            database=database,
-            tickers=tickers,
-            capital_per_trade=capital_per_trade,
-            risk_free_rate=risk_free_rate,
-            walk_forward=walk_forward,
-            train_days=train_days,
-            test_days=test_days,
-            train_split=train_split,
-            position_manager_params=position_manager_config_dict,
-            filter_params=filter_config_dict,
+            hash_id=hash_id,
         )
 
         if use_multiprocessing:

@@ -125,29 +125,31 @@ class BacktestEngine:
                 continue
 
             row_data: dict = {}
-            last_bar = window.iloc[-1]
-
-            for col in ticker_data.columns:
-                if col in last_bar:
-                    row_data[col] = last_bar[col]
 
             for spec in study_specs:
                 min_bars = spec.min_bars or spec.params.get("window", 0)
                 if len(window) < min_bars:
-                    row_data[spec.name] = None
+                    field_name = spec.study.get_field_name(**spec.params)
+                    row_data[field_name] = None
                     continue
 
                 try:
-                    study_result = spec.study.compute(window, ticker, **spec.params)
-                    if study_result is not None and len(study_result) > 0:
-                        row_data[spec.name] = float(study_result.iloc[-1])
-                    else:
-                        row_data[spec.name] = None
-                except Exception as e:
-                    self.logger.debug(
-                        f"{ticker}: Error computing {spec.name} at {bar_timestamp}: {e}"
+                    study_result = spec.study.compute(
+                        ohlcv_data=window,
+                        ticker=ticker,
+                        **spec.params,
                     )
-                    row_data[spec.name] = None
+                    field_name = spec.study.get_field_name(**spec.params)
+                    if study_result is not None and len(study_result) > 0:
+                        row_data[field_name] = float(study_result.iloc[-1])
+                    else:
+                        row_data[field_name] = None
+                except Exception as e:
+                    field_name = spec.study.get_field_name(**spec.params)
+                    self.logger.debug(
+                        f"{ticker}: Error computing {field_name} at {bar_timestamp}: {e}"
+                    )
+                    row_data[field_name] = None
 
             processed_bars[bar_timestamp] = row_data
 

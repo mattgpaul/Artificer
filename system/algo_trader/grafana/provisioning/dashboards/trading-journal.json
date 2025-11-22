@@ -81,7 +81,28 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "smooth"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 11,
@@ -201,9 +222,58 @@
               }
             ]
           }
+        },
+        {
+          "dataset": "iox",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT\n  *\nFROM \"backtest_studies\"\nWHERE hash_id = '$hash_id'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "refId": "D",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ]
+          }
         }
       ],
       "title": "$symbol OHLCV",
+      "transformations": [
+        {
+          "filter": {
+            "id": "byRefId",
+            "options": "/^(?:D)$/"
+          },
+          "id": "filterFieldsByName",
+          "options": {
+            "byVariable": false,
+            "include": {
+              "names": [
+                "sma_20",
+                "sma_30",
+                "sma_50",
+                "time"
+              ]
+            }
+          }
+        }
+      ],
       "type": "candlestick"
     },
     {
@@ -1221,5 +1291,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 108
+  "version": 110
 }
