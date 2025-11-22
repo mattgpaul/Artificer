@@ -268,33 +268,36 @@ class TestResultsWriter:
 
         assert result is False
 
-    def test_write_trades_with_hash_id(self, mock_queue_broker, sample_trades):
+    def test_write_trades_with_hash_id(
+        self,
+        mock_queue_broker,
+        sample_trades,
+        standard_backtest_params,
+        standard_backtest_hash_id,
+    ):
         """Test write_trades includes hash_id when all params provided."""
         writer = ResultsWriter()
         mock_queue_broker.enqueue.return_value = True
-
-        execution_config = ExecutionConfig()
-        start_date = pd.Timestamp("2024-01-01", tz="UTC")
-        end_date = pd.Timestamp("2024-01-31", tz="UTC")
 
         writer.write_trades(
             trades=sample_trades,
             strategy_name="TestStrategy",
             ticker="AAPL",
             backtest_id="test-id",
-            strategy_params={"short_window": 10},
-            execution_config=execution_config,
-            start_date=start_date,
-            end_date=end_date,
-            step_frequency="daily",
-            database="test_db",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
+            strategy_params=standard_backtest_params["strategy_params"],
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
+            database=standard_backtest_params["database"],
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            hash_id=standard_backtest_hash_id,
         )
 
         # Verify enqueue was called with hash_id
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
         assert "hash_id" in queue_data
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == standard_backtest_hash_id

@@ -101,6 +101,8 @@ class BacktestProcessor:
                 manager configuration. If None, position manager is not used.
             filter_config_dict: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             List of tuples, each containing arguments for a worker process.

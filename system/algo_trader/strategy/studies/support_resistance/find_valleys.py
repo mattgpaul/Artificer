@@ -4,10 +4,10 @@ This module provides a study class for detecting valleys (local minima) in OHLCV
 price data by inverting the data and using scipy's peak detection algorithm.
 """
 
+from typing import Any
+
 import pandas as pd
 from scipy.signal import find_peaks
-
-from typing import Any
 
 from system.algo_trader.strategy.studies.base_study import BaseStudy
 
