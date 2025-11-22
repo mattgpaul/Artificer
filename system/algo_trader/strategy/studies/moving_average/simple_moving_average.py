@@ -5,6 +5,8 @@ moving averages from OHLCV data. It inherits from BaseStudy to get common
 validation functionality and adds SMA-specific validation (minimum data length).
 """
 
+from typing import Any
+
 import pandas as pd
 
 from system.algo_trader.strategy.studies.base_study import BaseStudy
@@ -28,6 +30,22 @@ class SimpleMovingAverage(BaseStudy):
             logger: Optional logger instance. If not provided, creates a new logger.
         """
         super().__init__(logger)
+
+    def get_field_name(self, **params: Any) -> str:
+        """Get the field name for this SMA study invocation.
+
+        Returns field name in the format "sma_{window}" based on the window parameter.
+
+        Args:
+            **params: Must contain 'window' parameter.
+
+        Returns:
+            String field name (e.g., "sma_20" for window=20).
+        """
+        window = params.get("window")
+        if window is None:
+            raise ValueError("window parameter is required for SMA field name")
+        return f"sma_{window}"
 
     def _validate_study_specific(self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs) -> bool:
         """Validate SMA-specific requirements.

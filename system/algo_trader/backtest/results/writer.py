@@ -11,7 +11,6 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.backtest.results.schema import (
     BacktestMetricsPayload,
     BacktestStudiesPayload,
@@ -127,6 +126,7 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
         filter_params: dict[str, Any] | None = None,
+        hash_id: str | None = None,
     ) -> bool:
         """Write backtest trades to Redis queue.
 
@@ -153,6 +153,8 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if trades were successfully enqueued, False otherwise.
@@ -160,33 +162,6 @@ class ResultsWriter:
         if trades.empty:
             self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
-
-        hash_id = None
-        if all(
-            [
-                strategy_params is not None,
-                execution_config is not None,
-                step_frequency is not None,
-                capital_per_trade is not None,
-                risk_free_rate is not None,
-            ]
-        ):
-            hash_id = compute_backtest_hash(
-                strategy_params=strategy_params,
-                execution_config=execution_config,
-                start_date=start_date or pd.Timestamp.now(tz="UTC"),
-                end_date=end_date or pd.Timestamp.now(tz="UTC"),
-                step_frequency=step_frequency,
-                database=database or "",
-                tickers=tickers or [],
-                capital_per_trade=capital_per_trade,
-                risk_free_rate=risk_free_rate,
-                walk_forward=walk_forward,
-                train_days=train_days,
-                test_days=test_days,
-                train_split=train_split,
-                filter_params=filter_params,
-            )
 
         journal_rows = _transform_trades_to_journal_rows(trades)
         trades_dict = dataframe_to_dict(journal_rows)
@@ -260,6 +235,7 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
         filter_params: dict[str, Any] | None = None,
+        hash_id: str | None = None,
     ) -> bool:
         """Write backtest metrics to Redis queue.
 
@@ -286,37 +262,12 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if metrics were successfully enqueued, False otherwise.
         """
-        hash_id = None
-        if all(
-            [
-                strategy_params is not None,
-                execution_config is not None,
-                step_frequency is not None,
-                capital_per_trade is not None,
-                risk_free_rate is not None,
-            ]
-        ):
-            hash_id = compute_backtest_hash(
-                strategy_params=strategy_params,
-                execution_config=execution_config,
-                start_date=start_date or pd.Timestamp.now(tz="UTC"),
-                end_date=end_date or pd.Timestamp.now(tz="UTC"),
-                step_frequency=step_frequency,
-                database=database or "",
-                tickers=tickers or [],
-                capital_per_trade=capital_per_trade,
-                risk_free_rate=risk_free_rate,
-                walk_forward=walk_forward,
-                train_days=train_days,
-                test_days=test_days,
-                train_split=train_split,
-                filter_params=filter_params,
-            )
-
         datetime_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         metrics_data = {
             "datetime": [datetime_ms],
@@ -400,6 +351,7 @@ class ResultsWriter:
         test_days: int | None = None,
         train_split: float | None = None,
         filter_params: dict[str, Any] | None = None,
+        hash_id: str | None = None,
     ) -> bool:
         """Write study results to Redis queue for InfluxDB publication.
 
@@ -427,6 +379,8 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if studies were successfully enqueued, False otherwise.
@@ -435,32 +389,15 @@ class ResultsWriter:
             self.logger.debug(f"No studies to enqueue for {ticker}")
             return True
 
-        hash_id = None
-        if all(
-            [
-                strategy_params is not None,
-                execution_config is not None,
-                step_frequency is not None,
-                capital_per_trade is not None,
-                risk_free_rate is not None,
-            ]
-        ):
-            hash_id = compute_backtest_hash(
-                strategy_params=strategy_params,
-                execution_config=execution_config,
-                start_date=start_date or pd.Timestamp.now(tz="UTC"),
-                end_date=end_date or pd.Timestamp.now(tz="UTC"),
-                step_frequency=step_frequency,
-                database=database or "",
-                tickers=tickers or [],
-                capital_per_trade=capital_per_trade,
-                risk_free_rate=risk_free_rate,
-                walk_forward=walk_forward,
-                train_days=train_days,
-                test_days=test_days,
-                train_split=train_split,
-                filter_params=filter_params,
-            )
+        self.logger.debug(
+            f"Preparing studies for {ticker}: rows={len(studies)}, columns={list(studies.columns)}"
+        )
+        try:
+            non_null_counts = studies.count().to_dict()
+            self.logger.debug(f"Non-null study counts for {ticker}: {non_null_counts}")
+        except Exception:
+            # Defensive: avoid breaking writes due to logging issues
+            pass
 
         studies_dict = dataframe_to_dict(studies)
 

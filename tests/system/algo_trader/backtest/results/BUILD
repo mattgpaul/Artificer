@@ -24,6 +24,7 @@ py_library(
     srcs = ["test_results.py"],
     visibility = ["//system/algo_trader/backtest:__pkg__"],
     deps = [
+        ":conftest_lib",
         "//system/algo_trader/backtest:backtest_lib",
         "//system/algo_trader/redis:redis_services",
         "//tests/system/algo_trader/backtest:conftest_lib",

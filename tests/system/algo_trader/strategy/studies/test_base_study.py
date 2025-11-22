@@ -17,6 +17,16 @@ class ConcreteStudy(BaseStudy):
         """Test implementation of study-specific validation."""
         return kwargs.get("valid", True)
 
+    def get_field_name(self, **params) -> str:
+        """Test implementation of get_field_name."""
+        # Simple test implementation - return a field name based on params
+        param_str = "_".join(
+            f"{k}_{v}"
+            for k, v in sorted(params.items())
+            if k not in {"valid", "column", "required_columns"}
+        )
+        return f"test_field_{param_str}" if param_str else "test_field"
+
     def calculate(self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs) -> pd.Series | None:
         """Test implementation of calculation."""
         column = kwargs.get("column", "close")

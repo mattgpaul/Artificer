@@ -4,6 +4,8 @@ This module provides a study class for detecting valleys (local minima) in OHLCV
 price data by inverting the data and using scipy's peak detection algorithm.
 """
 
+from typing import Any
+
 import pandas as pd
 from scipy.signal import find_peaks
 
@@ -25,6 +27,27 @@ class FindValleys(BaseStudy):
             logger: Optional logger instance. If not provided, creates a new logger.
         """
         super().__init__(logger)
+
+    def get_field_name(self, **params: Any) -> str:
+        """Get the field name for this study invocation.
+
+        Note: FindValleys is a multi-output study that returns a DataFrame with
+        multiple columns (valley1, valley2, ...). Multi-output study support will
+        be added in a future update.
+
+        Args:
+            **params: Study parameters (not currently used for field naming).
+
+        Returns:
+            String field name (placeholder for now).
+
+        Raises:
+            NotImplementedError: Multi-output studies not yet supported.
+        """
+        raise NotImplementedError(
+            "FindValleys is a multi-output study. Multi-output field naming "
+            "support will be added in a future update."
+        )
 
     def _validate_study_specific(self, ohlcv_data: pd.DataFrame, ticker: str, **kwargs) -> bool:
         if len(ohlcv_data) < 3:
