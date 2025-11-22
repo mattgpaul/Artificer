@@ -48,6 +48,7 @@ class BaseStudy(ABC):
     Subclasses must implement:
     - `_validate_study_specific()`: Study-specific validation logic
     - `calculate()`: The actual calculation logic
+    - `get_field_name()`: Returns the field name for this study invocation
 
     Attributes:
         logger: Logger instance for validation and error messages.
@@ -122,6 +123,22 @@ class BaseStudy(ABC):
 
         Returns:
             True if study-specific validation passes, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def get_field_name(self, **params: Any) -> str:
+        """Get the field name for this study invocation.
+
+        Returns the single field name that will appear in backtest_studies
+        for this study with the given parameters. Studies are the sole source
+        of truth for their field naming and output shape.
+
+        Args:
+            **params: Study-specific parameters that determine the field name.
+
+        Returns:
+            String field name (e.g., "sma_20" for SMA with window=20).
         """
         pass
 

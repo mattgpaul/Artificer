@@ -114,7 +114,9 @@ def process_queue(
                 failed_count += 1
                 continue
 
-            if backtest_id:
+            # For backtest_studies_queue, do not add backtest_id as a tag
+            # Rely on hash_id, ticker, strategy, and parameter tags as the uniqueness key
+            if backtest_id and queue_name != "backtest_studies_queue":
                 if "backtest_id" not in time_series_data:
                     time_series_data["backtest_id"] = [backtest_id] * data_length
                 tag_columns.append("backtest_id")
@@ -146,6 +148,17 @@ def process_queue(
                     if param_key not in time_series_data:
                         time_series_data[param_key] = [param_str] * data_length
                     tag_columns.append(param_key)
+
+            if queue_name == "backtest_studies_queue":
+                field_candidates = [
+                    key
+                    for key in time_series_data.keys()
+                    if key not in tag_columns and key != "datetime"
+                ]
+                logger.debug(
+                    f"backtest_studies_queue payload for {ticker}: "
+                    f"fields={field_candidates}, tags={tag_columns}"
+                )
 
         # Validate data before writing
         if isinstance(time_series_data, dict):

@@ -137,8 +137,14 @@ class MarketDataInflux(BaseInfluxDBClient):
 
         # Fill NaN values in non-tag columns
         non_tag_cols = [col for col in df.columns if col not in tag_columns]
-        if non_tag_cols:
-            df[non_tag_cols] = df[non_tag_cols].fillna(0)
+        if not non_tag_cols:
+            self.logger.info(
+                f"No non-tag (field) columns to write for {ticker} on table '{table}', "
+                "skipping Influx write."
+            )
+            return True
+
+        df[non_tag_cols] = df[non_tag_cols].fillna(0)
 
         try:
             self.logger.info(
