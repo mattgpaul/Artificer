@@ -91,6 +91,7 @@ def write_backtest_results(
     test_days: int | None,
     train_split: float | None,
     filter_config_dict: dict | None = None,
+    hash_id: str | None = None,
 ) -> bool:
     """Write backtest results to Redis queues.
 
@@ -116,6 +117,8 @@ def write_backtest_results(
         train_split: Training split ratio (if walk-forward).
         filter_config_dict: Optional dictionary containing filter configuration
             for hash computation. If None, filters are not included in hash.
+        hash_id: Optional canonical hash ID for this backtest configuration.
+            If None, hash will be computed from other parameters.
 
     Returns:
         True if trades were successfully enqueued, False otherwise.
@@ -140,6 +143,7 @@ def write_backtest_results(
         test_days=test_days,
         train_split=train_split,
         filter_params=filter_config_dict,
+        hash_id=hash_id,
     )
 
     writer.write_studies(
@@ -161,6 +165,7 @@ def write_backtest_results(
         test_days=test_days,
         train_split=train_split,
         filter_params=filter_config_dict,
+        hash_id=hash_id,
     )
 
     return trades_success
@@ -195,6 +200,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - filter_pipeline: FilterPipeline instance (may be None)
             - position_manager_config_dict: Position manager config dict
             - filter_config_dict: Filter config dict for hash computation
+            - hash_id_local: Canonical hash ID for this backtest configuration
 
     Returns:
         Dictionary with 'success' boolean and optional 'error' message.
@@ -221,6 +227,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         filter_pipeline,
         position_manager_config_dict,
         filter_config_dict,
+        hash_id_local,
     ) = args
 
     engine = None
@@ -283,6 +290,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             test_days=test_days_local,
             train_split=train_split_local,
             filter_config_dict=filter_config_dict,
+            hash_id=hash_id_local,
         )
 
         if trades_success:

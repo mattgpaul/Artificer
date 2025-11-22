@@ -21,6 +21,7 @@ services:
   influxdb:
     image: artificer-influxdb:latest
     container_name: influxdb
+    restart: unless-stopped
     command:
       - influxdb3
       - serve
