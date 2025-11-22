@@ -11,7 +11,6 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.backtest.results.schema import (
     BacktestMetricsPayload,
     BacktestStudiesPayload,
@@ -154,6 +153,8 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if trades were successfully enqueued, False otherwise.
@@ -261,6 +262,8 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if metrics were successfully enqueued, False otherwise.
@@ -376,6 +379,8 @@ class ResultsWriter:
             train_split: Training split ratio (if walk-forward).
             filter_params: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             True if studies were successfully enqueued, False otherwise.
@@ -385,8 +390,7 @@ class ResultsWriter:
             return True
 
         self.logger.debug(
-            f"Preparing studies for {ticker}: rows={len(studies)}, "
-            f"columns={list(studies.columns)}"
+            f"Preparing studies for {ticker}: rows={len(studies)}, columns={list(studies.columns)}"
         )
         try:
             non_null_counts = studies.count().to_dict()

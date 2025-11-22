@@ -112,7 +112,9 @@ class TestResultsWriterWriteTrades:
         assert "hash_id" in call_args[1]["data"]
 
     @pytest.mark.unit
-    def test_write_trades_with_hash(self, mock_queue_broker):
+    def test_write_trades_with_hash(
+        self, mock_queue_broker, standard_backtest_params, standard_backtest_hash_id
+    ):
         """Test writing trades with backtest hash computation."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
@@ -130,8 +132,24 @@ class TestResultsWriterWriteTrades:
             }
         )
 
-        execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
+        # Update strategy_params for this specific test
         strategy_params = {"short_window": 10, "long_window": 20}
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
+            database="debug",
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            walk_forward=standard_backtest_params["walk_forward"],
+            train_days=standard_backtest_params["train_days"],
+            test_days=standard_backtest_params["test_days"],
+            train_split=standard_backtest_params["train_split"],
+            filter_params=standard_backtest_params["filter_params"],
+        )
 
         result = writer.write_trades(
             trades=trades,
@@ -139,20 +157,21 @@ class TestResultsWriterWriteTrades:
             ticker="AAPL",
             backtest_id="test-id",
             strategy_params=strategy_params,
-            execution_config=execution_config,
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
-            step_frequency="daily",
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
             database="debug",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            hash_id=hash_id,
         )
 
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == hash_id
         assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
@@ -240,7 +259,9 @@ class TestResultsWriterWriteTrades:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_trades_walk_forward_hash(self, mock_queue_broker):
+    def test_write_trades_walk_forward_hash(
+        self, mock_queue_broker, walk_forward_backtest_params, walk_forward_backtest_hash_id
+    ):
         """Test hash computation includes walk-forward parameters."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
@@ -258,31 +279,31 @@ class TestResultsWriterWriteTrades:
             }
         )
 
-        execution_config = ExecutionConfig()
         result = writer.write_trades(
             trades=trades,
             strategy_name="TestStrategy",
             ticker="AAPL",
             backtest_id="test-id",
-            strategy_params={},
-            execution_config=execution_config,
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
-            step_frequency="daily",
-            database="debug",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
-            walk_forward=True,
-            train_days=90,
-            test_days=30,
-            train_split=None,
+            strategy_params=walk_forward_backtest_params["strategy_params"],
+            execution_config=walk_forward_backtest_params["execution_config"],
+            start_date=walk_forward_backtest_params["start_date"],
+            end_date=walk_forward_backtest_params["end_date"],
+            step_frequency=walk_forward_backtest_params["step_frequency"],
+            database=walk_forward_backtest_params["database"],
+            tickers=walk_forward_backtest_params["tickers"],
+            capital_per_trade=walk_forward_backtest_params["capital_per_trade"],
+            risk_free_rate=walk_forward_backtest_params["risk_free_rate"],
+            walk_forward=walk_forward_backtest_params["walk_forward"],
+            train_days=walk_forward_backtest_params["train_days"],
+            test_days=walk_forward_backtest_params["test_days"],
+            train_split=walk_forward_backtest_params["train_split"],
+            hash_id=walk_forward_backtest_hash_id,
         )
 
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == walk_forward_backtest_hash_id
 
     @pytest.mark.unit
     def test_write_trades_dataframe_conversion(self, mock_queue_broker):
@@ -550,7 +571,9 @@ class TestResultsWriterWriteMetrics:
         assert call_args[1]["ttl"] == BACKTEST_REDIS_TTL
 
     @pytest.mark.unit
-    def test_write_metrics_with_hash(self, mock_queue_broker):
+    def test_write_metrics_with_hash(
+        self, mock_queue_broker, standard_backtest_params, standard_backtest_hash_id
+    ):
         """Test writing metrics with hash computation."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
@@ -558,28 +581,27 @@ class TestResultsWriterWriteMetrics:
 
         metrics = {"total_trades": 5}
 
-        execution_config = ExecutionConfig()
         result = writer.write_metrics(
             metrics=metrics,
             strategy_name="TestStrategy",
             ticker="AAPL",
             backtest_id="test-id",
-            strategy_params={},
-            execution_config=execution_config,
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
-            step_frequency="daily",
+            strategy_params=standard_backtest_params["strategy_params"],
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
             database="debug",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            hash_id=standard_backtest_hash_id,
         )
 
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert "hash_id" in queue_data["data"]
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == standard_backtest_hash_id
 
     @pytest.mark.unit
     def test_write_metrics_failure(self, mock_queue_broker):
@@ -1086,7 +1108,11 @@ class TestResultsWriterWriteStudies:
 
     @pytest.mark.unit
     def test_write_studies_with_hash(
-        self, mock_queue_broker, sample_studies_data_minimal, execution_config
+        self,
+        mock_queue_broker,
+        sample_studies_data_minimal,
+        standard_backtest_params,
+        standard_backtest_hash_id,
     ):
         """Test writing studies with backtest hash computation."""
         writer = ResultsWriter()
@@ -1094,26 +1120,45 @@ class TestResultsWriterWriteStudies:
         mock_queue_broker.enqueue.return_value = True
         strategy_params = {"short_window": 10, "long_window": 20}
 
+        # Compute hash for this specific strategy_params
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
+            database="debug",
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            walk_forward=standard_backtest_params["walk_forward"],
+            train_days=standard_backtest_params["train_days"],
+            test_days=standard_backtest_params["test_days"],
+            train_split=standard_backtest_params["train_split"],
+            filter_params=standard_backtest_params["filter_params"],
+        )
+
         result = writer.write_studies(
             studies=sample_studies_data_minimal,
             strategy_name="TestStrategy",
             ticker="AAPL",
             backtest_id="test-id",
-            strategy_params={"short_window": 10, "long_window": 20},
-            execution_config=execution_config,
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
-            step_frequency="daily",
+            strategy_params=strategy_params,
+            execution_config=standard_backtest_params["execution_config"],
+            start_date=standard_backtest_params["start_date"],
+            end_date=standard_backtest_params["end_date"],
+            step_frequency=standard_backtest_params["step_frequency"],
             database="debug",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
+            tickers=standard_backtest_params["tickers"],
+            capital_per_trade=standard_backtest_params["capital_per_trade"],
+            risk_free_rate=standard_backtest_params["risk_free_rate"],
+            hash_id=hash_id,
         )
 
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == hash_id
         assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
@@ -1222,7 +1267,11 @@ class TestResultsWriterWriteStudies:
 
     @pytest.mark.unit
     def test_write_studies_walk_forward_hash(
-        self, mock_queue_broker, sample_studies_data_single, execution_config
+        self,
+        mock_queue_broker,
+        sample_studies_data_single,
+        walk_forward_backtest_params,
+        walk_forward_backtest_hash_id,
     ):
         """Test hash computation includes walk-forward parameters."""
         writer = ResultsWriter()
@@ -1234,25 +1283,26 @@ class TestResultsWriterWriteStudies:
             strategy_name="TestStrategy",
             ticker="AAPL",
             backtest_id="test-id",
-            strategy_params={},
-            execution_config=execution_config,
-            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
-            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
-            step_frequency="daily",
-            database="debug",
-            tickers=["AAPL"],
-            capital_per_trade=10000.0,
-            risk_free_rate=0.04,
-            walk_forward=True,
-            train_days=90,
-            test_days=30,
-            train_split=None,
+            strategy_params=walk_forward_backtest_params["strategy_params"],
+            execution_config=walk_forward_backtest_params["execution_config"],
+            start_date=walk_forward_backtest_params["start_date"],
+            end_date=walk_forward_backtest_params["end_date"],
+            step_frequency=walk_forward_backtest_params["step_frequency"],
+            database=walk_forward_backtest_params["database"],
+            tickers=walk_forward_backtest_params["tickers"],
+            capital_per_trade=walk_forward_backtest_params["capital_per_trade"],
+            risk_free_rate=walk_forward_backtest_params["risk_free_rate"],
+            walk_forward=walk_forward_backtest_params["walk_forward"],
+            train_days=walk_forward_backtest_params["train_days"],
+            test_days=walk_forward_backtest_params["test_days"],
+            train_split=walk_forward_backtest_params["train_split"],
+            hash_id=walk_forward_backtest_hash_id,
         )
 
         assert result is True
         call_args = mock_queue_broker.enqueue.call_args
         queue_data = call_args[1]["data"]
-        assert queue_data["hash_id"] is not None
+        assert queue_data["hash_id"] == walk_forward_backtest_hash_id
 
     @pytest.mark.integration
     def test_write_studies_complete_workflow(

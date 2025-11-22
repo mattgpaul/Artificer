@@ -117,6 +117,8 @@ def write_backtest_results(
         train_split: Training split ratio (if walk-forward).
         filter_config_dict: Optional dictionary containing filter configuration
             for hash computation. If None, filters are not included in hash.
+        hash_id: Optional canonical hash ID for this backtest configuration.
+            If None, hash will be computed from other parameters.
 
     Returns:
         True if trades were successfully enqueued, False otherwise.
