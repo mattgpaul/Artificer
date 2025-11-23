@@ -34,3 +34,4 @@ def mock_dependencies_config(mock_logger, mock_influx_client):
         "logger": mock_logger,
         "influx_client": mock_influx_client,
     }
+

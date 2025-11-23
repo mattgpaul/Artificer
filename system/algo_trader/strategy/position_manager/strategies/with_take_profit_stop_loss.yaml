@@ -10,6 +10,7 @@ rules:
 
   - stop_loss:
       field_price: price
-      loss_pct: 0.05
+      loss_pct: 0.2
       fraction: 1.0
+
 

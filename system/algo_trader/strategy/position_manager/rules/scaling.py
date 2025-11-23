@@ -26,3 +26,4 @@ class ScalingRule:
             return PositionDecision(allow_entry=False)
         return PositionDecision()
 
+
