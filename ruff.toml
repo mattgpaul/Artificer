@@ -100,7 +100,8 @@ exclude = [
     "C901",     # Complexity (already refactored)
 ]
 # Strategy initialization methods legitimately need many parameters
-"system/algo_trader/strategy/strategies/sma_crossover.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/strategy/base.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/strategy/sma_crossover.py" = ["PLR0913"]  # __init__ with many config params
 # Market handler API methods legitimately need many parameters
 "system/algo_trader/schwab/market_handler.py" = ["PLR0913"]  # API methods with many params
 # Publisher queue processing is complex but necessary

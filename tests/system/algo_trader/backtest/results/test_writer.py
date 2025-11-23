@@ -69,23 +69,13 @@ class TestResultsWriterWriteTrades:
         mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.unit
-    def test_write_trades_success(self, mock_queue_broker):
+    def test_write_trades_success(self, mock_queue_broker, sample_trade_single):
         """Test writing trades successfully."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         execution_config = ExecutionConfig()
         result = writer.write_trades(
@@ -113,24 +103,18 @@ class TestResultsWriterWriteTrades:
 
     @pytest.mark.unit
     def test_write_trades_with_hash(
-        self, mock_queue_broker, standard_backtest_params, standard_backtest_hash_id
+        self,
+        mock_queue_broker,
+        standard_backtest_params,
+        standard_backtest_hash_id,
+        sample_trade_single,
     ):
         """Test writing trades with backtest hash computation."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         # Update strategy_params for this specific test
         strategy_params = {"short_window": 10, "long_window": 20}
@@ -175,23 +159,13 @@ class TestResultsWriterWriteTrades:
         assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
-    def test_write_trades_without_hash_params(self, mock_queue_broker):
+    def test_write_trades_without_hash_params(self, mock_queue_broker, sample_trade_single):
         """Test writing trades without hash computation parameters."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -205,23 +179,13 @@ class TestResultsWriterWriteTrades:
         assert queue_data["hash_id"] is None
 
     @pytest.mark.unit
-    def test_write_trades_failure(self, mock_queue_broker):
+    def test_write_trades_failure(self, mock_queue_broker, sample_trade_single):
         """Test writing trades failure."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = False
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -232,23 +196,13 @@ class TestResultsWriterWriteTrades:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_trades_exception(self, mock_queue_broker):
+    def test_write_trades_exception(self, mock_queue_broker, sample_trade_single):
         """Test writing trades exception handling."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.side_effect = Exception("Redis error")
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -260,24 +214,18 @@ class TestResultsWriterWriteTrades:
 
     @pytest.mark.unit
     def test_write_trades_walk_forward_hash(
-        self, mock_queue_broker, walk_forward_backtest_params, walk_forward_backtest_hash_id
+        self,
+        mock_queue_broker,
+        walk_forward_backtest_params,
+        walk_forward_backtest_hash_id,
+        sample_trade_single,
     ):
         """Test hash computation includes walk-forward parameters."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -306,23 +254,13 @@ class TestResultsWriterWriteTrades:
         assert queue_data["hash_id"] == walk_forward_backtest_hash_id
 
     @pytest.mark.unit
-    def test_write_trades_dataframe_conversion(self, mock_queue_broker):
+    def test_write_trades_dataframe_conversion(self, mock_queue_broker, sample_trade_single):
         """Test DataFrame to dict conversion."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -340,24 +278,13 @@ class TestResultsWriterWriteTrades:
         assert len(queue_data["data"]["datetime"]) == 2
 
     @pytest.mark.unit
-    def test_write_trades_nan_handling(self, mock_queue_broker):
+    def test_write_trades_nan_handling(self, mock_queue_broker, sample_trade_with_nan):
         """Test NaN handling in DataFrame conversion."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-                "optional_field": [None],  # NaN value
-            }
-        )
+        trades = sample_trade_with_nan
 
         result = writer.write_trades(
             trades=trades,
@@ -372,24 +299,15 @@ class TestResultsWriterWriteTrades:
         assert "data" in queue_data
 
     @pytest.mark.unit
-    def test_write_trades_all_nan_column(self, mock_queue_broker):
+    def test_write_trades_all_nan_column(self, mock_queue_broker, sample_trade_with_nan):
         """Test handling of all-NaN columns."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-                "all_nan_col": [None],  # All NaN column
-            }
-        )
+        # Add all_nan_col to the fixture
+        trades = sample_trade_with_nan.copy()
+        trades["all_nan_col"] = [None]
 
         result = writer.write_trades(
             trades=trades,
@@ -401,23 +319,15 @@ class TestResultsWriterWriteTrades:
         # All-NaN column should be dropped
 
     @pytest.mark.unit
-    def test_write_trades_schema_validation_failure_mismatched_lengths(self, mock_queue_broker):
+    def test_write_trades_schema_validation_failure_mismatched_lengths(
+        self, mock_queue_broker, sample_trade_single
+    ):
         """Test that schema validation failure prevents enqueue."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         # Force an invalid time-series payload with mismatched column lengths.
         with patch(
@@ -439,24 +349,14 @@ class TestResultsWriterWriteTrades:
 
     @pytest.mark.unit
     def test_write_trades_schema_validation_failure_invalid_strategy_params(
-        self, mock_queue_broker
+        self, mock_queue_broker, sample_trade_single
     ):
         """Test that invalid strategy_params keys cause validation failure."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         # strategy_params with an empty key should fail BacktestTradesPayload validation.
         result = writer.write_trades(
@@ -470,29 +370,13 @@ class TestResultsWriterWriteTrades:
         mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.integration
-    def test_write_trades_complete_workflow(self, mock_queue_broker):
+    def test_write_trades_complete_workflow(self, mock_queue_broker, sample_trades_multiple):
         """Test complete workflow: DataFrame → dict → Redis."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "MSFT"],
-                "entry_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                ],
-                "exit_time": [
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                    pd.Timestamp("2024-01-11", tz="UTC"),
-                ],
-                "entry_price": [100.0, 200.0],
-                "exit_price": [105.0, 210.0],
-                "shares": [100.0, 100.0],
-                "gross_pnl": [500.0, 1000.0],
-            }
-        )
+        trades = sample_trades_multiple
 
         execution_config = ExecutionConfig()
         result = writer.write_trades(
@@ -889,23 +773,13 @@ class TestResultsWriterDataFrameConversion:
         assert "datetime" not in queue_data["data"] or queue_data["data"]["datetime"] is not None
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_exit_time_column(self, mock_queue_broker):
+    def test_dataframe_to_dict_exit_time_column(self, mock_queue_broker, sample_trade_single):
         """Test conversion with exit_time column."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -977,23 +851,13 @@ class TestResultsWriterDataFrameConversion:
         # NaN should be converted to 0
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_datetime_columns(self, mock_queue_broker):
+    def test_dataframe_to_dict_datetime_columns(self, mock_queue_broker, sample_trade_single):
         """Test datetime column conversion."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "entry_price": [100.0],
-                "exit_price": [105.0],
-                "shares": [100.0],
-                "gross_pnl": [500.0],
-            }
-        )
+        trades = sample_trade_single
 
         result = writer.write_trades(
             trades=trades,
@@ -1013,31 +877,15 @@ class TestResultsWriterDataFrameConversion:
         assert isinstance(queue_data["data"]["price"], list)
 
     @pytest.mark.integration
-    def test_dataframe_to_dict_complete_conversion(self, mock_queue_broker):
+    def test_dataframe_to_dict_complete_conversion(self, mock_queue_broker, sample_trades_multiple):
         """Test complete DataFrame conversion workflow."""
         writer = ResultsWriter()
         writer.queue_broker = mock_queue_broker
         mock_queue_broker.enqueue.return_value = True
 
-        trades = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "MSFT"],
-                "entry_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                ],
-                "exit_time": [
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                    pd.Timestamp("2024-01-11", tz="UTC"),
-                ],
-                "entry_price": [100.0, 200.0],
-                "exit_price": [105.0, 210.0],
-                "shares": [100.0, 100.0],
-                "gross_pnl": [500.0, 1000.0],
-                "side": ["LONG", "LONG"],
-                "efficiency": [75.5, 80.0],
-            }
-        )
+        trades = sample_trades_multiple.copy()
+        trades["side"] = ["LONG", "LONG"]
+        trades["efficiency"] = [75.5, 80.0]
 
         result = writer.write_trades(
             trades=trades,
@@ -1055,6 +903,44 @@ class TestResultsWriterDataFrameConversion:
         # Note: gross_pnl may not be in journal rows, check for price instead
         assert "price" in data_dict
         assert len(data_dict["price"]) == 4
+
+    @pytest.mark.unit
+    def test_write_trades_pm_managed_executions(
+        self, mock_queue_broker, sample_pm_executions_open_tp_close
+    ):
+        """Test execution-based journaling for PM-managed signals with actions/shares."""
+        writer = ResultsWriter()
+        writer.queue_broker = mock_queue_broker
+        mock_queue_broker.enqueue.return_value = True
+
+        # Simulate PM-managed executions: open, partial TP, final close
+        executions = sample_pm_executions_open_tp_close
+
+        result = writer.write_trades(
+            trades=executions,
+            strategy_name="TestStrategy",
+            ticker="AAPL",
+        )
+
+        assert result is True
+        call_args = mock_queue_broker.enqueue.call_args
+        queue_data = call_args[1]["data"]
+        data = queue_data["data"]
+
+        # One journal row per execution
+        assert len(data["datetime"]) == 3
+        assert len(data["shares"]) == 3
+        assert len(data["action"]) == 3
+
+        # Actions should be mapped to buy_to_open / sell_to_close correctly
+        assert data["action"][0] == "buy_to_open"
+        assert data["action"][1] == "sell_to_close"
+        assert data["action"][2] == "sell_to_close"
+
+        # Shares should match per-execution deltas
+        assert data["shares"][0] == 134.0
+        assert data["shares"][1] == 67.0
+        assert data["shares"][2] == 67.0
 
 
 class TestResultsWriterWriteStudies:

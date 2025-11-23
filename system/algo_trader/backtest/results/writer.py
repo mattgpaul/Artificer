@@ -34,56 +34,231 @@ def _determine_action(side: str, is_entry: bool) -> str:
         return "sell_to_open" if is_entry else "buy_to_close"
 
 
-def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
+def _transform_trades_to_journal_rows(
+    trades: pd.DataFrame,
+    executions: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Transform trades or execution intents into journal rows.
+
+    Prefer execution-based journaling when we have PM-managed signals; otherwise
+    fall back to trade-based journaling.
+    """
+    if _should_use_execution_journaling(executions):
+        exec_df = executions.copy()
+        exec_df = exec_df.sort_values(["ticker", "signal_time"])
+        return _journal_rows_from_executions(exec_df)
+
+    return _journal_rows_from_trades(trades)
+
+
+def _should_use_execution_journaling(executions: pd.DataFrame | None) -> bool:
+    """Return True if we should use execution-based journaling."""
+    if executions is None or executions.empty:
+        return False
+
+    columns = executions.columns
+    return "action" in columns and "shares" in columns
+
+
+def _journal_rows_from_executions(exec_df: pd.DataFrame) -> pd.DataFrame:
+    """Build journal rows from PM-managed execution intents."""
+    journal_rows: list[dict[str, Any]] = []
+    trade_ids: dict[str, int] = {}
+    position_sizes: dict[str, float] = {}
+
+    for _, row in exec_df.iterrows():
+        journal_row = _process_execution_row(row, trade_ids, position_sizes)
+        if journal_row is not None:
+            journal_rows.append(journal_row)
+
+    if not journal_rows:
+        return pd.DataFrame()
+
+    return pd.DataFrame(journal_rows)
+
+
+def _process_execution_row(
+    row: pd.Series,
+    trade_ids: dict[str, int],
+    position_sizes: dict[str, float],
+) -> dict[str, Any] | None:
+    """Process a single execution row into a journal row, updating state."""
+    ticker = row.get("ticker", "")
+    if not ticker:
+        return None
+
+    shares = row.get("shares")
+    price = row.get("price")
+    if _has_missing_price_or_shares(shares, price):
+        return None
+
+    try:
+        shares_f = float(shares)
+        price_f = float(price)
+    except (TypeError, ValueError):
+        return None
+
+    side = row.get("side", "LONG")
+    action = row.get("action")
+    ts = row.get("signal_time")
+    reason = row.get("reason")
+
+    trade_id = _assign_trade_id_for_execution(
+        ticker=ticker,
+        action=action,
+        side=side,
+        shares=shares_f,
+        trade_ids=trade_ids,
+        position_sizes=position_sizes,
+    )
+    if trade_id is None:
+        # Unknown action type - skip
+        return None
+
+    return _build_execution_journal_row(
+        row=row,
+        side=side,
+        price_f=price_f,
+        shares_f=shares_f,
+        trade_id=trade_id,
+        timestamp=ts,
+        reason=reason,
+    )
+
+
+def _has_missing_price_or_shares(shares: Any, price: Any) -> bool:
+    """Return True if price or shares is missing or NaN."""
+    return shares is None or price is None or pd.isna(shares) or pd.isna(price)
+
+
+def _assign_trade_id_for_execution(
+    ticker: str,
+    action: Any,
+    side: str,
+    shares: float,
+    trade_ids: dict[str, int],
+    position_sizes: dict[str, float],
+) -> int | None:
+    """Update trade ID and position size state for an execution, returning trade_id.
+
+    Returns None if the action is unknown and the row should be skipped.
+    """
+    if ticker not in trade_ids:
+        trade_ids[ticker] = 0
+        position_sizes[ticker] = 0.0
+
+    current_size = position_sizes[ticker]
+
+    if action in {"open", "scale_in"} and current_size <= 0.0:
+        trade_ids[ticker] += 1
+
+    trade_id = trade_ids[ticker]
+
+    if action in {"open", "scale_in"}:
+        position_sizes[ticker] = current_size + shares
+    elif action in {"scale_out", "close"}:
+        position_sizes[ticker] = max(0.0, current_size - shares)
+    else:
+        return None
+
+    return trade_id
+
+
+def _build_execution_journal_row(
+    row: pd.Series,
+    side: str,
+    price_f: float,
+    shares_f: float,
+    trade_id: int,
+    timestamp: Any,
+    reason: Any,
+) -> dict[str, Any]:
+    """Build a single journal row dict from an execution row."""
+    ticker = row.get("ticker", "")
+    strategy = row.get("strategy", "")
+
+    # Determine journal-side action (buy_to_open, sell_to_close, etc.)
+    action = _determine_action(
+        side=side,
+        is_entry=row.get("action") in {"open", "scale_in"},
+    )
+
+    journal_row: dict[str, Any] = {
+        "datetime": timestamp,
+        "ticker": ticker,
+        "strategy": strategy,
+        "side": side,
+        "price": price_f,
+        "shares": shares_f,
+        "commission": 0.0,
+        "action": action,
+    }
+
+    if trade_id:
+        journal_row["trade_id"] = float(trade_id)
+    if reason is not None:
+        journal_row["exit_reason"] = reason
+
+    return journal_row
+
+
+def _journal_rows_from_trades(trades: pd.DataFrame) -> pd.DataFrame:
+    """Build journal rows from legacy trade records."""
     if trades.empty:
         return pd.DataFrame()
 
+    _validate_trade_columns(trades)
+
+    journal_rows: list[dict[str, Any]] = []
+    for _, trade in trades.iterrows():
+        journal_rows.extend(_journal_rows_for_trade(trade))
+
+    return pd.DataFrame(journal_rows)
+
+
+def _validate_trade_columns(trades: pd.DataFrame) -> None:
+    """Validate that the trades DataFrame has all required columns."""
     required_cols = ["entry_time", "exit_time", "entry_price", "exit_price", "shares"]
     missing_cols = [col for col in required_cols if col not in trades.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns in trades DataFrame: {missing_cols}")
 
-    journal_rows = []
 
-    for _, trade in trades.iterrows():
-        side = trade.get("side", "LONG")
-        ticker = trade.get("ticker", "")
-        strategy = trade.get("strategy", "")
-        trade_id = trade.get("trade_id")
+def _journal_rows_for_trade(trade: pd.Series) -> list[dict[str, Any]]:
+    """Return entry and exit journal rows for a single trade."""
+    side = trade.get("side", "LONG")
+    ticker = trade.get("ticker", "")
+    strategy = trade.get("strategy", "")
+    trade_id = trade.get("trade_id")
+    commission = trade.get("commission", 0.0)
 
-        commission = trade.get("commission", 0.0)
+    entry_row: dict[str, Any] = {
+        "datetime": trade["entry_time"],
+        "ticker": ticker,
+        "strategy": strategy,
+        "side": side,
+        "price": trade["entry_price"],
+        "shares": trade["shares"],
+        "commission": commission,
+        "action": _determine_action(side, True),
+    }
+    if trade_id is not None:
+        entry_row["trade_id"] = trade_id
 
-        entry_row = {
-            "datetime": trade["entry_time"],
-            "ticker": ticker,
-            "strategy": strategy,
-            "side": side,
-            "price": trade["entry_price"],
-            "shares": trade["shares"],
-            "commission": commission,
-            "action": _determine_action(side, True),
-        }
-        if trade_id is not None:
-            entry_row["trade_id"] = trade_id
+    exit_row: dict[str, Any] = {
+        "datetime": trade["exit_time"],
+        "ticker": ticker,
+        "strategy": strategy,
+        "side": side,
+        "price": trade["exit_price"],
+        "shares": trade["shares"],
+        "commission": commission,
+        "action": _determine_action(side, False),
+    }
+    if trade_id is not None:
+        exit_row["trade_id"] = trade_id
 
-        exit_row = {
-            "datetime": trade["exit_time"],
-            "ticker": ticker,
-            "strategy": strategy,
-            "side": side,
-            "price": trade["exit_price"],
-            "shares": trade["shares"],
-            "commission": commission,
-            "action": _determine_action(side, False),
-        }
-        if trade_id is not None:
-            exit_row["trade_id"] = trade_id
-
-        journal_rows.append(entry_row)
-        journal_rows.append(exit_row)
-
-    journal_df = pd.DataFrame(journal_rows)
-    return journal_df
+    return [entry_row, exit_row]
 
 
 class ResultsWriter:
@@ -163,7 +338,12 @@ class ResultsWriter:
             self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
 
-        journal_rows = _transform_trades_to_journal_rows(trades)
+        # Prefer using PM-managed execution intents when present on the trades
+        executions = None
+        if "action" in trades.columns and "shares" in trades.columns:
+            executions = trades
+
+        journal_rows = _transform_trades_to_journal_rows(trades, executions=executions)
         trades_dict = dataframe_to_dict(journal_rows)
 
         row_count = len(journal_rows)
