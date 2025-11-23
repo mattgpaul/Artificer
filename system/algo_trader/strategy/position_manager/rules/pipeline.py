@@ -40,6 +40,12 @@ class PositionRulePipeline:
                 return rule.allow_scale_out
         return True
 
+    def get_allow_scale_in(self) -> bool:
+        for rule in self.rules:
+            if isinstance(rule, ScalingRule):
+                return rule.allow_scale_in
+        return False
+
     def decide_exit(self, context: PositionRuleContext) -> float:
         allow_scale_out = self.get_allow_scale_out()
         max_fraction = 0.0
