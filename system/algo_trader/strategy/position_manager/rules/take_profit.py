@@ -1,6 +1,12 @@
-from infrastructure.logging.logger import get_logger
+"""Take profit rule for position management.
 
+This module provides the TakeProfitRule class which triggers position exits
+when profits exceed a configured threshold.
+"""
+
+from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.position_manager.rules.base import (
+    AnchorConfig,
     PositionDecision,
     PositionRuleContext,
     compute_anchor_price,
@@ -9,27 +15,49 @@ from system.algo_trader.strategy.position_manager.rules.base import (
 
 
 class TakeProfitRule:
+    """Rule that triggers position exit when profit target is reached.
+
+    Evaluates current price against anchor price and exits a fraction
+    of the position if profit exceeds the configured percentage.
+    """
+
     def __init__(
         self,
         field_price: str,
         target_pct: float,
         fraction: float,
-        anchor_type: str = "entry_price",
-        anchor_field: str | None = None,
-        lookback_bars: int | None = None,
-        one_shot: bool = True,
+        anchor_config: AnchorConfig | None = None,
         logger=None,
     ):
+        """Initialize take profit rule.
+
+        Args:
+            field_price: Field name in signal containing current price.
+            target_pct: Profit percentage target (e.g., 0.10 for 10%).
+            fraction: Fraction of position to exit when triggered (0.0 to 1.0).
+            anchor_config: Configuration for anchor price calculation. If None, uses defaults.
+            logger: Optional logger instance.
+        """
         self.field_price = field_price
         self.target_pct = target_pct
         self.fraction = fraction
-        self.anchor_type = anchor_type or "entry_price"
-        self.anchor_field = anchor_field or field_price
-        self.lookback_bars = lookback_bars
-        self.one_shot = one_shot
+        if anchor_config is None:
+            anchor_config = AnchorConfig()
+        self.anchor_type = anchor_config.anchor_type or "entry_price"
+        self.anchor_field = anchor_config.anchor_field or field_price
+        self.lookback_bars = anchor_config.lookback_bars
+        self.one_shot = anchor_config.one_shot
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def evaluate(self, context: PositionRuleContext) -> PositionDecision:
+        """Evaluate take profit rule and return exit decision if triggered.
+
+        Args:
+            context: Rule evaluation context.
+
+        Returns:
+            PositionDecision with exit_fraction if profit target reached.
+        """
         current = validate_exit_signal_and_get_price(context, self.field_price)
         if current is None:
             return PositionDecision()
@@ -50,4 +78,3 @@ class TakeProfitRule:
         if pnl_pct >= self.target_pct:
             return PositionDecision(exit_fraction=self.fraction, reason="take_profit")
         return PositionDecision()
-

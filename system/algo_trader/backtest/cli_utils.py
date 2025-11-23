@@ -442,4 +442,3 @@ def format_trade_details(trades):
     output.append(f"\n{'=' * 120}\n")
 
     return "\n".join(output)
-
