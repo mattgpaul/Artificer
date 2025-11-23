@@ -1,88 +1,40 @@
-"""Position manager for filtering trading signals based on position state.
+"""Position manager for strategy signals.
 
-This module provides functionality to manage position state and filter trading
-signals to prevent duplicate entries when a position is already open.
+This module provides the PositionManager class which applies position management
+rules to trading signals, handling entry, exit, and scaling operations.
 """
 
-from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
-
-
-@dataclass
-class PositionManagerConfig:
-    """Configuration for position manager behavior.
-
-    Attributes:
-        allow_scale_in: If True, allows multiple entry signals for the same
-            ticker. If False, filters out entry signals when a position is
-            already open.
-        allow_scale_out: If True, allows partial exits. If False, only full exits allowed.
-        close_full_on_exit: If True, first exit signal closes entire position.
-    """
-
-    allow_scale_in: bool = False
-    allow_scale_out: bool = True
-    close_full_on_exit: bool = True
-
-    @classmethod
-    def from_dict(cls, config_dict: dict[str, Any]) -> "PositionManagerConfig":
-        """Create PositionManagerConfig from a dictionary.
-
-        Args:
-            config_dict: Dictionary containing configuration values.
-                Expected keys:
-                - allow_scale_in: Boolean indicating if scaling in is allowed.
-
-        Returns:
-            PositionManagerConfig instance with values from dictionary.
-        """
-        return cls(
-            allow_scale_in=config_dict.get("allow_scale_in", False),
-            allow_scale_out=config_dict.get("allow_scale_out", True),
-            close_full_on_exit=config_dict.get("close_full_on_exit", True),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert PositionManagerConfig to dictionary.
-
-        Returns:
-            Dictionary representation of the configuration.
-        """
-        return {
-            "allow_scale_in": self.allow_scale_in,
-            "allow_scale_out": self.allow_scale_out,
-            "close_full_on_exit": self.close_full_on_exit,
-        }
+from system.algo_trader.strategy.position_manager.rules.base import (
+    PositionRuleContext,
+    PositionState,
+)
+from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
 
 
 class PositionManager:
-    """Manages position state and filters trading signals.
+    """Manages position sizing and entry/exit decisions based on rules.
 
-    Filters trading signals to prevent duplicate entries when a position is
-    already open. Tracks position state per ticker and only allows entry
-    signals when no position is open, and exit signals when a position exists.
-
-    Args:
-        config: PositionManagerConfig instance controlling behavior.
-        logger: Optional logger instance. If not provided, creates a new logger.
-
-    Attributes:
-        config: PositionManagerConfig instance.
-        logger: Logger instance for this class.
+    The PositionManager applies a pipeline of rules to trading signals,
+    managing position state and generating trade actions (open, close, scale_in, scale_out).
     """
 
-    def __init__(self, config: PositionManagerConfig, logger=None):
-        """Initialize PositionManager.
+    def __init__(
+        self, pipeline: PositionRulePipeline, capital_per_trade: float = 10000.0, logger=None
+    ):
+        """Initialize position manager.
 
         Args:
-            config: PositionManagerConfig instance controlling behavior.
-            logger: Optional logger instance. If not provided, creates a new logger.
+            pipeline: Rule pipeline to evaluate for position decisions.
+            capital_per_trade: Capital allocation per trade in dollars.
+            logger: Optional logger instance.
         """
-        self.config = config
+        self.pipeline = pipeline
+        self.capital_per_trade = capital_per_trade
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def _is_entry_signal(self, side: str, signal_type: str) -> bool:
@@ -113,139 +65,339 @@ class PositionManager:
             side == "SHORT" and signal_type == "buy"
         )
 
-    def _process_entry_signal(
+    def _apply_for_ticker_signals_only(
         self,
-        signal_info: dict[str, Any],
-        pos: dict[str, Any],
-        filtered_indices: list,
-    ) -> None:
-        """Process an entry signal.
+        signals_for_ticker: pd.DataFrame,
+        position: PositionState,
+    ) -> list[dict[str, Any]]:
+        if signals_for_ticker.empty:
+            return []
+
+        out_rows: list[dict[str, Any]] = []
+        has_signal_time_col = "signal_time" in signals_for_ticker.columns
+
+        for idx, signal_row in signals_for_ticker.iterrows():
+            signal_dict = signal_row.to_dict()
+
+            emitted = self._process_strategy_signal(signal_dict, position, {})
+            if emitted is not None:
+                if not has_signal_time_col:
+                    emitted["signal_time"] = idx
+                out_rows.append(emitted)
+
+        return out_rows
+
+    def _apply_for_ticker_with_bars(
+        self,
+        ticker: str,
+        signals_for_ticker: pd.DataFrame,
+        ohlcv: pd.DataFrame,
+        position: PositionState,
+    ) -> list[dict[str, Any]]:
+        sig = (
+            signals_for_ticker.sort_values("signal_time").copy()
+            if not signals_for_ticker.empty
+            else pd.DataFrame()
+        )
+        sig_idx = 0
+        sig_rows = list(sig.to_dict("records")) if not sig.empty else []
+        n_signals = len(sig_rows)
+
+        out: list[dict[str, Any]] = []
+
+        for ts, bar in ohlcv.iterrows():
+            while sig_idx < n_signals:
+                signal_time = sig_rows[sig_idx].get("signal_time")
+                if signal_time is None or signal_time > ts:
+                    break
+
+                signal = sig_rows[sig_idx].copy()
+                sig_idx += 1
+
+                signal.setdefault("ticker", ticker)
+                signal.setdefault("side", "LONG")
+                if "price" not in signal:
+                    signal["price"] = float(bar.get("close", 0.0))
+
+                emitted = self._process_strategy_signal(signal, position, {ticker: ohlcv})
+                if emitted is not None:
+                    out.append(emitted)
+
+            pm_exit = self._maybe_generate_pm_exit(ticker, ts, bar, position, ohlcv)
+            if pm_exit is not None:
+                out.append(pm_exit)
+
+            pm_entry = self._maybe_generate_pm_entry(ticker, ts, bar, position, ohlcv)
+            if pm_entry is not None:
+                out.append(pm_entry)
+
+        return out
+
+    def _handle_entry_signal(
+        self,
+        signal: dict[str, Any],
+        position: PositionState,
+        ctx: PositionRuleContext,
+        side: str,
+    ) -> dict[str, Any] | None:
+        """Handle entry signal processing.
 
         Args:
-            signal_info: Dictionary containing ticker, side, signal_time, and idx.
-            pos: Position state dictionary for this ticker.
-            filtered_indices: List to append index if signal passes.
+            signal: Trading signal dictionary.
+            position: Current position state.
+            ctx: Position rule context.
+            side: Position side ('LONG' or 'SHORT').
+
+        Returns:
+            Modified signal dict if entry is processed, None otherwise.
         """
-        ticker = signal_info["ticker"]
-        side = signal_info["side"]
-        signal_time = signal_info["signal_time"]
-        idx = signal_info["idx"]
+        if not self.pipeline.decide_entry(ctx) or position.size_shares != 0:
+            return None
 
-        if pos["position_size"] == 0:
-            pos["position_size"] = 1.0
-            pos["side"] = side
-            filtered_indices.append(idx)
-        else:
-            self.logger.debug(
-                f"Filtered entry signal for {ticker} at {signal_time}: "
-                f"position already open (side={pos['side']})"
-            )
+        price = signal.get("price") or signal.get("close")
+        if price is None:
+            return None
+        try:
+            price = float(price)
+        except (ValueError, TypeError):
+            return None
 
-    def _process_exit_signal(
+        shares = self.capital_per_trade / price
+        position.size_shares = shares
+        position.size = 1.0
+        position.side = side
+        position.entry_price = price
+        position.avg_entry_price = price
+
+        signal["shares"] = shares
+        signal["action"] = "open"
+        signal["reason"] = "strategy_entry"
+        return signal
+
+    def _handle_exit_signal(
         self,
-        signal_info: dict[str, Any],
-        pos: dict[str, Any],
-        filtered_indices: list,
-    ) -> None:
-        """Process an exit signal.
+        signal: dict[str, Any],
+        position: PositionState,
+        ctx: PositionRuleContext,
+    ) -> dict[str, Any] | None:
+        """Handle exit signal processing.
 
         Args:
-            signal_info: Dictionary containing ticker, signal_time, and idx.
-            pos: Position state dictionary for this ticker.
-            filtered_indices: List to append index if signal passes.
-        """
-        ticker = signal_info["ticker"]
-        signal_time = signal_info["signal_time"]
-        idx = signal_info["idx"]
+            signal: Trading signal dictionary.
+            position: Current position state.
+            ctx: Position rule context.
 
-        if pos["position_size"] > 0:
-            if self.config.close_full_on_exit:
-                pos["position_size"] = 0.0
-                pos["side"] = None
-            elif not self.config.allow_scale_out:
-                pos["position_size"] = 0.0
-                pos["side"] = None
-            filtered_indices.append(idx)
+        Returns:
+            Modified signal dict if exit is processed, None otherwise.
+        """
+        if position.size_shares <= 0:
+            return None
+
+        exit_fraction, _ = self.pipeline.decide_exit(ctx)
+        # If no PM rule wants to exit, treat an explicit strategy exit as a
+        # full close of the remaining position.
+        if exit_fraction <= 0.0:
+            exit_fraction = 1.0
+
+        shares_to_close = position.size_shares * exit_fraction
+        position.size_shares = max(0.0, position.size_shares - shares_to_close)
+        position.size = max(0.0, position.size - exit_fraction)
+
+        if position.size_shares <= 0.0:
+            position.size_shares = 0.0
+            position.size = 0.0
+            position.side = None
+            position.entry_price = None
+            position.avg_entry_price = 0.0
+            signal["action"] = "close"
+            ticker = signal.get("ticker")
+            if ticker is not None:
+                self.pipeline.reset_for_ticker(ticker)
         else:
-            self.logger.debug(
-                f"Filtered exit signal for {ticker} at {signal_time}: no open position"
-            )
+            signal["action"] = "scale_out"
+
+        signal["shares"] = shares_to_close
+        signal["reason"] = "strategy_exit"
+        return signal
+
+    def _process_strategy_signal(
+        self,
+        signal: dict[str, Any],
+        position: PositionState,
+        ohlcv_by_ticker: dict[str, pd.DataFrame],
+    ) -> dict[str, Any] | None:
+        side = signal.get("side", "LONG")
+        signal_type = signal.get("signal_type", "")
+        ctx = PositionRuleContext(signal, position, ohlcv_by_ticker)
+
+        if self._is_entry_signal(side, signal_type):
+            return self._handle_entry_signal(signal, position, ctx, side)
+        if self._is_exit_signal(side, signal_type):
+            return self._handle_exit_signal(signal, position, ctx)
+        return signal
+
+    def _maybe_generate_pm_exit(
+        self,
+        ticker: str,
+        ts: pd.Timestamp,
+        bar: pd.Series,
+        position: PositionState,
+        ohlcv: pd.DataFrame,
+    ) -> dict[str, Any] | None:
+        if position.size_shares <= 0 or position.entry_price is None or position.side is None:
+            return None
+
+        current_price = float(bar.get("close", 0.0))
+        signal_type = "sell" if position.side == "LONG" else "buy"
+
+        synthetic_signal: dict[str, Any] = {
+            "ticker": ticker,
+            "signal_time": ts,
+            "signal_type": signal_type,
+            "side": position.side,
+            "price": current_price,
+            "pm_generated": True,
+        }
+
+        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv})
+
+        exit_fraction, rule_reason = self.pipeline.decide_exit(ctx)
+        if exit_fraction <= 0.0:
+            return None
+
+        shares_to_close = position.size_shares * exit_fraction
+        position.size_shares = max(0.0, position.size_shares - shares_to_close)
+        position.size = max(0.0, position.size - exit_fraction)
+
+        if position.size_shares <= 0.0:
+            position.size_shares = 0.0
+            position.size = 0.0
+            position.side = None
+            position.entry_price = None
+            position.avg_entry_price = 0.0
+            synthetic_signal["action"] = "close"
+            self.pipeline.reset_for_ticker(ticker)
+        else:
+            synthetic_signal["action"] = "scale_out"
+
+        synthetic_signal["shares"] = shares_to_close
+        if rule_reason is not None:
+            synthetic_signal["reason"] = rule_reason
+
+        return synthetic_signal
+
+    def _maybe_generate_pm_entry(
+        self,
+        ticker: str,
+        ts: pd.Timestamp,
+        bar: pd.Series,
+        position: PositionState,
+        ohlcv: pd.DataFrame,
+    ) -> dict[str, Any] | None:
+        if position.size_shares <= 0 or position.side is None or position.entry_price is None:
+            return None
+
+        if not self.pipeline.get_allow_scale_in():
+            return None
+
+        current_price = float(bar.get("close", 0.0))
+        side = position.side
+        signal_type = "buy" if side == "LONG" else "sell"
+
+        synthetic_signal: dict[str, Any] = {
+            "ticker": ticker,
+            "signal_time": ts,
+            "signal_type": signal_type,
+            "side": side,
+            "price": current_price,
+            "pm_generated": True,
+        }
+
+        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv})
+
+        allow_entry = self.pipeline.decide_entry(ctx)
+        if not allow_entry:
+            return None
+
+        shares_to_add = self.capital_per_trade / current_price
+        total_shares = position.size_shares + shares_to_add
+        total_cost = position.size_shares * position.avg_entry_price + shares_to_add * current_price
+        position.avg_entry_price = total_cost / total_shares
+        position.size_shares = total_shares
+        position.size += 1.0
+
+        synthetic_signal["shares"] = shares_to_add
+        synthetic_signal["action"] = "scale_in"
+        synthetic_signal["reason"] = "scale_in_rule"
+
+        return synthetic_signal
 
     def apply(
         self,
         signals: pd.DataFrame,
         ohlcv_by_ticker: dict[str, pd.DataFrame] | None = None,
     ) -> pd.DataFrame:
-        """Apply position management filtering to trading signals.
-
-        Filters signals based on position state to prevent duplicate entries.
-        When allow_scale_in is False, entry signals are filtered out if a
-        position is already open for that ticker.
+        """Apply position management rules to trading signals.
 
         Args:
-            signals: DataFrame containing trading signals. Must have columns:
-                - ticker: Ticker symbol
-                - signal_type: Type of signal ('buy' or 'sell')
-                - side: Optional side ('LONG' or 'SHORT'), defaults to 'LONG'
-                - signal_time: Optional timestamp for sorting signals
-            ohlcv_by_ticker: Optional dictionary mapping ticker to OHLCV data.
-                Currently unused but reserved for future position sizing logic.
+            signals: DataFrame with trading signals (must have 'ticker' and 'signal_type' columns).
+            ohlcv_by_ticker: Optional dictionary mapping ticker to OHLCV DataFrames.
 
         Returns:
-            Filtered DataFrame containing only signals that pass position
-            management rules. Returns empty DataFrame if no signals pass.
+            DataFrame with managed trade actions (open, close, scale_in, scale_out).
         """
-        if signals.empty:
+        if ohlcv_by_ticker is None:
+            ohlcv_by_ticker = {}
+
+        if signals.empty and not ohlcv_by_ticker:
             return signals
 
-        if self.config.allow_scale_in:
-            return signals
-
-        if "ticker" not in signals.columns or "signal_type" not in signals.columns:
+        if not signals.empty and (
+            "ticker" not in signals.columns or "signal_type" not in signals.columns
+        ):
             self.logger.warning(
                 "Signals DataFrame missing required columns (ticker, signal_type). "
                 "Returning signals unchanged."
             )
             return signals
 
-        filtered_indices = []
-        position_state: dict[str, dict[str, Any]] = {}
+        out_rows: list[dict[str, Any]] = []
+        position_state: dict[str, PositionState] = {}
 
-        has_signal_time_col = "signal_time" in signals.columns
-        if has_signal_time_col:
-            signals_sorted = signals.sort_values(["ticker", "signal_time"]).copy()
+        if signals.empty:
+            tickers = list(ohlcv_by_ticker.keys())
         else:
-            signals_sorted = signals.sort_values(["ticker"]).copy()
+            tickers = signals["ticker"].unique().tolist()
 
-        for idx, signal in signals_sorted.iterrows():
-            ticker = signal["ticker"]
-            signal_type = signal["signal_type"]
-            side = signal.get("side", "LONG")
-
+        for ticker in tickers:
             if ticker not in position_state:
-                position_state[ticker] = {
-                    "position_size": 0.0,
-                    "side": None,
-                }
+                position_state[ticker] = PositionState()
 
-            pos = position_state[ticker]
-            signal_time = signal.get("signal_time", idx) if has_signal_time_col else idx
+            ticker_signals = (
+                signals[signals["ticker"] == ticker] if not signals.empty else pd.DataFrame()
+            )
+            ticker_ohlcv = ohlcv_by_ticker.get(ticker)
 
-            signal_info = {
-                "ticker": ticker,
-                "side": side,
-                "signal_time": signal_time,
-                "idx": idx,
-            }
-
-            if self._is_entry_signal(side, signal_type):
-                self._process_entry_signal(signal_info, pos, filtered_indices)
-            elif self._is_exit_signal(side, signal_type):
-                self._process_exit_signal(signal_info, pos, filtered_indices)
+            if ticker_ohlcv is not None and not ticker_ohlcv.empty:
+                managed_rows = self._apply_for_ticker_with_bars(
+                    ticker=ticker,
+                    signals_for_ticker=ticker_signals,
+                    ohlcv=ticker_ohlcv,
+                    position=position_state[ticker],
+                )
+                out_rows.extend(managed_rows)
             else:
-                filtered_indices.append(idx)
+                legacy_rows = self._apply_for_ticker_signals_only(
+                    ticker_signals, position_state[ticker]
+                )
+                out_rows.extend(legacy_rows)
 
-        if not filtered_indices:
+        if not out_rows:
             return pd.DataFrame()
 
-        return signals_sorted.loc[filtered_indices]
+        df = pd.DataFrame(out_rows)
+        if "signal_time" in df.columns:
+            df = df.sort_values(["ticker", "signal_time"])
+        else:
+            df = df.sort_values(["ticker"])
+        return df

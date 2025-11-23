@@ -195,3 +195,19 @@ def walk_forward_backtest_hash_id(walk_forward_backtest_params):
         train_split=walk_forward_backtest_params["train_split"],
         filter_params=walk_forward_backtest_params["filter_params"],
     )
+
+
+@pytest.fixture
+def sample_trade_single():
+    """Sample single trade DataFrame for ResultsWriter tests."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],
+            "gross_pnl": [500.0],
+        }
+    )

@@ -129,7 +129,7 @@ class ResultsGenerator:
         results.signals = signals_to_use
 
         mode = "raw" if self.position_manager is None else "pm_managed"
-        pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+        pm_config = None
 
         journal = TradeJournal(
             signals=signals_to_use,
@@ -200,7 +200,7 @@ class ResultsGenerator:
             ohlcv_data = data_cache.get(ticker)
 
             mode = "raw" if self.position_manager is None else "pm_managed"
-            pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+            pm_config = None
 
             journal = TradeJournal(
                 signals=ticker_signals,
@@ -223,7 +223,7 @@ class ResultsGenerator:
             executed_trades = self.execution_simulator.apply_execution(combined_trades, data_cache)
 
             mode = "raw" if self.position_manager is None else "pm_managed"
-            pm_config = self.position_manager.config.to_dict() if self.position_manager else None
+            pm_config = None
 
             group_journal = TradeJournal(
                 signals=pd.DataFrame(),

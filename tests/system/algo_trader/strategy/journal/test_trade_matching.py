@@ -45,20 +45,9 @@ class TestMatchTradesLongPositions:
     """Test match_trades for LONG positions."""
 
     @pytest.mark.unit
-    def test_match_trades_long_entry_exit(self):
+    def test_match_trades_long_entry_exit(self, sample_signals_long_entry_exit):
         """Test matching LONG entry and exit signals."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell"],
-                "price": [100.0, 105.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
+        signals = sample_signals_long_entry_exit
 
         result = match_trades(
             signals=signals,
@@ -76,22 +65,9 @@ class TestMatchTradesLongPositions:
         assert abs(result.iloc[0]["gross_pnl_pct"] - 5.0) < 0.01
 
     @pytest.mark.unit
-    def test_match_trades_long_multiple_trades(self):
+    def test_match_trades_long_multiple_trades(self, sample_signals_long_multiple_trades):
         """Test matching multiple LONG trades."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL", "AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                    pd.Timestamp("2024-01-15", tz="UTC"),
-                    pd.Timestamp("2024-01-20", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell", "buy", "sell"],
-                "price": [100.0, 105.0, 110.0, 115.0],
-                "side": ["LONG", "LONG", "LONG", "LONG"],
-            }
-        )
+        signals = sample_signals_long_multiple_trades
 
         result = match_trades(
             signals=signals,
@@ -111,20 +87,9 @@ class TestMatchTradesLongPositions:
         assert abs(result.iloc[1]["gross_pnl"] - 478.0641353531384) < 0.01
 
     @pytest.mark.unit
-    def test_match_trades_long_loss(self):
+    def test_match_trades_long_loss(self, sample_signals_long_loss):
         """Test matching LONG trade with loss."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell"],
-                "price": [100.0, 95.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
+        signals = sample_signals_long_loss
 
         result = match_trades(
             signals=signals,
@@ -141,20 +106,9 @@ class TestMatchTradesShortPositions:
     """Test match_trades for SHORT positions."""
 
     @pytest.mark.unit
-    def test_match_trades_short_entry_exit(self):
+    def test_match_trades_short_entry_exit(self, sample_signals_short_entry_exit):
         """Test matching SHORT entry and exit signals."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["sell", "buy"],
-                "price": [100.0, 95.0],
-                "side": ["SHORT", "SHORT"],
-            }
-        )
+        signals = sample_signals_short_entry_exit
 
         result = match_trades(
             signals=signals,
@@ -169,20 +123,9 @@ class TestMatchTradesShortPositions:
         assert result.iloc[0]["gross_pnl_pct"] == 5.0
 
     @pytest.mark.unit
-    def test_match_trades_short_loss(self):
+    def test_match_trades_short_loss(self, sample_signals_short_loss):
         """Test matching SHORT trade with loss."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["sell", "buy"],
-                "price": [100.0, 105.0],
-                "side": ["SHORT", "SHORT"],
-            }
-        )
+        signals = sample_signals_short_loss
 
         result = match_trades(
             signals=signals,
@@ -201,22 +144,9 @@ class TestMatchTradesMultipleTickers:
     """Test match_trades with multiple tickers."""
 
     @pytest.mark.unit
-    def test_match_trades_multiple_tickers(self):
+    def test_match_trades_multiple_tickers(self, sample_signals_multiple_tickers):
         """Test matching trades for multiple tickers."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL", "MSFT", "MSFT"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                    pd.Timestamp("2024-01-11", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell", "buy", "sell"],
-                "price": [100.0, 105.0, 200.0, 210.0],
-                "side": ["LONG", "LONG", "LONG", "LONG"],
-            }
-        )
+        signals = sample_signals_multiple_tickers
 
         result = match_trades(
             signals=signals,
@@ -301,30 +231,12 @@ class TestMatchTradesEfficiency:
     """Test efficiency calculation in match_trades."""
 
     @pytest.mark.unit
-    def test_match_trades_efficiency_calculation(self, mock_efficiency):
+    def test_match_trades_efficiency_calculation(
+        self, mock_efficiency, sample_signals_long_entry_exit, sample_ohlcv_for_efficiency
+    ):
         """Test efficiency calculation with OHLCV data."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell"],
-                "price": [100.0, 105.0],
-                "side": ["LONG", "LONG"],
-            }
-        )
-
-        ohlcv_data = pd.DataFrame(
-            {
-                "open": [100.0, 102.0, 104.0, 103.0, 105.0],
-                "high": [105.0, 106.0, 107.0, 108.0, 110.0],
-                "low": [99.0, 101.0, 103.0, 102.0, 104.0],
-                "close": [102.0, 104.0, 106.0, 105.0, 107.0],
-            },
-            index=pd.date_range("2024-01-05", periods=5, freq="D", tz="UTC"),
-        )
+        signals = sample_signals_long_entry_exit
+        ohlcv_data = sample_ohlcv_for_efficiency
 
         mock_efficiency.return_value = 75.5
 
@@ -375,17 +287,9 @@ class TestMatchTradesUnmatchedPositions:
     """Test handling unmatched positions."""
 
     @pytest.mark.unit
-    def test_match_trades_unmatched_entry(self):
+    def test_match_trades_unmatched_entry(self, sample_signals_long_entry_only):
         """Test unmatched entry signal (no exit)."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "signal_time": [pd.Timestamp("2024-01-05", tz="UTC")],
-                "signal_type": ["buy"],
-                "price": [100.0],
-                "side": ["LONG"],
-            }
-        )
+        signals = sample_signals_long_entry_only
 
         result = match_trades(
             signals=signals,
@@ -397,17 +301,9 @@ class TestMatchTradesUnmatchedPositions:
         assert result.empty
 
     @pytest.mark.unit
-    def test_match_trades_unmatched_exit(self):
+    def test_match_trades_unmatched_exit(self, sample_signals_long_exit_only):
         """Test unmatched exit signal (no entry)."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL"],
-                "signal_time": [pd.Timestamp("2024-01-10", tz="UTC")],
-                "signal_type": ["sell"],
-                "price": [105.0],
-                "side": ["LONG"],
-            }
-        )
+        signals = sample_signals_long_exit_only
 
         result = match_trades(
             signals=signals,
@@ -460,33 +356,62 @@ class TestMatchTradesEdgeCases:
         # Exit is at 95 (the buy signal for SHORT)
         assert result.iloc[1]["exit_price"] == 95.0
 
-    @pytest.mark.integration
-    def test_match_trades_complete_workflow(self):
-        """Test complete trade matching workflow."""
-        signals = pd.DataFrame(
-            {
-                "ticker": ["AAPL", "AAPL", "MSFT", "MSFT"],
-                "signal_time": [
-                    pd.Timestamp("2024-01-05", tz="UTC"),
-                    pd.Timestamp("2024-01-10", tz="UTC"),
-                    pd.Timestamp("2024-01-06", tz="UTC"),
-                    pd.Timestamp("2024-01-11", tz="UTC"),
-                ],
-                "signal_type": ["buy", "sell", "buy", "sell"],
-                "price": [100.0, 105.0, 200.0, 210.0],
-                "side": ["LONG", "LONG", "LONG", "LONG"],
-            }
+
+class TestMatchTradesPmManaged:
+    """Test match_trades in pm_managed mode consuming execution intents."""
+
+    @pytest.mark.unit
+    def test_pm_managed_full_open_and_close(self, sample_pm_executions_open_close):
+        """Match a single open/close pair with explicit shares and actions."""
+        signals = sample_pm_executions_open_close
+
+        result = match_trades(
+            signals=signals,
+            strategy_name="TestStrategy",
+            capital_per_trade=10_000.0,
+            mode="pm_managed",
         )
 
-        ohlcv_data = pd.DataFrame(
-            {
-                "open": [100.0, 102.0, 104.0],
-                "high": [105.0, 106.0, 107.0],
-                "low": [99.0, 101.0, 103.0],
-                "close": [102.0, 104.0, 106.0],
-            },
-            index=pd.date_range("2024-01-05", periods=3, freq="D", tz="UTC"),
+        assert len(result) == 1
+        trade = result.iloc[0]
+        assert trade["ticker"] == "AAPL"
+        assert trade["entry_time"] == signals.iloc[0]["signal_time"]
+        assert trade["exit_time"] == signals.iloc[1]["signal_time"]
+        assert trade["entry_price"] == 100.0
+        assert trade["exit_price"] == 110.0
+        assert trade["shares"] == 100.0
+        assert trade["exit_reason"] == "strategy_exit"
+
+    @pytest.mark.unit
+    def test_pm_managed_partial_tp_and_final_close(self, sample_pm_executions_partial_tp):
+        """Match partial take-profit followed by final close."""
+        signals = sample_pm_executions_partial_tp
+
+        result = match_trades(
+            signals=signals,
+            strategy_name="TestStrategy",
+            capital_per_trade=10_000.0,
+            mode="pm_managed",
         )
+
+        # Two trades: one for TP slice, one for remaining close
+        assert len(result) == 2
+        tp_trade = result.iloc[0]
+        final_trade = result.iloc[1]
+
+        assert tp_trade["shares"] == 50.0
+        assert tp_trade["exit_reason"] == "take_profit"
+
+        assert final_trade["shares"] == 50.0
+        assert final_trade["exit_reason"] == "strategy_exit"
+
+    @pytest.mark.integration
+    def test_match_trades_complete_workflow(
+        self, sample_signals_multiple_tickers, sample_ohlcv_for_efficiency
+    ):
+        """Test complete trade matching workflow."""
+        signals = sample_signals_multiple_tickers
+        ohlcv_data = sample_ohlcv_for_efficiency
 
         result = match_trades(
             signals=signals,
