@@ -5,12 +5,12 @@ rules:
 
   - take_profit:
       field_price: price
-      target_pct: 0.01
+      target_pct: 0.1
       fraction: 0.5
 
   - stop_loss:
       field_price: price
-      loss_pct: 0.2
+      loss_pct: 0.1
       fraction: 1.0
 
 

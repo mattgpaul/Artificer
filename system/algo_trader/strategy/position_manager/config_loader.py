@@ -38,15 +38,24 @@ def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None
         if field_price is None or target_pct is None or fraction is None:
             logger.error("take_profit rule missing required params: field_price, target_pct, fraction")
             return None
+        anchor_cfg = params.get("anchor", {}) or {}
+        anchor_type = anchor_cfg.get("type", "entry_price")
+        anchor_field = anchor_cfg.get("field")
+        lookback_bars = anchor_cfg.get("lookback_bars")
+        one_shot = bool(params.get("one_shot", True))
         try:
             return TakeProfitRule(
                 field_price=field_price,
                 target_pct=float(target_pct),
                 fraction=float(fraction),
+                anchor_type=anchor_type,
+                anchor_field=anchor_field,
+                lookback_bars=int(lookback_bars) if lookback_bars is not None else None,
+                one_shot=one_shot,
                 logger=logger,
             )
         except (ValueError, TypeError) as e:
-            logger.error(f"take_profit rule params must be numeric: {e}")
+            logger.error(f"take_profit rule params must be numeric where required: {e}")
             return None
     elif rule_name == "stop_loss":
         field_price = params.get("field_price")
@@ -55,15 +64,24 @@ def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None
         if field_price is None or loss_pct is None or fraction is None:
             logger.error("stop_loss rule missing required params: field_price, loss_pct, fraction")
             return None
+        anchor_cfg = params.get("anchor", {}) or {}
+        anchor_type = anchor_cfg.get("type", "entry_price")
+        anchor_field = anchor_cfg.get("field")
+        lookback_bars = anchor_cfg.get("lookback_bars")
+        one_shot = bool(params.get("one_shot", True))
         try:
             return StopLossRule(
                 field_price=field_price,
                 loss_pct=float(loss_pct),
                 fraction=float(fraction),
+                anchor_type=anchor_type,
+                anchor_field=anchor_field,
+                lookback_bars=int(lookback_bars) if lookback_bars is not None else None,
+                one_shot=one_shot,
                 logger=logger,
             )
         except (ValueError, TypeError) as e:
-            logger.error(f"stop_loss rule params must be numeric: {e}")
+            logger.error(f"stop_loss rule params must be numeric where required: {e}")
             return None
     else:
         logger.error(f"Unknown rule type: {rule_name}")

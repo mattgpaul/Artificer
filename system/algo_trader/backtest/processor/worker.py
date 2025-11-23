@@ -124,8 +124,20 @@ def write_backtest_results(
         True if trades were successfully enqueued, False otherwise.
     """
     writer = ResultsWriter()
+
+    # For PM-managed runs, journal executions (PositionManager signals) instead of
+    # aggregated trades so that each row reflects the actual shares moved.
+    trades_for_writer = results.trades
+    if (
+        hasattr(results, "signals")
+        and not results.signals.empty
+        and "action" in results.signals.columns
+        and "shares" in results.signals.columns
+    ):
+        trades_for_writer = results.signals
+
     trades_success = writer.write_trades(
-        trades=results.trades,
+        trades=trades_for_writer,
         strategy_name=results.strategy_name,
         ticker=ticker,
         backtest_id=backtest_id,
@@ -248,7 +260,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         if position_manager_config_name is not None:
             pipeline = load_position_manager_config(position_manager_config_name, logger)
             if pipeline is not None:
-                position_manager = PositionManager(pipeline, logger)
+                position_manager = PositionManager(pipeline, capital_per_trade_local, logger)
 
         engine = BacktestEngine(
             strategy=strategy_instance,
