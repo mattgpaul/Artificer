@@ -1,7 +1,7 @@
 """Unit tests for position_manager config_loader.
 
-Tests cover config file loading, path resolution, YAML parsing, and error handling.
-All external dependencies are mocked via conftest.py.
+Tests cover config file loading, path resolution, YAML parsing, rule construction,
+and error handling. All external dependencies are mocked via conftest.py.
 """
 
 import tempfile
@@ -15,9 +15,8 @@ from system.algo_trader.strategy.position_manager.config_loader import (
     _resolve_config_path,
     load_position_manager_config,
 )
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManagerConfig,
-)
+from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
+from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
 
 
 class TestResolveConfigPath:
@@ -45,16 +44,6 @@ class TestResolveConfigPath:
     def test_resolve_config_path_name_only(self):
         """Test resolving config name to strategies directory."""
         result = _resolve_config_path("default")
-        # Path should resolve relative to config_loader.py location
-        expected_base = (
-            Path(__file__).resolve().parent.parent.parent.parent.parent
-            / "system"
-            / "algo_trader"
-            / "strategy"
-            / "position_manager"
-            / "strategies"
-            / "default.yaml"
-        )
         assert result.name == "default.yaml"
         assert "strategies" in str(result)
         assert result.exists() or not result.exists()  # Just check it's a valid path
@@ -77,69 +66,72 @@ class TestLoadPositionManagerConfig:
 
     @pytest.mark.unit
     def test_load_config_invalid_yaml_structure(self):
-        """Test loading config with invalid YAML structure returns config with defaults."""
+        """Test loading config with invalid YAML structure returns None."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("not a dict: invalid")
             temp_path = f.name
 
         try:
             result = load_position_manager_config(temp_path)
-            # Code handles non-dict by using defaults
-            assert isinstance(result, PositionManagerConfig)
-            assert result.allow_scale_in is False  # Default
+            assert result is None
         finally:
             Path(temp_path).unlink()
 
     @pytest.mark.unit
-    def test_load_config_simple_dict(self):
-        """Test loading config with simple dictionary structure."""
+    def test_load_config_simple_scaling_rule(self):
+        """Test loading config with simple scaling rule."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            yaml.dump({"allow_scale_in": True}, f)
+            yaml.dump(
+                {"rules": [{"scaling": {"allow_scale_in": True, "allow_scale_out": False}}]},
+                f,
+            )
             temp_path = f.name
 
         try:
             result = load_position_manager_config(temp_path)
-            assert isinstance(result, PositionManagerConfig)
-            assert result.allow_scale_in is True
+            assert isinstance(result, PositionRulePipeline)
+            assert len(result.rules) == 1
+            rule = result.rules[0]
+            assert isinstance(rule, ScalingRule)
+            assert rule.allow_scale_in is True
+            assert rule.allow_scale_out is False
         finally:
             Path(temp_path).unlink()
 
     @pytest.mark.unit
-    def test_load_config_nested_position_manager_key(self):
-        """Test loading config with nested position_manager key."""
+    def test_load_config_missing_rules_key(self):
+        """Test loading config without 'rules' key returns None."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump({"position_manager": {"allow_scale_in": False}}, f)
             temp_path = f.name
 
         try:
             result = load_position_manager_config(temp_path)
-            assert isinstance(result, PositionManagerConfig)
-            assert result.allow_scale_in is False
+            assert result is None
         finally:
             Path(temp_path).unlink()
 
     @pytest.mark.unit
     def test_load_config_empty_file(self):
-        """Test loading empty config file uses defaults."""
+        """Test loading empty config file returns None."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("")
             temp_path = f.name
 
         try:
             result = load_position_manager_config(temp_path)
-            assert isinstance(result, PositionManagerConfig)
-            assert result.allow_scale_in is False  # Default value
+            assert result is None
         finally:
             Path(temp_path).unlink()
 
     @pytest.mark.unit
-    def test_load_config_from_strategies_directory(self):
+    def test_load_config_from_strategies_directory_default(self):
         """Test loading config from strategies directory by name."""
-        # This test assumes default.yaml exists in strategies directory
+        # This test assumes default.yaml exists in strategies directory. If it
+        # does not, result will be None and the test still passes.
         result = load_position_manager_config("default")
         if result is not None:
-            assert isinstance(result, PositionManagerConfig)
-        # If file doesn't exist, result will be None - both are valid outcomes
+            assert isinstance(result, PositionRulePipeline)
 
     @pytest.mark.unit
     def test_load_config_yaml_parse_error(self):

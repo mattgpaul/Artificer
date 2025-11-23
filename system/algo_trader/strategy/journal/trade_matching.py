@@ -181,6 +181,7 @@ def _create_trade_record(
         time_held: Time held in hours.
         efficiency: Trade efficiency.
         strategy_name: Strategy name.
+        reason: Reason for trade exit, if any.
 
     Returns:
         Trade record dictionary.
@@ -394,6 +395,147 @@ def _process_exit_signal(
         ticker_accounts[ticker] += gross_pnl
 
 
+def _match_trades_pm_managed(
+    signals: pd.DataFrame,
+    position_state: dict,
+    trade_id_counters: dict,
+    matched_trades: list,
+    ticker_accounts: dict,
+    use_account_tracking: bool,
+    trade_percentage: float | None,
+    capital_per_trade: float,
+    ohlcv_data: pd.DataFrame | None,
+    strategy_name: str,
+    logger,
+    close_full_on_exit: bool,
+) -> None:
+    """Process signals in pm_managed mode with action-based matching.
+
+    Args:
+        signals: Sorted DataFrame of trading signals.
+        position_state: Dictionary mapping tickers to position state.
+        trade_id_counters: Dictionary mapping tickers to trade ID counters.
+        matched_trades: List to append matched trade records to.
+        ticker_accounts: Dictionary mapping tickers to account values.
+        use_account_tracking: Whether to use account tracking.
+        trade_percentage: Percentage of account to use per trade.
+        capital_per_trade: Capital allocated per trade.
+        ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
+        strategy_name: Name of the strategy generating signals.
+        logger: Logger instance.
+        close_full_on_exit: Whether to close full position on exit.
+    """
+    for _, signal in signals.iterrows():
+        ticker = signal["ticker"]
+        _initialize_position_state(ticker, position_state, trade_id_counters)
+
+        action = signal.get("action")
+        if action not in {"open", "scale_in", "scale_out", "close"}:
+            continue
+
+        if "shares" not in signal or pd.isna(signal["shares"]):
+            logger.warning(
+                "pm_managed mode requires explicit 'shares' on signals; "
+                f"skipping signal for {ticker} at {signal.get('signal_time')}"
+            )
+            continue
+
+        if action in {"open", "scale_in"}:
+            _process_entry_signal(
+                signal,
+                position_state,
+                trade_id_counters,
+                ticker_accounts,
+                use_account_tracking,
+                trade_percentage,
+                capital_per_trade,
+            )
+        elif action in {"scale_out", "close"}:
+            _process_exit_signal(
+                signal,
+                position_state,
+                matched_trades,
+                ticker_accounts,
+                use_account_tracking,
+                trade_percentage,
+                capital_per_trade,
+                ohlcv_data,
+                strategy_name,
+                logger,
+                close_full_on_exit,
+            )
+
+
+def _match_trades_default(
+    signals: pd.DataFrame,
+    position_state: dict,
+    trade_id_counters: dict,
+    matched_trades: list,
+    ticker_accounts: dict,
+    use_account_tracking: bool,
+    trade_percentage: float | None,
+    capital_per_trade: float,
+    ohlcv_data: pd.DataFrame | None,
+    strategy_name: str,
+    logger,
+    close_full_on_exit: bool,
+) -> None:
+    """Process signals in default mode with signal_type-based matching.
+
+    Args:
+        signals: Sorted DataFrame of trading signals.
+        position_state: Dictionary mapping tickers to position state.
+        trade_id_counters: Dictionary mapping tickers to trade ID counters.
+        matched_trades: List to append matched trade records to.
+        ticker_accounts: Dictionary mapping tickers to account values.
+        use_account_tracking: Whether to use account tracking.
+        trade_percentage: Percentage of account to use per trade.
+        capital_per_trade: Capital allocated per trade.
+        ohlcv_data: Optional OHLCV DataFrame for efficiency calculation.
+        strategy_name: Name of the strategy generating signals.
+        logger: Logger instance.
+        close_full_on_exit: Whether to close full position on exit.
+    """
+    for _, signal in signals.iterrows():
+        ticker = signal["ticker"]
+        _initialize_position_state(ticker, position_state, trade_id_counters)
+
+        signal_type = signal["signal_type"]
+        side = signal.get("side", "LONG")
+
+        is_entry = (side == "LONG" and signal_type == "buy") or (
+            side == "SHORT" and signal_type == "sell"
+        )
+        is_exit = (side == "LONG" and signal_type == "sell") or (
+            side == "SHORT" and signal_type == "buy"
+        )
+
+        if is_entry:
+            _process_entry_signal(
+                signal,
+                position_state,
+                trade_id_counters,
+                ticker_accounts,
+                use_account_tracking,
+                trade_percentage,
+                capital_per_trade,
+            )
+        elif is_exit:
+            _process_exit_signal(
+                signal,
+                position_state,
+                matched_trades,
+                ticker_accounts,
+                use_account_tracking,
+                trade_percentage,
+                capital_per_trade,
+                ohlcv_data,
+                strategy_name,
+                logger,
+                close_full_on_exit,
+            )
+
+
 def match_trades(
     signals: pd.DataFrame,
     strategy_name: str,
@@ -453,82 +595,36 @@ def match_trades(
 
     use_pm_actions = mode == "pm_managed" and "action" in signals.columns
 
-    for _, signal in signals.iterrows():
-        ticker = signal["ticker"]
-        _initialize_position_state(ticker, position_state, trade_id_counters)
-
-        if use_pm_actions:
-            action = signal.get("action")
-            if action not in {"open", "scale_in", "scale_out", "close"}:
-                continue
-
-            if "shares" not in signal or pd.isna(signal["shares"]):
-                logger.warning(
-                    "pm_managed mode requires explicit 'shares' on signals; "
-                    f"skipping signal for {ticker} at {signal.get('signal_time')}"
-                )
-                continue
-
-            if action in {"open", "scale_in"}:
-                _process_entry_signal(
-                    signal,
-                    position_state,
-                    trade_id_counters,
-                    ticker_accounts,
-                    use_account_tracking,
-                    trade_percentage,
-                    capital_per_trade,
-                )
-            elif action in {"scale_out", "close"}:
-                _process_exit_signal(
-                    signal,
-                    position_state,
-                    matched_trades,
-                    ticker_accounts,
-                    use_account_tracking,
-                    trade_percentage,
-                    capital_per_trade,
-                    ohlcv_data,
-                    strategy_name,
-                    logger,
-                    close_full_on_exit,
-                )
-            continue
-
-        signal_type = signal["signal_type"]
-        side = signal.get("side", "LONG")
-
-        is_entry = (side == "LONG" and signal_type == "buy") or (
-            side == "SHORT" and signal_type == "sell"
+    if use_pm_actions:
+        _match_trades_pm_managed(
+            signals,
+            position_state,
+            trade_id_counters,
+            matched_trades,
+            ticker_accounts,
+            use_account_tracking,
+            trade_percentage,
+            capital_per_trade,
+            ohlcv_data,
+            strategy_name,
+            logger,
+            close_full_on_exit,
         )
-        is_exit = (side == "LONG" and signal_type == "sell") or (
-            side == "SHORT" and signal_type == "buy"
+    else:
+        _match_trades_default(
+            signals,
+            position_state,
+            trade_id_counters,
+            matched_trades,
+            ticker_accounts,
+            use_account_tracking,
+            trade_percentage,
+            capital_per_trade,
+            ohlcv_data,
+            strategy_name,
+            logger,
+            close_full_on_exit,
         )
-
-        if is_entry:
-            _process_entry_signal(
-                signal,
-                position_state,
-                trade_id_counters,
-                ticker_accounts,
-                use_account_tracking,
-                trade_percentage,
-                capital_per_trade,
-            )
-        elif is_exit:
-            _process_exit_signal(
-                signal,
-                position_state,
-                matched_trades,
-                ticker_accounts,
-                use_account_tracking,
-                trade_percentage,
-                capital_per_trade,
-                ohlcv_data,
-                strategy_name,
-                logger,
-                close_full_on_exit,
-            )
 
     total_unmatched = sum(1 for pos in position_state.values() if pos["position_size"] > 0)
     if total_unmatched > 0:

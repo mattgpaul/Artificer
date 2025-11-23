@@ -1,3 +1,9 @@
+"""Position manager for strategy signals.
+
+This module provides the PositionManager class which applies position management
+rules to trading signals, handling entry, exit, and scaling operations.
+"""
+
 from typing import Any
 
 import pandas as pd
@@ -11,7 +17,22 @@ from system.algo_trader.strategy.position_manager.rules.pipeline import Position
 
 
 class PositionManager:
-    def __init__(self, pipeline: PositionRulePipeline, capital_per_trade: float = 10000.0, logger=None):
+    """Manages position sizing and entry/exit decisions based on rules.
+
+    The PositionManager applies a pipeline of rules to trading signals,
+    managing position state and generating trade actions (open, close, scale_in, scale_out).
+    """
+
+    def __init__(
+        self, pipeline: PositionRulePipeline, capital_per_trade: float = 10000.0, logger=None
+    ):
+        """Initialize position manager.
+
+        Args:
+            pipeline: Rule pipeline to evaluate for position decisions.
+            capital_per_trade: Capital allocation per trade in dollars.
+            logger: Optional logger instance.
+        """
         self.pipeline = pipeline
         self.capital_per_trade = capital_per_trade
         self.logger = logger or get_logger(self.__class__.__name__)
@@ -57,8 +78,6 @@ class PositionManager:
 
         for idx, signal_row in signals_for_ticker.iterrows():
             signal_dict = signal_row.to_dict()
-            side = signal_dict.get("side", "LONG")
-            signal_type = signal_dict.get("signal_type", "")
 
             emitted = self._process_strategy_signal(signal_dict, position, {})
             if emitted is not None:
@@ -75,7 +94,11 @@ class PositionManager:
         ohlcv: pd.DataFrame,
         position: PositionState,
     ) -> list[dict[str, Any]]:
-        sig = signals_for_ticker.sort_values("signal_time").copy() if not signals_for_ticker.empty else pd.DataFrame()
+        sig = (
+            signals_for_ticker.sort_values("signal_time").copy()
+            if not signals_for_ticker.empty
+            else pd.DataFrame()
+        )
         sig_idx = 0
         sig_rows = list(sig.to_dict("records")) if not sig.empty else []
         n_signals = len(sig_rows)
@@ -96,9 +119,7 @@ class PositionManager:
                 if "price" not in signal:
                     signal["price"] = float(bar.get("close", 0.0))
 
-                emitted = self._process_strategy_signal(
-                    signal, position, {ticker: ohlcv}
-                )
+                emitted = self._process_strategy_signal(signal, position, {ticker: ohlcv})
                 if emitted is not None:
                     out.append(emitted)
 
@@ -112,6 +133,93 @@ class PositionManager:
 
         return out
 
+    def _handle_entry_signal(
+        self,
+        signal: dict[str, Any],
+        position: PositionState,
+        ctx: PositionRuleContext,
+        side: str,
+    ) -> dict[str, Any] | None:
+        """Handle entry signal processing.
+
+        Args:
+            signal: Trading signal dictionary.
+            position: Current position state.
+            ctx: Position rule context.
+            side: Position side ('LONG' or 'SHORT').
+
+        Returns:
+            Modified signal dict if entry is processed, None otherwise.
+        """
+        if not self.pipeline.decide_entry(ctx) or position.size_shares != 0:
+            return None
+
+        price = signal.get("price") or signal.get("close")
+        if price is None:
+            return None
+        try:
+            price = float(price)
+        except (ValueError, TypeError):
+            return None
+
+        shares = self.capital_per_trade / price
+        position.size_shares = shares
+        position.size = 1.0
+        position.side = side
+        position.entry_price = price
+        position.avg_entry_price = price
+
+        signal["shares"] = shares
+        signal["action"] = "open"
+        signal["reason"] = "strategy_entry"
+        return signal
+
+    def _handle_exit_signal(
+        self,
+        signal: dict[str, Any],
+        position: PositionState,
+        ctx: PositionRuleContext,
+    ) -> dict[str, Any] | None:
+        """Handle exit signal processing.
+
+        Args:
+            signal: Trading signal dictionary.
+            position: Current position state.
+            ctx: Position rule context.
+
+        Returns:
+            Modified signal dict if exit is processed, None otherwise.
+        """
+        if position.size_shares <= 0:
+            return None
+
+        exit_fraction, _ = self.pipeline.decide_exit(ctx)
+        # If no PM rule wants to exit, treat an explicit strategy exit as a
+        # full close of the remaining position.
+        if exit_fraction <= 0.0:
+            exit_fraction = 1.0
+
+        shares_to_close = position.size_shares * exit_fraction
+        position.size_shares = max(0.0, position.size_shares - shares_to_close)
+        position.size = max(0.0, position.size - exit_fraction)
+
+        if position.size_shares <= 0.0:
+            position.size_shares = 0.0
+            position.size = 0.0
+            position.side = None
+            position.entry_price = None
+            position.avg_entry_price = 0.0
+            signal["action"] = "close"
+            ticker = signal.get("ticker")
+            if ticker is not None:
+                self.pipeline.reset_for_ticker(ticker)
+        else:
+            signal["action"] = "scale_out"
+
+        signal["shares"] = shares_to_close
+        signal["reason"] = "strategy_exit"
+        return signal
+
     def _process_strategy_signal(
         self,
         signal: dict[str, Any],
@@ -123,59 +231,9 @@ class PositionManager:
         ctx = PositionRuleContext(signal, position, ohlcv_by_ticker)
 
         if self._is_entry_signal(side, signal_type):
-            if self.pipeline.decide_entry(ctx) and position.size_shares == 0:
-                price = signal.get("price") or signal.get("close")
-                if price is None:
-                    return None
-                try:
-                    price = float(price)
-                except (ValueError, TypeError):
-                    return None
-
-                shares = self.capital_per_trade / price
-                position.size_shares = shares
-                position.size = 1.0
-                position.side = side
-                position.entry_price = price
-                position.avg_entry_price = price
-
-                signal["shares"] = shares
-                signal["action"] = "open"
-                signal["reason"] = "strategy_entry"
-                return signal
-            return None
-
+            return self._handle_entry_signal(signal, position, ctx, side)
         if self._is_exit_signal(side, signal_type):
-            if position.size_shares <= 0:
-                return None
-
-            exit_fraction, _ = self.pipeline.decide_exit(ctx)
-            # If no PM rule wants to exit, treat an explicit strategy exit as a
-            # full close of the remaining position.
-            if exit_fraction <= 0.0:
-                exit_fraction = 1.0
-
-            shares_to_close = position.size_shares * exit_fraction
-            position.size_shares = max(0.0, position.size_shares - shares_to_close)
-            position.size = max(0.0, position.size - exit_fraction)
-
-            if position.size_shares <= 0.0:
-                position.size_shares = 0.0
-                position.size = 0.0
-                position.side = None
-                position.entry_price = None
-                position.avg_entry_price = 0.0
-                signal["action"] = "close"
-                ticker = signal.get("ticker")
-                if ticker is not None:
-                    self.pipeline.reset_for_ticker(ticker)
-            else:
-                signal["action"] = "scale_out"
-
-            signal["shares"] = shares_to_close
-            signal["reason"] = "strategy_exit"
-            return signal
-
+            return self._handle_exit_signal(signal, position, ctx)
         return signal
 
     def _maybe_generate_pm_exit(
@@ -274,19 +332,29 @@ class PositionManager:
 
         return synthetic_signal
 
-
     def apply(
         self,
         signals: pd.DataFrame,
         ohlcv_by_ticker: dict[str, pd.DataFrame] | None = None,
     ) -> pd.DataFrame:
+        """Apply position management rules to trading signals.
+
+        Args:
+            signals: DataFrame with trading signals (must have 'ticker' and 'signal_type' columns).
+            ohlcv_by_ticker: Optional dictionary mapping ticker to OHLCV DataFrames.
+
+        Returns:
+            DataFrame with managed trade actions (open, close, scale_in, scale_out).
+        """
         if ohlcv_by_ticker is None:
             ohlcv_by_ticker = {}
 
         if signals.empty and not ohlcv_by_ticker:
             return signals
 
-        if not signals.empty and ("ticker" not in signals.columns or "signal_type" not in signals.columns):
+        if not signals.empty and (
+            "ticker" not in signals.columns or "signal_type" not in signals.columns
+        ):
             self.logger.warning(
                 "Signals DataFrame missing required columns (ticker, signal_type). "
                 "Returning signals unchanged."
@@ -305,7 +373,9 @@ class PositionManager:
             if ticker not in position_state:
                 position_state[ticker] = PositionState()
 
-            ticker_signals = signals[signals["ticker"] == ticker] if not signals.empty else pd.DataFrame()
+            ticker_signals = (
+                signals[signals["ticker"] == ticker] if not signals.empty else pd.DataFrame()
+            )
             ticker_ohlcv = ohlcv_by_ticker.get(ticker)
 
             if ticker_ohlcv is not None and not ticker_ohlcv.empty:
@@ -317,7 +387,9 @@ class PositionManager:
                 )
                 out_rows.extend(managed_rows)
             else:
-                legacy_rows = self._apply_for_ticker_signals_only(ticker_signals, position_state[ticker])
+                legacy_rows = self._apply_for_ticker_signals_only(
+                    ticker_signals, position_state[ticker]
+                )
                 out_rows.extend(legacy_rows)
 
         if not out_rows:

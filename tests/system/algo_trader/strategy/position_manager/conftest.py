@@ -10,9 +10,10 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManagerConfig,
-)
+from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
+from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
+from system.algo_trader.strategy.position_manager.rules.stop_loss import StopLossRule
+from system.algo_trader.strategy.position_manager.rules.take_profit import TakeProfitRule
 
 
 @pytest.fixture(autouse=True)
@@ -25,15 +26,14 @@ def mock_logger():
 
 
 @pytest.fixture
-def default_config():
-    """Create default PositionManagerConfig."""
-    return PositionManagerConfig(allow_scale_in=False)
-
-
-@pytest.fixture
-def scale_in_config():
-    """Create PositionManagerConfig with scale_in enabled."""
-    return PositionManagerConfig(allow_scale_in=True)
+def simple_tp_sl_pipeline():
+    """Create a simple PositionRulePipeline with TP and SL rules."""
+    scaling = ScalingRule(allow_scale_in=False, allow_scale_out=True)
+    take_profit = TakeProfitRule(
+        field_price="price", target_pct=0.01, fraction=0.5, anchor_config=None
+    )
+    stop_loss = StopLossRule(field_price="price", loss_pct=0.2, fraction=1.0, anchor_config=None)
+    return PositionRulePipeline([scaling, take_profit, stop_loss])
 
 
 @pytest.fixture
@@ -140,3 +140,50 @@ def sample_ohlcv_by_ticker():
             index=dates,
         ),
     }
+
+
+@pytest.fixture
+def sample_ohlcv_3_bars():
+    """Sample OHLCV data for 3 bars (for TP/SL testing)."""
+    dates = pd.date_range("2024-01-01", periods=3, freq="1D", tz=timezone.utc)
+    return pd.DataFrame(
+        {
+            "open": [100.0, 101.0, 102.0],
+            "high": [101.0, 102.0, 103.0],
+            "low": [99.0, 100.0, 101.0],
+            "close": [100.0, 101.1, 102.0],
+            "volume": [1_000_000] * 3,
+        },
+        index=dates,
+    )
+
+
+@pytest.fixture
+def sample_ohlcv_4_bars():
+    """Sample OHLCV data for 4 bars (for TP/SL testing with price progression)."""
+    dates = pd.date_range("2024-01-01", periods=4, freq="1D", tz=timezone.utc)
+    return pd.DataFrame(
+        {
+            "open": [100.0, 101.0, 102.0, 103.0],
+            "high": [101.0, 102.0, 103.0, 104.0],
+            "low": [99.0, 100.0, 101.0, 102.0],
+            "close": [100.0, 101.1, 102.0, 103.0],
+            "volume": [1_000_000] * 4,
+        },
+        index=dates,
+    )
+
+
+@pytest.fixture
+def sample_signals_entry_only():
+    """Sample signals DataFrame with entry only (for PM-generated exit testing)."""
+    dates = pd.date_range("2024-01-01", periods=1, freq="1D", tz=timezone.utc)
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "signal_time": dates,
+            "signal_type": ["buy"],
+            "price": [100.0],
+            "side": ["LONG"],
+        }
+    )

@@ -19,9 +19,6 @@ from system.algo_trader.strategy.filters.config_loader import (
     load_filter_config_dicts,
     load_filter_configs,
 )
-from system.algo_trader.strategy.position_manager.config_loader import (
-    load_position_manager_config,
-)
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategy import Side
 
