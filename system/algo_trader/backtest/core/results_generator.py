@@ -131,6 +131,8 @@ class ResultsGenerator:
         mode = "raw" if self.position_manager is None else "pm_managed"
         pm_config = None
 
+        print("DEBUG SIGNALS\n", signals_to_use.to_string())
+
         journal = TradeJournal(
             signals=signals_to_use,
             strategy_name=self.strategy.strategy_name,

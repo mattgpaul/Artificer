@@ -34,7 +34,95 @@ def _determine_action(side: str, is_entry: bool) -> str:
         return "sell_to_open" if is_entry else "buy_to_close"
 
 
-def _transform_trades_to_journal_rows(trades: pd.DataFrame) -> pd.DataFrame:
+def _transform_trades_to_journal_rows(
+    trades: pd.DataFrame,
+    executions: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Transform trades or execution intents into journal rows.
+
+    For PM-managed runs, we prefer using execution intents (signals with
+    action/shares) so each row represents the exact number of shares moved
+    in that execution. For legacy/raw runs, we fall back to trade-based
+    journal rows.
+    """
+    # Prefer execution-based journaling when we have PM-managed signals
+    if executions is not None and not executions.empty:
+        # Detect whether executions look like PM-managed signals
+        if "action" in executions.columns and "shares" in executions.columns:
+            exec_df = executions.copy()
+            exec_df = exec_df.sort_values(["ticker", "signal_time"])
+
+            journal_rows: list[dict[str, Any]] = []
+            # Simple per-ticker trade_id assignment driven by position state
+            trade_ids: dict[str, int] = {}
+            position_sizes: dict[str, float] = {}
+
+            for _, row in exec_df.iterrows():
+                ticker = row.get("ticker", "")
+                if not ticker:
+                    continue
+
+                side = row.get("side", "LONG")
+                action = row.get("action")
+                shares = row.get("shares")
+                price = row.get("price")
+                ts = row.get("signal_time")
+                reason = row.get("reason")
+
+                if pd.isna(shares) or shares is None or pd.isna(price) or price is None:
+                    continue
+
+                try:
+                    shares_f = float(shares)
+                    price_f = float(price)
+                except (TypeError, ValueError):
+                    continue
+
+                if ticker not in trade_ids:
+                    trade_ids[ticker] = 0
+                    position_sizes[ticker] = 0.0
+
+                current_size = position_sizes[ticker]
+
+                # Assign trade_id based on opening a new position
+                if action in {"open", "scale_in"} and current_size <= 0.0:
+                    trade_ids[ticker] += 1
+
+                trade_id = trade_ids[ticker]
+
+                # Update position size
+                if action in {"open", "scale_in"}:
+                    position_sizes[ticker] = current_size + shares_f
+                    journal_action = _determine_action(side, True)
+                elif action in {"scale_out", "close"}:
+                    position_sizes[ticker] = max(0.0, current_size - shares_f)
+                    journal_action = _determine_action(side, False)
+                else:
+                    # Unknown action type - skip
+                    continue
+
+                commission = 0.0
+
+                journal_row: dict[str, Any] = {
+                    "datetime": ts,
+                    "ticker": ticker,
+                    "strategy": row.get("strategy", ""),
+                    "side": side,
+                    "price": price_f,
+                    "shares": shares_f,
+                    "commission": commission,
+                    "action": journal_action,
+                }
+                if trade_id:
+                    journal_row["trade_id"] = float(trade_id)
+                if reason is not None:
+                    journal_row["exit_reason"] = reason
+
+                journal_rows.append(journal_row)
+
+            return pd.DataFrame(journal_rows)
+
+    # Legacy behaviour: trade-based journal rows
     if trades.empty:
         return pd.DataFrame()
 
@@ -163,7 +251,12 @@ class ResultsWriter:
             self.logger.debug(f"No trades to enqueue for {ticker}")
             return True
 
-        journal_rows = _transform_trades_to_journal_rows(trades)
+        # Prefer using PM-managed execution intents when present on the trades
+        executions = None
+        if "action" in trades.columns and "shares" in trades.columns:
+            executions = trades
+
+        journal_rows = _transform_trades_to_journal_rows(trades, executions=executions)
         trades_dict = dataframe_to_dict(journal_rows)
 
         row_count = len(journal_rows)

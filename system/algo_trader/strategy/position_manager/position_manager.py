@@ -11,8 +11,9 @@ from system.algo_trader.strategy.position_manager.rules.pipeline import Position
 
 
 class PositionManager:
-    def __init__(self, pipeline: PositionRulePipeline, logger=None):
+    def __init__(self, pipeline: PositionRulePipeline, capital_per_trade: float = 10000.0, logger=None):
         self.pipeline = pipeline
+        self.capital_per_trade = capital_per_trade
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def _is_entry_signal(self, side: str, signal_type: str) -> bool:
@@ -101,11 +102,11 @@ class PositionManager:
                 if emitted is not None:
                     out.append(emitted)
 
-            pm_exit = self._maybe_generate_pm_exit(ticker, ts, bar, position)
+            pm_exit = self._maybe_generate_pm_exit(ticker, ts, bar, position, ohlcv)
             if pm_exit is not None:
                 out.append(pm_exit)
 
-            pm_entry = self._maybe_generate_pm_entry(ticker, ts, bar, position)
+            pm_entry = self._maybe_generate_pm_entry(ticker, ts, bar, position, ohlcv)
             if pm_entry is not None:
                 out.append(pm_entry)
 
@@ -122,35 +123,57 @@ class PositionManager:
         ctx = PositionRuleContext(signal, position, ohlcv_by_ticker)
 
         if self._is_entry_signal(side, signal_type):
-            if self.pipeline.decide_entry(ctx) and position.size == 0:
+            if self.pipeline.decide_entry(ctx) and position.size_shares == 0:
+                price = signal.get("price") or signal.get("close")
+                if price is None:
+                    return None
+                try:
+                    price = float(price)
+                except (ValueError, TypeError):
+                    return None
+
+                shares = self.capital_per_trade / price
+                position.size_shares = shares
                 position.size = 1.0
                 position.side = side
-                price = signal.get("price") or signal.get("close")
-                if price is not None:
-                    try:
-                        position.entry_price = float(price)
-                    except (ValueError, TypeError):
-                        pass
+                position.entry_price = price
+                position.avg_entry_price = price
+
+                signal["shares"] = shares
+                signal["action"] = "open"
+                signal["reason"] = "strategy_entry"
                 return signal
             return None
 
         if self._is_exit_signal(side, signal_type):
-            if position.size <= 0:
+            if position.size_shares <= 0:
                 return None
 
-            exit_fraction = self.pipeline.decide_exit(ctx)
+            exit_fraction, _ = self.pipeline.decide_exit(ctx)
+            # If no PM rule wants to exit, treat an explicit strategy exit as a
+            # full close of the remaining position.
             if exit_fraction <= 0.0:
-                return None
+                exit_fraction = 1.0
 
+            shares_to_close = position.size_shares * exit_fraction
+            position.size_shares = max(0.0, position.size_shares - shares_to_close)
             position.size = max(0.0, position.size - exit_fraction)
-            if position.size <= 0.0:
+
+            if position.size_shares <= 0.0:
+                position.size_shares = 0.0
                 position.size = 0.0
                 position.side = None
                 position.entry_price = None
+                position.avg_entry_price = 0.0
+                signal["action"] = "close"
+                ticker = signal.get("ticker")
+                if ticker is not None:
+                    self.pipeline.reset_for_ticker(ticker)
+            else:
+                signal["action"] = "scale_out"
 
-            if exit_fraction < 1.0:
-                signal["fraction"] = exit_fraction
-
+            signal["shares"] = shares_to_close
+            signal["reason"] = "strategy_exit"
             return signal
 
         return signal
@@ -161,8 +184,9 @@ class PositionManager:
         ts: pd.Timestamp,
         bar: pd.Series,
         position: PositionState,
+        ohlcv: pd.DataFrame,
     ) -> dict[str, Any] | None:
-        if position.size <= 0 or position.entry_price is None or position.side is None:
+        if position.size_shares <= 0 or position.entry_price is None or position.side is None:
             return None
 
         current_price = float(bar.get("close", 0.0))
@@ -177,22 +201,30 @@ class PositionManager:
             "pm_generated": True,
         }
 
-        ohlcv_slice = pd.DataFrame([bar])
-        ohlcv_slice.index = [ts]
-        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv_slice})
+        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv})
 
-        exit_fraction = self.pipeline.decide_exit(ctx)
+        exit_fraction, rule_reason = self.pipeline.decide_exit(ctx)
         if exit_fraction <= 0.0:
             return None
 
+        shares_to_close = position.size_shares * exit_fraction
+        position.size_shares = max(0.0, position.size_shares - shares_to_close)
         position.size = max(0.0, position.size - exit_fraction)
-        if position.size <= 0.0:
+
+        if position.size_shares <= 0.0:
+            position.size_shares = 0.0
             position.size = 0.0
             position.side = None
             position.entry_price = None
+            position.avg_entry_price = 0.0
+            synthetic_signal["action"] = "close"
+            self.pipeline.reset_for_ticker(ticker)
+        else:
+            synthetic_signal["action"] = "scale_out"
 
-        if exit_fraction < 1.0:
-            synthetic_signal["fraction"] = exit_fraction
+        synthetic_signal["shares"] = shares_to_close
+        if rule_reason is not None:
+            synthetic_signal["reason"] = rule_reason
 
         return synthetic_signal
 
@@ -202,8 +234,9 @@ class PositionManager:
         ts: pd.Timestamp,
         bar: pd.Series,
         position: PositionState,
+        ohlcv: pd.DataFrame,
     ) -> dict[str, Any] | None:
-        if position.size <= 0 or position.side is None or position.entry_price is None:
+        if position.size_shares <= 0 or position.side is None or position.entry_price is None:
             return None
 
         if not self.pipeline.get_allow_scale_in():
@@ -220,18 +253,24 @@ class PositionManager:
             "side": side,
             "price": current_price,
             "pm_generated": True,
-            "pm_scale_in": True,
         }
 
-        ohlcv_slice = pd.DataFrame([bar])
-        ohlcv_slice.index = [ts]
-        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv_slice})
+        ctx = PositionRuleContext(synthetic_signal, position, {ticker: ohlcv})
 
         allow_entry = self.pipeline.decide_entry(ctx)
         if not allow_entry:
             return None
 
+        shares_to_add = self.capital_per_trade / current_price
+        total_shares = position.size_shares + shares_to_add
+        total_cost = position.size_shares * position.avg_entry_price + shares_to_add * current_price
+        position.avg_entry_price = total_cost / total_shares
+        position.size_shares = total_shares
         position.size += 1.0
+
+        synthetic_signal["shares"] = shares_to_add
+        synthetic_signal["action"] = "scale_in"
+        synthetic_signal["reason"] = "scale_in_rule"
 
         return synthetic_signal
 
