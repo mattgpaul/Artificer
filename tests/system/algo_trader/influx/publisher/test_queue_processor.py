@@ -25,7 +25,7 @@ class TestProcessQueueEmptyQueue:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -60,7 +60,7 @@ class TestProcessQueueOHLCVQueue:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -85,7 +85,7 @@ class TestProcessQueueOHLCVQueue:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -108,7 +108,7 @@ class TestProcessQueueOHLCVQueue:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -142,7 +142,7 @@ class TestProcessQueueBacktestQueues:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -175,7 +175,7 @@ class TestProcessQueueBacktestQueues:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -204,7 +204,7 @@ class TestProcessQueueBacktestQueues:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -247,7 +247,7 @@ class TestProcessQueueTagColumns:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -285,7 +285,7 @@ class TestProcessQueueTagColumns:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -322,7 +322,7 @@ class TestProcessQueueTagColumns:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -361,7 +361,7 @@ class TestProcessQueueTagColumns:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -401,7 +401,7 @@ class TestProcessQueueTagColumns:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 1
@@ -423,7 +423,7 @@ class TestProcessQueueErrorHandling:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -444,7 +444,7 @@ class TestProcessQueueErrorHandling:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -467,7 +467,7 @@ class TestProcessQueueErrorHandling:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 0
@@ -497,7 +497,7 @@ class TestProcessQueueErrorHandling:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 0
@@ -532,7 +532,7 @@ class TestProcessQueueTargetDatabase:
                 queue_config=queue_config,
                 queue_broker=mock_queue_broker,
                 influx_client=mock_market_data_influx["instance"],
-                running=True,
+                is_running=lambda: True,
             )
 
             assert processed == 1
@@ -575,7 +575,7 @@ class TestProcessQueueTargetDatabase:
             queue_config=queue_config,
             queue_broker=mock_queue_broker,
             influx_client=mock_market_data_influx["instance"],
-            running=True,
+            is_running=lambda: True,
         )
 
         assert processed == 2

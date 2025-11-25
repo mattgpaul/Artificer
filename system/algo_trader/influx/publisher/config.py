@@ -12,13 +12,16 @@ import yaml
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
 from infrastructure.logging.logger import get_logger
+from system.algo_trader.backtest.processor.processor import get_backtest_database
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 OHLCV_DATABASE = "ohlcv"
 FUNDAMENTALS_DATABASE = "algo-trader-fundamentals"
-TRADING_JOURNAL_DATABASE = "algo-trader-trading-journal"
+BACKTEST_DATABASE = get_backtest_database()
+# Backward-compatible alias for legacy trading journal naming
+TRADING_JOURNAL_DATABASE = BACKTEST_DATABASE
 
-OHLCV_BATCH_SIZE = 300_000
+OHLCV_BATCH_SIZE = 100_000
 FUNDAMENTALS_BATCH_SIZE = 50_000
 TRADING_JOURNAL_BATCH_SIZE = 50_000
 BACKTEST_BATCH_SIZE = 50_000
@@ -89,10 +92,10 @@ def init_influx_clients(config: dict[str, Any], logger=None) -> dict[str, Market
     queue_database_map = {
         "ohlcv_queue": (OHLCV_DATABASE, OHLCV_BATCH_SIZE),
         "fundamentals_queue": (FUNDAMENTALS_DATABASE, FUNDAMENTALS_BATCH_SIZE),
-        "trading_journal_queue": (TRADING_JOURNAL_DATABASE, TRADING_JOURNAL_BATCH_SIZE),
-        "backtest_trades_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
-        "backtest_metrics_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
-        "backtest_studies_queue": (TRADING_JOURNAL_DATABASE, BACKTEST_BATCH_SIZE),
+        "trading_journal_queue": (BACKTEST_DATABASE, TRADING_JOURNAL_BATCH_SIZE),
+        "backtest_trades_queue": (BACKTEST_DATABASE, BACKTEST_BATCH_SIZE),
+        "backtest_metrics_queue": (BACKTEST_DATABASE, BACKTEST_BATCH_SIZE),
+        "backtest_studies_queue": (BACKTEST_DATABASE, BACKTEST_BATCH_SIZE),
     }
 
     influx_clients: dict[str, MarketDataInflux] = {}

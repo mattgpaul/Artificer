@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from system.algo_trader.influx.publisher.config import (
+    BACKTEST_DATABASE,
     FUNDAMENTALS_BATCH_SIZE,
     FUNDAMENTALS_DATABASE,
     OHLCV_BATCH_SIZE,
@@ -220,7 +221,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -246,7 +247,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -266,7 +267,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -286,7 +287,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -310,7 +311,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -333,7 +334,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -359,7 +360,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -387,7 +388,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["fundamentals_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -411,7 +412,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -436,7 +437,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -461,7 +462,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["fundamentals_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -605,7 +606,7 @@ class TestInfluxPublisherConstants:
 
     def test_ohlcv_batch_size_constant(self):
         """Test OHLCV_BATCH_SIZE is protected constant."""
-        assert OHLCV_BATCH_SIZE == 300_000
+        assert OHLCV_BATCH_SIZE == 100_000
 
     def test_fundamentals_batch_size_constant(self):
         """Test FUNDAMENTALS_BATCH_SIZE constant."""
@@ -619,7 +620,10 @@ class TestInfluxPublisherConstants:
         """Test database name constants."""
         assert OHLCV_DATABASE == "ohlcv"
         assert FUNDAMENTALS_DATABASE == "algo-trader-fundamentals"
-        assert TRADING_JOURNAL_DATABASE == "algo-trader-trading-journal"
+        # TRADING_JOURNAL_DATABASE is a backward-compatible alias for BACKTEST_DATABASE
+        assert TRADING_JOURNAL_DATABASE == BACKTEST_DATABASE
+        # BACKTEST_DATABASE defaults to "backtest-dev" unless INFLUXDB3_ENVIRONMENT=prod
+        assert BACKTEST_DATABASE in ("backtest", "backtest-dev")
 
 
 class TestInfluxPublisherMain:
