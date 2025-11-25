@@ -15,6 +15,7 @@ from system.algo_trader.redis.queue_broker import QueueBroker
 BAD_TICKER_QUEUE_NAME = "bad_ticker_queue"
 FUNDAMENTALS_STATIC_QUEUE_NAME = "fundamentals_static_queue"
 POLL_INTERVAL = 2
+SLEEP_CHECK_INTERVAL = 0.1  # Check running flag every 100ms during sleep
 
 
 class MySQLDaemon:
@@ -42,6 +43,18 @@ class MySQLDaemon:
         signal_name = signal.Signals(signum).name
         self.logger.info(f"Received {signal_name}, initiating graceful shutdown...")
         self.running = False
+
+    def _interruptible_sleep(self, duration: float) -> None:
+        """Sleep in small increments, checking running flag to allow quick shutdown.
+
+        Args:
+            duration: Total sleep duration in seconds.
+        """
+        elapsed = 0.0
+        while elapsed < duration and self.running:
+            sleep_time = min(SLEEP_CHECK_INTERVAL, duration - elapsed)
+            time.sleep(sleep_time)
+            elapsed += sleep_time
 
     def _process_bad_ticker_queue(self) -> None:
         """Process bad ticker queue."""
@@ -190,11 +203,11 @@ class MySQLDaemon:
                 self._process_fundamentals_queue()
 
                 if self.running:
-                    time.sleep(POLL_INTERVAL)
+                    self._interruptible_sleep(POLL_INTERVAL)
             except Exception as e:
                 self.logger.error(f"Error in main loop: {e}")
                 if self.running:
-                    time.sleep(POLL_INTERVAL)
+                    self._interruptible_sleep(POLL_INTERVAL)
 
         self.logger.info("Shutdown complete")
         self._cleanup()
