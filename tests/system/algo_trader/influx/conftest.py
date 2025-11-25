@@ -259,7 +259,7 @@ def sample_backtest_trades_queue_data():
         "ticker": "AAPL",
         "strategy_name": "SMACrossoverStrategy",
         "backtest_id": "test-id",
-        "hash_id": "abc123",
+        "hash": "abc123",
         "data": {
             "datetime": [1704067200000],
             "entry_price": [100.0],

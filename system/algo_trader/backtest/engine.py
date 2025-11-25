@@ -106,14 +106,88 @@ class BacktestEngine:
             position_manager,
         )
 
+    def _extract_signal_flags(
+        self, signals: pd.DataFrame | None, ticker: str
+    ) -> tuple[dict[pd.Timestamp, bool], dict[pd.Timestamp, bool]]:
+        """Extract buy and sell signal flags from signals DataFrame.
+
+        Args:
+            signals: Optional DataFrame with signal data.
+            ticker: Ticker symbol for logging.
+
+        Returns:
+            Tuple of (buy_flags, sell_flags) dictionaries mapping timestamps to booleans.
+        """
+        buy_flags: dict[pd.Timestamp, bool] = {}
+        sell_flags: dict[pd.Timestamp, bool] = {}
+        if signals is not None and not signals.empty:
+            try:
+                signals_df = signals.copy()
+                signals_df["signal_time"] = pd.to_datetime(signals_df["signal_time"], utc=True)
+                if "signal_type" in signals_df.columns:
+                    for ts, group in signals_df.groupby("signal_time"):
+                        buy_flags[ts] = bool((group["signal_type"] == "buy").any())
+                        sell_flags[ts] = bool((group["signal_type"] == "sell").any())
+            except Exception as e:
+                self.logger.debug(f"{ticker}: Error computing signal flags for studies: {e}")
+        return buy_flags, sell_flags
+
+    def _compute_studies_for_bar(
+        self,
+        window: pd.DataFrame,
+        study_specs: list,
+        ticker: str,
+        bar_timestamp: pd.Timestamp,
+    ) -> dict:
+        """Compute all studies for a single bar timestamp.
+
+        Args:
+            window: OHLCV data window for the current bar.
+            study_specs: List of StudySpec objects to compute.
+            ticker: Ticker symbol for logging.
+            bar_timestamp: Timestamp of the current bar.
+
+        Returns:
+            Dictionary mapping field names to study values.
+        """
+        row_data: dict = {}
+        for spec in study_specs:
+            min_bars = spec.min_bars or spec.params.get("window", 0)
+            if len(window) < min_bars:
+                field_name = spec.study.get_field_name(**spec.params)
+                row_data[field_name] = None
+                continue
+
+            try:
+                study_result = spec.study.compute(
+                    ohlcv_data=window,
+                    ticker=ticker,
+                    **spec.params,
+                )
+                field_name = spec.study.get_field_name(**spec.params)
+                if study_result is not None and len(study_result) > 0:
+                    row_data[field_name] = float(study_result.iloc[-1])
+                else:
+                    row_data[field_name] = None
+            except Exception as e:
+                field_name = spec.study.get_field_name(**spec.params)
+                self.logger.debug(f"{ticker}: Error computing {field_name} at {bar_timestamp}: {e}")
+                row_data[field_name] = None
+        return row_data
+
     def _collect_studies_for_ticker(
-        self, ticker: str, ticker_data: pd.DataFrame, step_intervals: pd.DatetimeIndex
+        self,
+        ticker: str,
+        ticker_data: pd.DataFrame,
+        step_intervals: pd.DatetimeIndex,
+        signals: pd.DataFrame | None = None,
     ) -> pd.DataFrame:
         study_specs = self.strategy.get_study_specs()
         if not study_specs:
             return pd.DataFrame()
 
         processed_bars: dict[pd.Timestamp, dict] = {}
+        buy_flags, sell_flags = self._extract_signal_flags(signals, ticker)
 
         for current_time in step_intervals:
             window = self.signal_collector._slice_window(ticker_data, current_time)
@@ -124,32 +198,11 @@ class BacktestEngine:
             if bar_timestamp in processed_bars:
                 continue
 
-            row_data: dict = {}
+            row_data = self._compute_studies_for_bar(window, study_specs, ticker, bar_timestamp)
 
-            for spec in study_specs:
-                min_bars = spec.min_bars or spec.params.get("window", 0)
-                if len(window) < min_bars:
-                    field_name = spec.study.get_field_name(**spec.params)
-                    row_data[field_name] = None
-                    continue
-
-                try:
-                    study_result = spec.study.compute(
-                        ohlcv_data=window,
-                        ticker=ticker,
-                        **spec.params,
-                    )
-                    field_name = spec.study.get_field_name(**spec.params)
-                    if study_result is not None and len(study_result) > 0:
-                        row_data[field_name] = float(study_result.iloc[-1])
-                    else:
-                        row_data[field_name] = None
-                except Exception as e:
-                    field_name = spec.study.get_field_name(**spec.params)
-                    self.logger.debug(
-                        f"{ticker}: Error computing {field_name} at {bar_timestamp}: {e}"
-                    )
-                    row_data[field_name] = None
+            # Boolean buy/sell signal flags based on raw strategy signals
+            row_data["buy_signal"] = bool(buy_flags.get(bar_timestamp, False))
+            row_data["sell_signal"] = bool(sell_flags.get(bar_timestamp, False))
 
             processed_bars[bar_timestamp] = row_data
 
@@ -205,7 +258,12 @@ class BacktestEngine:
             combined_signals, ticker, ticker_data
         )
 
-        studies_df = self._collect_studies_for_ticker(ticker, ticker_data, step_intervals)
+        studies_df = self._collect_studies_for_ticker(
+            ticker,
+            ticker_data,
+            step_intervals,
+            combined_signals,
+        )
         results.studies = studies_df
 
         return results

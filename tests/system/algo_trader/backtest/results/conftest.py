@@ -11,6 +11,7 @@ import pytest
 
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
+from system.algo_trader.backtest.results.writer import ResultsWriter
 
 
 @pytest.fixture(autouse=True)
@@ -211,3 +212,118 @@ def sample_trade_single():
             "gross_pnl": [500.0],
         }
     )
+
+
+@pytest.fixture
+def sample_trade_with_strategy():
+    """Sample trade DataFrame with strategy field for execution ID testing."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],
+            "gross_pnl": [500.0],
+            "strategy": ["TestStrategy"],
+            "trade_id": [1],
+            "side": ["LONG"],
+        }
+    )
+
+
+@pytest.fixture
+def sample_trade_with_nan():
+    """Sample trade DataFrame with NaN values for testing."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],
+            "gross_pnl": [500.0],
+            "optional_field": [None],
+        }
+    )
+
+
+@pytest.fixture
+def sample_trades_multiple():
+    """Sample multiple trades DataFrame for testing."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "AAPL"],
+            "entry_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-15", tz="UTC"),
+            ],
+            "exit_time": [
+                pd.Timestamp("2024-01-10", tz="UTC"),
+                pd.Timestamp("2024-01-20", tz="UTC"),
+            ],
+            "entry_price": [100.0, 105.0],
+            "exit_price": [105.0, 110.0],
+            "shares": [100.0, 100.0],
+            "gross_pnl": [500.0, 500.0],
+        }
+    )
+
+
+@pytest.fixture
+def sample_pm_executions_open_tp_close():
+    """Sample PM-managed executions DataFrame: open, partial TP, final close."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "AAPL", "AAPL"],
+            "signal_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-10", tz="UTC"),
+                pd.Timestamp("2024-01-15", tz="UTC"),
+            ],
+            "action": ["open", "close", "close"],
+            "shares": [134.0, 67.0, 67.0],
+            "price": [100.0, 105.0, 110.0],
+            "trade_id": [1, 1, 1],
+            "side": ["LONG", "LONG", "LONG"],
+            "commission": [0.67, 0.335, 0.335],
+        }
+    )
+
+
+@pytest.fixture
+def results_writer(mock_queue_broker):
+    """Create and configure a ResultsWriter instance for testing."""
+    writer = ResultsWriter()
+    writer.queue_broker = mock_queue_broker
+    mock_queue_broker.enqueue.return_value = True
+    return writer
+
+
+@pytest.fixture
+def base_execution_params():
+    """Base parameters for _compute_execution_id testing."""
+    return {
+        "ticker": "AAPL",
+        "strategy": "TestStrategy",
+        "trade_id": 1,
+        "timestamp": pd.Timestamp("2024-01-05", tz="UTC"),
+        "side": "LONG",
+        "action": "buy_to_open",
+        "price": 100.0,
+        "shares": 100.0,
+    }
+
+
+def assert_execution_field(queue_data, expected_count):
+    """Helper function to assert execution field is present and valid.
+
+    Args:
+        queue_data: The data dictionary from enqueue call_args
+        expected_count: Expected number of execution IDs
+    """
+    assert "execution" in queue_data["data"]
+    assert len(queue_data["data"]["execution"]) == expected_count
+    assert all(isinstance(eid, str) and len(eid) == 16 for eid in queue_data["data"]["execution"])
