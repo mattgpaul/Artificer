@@ -73,6 +73,7 @@ class BacktestProcessor:
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_name: str | None = None,
+        portfolio_manager_config_name: str | None = None,
         filter_config_dict: dict | None = None,
         hash_id: str | None = None,
     ) -> list[tuple]:
@@ -137,6 +138,7 @@ class BacktestProcessor:
                 trade_percentage,
                 filter_pipeline,
                 position_manager_config_name,
+                portfolio_manager_config_name,
                 filter_config_dict,
                 hash_id,
             )
@@ -185,6 +187,7 @@ class BacktestProcessor:
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager_config_name: str | None = None,
+        portfolio_manager_config_name: str | None = None,
         filter_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
@@ -276,6 +279,7 @@ class BacktestProcessor:
             trade_percentage=trade_percentage,
             filter_pipeline=filter_pipeline,
             position_manager_config_name=position_manager_config_name,
+            portfolio_manager_config_name=portfolio_manager_config_name,
             filter_config_dict=filter_config_dict,
             hash_id=hash_id,
         )

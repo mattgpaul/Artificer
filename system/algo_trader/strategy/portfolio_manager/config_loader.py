@@ -1,0 +1,108 @@
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from infrastructure.logging.logger import get_logger
+from system.algo_trader.strategy.portfolio_manager.rules.base import PortfolioRulePipeline
+from system.algo_trader.strategy.portfolio_manager.rules.max_capital_deployed import (
+    MaxCapitalDeployedRule,
+)
+
+
+def _resolve_config_path(config_name: str) -> Path:
+    candidate = Path(config_name)
+    if candidate.suffix in {".yaml", ".yml"} or any(sep in config_name for sep in ("/", "\\")):
+        return candidate
+
+    base_dir = Path(__file__).resolve().parent
+    strategies_dir = base_dir / "strategies"
+    return strategies_dir / f"{config_name}.yaml"
+
+
+def _build_max_capital_deployed_rule(params: dict[str, Any], logger=None):
+    max_deployed_pct = params.get("max_deployed_pct", 0.5)
+    try:
+        return MaxCapitalDeployedRule(max_deployed_pct=float(max_deployed_pct), logger=logger)
+    except (ValueError, TypeError) as e:
+        logger.error(f"max_capital_deployed rule params must be numeric: {e}")
+        return None
+
+
+def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None):
+    if rule_name == "max_capital_deployed":
+        return _build_max_capital_deployed_rule(params, logger)
+    logger.error(f"Unknown rule type: {rule_name}")
+    return None
+
+
+def _load_pipeline_from_file(
+    config_file: Path, config_name: str, logger
+) -> PortfolioRulePipeline | None:
+    if not config_file.exists():
+        logger.error(
+            "Portfolio manager config file not found: "
+            f"{config_file} (from '{config_name}'). "
+            "Expected a file under 'strategy/portfolio_manager/strategies' "
+            "or a valid explicit path."
+        )
+        return None
+
+    with open(config_file, encoding="utf-8") as f:
+        config_dict = yaml.safe_load(f) or {}
+
+    if not isinstance(config_dict, dict):
+        logger.error(f"Portfolio manager config must be a dictionary, got {type(config_dict)}")
+        return None
+
+    rules_list = config_dict.get("rules", [])
+    if not isinstance(rules_list, list):
+        logger.error(f"Portfolio manager config 'rules' must be a list, got {type(rules_list)}")
+        return None
+
+    rule_instances = []
+
+    for idx, rule_item in enumerate(rules_list):
+        if not isinstance(rule_item, dict):
+            logger.error(f"Rule at index {idx} must be a dictionary")
+            continue
+
+        if len(rule_item) != 1:
+            logger.error(f"Rule at index {idx} must have exactly one key (rule name)")
+            continue
+
+        rule_name = next(iter(rule_item.keys()))
+        params = rule_item[rule_name]
+
+        if not isinstance(params, dict):
+            logger.error(f"Rule '{rule_name}' params must be a dictionary")
+            continue
+
+        rule_instance = _create_rule_from_config(rule_name, params, logger)
+        if rule_instance is not None:
+            rule_instances.append(rule_instance)
+
+    if not rule_instances:
+        logger.warning(f"No valid rules loaded from {config_file}")
+        return None
+
+    pipeline = PortfolioRulePipeline(rule_instances, logger)
+    logger.info(f"Loaded {len(rule_instances)} rule(s) from {config_file}")
+    return pipeline
+
+
+def load_portfolio_manager_config(
+    config_name: str | None, logger=None
+) -> PortfolioRulePipeline | None:
+    if config_name is None:
+        return None
+
+    logger = logger or get_logger("PortfolioManagerConfigLoader")
+
+    try:
+        config_file = _resolve_config_path(config_name)
+        return _load_pipeline_from_file(config_file, config_name, logger)
+    except Exception as e:
+        logger.error(f"Failed to load portfolio manager config: {e}", exc_info=True)
+        return None
+
