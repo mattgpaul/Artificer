@@ -17,6 +17,8 @@ from system.algo_trader.influx.publisher.config import (
 from system.algo_trader.influx.publisher.queue_processor import process_queue
 from system.algo_trader.redis.queue_broker import QueueBroker
 
+SLEEP_CHECK_INTERVAL = 0.1  # Check running flag every 100ms during sleep
+
 
 class InfluxPublisher:
     """Publisher service for writing market data to InfluxDB.
@@ -49,6 +51,18 @@ class InfluxPublisher:
         self.logger.info(f"Received {signal_name}, initiating graceful shutdown...")
         self.running = False
 
+    def _interruptible_sleep(self, duration: float) -> None:
+        """Sleep in small increments, checking running flag to allow quick shutdown.
+
+        Args:
+            duration: Total sleep duration in seconds.
+        """
+        elapsed = 0.0
+        while elapsed < duration and self.running:
+            sleep_time = min(SLEEP_CHECK_INTERVAL, duration - elapsed)
+            time.sleep(sleep_time)
+            elapsed += sleep_time
+
     def run(self) -> None:
         """Run the publisher daemon.
 
@@ -74,17 +88,17 @@ class InfluxPublisher:
                         queue_config,
                         self.queue_broker,
                         self.influx_clients[queue_config["name"]],
-                        self.running,
+                        lambda: self.running,
                         self.logger,
                     )
 
                 if self.running:
-                    time.sleep(poll_interval)
+                    self._interruptible_sleep(poll_interval)
 
             except Exception as e:
                 self.logger.error(f"Error in main loop: {e}")
                 if self.running:
-                    time.sleep(poll_interval)
+                    self._interruptible_sleep(poll_interval)
 
         self.logger.info("Shutdown complete")
         self._cleanup()

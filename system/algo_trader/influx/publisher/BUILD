@@ -15,6 +15,7 @@ py_library(
     deps = [
         "//infrastructure/influxdb",
         "//infrastructure/logging:logger",
+        "//system/algo_trader/backtest:backtest_lib",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/redis:redis_services",
         requirement("pyyaml"),

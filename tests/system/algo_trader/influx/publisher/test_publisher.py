@@ -199,7 +199,9 @@ class TestInfluxPublisherRun:
             patch(
                 "system.algo_trader.influx.publisher.publisher.process_queue"
             ) as mock_process_queue,
-            patch("system.algo_trader.influx.publisher.publisher.time.sleep") as _mock_sleep,
+            patch(
+                "system.algo_trader.influx.publisher.publisher.InfluxPublisher._interruptible_sleep"
+            ) as mock_interruptible_sleep,
         ):
             mock_init_clients.return_value = {"ohlcv_queue": MagicMock()}
             mock_broker_class.return_value = MagicMock()
@@ -207,25 +209,25 @@ class TestInfluxPublisherRun:
             publisher = InfluxPublisher(config_path)
             publisher.running = True
 
-            # Mock sleep to stop the loop after it's called once
-            sleep_call_count = [0]
+            # Mock _interruptible_sleep to stop the loop after it's called once
+            call_count = [0]
 
-            def sleep_side_effect(seconds):
-                sleep_call_count[0] += 1
+            def sleep_side_effect(duration):
+                call_count[0] += 1
                 # Stop after first sleep call
-                if sleep_call_count[0] >= 1:
+                if call_count[0] >= 1:
                     publisher.running = False
 
-            _mock_sleep.side_effect = sleep_side_effect
+            mock_interruptible_sleep.side_effect = sleep_side_effect
             # Make process_queue return immediately
             mock_process_queue.return_value = (0, 0)
 
             publisher.run()
 
             # Should sleep with poll_interval (sleep happens after queue processing)
-            assert _mock_sleep.called
-            # Check that sleep was called with poll_interval value
-            assert 5 in [call[0][0] for call in _mock_sleep.call_args_list]
+            assert mock_interruptible_sleep.called
+            # Check that _interruptible_sleep was called with poll_interval value
+            assert 5 in [call[0][0] for call in mock_interruptible_sleep.call_args_list]
 
     @pytest.mark.unit
     def test_run_error_handling(self, mock_publisher_logger):

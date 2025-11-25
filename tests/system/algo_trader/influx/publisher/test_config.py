@@ -11,11 +11,11 @@ import pytest
 
 from system.algo_trader.influx.publisher.config import (
     BACKTEST_BATCH_SIZE,
+    BACKTEST_DATABASE,
     FUNDAMENTALS_BATCH_SIZE,
     FUNDAMENTALS_DATABASE,
     OHLCV_BATCH_SIZE,
     OHLCV_DATABASE,
-    TRADING_JOURNAL_DATABASE,
     get_namespace,
     init_influx_clients,
     load_config,
@@ -165,7 +165,7 @@ class TestInitInfluxClients:
         assert "backtest_studies_queue" in result
         mock_influx_client["class"].assert_called_once()
         call_args = mock_influx_client["class"].call_args
-        assert call_args[1]["database"] == TRADING_JOURNAL_DATABASE
+        assert call_args[1]["database"] == BACKTEST_DATABASE
         write_config = call_args[1]["write_config"]
         assert write_config.batch_size == BACKTEST_BATCH_SIZE
 

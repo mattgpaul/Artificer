@@ -136,12 +136,12 @@ class TestSMACrossoverLastCrossoverState:
 
 
 class TestSMACrossoverBuildSignal:
-    """Test _build_signal method."""
+    """Test _build_price_signal method (inherited from Strategy base class)."""
 
     def test_build_signal_success(self, sample_ohlcv_data):
         """Test successful signal building."""
         strategy = SMACrossover()
-        signal = strategy._build_signal(sample_ohlcv_data)
+        signal = strategy._build_price_signal(sample_ohlcv_data)
 
         assert not signal.empty
         assert len(signal) == 1
@@ -152,14 +152,14 @@ class TestSMACrossoverBuildSignal:
     def test_build_signal_empty_dataframe_returns_empty(self, sample_ohlcv_data_empty):
         """Test signal building returns empty DataFrame for empty input."""
         strategy = SMACrossover()
-        signal = strategy._build_signal(sample_ohlcv_data_empty)
+        signal = strategy._build_price_signal(sample_ohlcv_data_empty)
 
         assert signal.empty
 
     def test_build_signal_missing_close_returns_empty(self, sample_ohlcv_data_missing_close):
         """Test signal building returns empty DataFrame when close column missing."""
         strategy = SMACrossover()
-        signal = strategy._build_signal(sample_ohlcv_data_missing_close)
+        signal = strategy._build_price_signal(sample_ohlcv_data_missing_close)
 
         assert signal.empty
 

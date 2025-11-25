@@ -194,17 +194,25 @@ class OHLCVArgumentHandler(ArgumentHandler):
         period_value = context.get("period_value")
         verify_bad_tickers = context.get("verify_bad_tickers", False)
 
+        # Collect all tickers to process
+        tickers_to_process = list(context.get("tickers", []))
+
+        # If verifying bad tickers, get recovered tickers and add them to process list
         if verify_bad_tickers:
             verifier = BadTickerVerifier(logger=self.logger)
-            verifier.verify_bad_tickers(frequency_type, frequency_value, period_type, period_value)
+            recovered_tickers = verifier.verify_bad_tickers(
+                frequency_type, frequency_value, period_type, period_value
+            )
+            if recovered_tickers:
+                tickers_to_process.extend(recovered_tickers)
 
-        tickers = context.get("tickers")
-        if tickers is None:
+        # Process all tickers (both from context and recovered from bad_tickers)
+        if not tickers_to_process:
             if not verify_bad_tickers:
                 self.logger.error("No tickers found in context")
             return
 
         processor = OHLCVProcessor(logger=self.logger)
         processor.process_tickers(
-            tickers, frequency_type, frequency_value, period_type, period_value
+            tickers_to_process, frequency_type, frequency_value, period_type, period_value
         )

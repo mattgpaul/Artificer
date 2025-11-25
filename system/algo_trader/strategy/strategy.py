@@ -108,3 +108,25 @@ class Strategy(ABC):
             captured and persisted. Default implementation returns empty list.
         """
         return []
+
+    def _build_price_signal(self, ohlcv_data: pd.DataFrame) -> pd.DataFrame:
+        """Build a price signal DataFrame from the latest OHLCV bar.
+
+        Creates a single-row DataFrame with the latest timestamp and closing price.
+        Returns empty DataFrame if input is empty or missing 'close' column.
+
+        Args:
+            ohlcv_data: OHLCV DataFrame for analysis.
+
+        Returns:
+            DataFrame with 'price' column and DatetimeIndex, or empty DataFrame
+            if input is invalid.
+        """
+        if ohlcv_data.empty or "close" not in ohlcv_data.columns:
+            return pd.DataFrame()
+        ts = ohlcv_data.index[-1]
+        price = float(ohlcv_data["close"].iloc[-1])
+        return pd.DataFrame(
+            [{"price": round(price, 4)}],
+            index=pd.DatetimeIndex([ts]),
+        )

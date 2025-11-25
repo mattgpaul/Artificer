@@ -4,6 +4,7 @@ This module provides functionality to process Redis queues and write data
 to InfluxDB, handling various data formats and error conditions.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 from infrastructure.influxdb.influxdb import BatchWriteConfig
@@ -16,7 +17,7 @@ def process_queue(
     queue_config: dict[str, Any],
     queue_broker: QueueBroker,
     influx_client: MarketDataInflux,
-    running: bool,
+    is_running: Callable[[], bool],
     logger=None,
 ) -> tuple[int, int]:
     """Process items from Redis queue and write to InfluxDB.
@@ -28,7 +29,7 @@ def process_queue(
         queue_config: Dictionary containing queue configuration with 'name' and 'table'.
         queue_broker: QueueBroker instance for Redis operations.
         influx_client: MarketDataInflux client for writing to InfluxDB.
-        running: Boolean flag indicating if processing should continue.
+        is_running: Callable that returns True if processing should continue.
         logger: Optional logger instance. If not provided, creates a new logger.
 
     Returns:
@@ -47,7 +48,7 @@ def process_queue(
     processed_count = 0
     failed_count = 0
 
-    while running:
+    while is_running():
         item_id = queue_broker.dequeue(queue_name)
         if not item_id:
             break
@@ -247,6 +248,10 @@ def process_queue(
             logger.error(f"Error processing {item_id}: {e}")
             queue_broker.delete_data(queue_name, item_id)
             failed_count += 1
+
+        # Check shutdown flag after each item to allow quick exit
+        if not is_running():
+            break
 
     logger.info(
         f"Queue '{queue_name}' processing complete: "
