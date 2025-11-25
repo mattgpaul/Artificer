@@ -4,10 +4,10 @@ This module provides functionality to write backtest results (trades and metrics
 to Redis queues for later publication to InfluxDB by the influx-publisher service.
 """
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
-import hashlib
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
