@@ -14,6 +14,9 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.processor.parallel import process_in_parallel
 from system.algo_trader.backtest.processor.sequential import process_sequentially
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
+from system.algo_trader.strategy.position_manager.config_loader import (
+    load_position_manager_config_dict,
+)
 
 if TYPE_CHECKING:
     from system.algo_trader.strategy.filters.core import FilterPipeline
@@ -69,8 +72,9 @@ class BacktestProcessor:
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
-        position_manager_config_dict: dict | None = None,
+        position_manager_config_name: str | None = None,
         filter_config_dict: dict | None = None,
+        hash_id: str | None = None,
     ) -> list[tuple]:
         """Build worker arguments for each ticker.
 
@@ -96,10 +100,12 @@ class BacktestProcessor:
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
             filter_pipeline: Optional FilterPipeline instance for filtering signals.
-            position_manager_config_dict: Optional dictionary containing position
-                manager configuration. If None, position manager is not used.
+            position_manager_config_name: Optional config name or path for position
+                manager. If None, position manager is not used.
             filter_config_dict: Optional dictionary containing filter configuration
                 for hash computation. If None, filters are not included in hash.
+            hash_id: Optional canonical hash ID for this backtest configuration.
+                If None, hash will be computed from other parameters.
 
         Returns:
             List of tuples, each containing arguments for a worker process.
@@ -130,8 +136,9 @@ class BacktestProcessor:
                 initial_account_value,
                 trade_percentage,
                 filter_pipeline,
-                position_manager_config_dict,
+                position_manager_config_name,
                 filter_config_dict,
+                hash_id,
             )
             for ticker in tickers
         ]
@@ -177,7 +184,7 @@ class BacktestProcessor:
         initial_account_value: float | None = None,
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
-        position_manager_config_dict: dict | None = None,
+        position_manager_config_name: str | None = None,
         filter_config_dict: dict | None = None,
     ) -> None:
         """Process multiple tickers through backtest execution.
@@ -210,8 +217,8 @@ class BacktestProcessor:
             initial_account_value: Optional initial account value for account tracking.
             trade_percentage: Optional percentage of account to use per trade.
             filter_pipeline: Optional FilterPipeline instance for filtering signals.
-            position_manager_config_dict: Optional dictionary containing position
-                manager configuration. If None, position manager is not used.
+            position_manager_config_name: Optional config name or path for position
+                manager. If None, position manager is not used.
             filter_config_dict: Optional dictionary containing filter configuration.
                 If None, filters are not used.
         """
@@ -227,6 +234,26 @@ class BacktestProcessor:
         )
 
         strategy_type = type(strategy).__name__
+
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency=step_frequency,
+            database=database,
+            tickers=tickers,
+            capital_per_trade=capital_per_trade,
+            risk_free_rate=risk_free_rate,
+            walk_forward=walk_forward,
+            train_days=train_days,
+            test_days=test_days,
+            train_split=train_split,
+            position_manager_params=load_position_manager_config_dict(
+                position_manager_config_name, self.logger
+            ),
+            filter_params=filter_config_dict,
+        )
 
         worker_args = self._build_worker_args(
             tickers=tickers,
@@ -248,26 +275,9 @@ class BacktestProcessor:
             initial_account_value=initial_account_value,
             trade_percentage=trade_percentage,
             filter_pipeline=filter_pipeline,
-            position_manager_config_dict=position_manager_config_dict,
+            position_manager_config_name=position_manager_config_name,
             filter_config_dict=filter_config_dict,
-        )
-
-        hash_id = compute_backtest_hash(
-            strategy_params=strategy_params,
-            execution_config=execution_config,
-            start_date=start_date,
-            end_date=end_date,
-            step_frequency=step_frequency,
-            database=database,
-            tickers=tickers,
-            capital_per_trade=capital_per_trade,
-            risk_free_rate=risk_free_rate,
-            walk_forward=walk_forward,
-            train_days=train_days,
-            test_days=test_days,
-            train_split=train_split,
-            position_manager_params=position_manager_config_dict,
-            filter_params=filter_config_dict,
+            hash_id=hash_id,
         )
 
         if use_multiprocessing:

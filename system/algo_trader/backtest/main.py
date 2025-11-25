@@ -19,9 +19,6 @@ from system.algo_trader.strategy.filters.config_loader import (
     load_filter_config_dicts,
     load_filter_configs,
 )
-from system.algo_trader.strategy.position_manager.config_loader import (
-    load_position_manager_config,
-)
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategy import Side
 
@@ -254,10 +251,7 @@ def main():
         commission_per_share=args.commission,
     )
 
-    position_manager_config = load_position_manager_config(args.position_manager, logger)
-    position_manager_config_dict = None
-    if position_manager_config is not None:
-        position_manager_config_dict = position_manager_config.to_dict()
+    position_manager_config_name = args.position_manager
 
     filter_pipeline = load_filter_configs(args.filter, logger)
     filter_config_dict = load_filter_config_dicts(args.filter, logger)
@@ -302,7 +296,7 @@ def main():
             initial_account_value=args.account_value,
             trade_percentage=args.trade_percentage,
             filter_pipeline=filter_pipeline,
-            position_manager_config_dict=position_manager_config_dict,
+            position_manager_config_name=position_manager_config_name,
             filter_config_dict=filter_config_dict,
         )
 

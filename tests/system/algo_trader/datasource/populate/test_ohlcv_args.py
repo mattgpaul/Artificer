@@ -228,7 +228,7 @@ class TestOHLCVArgumentHandler:
             ohlcv_handler.process(args)
 
     def test_execute_with_verify_bad_tickers(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
-        """Test execute calls verify_bad_tickers when flag is set."""
+        """Test execute calls verify_bad_tickers and processes recovered tickers."""
         with (
             patch(
                 "system.algo_trader.datasource.populate.ohlcv.handler.BadTickerVerifier"
@@ -238,6 +238,7 @@ class TestOHLCVArgumentHandler:
             ) as mock_processor_class,
         ):
             mock_verifier = Mock()
+            mock_verifier.verify_bad_tickers.return_value = ["RECOVERED"]
             mock_verifier_class.return_value = mock_verifier
             mock_processor = Mock()
             mock_processor_class.return_value = mock_processor
@@ -253,6 +254,9 @@ class TestOHLCVArgumentHandler:
 
             ohlcv_handler.execute(context)
             mock_verifier.verify_bad_tickers.assert_called_once()
+            mock_processor.process_tickers.assert_called_once_with(
+                ["RECOVERED"], FrequencyType.DAILY, 1, PeriodType.YEAR, 10
+            )
 
     def test_execute_with_tickers(self, ohlcv_handler):
         """Test execute processes tickers."""

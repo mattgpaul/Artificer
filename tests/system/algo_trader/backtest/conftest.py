@@ -11,10 +11,9 @@ import pandas as pd
 import pytest
 
 from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManager,
-    PositionManagerConfig,
-)
+from system.algo_trader.strategy.position_manager.position_manager import PositionManager
+from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
+from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
 
 
 @pytest.fixture(autouse=True)
@@ -194,7 +193,8 @@ def sample_mock_signals_multiple_tickers():
 @pytest.fixture
 def position_manager_config():
     """Create PositionManagerConfig for testing."""
-    return PositionManagerConfig(allow_scale_in=False)
+    scaling = ScalingRule(allow_scale_in=False, allow_scale_out=True)
+    return PositionRulePipeline([scaling])
 
 
 @pytest.fixture
@@ -284,5 +284,80 @@ def sample_trades_cli():
             "shares": [100.0, 100.0, 100.0],
             "gross_pnl": [500.0, -300.0, 800.0],
             "gross_pnl_pct": [3.33, -1.94, 8.11],
+        }
+    )
+
+
+@pytest.fixture
+def sample_trade_single():
+    """Sample single trade DataFrame for ResultsWriter tests."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],
+            "gross_pnl": [500.0],
+        }
+    )
+
+
+@pytest.fixture
+def sample_trades_multiple():
+    """Sample multiple trades DataFrame for ResultsWriter tests."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "MSFT"],
+            "entry_time": [
+                pd.Timestamp("2024-01-05", tz="UTC"),
+                pd.Timestamp("2024-01-06", tz="UTC"),
+            ],
+            "exit_time": [
+                pd.Timestamp("2024-01-10", tz="UTC"),
+                pd.Timestamp("2024-01-11", tz="UTC"),
+            ],
+            "entry_price": [100.0, 200.0],
+            "exit_price": [105.0, 210.0],
+            "shares": [100.0, 100.0],
+            "gross_pnl": [500.0, 1000.0],
+        }
+    )
+
+
+@pytest.fixture
+def sample_trade_with_nan():
+    """Sample trade DataFrame with NaN values for testing NaN handling."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL"],
+            "entry_time": [pd.Timestamp("2024-01-05", tz="UTC")],
+            "exit_time": [pd.Timestamp("2024-01-10", tz="UTC")],
+            "entry_price": [100.0],
+            "exit_price": [105.0],
+            "shares": [100.0],
+            "gross_pnl": [500.0],
+            "optional_field": [None],
+        }
+    )
+
+
+@pytest.fixture
+def sample_pm_executions_open_tp_close():
+    """Sample PM-managed execution intents: open, partial TP, final close."""
+    return pd.DataFrame(
+        {
+            "ticker": ["AAPL", "AAPL", "AAPL"],
+            "signal_time": [
+                pd.Timestamp("2024-05-05", tz="UTC"),
+                pd.Timestamp("2024-05-06", tz="UTC"),
+                pd.Timestamp("2024-05-11", tz="UTC"),
+            ],
+            "side": ["LONG", "LONG", "LONG"],
+            "price": [100.0, 101.0, 102.0],
+            "shares": [134.0, 67.0, 67.0],
+            "action": ["open", "scale_out", "close"],
+            "reason": [None, "take_profit", "strategy_exit"],
         }
     )

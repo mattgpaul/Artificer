@@ -148,16 +148,6 @@ class SMACrossover(Strategy):
         curr = float(diff.iloc[-1])
         return prev, curr
 
-    def _build_signal(self, ohlcv_data: pd.DataFrame) -> pd.DataFrame:
-        if ohlcv_data.empty or "close" not in ohlcv_data.columns:
-            return pd.DataFrame()
-        ts = ohlcv_data.index[-1]
-        price = float(ohlcv_data["close"].iloc[-1])
-        return pd.DataFrame(
-            [{"price": round(price, 4)}],
-            index=pd.DatetimeIndex([ts]),
-        )
-
     def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
         """Generate buy signals when short SMA crosses above long SMA.
 
@@ -178,7 +168,7 @@ class SMACrossover(Strategy):
         prev, curr = state
 
         if prev < 0.0 and curr > 0.0:
-            return self._build_signal(ohlcv_data)
+            return self._build_price_signal(ohlcv_data)
         return pd.DataFrame()
 
     def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
@@ -201,5 +191,5 @@ class SMACrossover(Strategy):
         prev, curr = state
 
         if prev > 0.0 and curr < 0.0:
-            return self._build_signal(ohlcv_data)
+            return self._build_price_signal(ohlcv_data)
         return pd.DataFrame()

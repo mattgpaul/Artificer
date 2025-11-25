@@ -331,7 +331,7 @@ class TestOHLCVArgumentHandlerProcess:
 
     @pytest.mark.e2e
     def test_process_verify_bad_tickers_workflow(self, ohlcv_handler, mock_ohlcv_bad_ticker_client):
-        """Test verify bad tickers workflow."""
+        """Test verify bad tickers workflow processes recovered tickers."""
         args = argparse.Namespace(
             tickers=None,
             frequency="daily",
@@ -350,6 +350,7 @@ class TestOHLCVArgumentHandlerProcess:
             ) as mock_processor_class,
         ):
             mock_verifier = MagicMock()
+            mock_verifier.verify_bad_tickers.return_value = ["AAPL", "MSFT"]
             mock_verifier_class.return_value = mock_verifier
             mock_processor = MagicMock()
             mock_processor_class.return_value = mock_processor
@@ -359,3 +360,6 @@ class TestOHLCVArgumentHandlerProcess:
 
             mock_verifier_class.assert_called_once()
             mock_verifier.verify_bad_tickers.assert_called_once()
+            mock_processor.process_tickers.assert_called_once_with(
+                ["AAPL", "MSFT"], FrequencyType.DAILY, 1, PeriodType.YEAR, 10
+            )

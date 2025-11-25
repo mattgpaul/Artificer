@@ -10,10 +10,10 @@ from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.engine import BacktestEngine, BacktestResults
 from system.algo_trader.backtest.results.writer import ResultsWriter
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManager,
-    PositionManagerConfig,
+from system.algo_trader.strategy.position_manager.config_loader import (
+    load_position_manager_config,
 )
+from system.algo_trader.strategy.position_manager.position_manager import PositionManager
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategy import Side
 
@@ -91,6 +91,7 @@ def write_backtest_results(
     test_days: int | None,
     train_split: float | None,
     filter_config_dict: dict | None = None,
+    hash_id: str | None = None,
 ) -> bool:
     """Write backtest results to Redis queues.
 
@@ -116,13 +117,27 @@ def write_backtest_results(
         train_split: Training split ratio (if walk-forward).
         filter_config_dict: Optional dictionary containing filter configuration
             for hash computation. If None, filters are not included in hash.
+        hash_id: Optional canonical hash ID for this backtest configuration.
+            If None, hash will be computed from other parameters.
 
     Returns:
         True if trades were successfully enqueued, False otherwise.
     """
     writer = ResultsWriter()
+
+    # For PM-managed runs, journal executions (PositionManager signals) instead of
+    # aggregated trades so that each row reflects the actual shares moved.
+    trades_for_writer = results.trades
+    if (
+        hasattr(results, "signals")
+        and not results.signals.empty
+        and "action" in results.signals.columns
+        and "shares" in results.signals.columns
+    ):
+        trades_for_writer = results.signals
+
     trades_success = writer.write_trades(
-        trades=results.trades,
+        trades=trades_for_writer,
         strategy_name=results.strategy_name,
         ticker=ticker,
         backtest_id=backtest_id,
@@ -140,6 +155,7 @@ def write_backtest_results(
         test_days=test_days,
         train_split=train_split,
         filter_params=filter_config_dict,
+        hash_id=hash_id,
     )
 
     writer.write_studies(
@@ -161,6 +177,7 @@ def write_backtest_results(
         test_days=test_days,
         train_split=train_split,
         filter_params=filter_config_dict,
+        hash_id=hash_id,
     )
 
     return trades_success
@@ -193,8 +210,9 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - initial_account_value_local: Initial account value
             - trade_percentage_local: Trade percentage
             - filter_pipeline: FilterPipeline instance (may be None)
-            - position_manager_config_dict: Position manager config dict
+            - position_manager_config_name: Position manager config name or path
             - filter_config_dict: Filter config dict for hash computation
+            - hash_id_local: Canonical hash ID for this backtest configuration
 
     Returns:
         Dictionary with 'success' boolean and optional 'error' message.
@@ -219,8 +237,9 @@ def backtest_ticker_worker(args: tuple) -> dict:
         initial_account_value_local,
         trade_percentage_local,
         filter_pipeline,
-        position_manager_config_dict,
+        position_manager_config_name,
         filter_config_dict,
+        hash_id_local,
     ) = args
 
     engine = None
@@ -238,9 +257,10 @@ def backtest_ticker_worker(args: tuple) -> dict:
         )
 
         position_manager = None
-        if position_manager_config_dict is not None:
-            pm_config = PositionManagerConfig.from_dict(position_manager_config_dict)
-            position_manager = PositionManager(pm_config, logger)
+        if position_manager_config_name is not None:
+            pipeline = load_position_manager_config(position_manager_config_name, logger)
+            if pipeline is not None:
+                position_manager = PositionManager(pipeline, capital_per_trade_local, logger)
 
         engine = BacktestEngine(
             strategy=strategy_instance,
@@ -283,6 +303,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             test_days=test_days_local,
             train_split=train_split_local,
             filter_config_dict=filter_config_dict,
+            hash_id=hash_id_local,
         )
 
         if trades_success:

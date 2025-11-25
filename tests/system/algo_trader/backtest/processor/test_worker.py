@@ -398,6 +398,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -457,6 +458,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -520,6 +522,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -558,6 +561,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -609,6 +613,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -669,6 +674,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             # Should not raise exception
@@ -736,6 +742,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -797,6 +804,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)
@@ -858,6 +866,7 @@ class TestBacktestTickerWorker:
                 None,  # filter_pipeline
                 None,  # position_manager_config_dict
                 None,  # filter_config_dict
+                None,  # hash_id_local
             )
 
             result = backtest_ticker_worker(args)

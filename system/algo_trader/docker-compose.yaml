@@ -21,6 +21,7 @@ services:
   influxdb:
     image: artificer-influxdb:latest
     container_name: influxdb
+    restart: unless-stopped
     command:
       - influxdb3
       - serve
@@ -58,6 +59,7 @@ services:
     image: artificer-influx-publisher:latest
     container_name: algo_trader-influx-publisher
     restart: always
+    stop_grace_period: 5s
     networks:
       - algo_trader-net
     volumes:
@@ -67,7 +69,7 @@ services:
       - /bin/sh
       - -c
       - |
-        pip install --no-cache-dir -q pyyaml redis influxdb3-python pandas requests pydantic pydantic-settings && \
+        pip install --no-cache-dir -q pyyaml redis influxdb3-python pandas requests pydantic pydantic-settings tqdm && \
         python -m system.algo_trader.influx.publisher
     environment:
       - PYTHONPATH=/workspace
@@ -75,7 +77,7 @@ services:
       - INFLUXDB3_HTTP_BIND_ADDR=influxdb:8181
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_DB=${REDIS_DB}
+      - REDIS_DB=${REDIS_DB:-0}
       - PUBLISHER_CONFIG=/workspace/system/algo_trader/influx/publisher_config.yaml
     depends_on:
       - redis
@@ -101,6 +103,7 @@ services:
     image: artificer-mysql-daemon:latest
     container_name: algo_trader-mysql-daemon
     restart: always
+    stop_grace_period: 5s
     networks:
       - algo_trader-net
     volumes:

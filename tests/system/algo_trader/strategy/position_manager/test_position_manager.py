@@ -1,263 +1,123 @@
-"""Unit tests for PositionManager and PositionManagerConfig.
+"""Unit and integration tests for PositionManager.
 
-Tests cover configuration, signal filtering (entry/exit), position state tracking,
-and edge cases. All external dependencies are mocked via conftest.py.
+Tests cover:
+- PM-managed execution intents (open / scale_out / close with shares & reasons)
+- One-shot take-profit behavior (fires once per position)
+- Strategy exits closing remaining position after partial TP.
+
+All shared fixtures are defined in conftest.py.
 """
+
+from datetime import timezone
 
 import pandas as pd
 import pytest
 
-from system.algo_trader.strategy.position_manager.position_manager import (
-    PositionManager,
-    PositionManagerConfig,
-)
+from system.algo_trader.strategy.position_manager.position_manager import PositionManager
 
 
-class TestPositionManagerConfig:
-    """Test PositionManagerConfig dataclass."""
+class TestPositionManagerPmManaged:
+    """Test PositionManager in PM-managed (bar-driven) mode."""
 
     @pytest.mark.unit
-    def test_default_initialization(self):
-        """Test default initialization."""
-        config = PositionManagerConfig()
-        assert config.allow_scale_in is False
-
-    @pytest.mark.unit
-    def test_custom_initialization(self):
-        """Test initialization with custom values."""
-        config = PositionManagerConfig(allow_scale_in=True)
-        assert config.allow_scale_in is True
-
-    @pytest.mark.unit
-    def test_from_dict_defaults(self):
-        """Test from_dict with missing keys uses defaults."""
-        config = PositionManagerConfig.from_dict({})
-        assert config.allow_scale_in is False
-
-    @pytest.mark.unit
-    def test_from_dict_with_values(self):
-        """Test from_dict with provided values."""
-        config = PositionManagerConfig.from_dict({"allow_scale_in": True})
-        assert config.allow_scale_in is True
-
-    @pytest.mark.unit
-    def test_to_dict(self):
-        """Test to_dict serialization."""
-        config = PositionManagerConfig(allow_scale_in=True)
-        result = config.to_dict()
-        assert result == {
-            "allow_scale_in": True,
-            "allow_scale_out": True,
-            "close_full_on_exit": True,
-        }
-
-
-class TestPositionManagerInitialization:
-    """Test PositionManager initialization."""
-
-    @pytest.mark.unit
-    def test_initialization_with_config(self, default_config, mock_logger):
-        """Test initialization with config."""
-        manager = PositionManager(default_config)
-        assert manager.config == default_config
-        assert manager.logger is not None
-
-    @pytest.mark.unit
-    def test_initialization_with_custom_logger(self, default_config):
-        """Test initialization with custom logger."""
-        custom_logger = "custom_logger"
-        manager = PositionManager(default_config, logger=custom_logger)
-        assert manager.logger == custom_logger
-
-
-class TestPositionManagerApplyEmptySignals:
-    """Test apply method with empty signals."""
-
-    @pytest.mark.unit
-    def test_apply_empty_dataframe(self, default_config):
-        """Test apply with empty DataFrame returns empty DataFrame."""
-        manager = PositionManager(default_config)
-        signals = pd.DataFrame()
-        result = manager.apply(signals)
-        assert result.empty
-
-    @pytest.mark.unit
-    def test_apply_empty_dataframe_with_scale_in(self, scale_in_config):
-        """Test apply with empty DataFrame and scale_in enabled."""
-        manager = PositionManager(scale_in_config)
-        signals = pd.DataFrame()
-        result = manager.apply(signals)
-        assert result.empty
-
-
-class TestPositionManagerApplyScaleIn:
-    """Test apply method with scale_in enabled."""
-
-    @pytest.mark.unit
-    def test_apply_scale_in_returns_all_signals(
-        self, scale_in_config, sample_signals_long_entry_exit
+    def test_apply_generates_open_tp_and_strategy_exit(
+        self,
+        simple_tp_sl_pipeline,
     ):
-        """Test apply with scale_in enabled returns all signals unchanged."""
-        manager = PositionManager(scale_in_config)
-        result = manager.apply(sample_signals_long_entry_exit)
-        assert len(result) == len(sample_signals_long_entry_exit)
-        pd.testing.assert_frame_equal(result, sample_signals_long_entry_exit)
-
-
-class TestPositionManagerApplyMissingColumns:
-    """Test apply method with missing required columns."""
-
-    @pytest.mark.unit
-    def test_apply_missing_ticker_column(self, default_config):
-        """Test apply with missing ticker column returns unchanged signals."""
-        manager = PositionManager(default_config)
-        signals = pd.DataFrame({"signal_type": ["buy"], "price": [100.0]})
-        result = manager.apply(signals)
-        # Should return signals unchanged when required columns are missing
-        pd.testing.assert_frame_equal(result, signals)
-
-    @pytest.mark.unit
-    def test_apply_missing_signal_type_column(self, default_config):
-        """Test apply with missing signal_type column returns unchanged signals."""
-        manager = PositionManager(default_config)
-        signals = pd.DataFrame({"ticker": ["AAPL"], "price": [100.0]})
-        result = manager.apply(signals)
-        # Should return signals unchanged when required columns are missing
-        pd.testing.assert_frame_equal(result, signals)
-
-
-class TestPositionManagerApplyLongPositions:
-    """Test apply method with LONG positions."""
-
-    @pytest.mark.unit
-    def test_apply_long_entry_exit_cycle(self, default_config, sample_signals_long_entry_exit):
-        """Test apply filters LONG entry/exit cycle correctly."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_long_entry_exit)
-
-        # Should allow first buy (entry), filter second buy (already in position),
-        # allow sell (exit), allow second ticker's buy and sell
-        assert len(result) == 4
-        assert result.iloc[0]["signal_type"] == "buy"
-        assert result.iloc[1]["signal_type"] == "sell"
-        assert result.iloc[2]["signal_type"] == "buy"
-        assert result.iloc[3]["signal_type"] == "sell"
-
-    @pytest.mark.unit
-    def test_apply_long_multiple_entries_filtered(
-        self, default_config, sample_signals_multiple_entries
-    ):
-        """Test apply filters multiple entry attempts for LONG position."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_multiple_entries)
-
-        # Should allow first buy, filter subsequent buys until sell, then allow final buy
-        assert len(result) == 3
-        assert result.iloc[0]["signal_type"] == "buy"
-        assert result.iloc[1]["signal_type"] == "sell"
-        assert result.iloc[2]["signal_type"] == "buy"
-
-    @pytest.mark.unit
-    def test_apply_long_exit_without_entry_filtered(
-        self, default_config, sample_signals_exit_without_entry
-    ):
-        """Test apply filters exit signal when no position is open."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_exit_without_entry)
-
-        # Should filter first sell (no position), allow buy, allow sell
-        assert len(result) == 2
-        assert result.iloc[0]["signal_type"] == "buy"
-        assert result.iloc[1]["signal_type"] == "sell"
-
-
-class TestPositionManagerApplyShortPositions:
-    """Test apply method with SHORT positions."""
-
-    @pytest.mark.unit
-    def test_apply_short_entry_exit_cycle(self, default_config, sample_signals_short_entry_exit):
-        """Test apply filters SHORT entry/exit cycle correctly."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_short_entry_exit)
-
-        # For SHORT: sell is entry, buy is exit
-        # Should allow first sell (entry), allow buy (exit), allow second ticker's sell and buy
-        assert len(result) == 4
-        assert result.iloc[0]["signal_type"] == "sell"
-        assert result.iloc[1]["signal_type"] == "buy"
-        assert result.iloc[2]["signal_type"] == "sell"
-        assert result.iloc[3]["signal_type"] == "buy"
-
-
-class TestPositionManagerApplyEdgeCases:
-    """Test apply method edge cases."""
-
-    @pytest.mark.unit
-    def test_apply_no_signal_time_column(self, default_config, sample_signals_no_time_column):
-        """Test apply works without signal_time column."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_no_time_column)
-
-        # Should still filter correctly using index
-        assert len(result) == 2
-        assert result.iloc[0]["signal_type"] == "buy"
-        assert result.iloc[1]["signal_type"] == "sell"
-
-    @pytest.mark.unit
-    def test_apply_all_signals_filtered_returns_empty(self, default_config):
-        """Test apply returns empty DataFrame when all signals are filtered."""
-        manager = PositionManager(default_config)
-        # Exit signal without entry - should be filtered
-        signals = pd.DataFrame(
+        """PM should open, take partial profit once, then close on strategy exit."""
+        # Set up OHLCV for a single ticker with:
+        # t0: entry at 100
+        # t1: +1.1% (TP trigger)
+        # t2: arbitrary later bar
+        dates = pd.date_range("2020-05-05", periods=3, freq="1D", tz=timezone.utc)
+        ohlcv = pd.DataFrame(
             {
-                "ticker": ["AAPL"],
-                "signal_type": ["sell"],
-                "side": ["LONG"],
+                "open": [100.0, 101.0, 102.0],
+                "high": [101.0, 102.0, 103.0],
+                "low": [99.0, 100.0, 101.0],
+                "close": [100.0, 101.1, 102.0],
+                "volume": [1_000_000] * 3,
             },
-            index=[0],
+            index=dates,
         )
-        result = manager.apply(signals)
-        assert result.empty
 
-    @pytest.mark.unit
-    def test_apply_with_ohlcv_by_ticker(
-        self, default_config, sample_signals_long_entry_exit, sample_ohlcv_by_ticker
-    ):
-        """Test apply accepts ohlcv_by_ticker parameter (currently unused but should not error)."""
-        manager = PositionManager(default_config)
-        result = manager.apply(sample_signals_long_entry_exit, sample_ohlcv_by_ticker)
-        assert len(result) == 4
-
-    @pytest.mark.unit
-    def test_apply_default_side_is_long(self, default_config):
-        """Test apply defaults side to LONG when not provided."""
-        manager = PositionManager(default_config)
+        # Strategy emits one LONG entry at t0 and one explicit exit at t2.
         signals = pd.DataFrame(
             {
                 "ticker": ["AAPL", "AAPL"],
+                "signal_time": [dates[0], dates[2]],
                 "signal_type": ["buy", "sell"],
-            },
-            index=[0, 1],
+                "price": [100.0, 102.0],
+                "side": ["LONG", "LONG"],
+            }
         )
-        result = manager.apply(signals)
-        # Should work as LONG position
-        assert len(result) == 2
-        assert result.iloc[0]["signal_type"] == "buy"
-        assert result.iloc[1]["signal_type"] == "sell"
+
+        pm = PositionManager(simple_tp_sl_pipeline, capital_per_trade=10_000.0)
+
+        result = pm.apply(signals, {"AAPL": ohlcv})
+        assert not result.empty
+
+        # Expect three executions:
+        # - open ~10000/100 = 100 shares
+        # - TP scale_out 0.5 of position
+        # - final close of remaining 0.5 on strategy exit
+        assert len(result) == 3
+
+        open_row = result.iloc[0]
+        tp_row = result.iloc[1]
+        final_row = result.iloc[2]
+
+        # Open
+        assert open_row["action"] == "open"
+        assert open_row["reason"] == "strategy_entry"
+        assert open_row["ticker"] == "AAPL"
+        assert open_row["signal_time"] == dates[0]
+        # Shares opened should be capital_per_trade / entry_price
+        assert pytest.approx(open_row["shares"], rel=1e-6) == 10_000.0 / 100.0
+
+        # Take profit (one-shot, 50% of position)
+        assert tp_row["action"] == "scale_out"
+        assert tp_row["reason"] == "take_profit"
+        assert tp_row["signal_time"] == dates[1]
+        assert pytest.approx(tp_row["shares"], rel=1e-6) == open_row["shares"] * 0.5
+
+        # Final strategy exit should close the remainder
+        assert final_row["action"] == "close"
+        assert final_row["reason"] == "strategy_exit"
+        assert final_row["signal_time"] == dates[2]
+        remaining = open_row["shares"] - tp_row["shares"]
+        assert remaining > 0
+        assert pytest.approx(final_row["shares"], rel=1e-6) == remaining
 
     @pytest.mark.unit
-    def test_apply_multiple_tickers_independent(self, default_config):
-        """Test apply handles multiple tickers independently."""
-        manager = PositionManager(default_config)
+    def test_take_profit_one_shot_fires_only_once(self, simple_tp_sl_pipeline):
+        """TP rule should not fire more than once for a single position."""
+        dates = pd.date_range("2020-05-05", periods=4, freq="1D", tz=timezone.utc)
+        # Close stays above +1% after first trigger
+        ohlcv = pd.DataFrame(
+            {
+                "open": [100.0, 101.0, 102.0, 103.0],
+                "high": [101.0, 102.0, 103.0, 104.0],
+                "low": [99.0, 100.0, 101.0, 102.0],
+                "close": [100.0, 101.1, 102.0, 103.0],
+                "volume": [1_000_000] * 4,
+            },
+            index=dates,
+        )
+
         signals = pd.DataFrame(
             {
-                "ticker": ["AAPL", "MSFT", "AAPL", "MSFT"],
-                "signal_type": ["buy", "buy", "sell", "sell"],
-                "side": ["LONG", "LONG", "LONG", "LONG"],
-            },
-            index=[0, 1, 2, 3],
+                "ticker": ["AAPL"],
+                "signal_time": [dates[0]],
+                "signal_type": ["buy"],
+                "price": [100.0],
+                "side": ["LONG"],
+            }
         )
-        result = manager.apply(signals)
-        # Both tickers should have their entry/exit cycles
-        assert len(result) == 4
-        assert set(result["ticker"].unique()) == {"AAPL", "MSFT"}
+
+        pm = PositionManager(simple_tp_sl_pipeline, capital_per_trade=10_000.0)
+        result = pm.apply(signals, {"AAPL": ohlcv})
+
+        # Expect only one scale_out from TP despite price staying > target
+        tp_rows = result[result["reason"] == "take_profit"]
+        assert len(tp_rows) == 1
