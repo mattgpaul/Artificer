@@ -68,8 +68,22 @@ class TestBadTickerVerifierVerifyBadTickers:
         """Test verify_bad_tickers removes ticker and returns it when valid."""
         mock_response = {
             "candles": [
-                {"datetime": 1000, "open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000},
-                {"datetime": 2000, "open": 104.0, "high": 106.0, "low": 103.0, "close": 105.0, "volume": 1100000},
+                {
+                    "datetime": 1000,
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                },
+                {
+                    "datetime": 2000,
+                    "open": 104.0,
+                    "high": 106.0,
+                    "low": 103.0,
+                    "close": 105.0,
+                    "volume": 1100000,
+                },
             ]
         }
 
@@ -116,12 +130,8 @@ class TestBadTickerVerifierVerifyBadTickers:
             assert result == ["AAPL"]
 
             # Verify logging
-            mock_logger.info.assert_any_call(
-                "Removed AAPL from bad_tickers (now has valid data)"
-            )
-            mock_logger.info.assert_any_call(
-                f"Found 1 recovered tickers to process: ['AAPL']"
-            )
+            mock_logger.info.assert_any_call("Removed AAPL from bad_tickers (now has valid data)")
+            mock_logger.info.assert_any_call("Found 1 recovered tickers to process: ['AAPL']")
 
     @pytest.mark.unit
     def test_verify_bad_tickers_still_bad_no_remove(self, mock_logger):
@@ -168,7 +178,14 @@ class TestBadTickerVerifierVerifyBadTickers:
         """Test that if remove fails, ticker is not returned."""
         mock_response = {
             "candles": [
-                {"datetime": 1000, "open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000},
+                {
+                    "datetime": 1000,
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                },
             ]
         }
 
@@ -213,7 +230,14 @@ class TestBadTickerVerifierVerifyBadTickers:
         """Test verify_bad_tickers with multiple tickers."""
         mock_response_valid = {
             "candles": [
-                {"datetime": 1000, "open": 100.0, "high": 105.0, "low": 99.0, "close": 104.0, "volume": 1000000},
+                {
+                    "datetime": 1000,
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 99.0,
+                    "close": 104.0,
+                    "volume": 1000000,
+                },
             ]
         }
         mock_response_invalid = {"candles": []}
@@ -263,7 +287,9 @@ class TestBadTickerVerifierVerifyBadTickers:
 
             # Verify summary logging
             summary_log_calls = [
-                call for call in mock_logger.info.call_args_list if "Verification complete" in str(call)
+                call
+                for call in mock_logger.info.call_args_list
+                if "Verification complete" in str(call)
             ]
             assert len(summary_log_calls) == 1
             assert "2 removed" in str(summary_log_calls[0])
@@ -303,4 +329,3 @@ class TestBadTickerVerifierVerifyBadTickers:
             # Verify no removal happened and empty result
             mock_bad_ticker_client.remove_bad_ticker.assert_not_called()
             assert result == []
-

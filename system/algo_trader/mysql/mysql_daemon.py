@@ -115,6 +115,10 @@ class MySQLDaemon:
                 self.queue_broker.delete_data(BAD_TICKER_QUEUE_NAME, item_id)
                 failed_count += 1
 
+            # Check shutdown flag after each item to allow quick exit
+            if not self.running:
+                break
+
         if processed_count > 0 or failed_count > 0:
             self.logger.info(
                 f"Queue '{BAD_TICKER_QUEUE_NAME}' processing complete: "
@@ -176,6 +180,10 @@ class MySQLDaemon:
                 self.logger.error(f"Error processing {item_id}: {e}")
                 self.queue_broker.delete_data(FUNDAMENTALS_STATIC_QUEUE_NAME, item_id)
                 failed_count += 1
+
+            # Check shutdown flag after each item to allow quick exit
+            if not self.running:
+                break
 
         if processed_count > 0 or failed_count > 0:
             self.logger.info(

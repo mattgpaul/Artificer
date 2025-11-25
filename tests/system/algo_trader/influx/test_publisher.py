@@ -221,7 +221,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -247,7 +247,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -267,7 +267,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -287,7 +287,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -311,7 +311,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -334,7 +334,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -360,7 +360,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -388,7 +388,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["fundamentals_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -412,7 +412,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -437,7 +437,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["ohlcv_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 
@@ -462,7 +462,7 @@ class TestInfluxPublisherQueueProcessing:
             queue_config,
             mock_queue_broker,
             publisher.influx_clients["fundamentals_queue"],
-            True,
+            lambda: True,
             publisher.logger,
         )
 

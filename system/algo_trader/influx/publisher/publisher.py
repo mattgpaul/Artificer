@@ -88,7 +88,7 @@ class InfluxPublisher:
                         queue_config,
                         self.queue_broker,
                         self.influx_clients[queue_config["name"]],
-                        self.running,
+                        lambda: self.running,
                         self.logger,
                     )
 

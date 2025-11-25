@@ -111,7 +111,8 @@ class BadTickerVerifier:
 
             if recovered_tickers:
                 self.logger.info(
-                    f"Found {len(recovered_tickers)} recovered tickers to process: {recovered_tickers}"
+                    f"Found {len(recovered_tickers)} \
+                        recovered tickers to process: {recovered_tickers}"
                 )
 
         except Exception as e:
