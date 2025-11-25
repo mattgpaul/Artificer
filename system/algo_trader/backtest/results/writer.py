@@ -7,6 +7,7 @@ to Redis queues for later publication to InfluxDB by the influx-publisher servic
 from datetime import datetime, timezone
 from typing import Any
 
+import hashlib
 import pandas as pd
 
 from infrastructure.logging.logger import get_logger
@@ -32,6 +33,28 @@ def _determine_action(side: str, is_entry: bool) -> str:
         return "buy_to_open" if is_entry else "sell_to_close"
     else:
         return "sell_to_open" if is_entry else "buy_to_close"
+
+
+def _compute_execution_id(
+    ticker: str,
+    strategy: str,
+    trade_id: Any,
+    timestamp: Any,
+    side: str,
+    action: str,
+    price: float,
+    shares: float,
+) -> str:
+    """Compute a deterministic execution identifier for a single journal row."""
+    try:
+        ts = pd.to_datetime(timestamp, utc=True)
+        ts_str = ts.isoformat()
+    except Exception:
+        ts_str = str(timestamp)
+
+    trade_id_str = "" if trade_id is None else str(trade_id)
+    raw = f"{ticker}|{strategy}|{trade_id_str}|{ts_str}|{side}|{action}|{shares}|{price}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def _transform_trades_to_journal_rows(
@@ -175,7 +198,7 @@ def _build_execution_journal_row(
 ) -> dict[str, Any]:
     """Build a single journal row dict from an execution row."""
     ticker = row.get("ticker", "")
-    strategy = row.get("strategy", "")
+    commission = row.get("commission", 0.0)
 
     # Determine journal-side action (buy_to_open, sell_to_close, etc.)
     action = _determine_action(
@@ -183,15 +206,26 @@ def _build_execution_journal_row(
         is_entry=row.get("action") in {"open", "scale_in"},
     )
 
+    execution_id = _compute_execution_id(
+        ticker=ticker,
+        strategy=row.get("strategy", ""),
+        trade_id=trade_id,
+        timestamp=timestamp,
+        side=side,
+        action=action,
+        price=price_f,
+        shares=shares_f,
+    )
+
     journal_row: dict[str, Any] = {
         "datetime": timestamp,
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": price_f,
         "shares": shares_f,
-        "commission": 0.0,
+        "commission": float(commission) if commission is not None else 0.0,
         "action": action,
+        "execution": execution_id,
     }
 
     if trade_id:
@@ -232,15 +266,40 @@ def _journal_rows_for_trade(trade: pd.Series) -> list[dict[str, Any]]:
     trade_id = trade.get("trade_id")
     commission = trade.get("commission", 0.0)
 
+    entry_action = _determine_action(side, True)
+    exit_action = _determine_action(side, False)
+
+    entry_execution = _compute_execution_id(
+        ticker=ticker,
+        strategy=strategy,
+        trade_id=trade_id,
+        timestamp=trade["entry_time"],
+        side=side,
+        action=entry_action,
+        price=float(trade["entry_price"]),
+        shares=float(trade["shares"]),
+    )
+
+    exit_execution = _compute_execution_id(
+        ticker=ticker,
+        strategy=strategy,
+        trade_id=trade_id,
+        timestamp=trade["exit_time"],
+        side=side,
+        action=exit_action,
+        price=float(trade["exit_price"]),
+        shares=float(trade["shares"]),
+    )
+
     entry_row: dict[str, Any] = {
         "datetime": trade["entry_time"],
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": trade["entry_price"],
         "shares": trade["shares"],
         "commission": commission,
-        "action": _determine_action(side, True),
+        "action": entry_action,
+        "execution": entry_execution,
     }
     if trade_id is not None:
         entry_row["trade_id"] = trade_id
@@ -248,12 +307,12 @@ def _journal_rows_for_trade(trade: pd.Series) -> list[dict[str, Any]]:
     exit_row: dict[str, Any] = {
         "datetime": trade["exit_time"],
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": trade["exit_price"],
         "shares": trade["shares"],
         "commission": commission,
-        "action": _determine_action(side, False),
+        "action": exit_action,
+        "execution": exit_execution,
     }
     if trade_id is not None:
         exit_row["trade_id"] = trade_id

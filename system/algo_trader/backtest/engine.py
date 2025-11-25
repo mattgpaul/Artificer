@@ -107,13 +107,30 @@ class BacktestEngine:
         )
 
     def _collect_studies_for_ticker(
-        self, ticker: str, ticker_data: pd.DataFrame, step_intervals: pd.DatetimeIndex
+        self,
+        ticker: str,
+        ticker_data: pd.DataFrame,
+        step_intervals: pd.DatetimeIndex,
+        signals: pd.DataFrame | None = None,
     ) -> pd.DataFrame:
         study_specs = self.strategy.get_study_specs()
         if not study_specs:
             return pd.DataFrame()
 
         processed_bars: dict[pd.Timestamp, dict] = {}
+
+        buy_flags: dict[pd.Timestamp, bool] = {}
+        sell_flags: dict[pd.Timestamp, bool] = {}
+        if signals is not None and not signals.empty:
+            try:
+                signals_df = signals.copy()
+                signals_df["signal_time"] = pd.to_datetime(signals_df["signal_time"], utc=True)
+                if "signal_type" in signals_df.columns:
+                    for ts, group in signals_df.groupby("signal_time"):
+                        buy_flags[ts] = bool((group["signal_type"] == "buy").any())
+                        sell_flags[ts] = bool((group["signal_type"] == "sell").any())
+            except Exception as e:
+                self.logger.debug(f"{ticker}: Error computing signal flags for studies: {e}")
 
         for current_time in step_intervals:
             window = self.signal_collector._slice_window(ticker_data, current_time)
@@ -150,6 +167,10 @@ class BacktestEngine:
                         f"{ticker}: Error computing {field_name} at {bar_timestamp}: {e}"
                     )
                     row_data[field_name] = None
+
+            # Boolean buy/sell signal flags based on raw strategy signals
+            row_data["buy_signal"] = bool(buy_flags.get(bar_timestamp, False))
+            row_data["sell_signal"] = bool(sell_flags.get(bar_timestamp, False))
 
             processed_bars[bar_timestamp] = row_data
 
@@ -205,7 +226,12 @@ class BacktestEngine:
             combined_signals, ticker, ticker_data
         )
 
-        studies_df = self._collect_studies_for_ticker(ticker, ticker_data, step_intervals)
+        studies_df = self._collect_studies_for_ticker(
+            ticker,
+            ticker_data,
+            step_intervals,
+            combined_signals,
+        )
         results.studies = studies_df
 
         return results
