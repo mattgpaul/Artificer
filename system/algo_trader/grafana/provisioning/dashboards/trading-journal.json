@@ -174,7 +174,7 @@
           "hide": false,
           "panelId": 4,
           "rawQuery": true,
-          "rawSql": "SELECT price as entry,\n  time\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND action = 'buy_to_open'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "rawSql": "SELECT price as entry,\n  time\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'buy_to_open'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "B",
           "sql": {
             "columns": [
@@ -204,7 +204,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT price as exit,\n  time\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND action = 'sell_to_close'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "rawSql": "SELECT price as exit,\n  time\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'sell_to_close'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "C",
           "sql": {
             "columns": [
@@ -233,7 +233,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT\n  *\nFROM \"backtest_studies\"\nWHERE hash_id = '$hash_id'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "rawSql": "SELECT\n  *\nFROM \"$strategy\"\nWHERE hash = '$hash'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "D",
           "sql": {
             "columns": [
@@ -338,7 +338,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT \n  *\nFROM \"$strategy\"\nWHERE hash_id = '$hash_id'\n  AND backtest_id = '$backtest_id'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nLIMIT 1\n",
+          "rawSql": "SELECT \n  *\nFROM \"$strategy\"\nWHERE hash = '$hash'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nLIMIT 1\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -377,7 +377,7 @@
                 "valley_prominence",
                 "valley_threshold",
                 "valley_width",
-                "hash_id"
+                "hash"
               ]
             }
           }
@@ -1151,13 +1151,13 @@
           "type": "influxdb",
           "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT ticker\nFROM \"$strategy\"\nORDER BY ticker",
+        "definition": "SELECT DISTINCT ticker\nFROM \"trades\"\nWHERE strategy = '$strategy'\nORDER BY ticker",
         "includeAll": false,
         "label": "Symbol",
         "name": "symbol",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT ticker\nFROM \"$strategy\"\nORDER BY ticker",
+          "query": "SELECT DISTINCT ticker\nFROM \"trades\"\nWHERE strategy = '$strategy'\nORDER BY ticker",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1174,13 +1174,13 @@
           "type": "influxdb",
           "uid": "$datasource"
         },
-        "definition": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+        "definition": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries',\n    'trades'\n  )\nORDER BY table_name",
         "includeAll": false,
         "label": "Strategy",
         "name": "strategy",
         "options": [],
         "query": {
-          "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries'\n  )\nORDER BY table_name",
+          "query": "SELECT table_name\nFROM INFORMATION_SCHEMA.TABLES\nWHERE table_type = 'BASE TABLE'\n  AND table_name NOT IN (\n    'distinct_caches',\n    'influxdb_schema',\n    'last_caches',\n    'parquet_files',\n    'processing_engine_logs',\n    'processing_engine_trigger_arguments',\n    'processing_engine_triggers',\n    'queries',\n    'trades'\n  )\nORDER BY table_name",
           "refId": "InfluxVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -1197,14 +1197,14 @@
           "type": "influxdb",
           "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT side\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
+        "definition": "SELECT DISTINCT side\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
         "includeAll": true,
         "label": "Side",
         "multi": true,
         "name": "side",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT side\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
+          "query": "SELECT DISTINCT side\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY side",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1221,14 +1221,14 @@
           "type": "influxdb",
           "uid": "$datasource"
         },
-        "definition": "SELECT DISTINCT status\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
+        "definition": "SELECT DISTINCT status\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
         "includeAll": true,
         "label": "Status",
         "multi": true,
         "name": "status",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT status\nFROM \"$strategy\"\nWHERE time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
+          "query": "SELECT DISTINCT status\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY status",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1239,42 +1239,19 @@
       {
         "allowCustomValue": false,
         "current": {
-          "text": "ff5b250fa77acef0",
-          "value": "ff5b250fa77acef0"
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "influxdb",
           "uid": "${datasource}"
         },
-        "definition": "SELECT DISTINCT hash_id FROM \"$strategy\"",
-        "label": "Hash ID",
-        "name": "hash_id",
+        "definition": "SELECT DISTINCT hash\nFROM \"trades\"\nWHERE strategy = '$strategy'",
+        "label": "Hash",
+        "name": "hash",
         "options": [],
         "query": {
-          "query": "SELECT DISTINCT hash_id FROM \"$strategy\"",
-          "refId": "InfluxVariableQueryEditor-VariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "type": "query"
-      },
-      {
-        "allowCustomValue": false,
-        "current": {
-          "text": "217486aa-080f-46d8-9adb-8af4c0345dd2",
-          "value": "217486aa-080f-46d8-9adb-8af4c0345dd2"
-        },
-        "datasource": {
-          "type": "influxdb",
-          "uid": "${datasource}"
-        },
-        "definition": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
-        "description": "",
-        "label": "Backtest ID",
-        "name": "backtest_id",
-        "options": [],
-        "query": {
-          "query": "SELECT DISTINCT backtest_id FROM \"$strategy\" WHERE hash_id='$hash_id'",
+          "query": "SELECT DISTINCT hash\nFROM \"trades\"\nWHERE strategy = '$strategy'",
           "refId": "InfluxVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

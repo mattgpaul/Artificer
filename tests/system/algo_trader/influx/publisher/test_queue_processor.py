@@ -5,11 +5,39 @@ dynamic table name resolution, target database handling, error handling, and com
 All external dependencies are mocked via conftest.py. Integration tests use 'debug' database.
 """
 
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from system.algo_trader.influx.publisher.queue_processor import process_queue
+
+
+@contextmanager
+def patched_market_data_influx():
+    """Context manager to patch MarketDataInflux in queue_processor for testing."""
+    with patch(
+        "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
+    ) as mock_client_class:
+        new_mock_client = MagicMock()
+        new_mock_client.write.return_value = True
+        mock_client_class.return_value = new_mock_client
+        yield new_mock_client
+
+
+def get_write_call_args(mock_client):
+    """Helper to extract write call arguments from mock client."""
+    if not mock_client.write.called:
+        return None
+    return mock_client.write.call_args[1]
+
+
+def assert_tag_in_columns(tag_columns, tag_name, should_exist=True):
+    """Helper to assert tag presence/absence in tag_columns."""
+    if should_exist:
+        assert tag_name in tag_columns, f"Expected '{tag_name}' in tag_columns: {tag_columns}"
+    else:
+        assert tag_name not in tag_columns, f"Unexpected '{tag_name}' in tag_columns: {tag_columns}"
 
 
 class TestProcessQueueEmptyQueue:
@@ -129,14 +157,7 @@ class TestProcessQueueBacktestQueues:
         mock_market_data_influx["instance"].write.return_value = True
         mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
-        with patch(
-            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
-        ) as mock_client_class:
-            new_mock_client = MagicMock()
-            new_mock_client.write.return_value = True
-            mock_client_class.return_value = new_mock_client
-
+        with patched_market_data_influx() as new_mock_client:
             queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
             processed, failed = process_queue(
                 queue_config=queue_config,
@@ -148,8 +169,8 @@ class TestProcessQueueBacktestQueues:
             assert processed == 1
             assert failed == 0
             # Check that write was called on the new client with correct table name
-            call_args = new_mock_client.write.call_args
-            assert call_args[1]["table"] == "SMACrossoverStrategy"  # Dynamic table name
+            call_args = get_write_call_args(new_mock_client)
+            assert call_args["table"] == "trades"  # All trades go to shared "trades" table
 
     @pytest.mark.unit
     def test_process_queue_backtest_metrics_success(
@@ -218,7 +239,7 @@ class TestProcessQueueTagColumns:
     def test_process_queue_tag_columns_backtest_id(
         self, mock_queue_broker, mock_market_data_influx
     ):
-        """Test backtest_id tag column handling."""
+        """Test backtest_id is NOT added as tag for trades queue (deprecated in new schema)."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = {
@@ -234,14 +255,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx["instance"].write.return_value = True
         mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
-        with patch(
-            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
-        ) as mock_client_class:
-            new_mock_client = MagicMock()
-            new_mock_client.write.return_value = True
-            mock_client_class.return_value = new_mock_client
-
+        with patched_market_data_influx() as new_mock_client:
             queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
             processed, _failed = process_queue(
                 queue_config=queue_config,
@@ -251,18 +265,18 @@ class TestProcessQueueTagColumns:
             )
 
             assert processed == 1
-            call_args = new_mock_client.write.call_args
-            assert "backtest_id" in call_args[1]["tag_columns"]
+            call_args = get_write_call_args(new_mock_client)
+            assert_tag_in_columns(call_args["tag_columns"], "backtest_id", should_exist=False)
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_hash_id(self, mock_queue_broker, mock_market_data_influx):
-        """Test hash_id tag column handling."""
+        """Test hash tag column handling (renamed from hash_id in new schema)."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = {
             "ticker": "AAPL",
             "strategy_name": "SMACrossoverStrategy",
-            "hash_id": "abc123",
+            "hash_id": "abc123",  # Old field name, should be normalized to "hash"
             "data": {
                 "datetime": [1704067200000],
                 "entry_price": [100.0],
@@ -272,14 +286,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx["instance"].write.return_value = True
         mock_market_data_influx["instance"].database = "trading_journal"  # Set database attribute
 
-        # Patch MarketDataInflux in queue_processor to return our mock when new client is created
-        with patch(
-            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
-        ) as mock_client_class:
-            new_mock_client = MagicMock()
-            new_mock_client.write.return_value = True
-            mock_client_class.return_value = new_mock_client
-
+        with patched_market_data_influx() as new_mock_client:
             queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
             processed, _failed = process_queue(
                 queue_config=queue_config,
@@ -289,8 +296,9 @@ class TestProcessQueueTagColumns:
             )
 
             assert processed == 1
-            call_args = new_mock_client.write.call_args
-            assert "hash_id" in call_args[1]["tag_columns"]
+            call_args = get_write_call_args(new_mock_client)
+            assert_tag_in_columns(call_args["tag_columns"], "hash", should_exist=True)
+            assert_tag_in_columns(call_args["tag_columns"], "hash_id", should_exist=False)
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_strategy(self, mock_queue_broker, mock_market_data_influx):
@@ -333,7 +341,7 @@ class TestProcessQueueTagColumns:
     def test_process_queue_tag_columns_strategy_params(
         self, mock_queue_broker, mock_market_data_influx
     ):
-        """Test strategy_params are added as tag columns."""
+        """Test strategy_params are NOT added as tag columns for trades queue (new schema)."""
         mock_queue_broker.get_queue_size.return_value = 1
         mock_queue_broker.dequeue.side_effect = ["backtest_1", None]
         mock_queue_broker.get_data.return_value = {
@@ -349,13 +357,7 @@ class TestProcessQueueTagColumns:
         mock_market_data_influx["instance"].write.return_value = True
         mock_market_data_influx["instance"].database = "trading_journal"
 
-        with patch(
-            "system.algo_trader.influx.publisher.queue_processor.MarketDataInflux"
-        ) as mock_client_class:
-            new_mock_client = MagicMock()
-            new_mock_client.write.return_value = True
-            mock_client_class.return_value = new_mock_client
-
+        with patched_market_data_influx() as new_mock_client:
             queue_config = {"name": "backtest_trades_queue", "table": "backtest_trades"}
             processed, _failed = process_queue(
                 queue_config=queue_config,
@@ -365,16 +367,15 @@ class TestProcessQueueTagColumns:
             )
 
             assert processed == 1
-            call_args = new_mock_client.write.call_args
-            tag_columns = call_args[1]["tag_columns"]
-            assert "short_window" in tag_columns
-            assert "long_window" in tag_columns
-            # Verify strategy params were added to data
-            data = call_args[1]["data"]
-            assert "short_window" in data
-            assert "long_window" in data
-            assert data["short_window"] == ["20"]
-            assert data["long_window"] == ["50"]
+            call_args = get_write_call_args(new_mock_client)
+            tag_columns = call_args["tag_columns"]
+            # Strategy params should NOT be in tag_columns for trades queue
+            assert_tag_in_columns(tag_columns, "short_window", should_exist=False)
+            assert_tag_in_columns(tag_columns, "long_window", should_exist=False)
+            # Verify strategy params were NOT added to data
+            data = call_args["data"]
+            assert "short_window" not in data
+            assert "long_window" not in data
 
     @pytest.mark.unit
     def test_process_queue_tag_columns_none_values(
