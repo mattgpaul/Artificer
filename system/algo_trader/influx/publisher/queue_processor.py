@@ -101,8 +101,11 @@ def process_queue(
             strategy_name = data.get("strategy_name")
             if strategy_name:
                 if queue_name == "backtest_trades_queue":
-                    # All backtest trades share a common measurement; distinguish by tags.
-                    dynamic_table_name = "trades"
+                    portfolio_stage = data.get("portfolio_stage")
+                    if portfolio_stage == "phase1":
+                        dynamic_table_name = "local_trades"
+                    else:
+                        dynamic_table_name = "trades"
                 elif queue_name == "backtest_metrics_queue":
                     dynamic_table_name = f"{strategy_name}_summary"
                 elif queue_name == "backtest_studies_queue":

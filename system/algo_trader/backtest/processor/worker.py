@@ -92,6 +92,7 @@ def write_backtest_results(
     train_split: float | None,
     filter_config_dict: dict | None = None,
     hash_id: str | None = None,
+    portfolio_stage: str = "final",
 ) -> bool:
     """Write backtest results to Redis queues.
 
@@ -156,6 +157,7 @@ def write_backtest_results(
         train_split=train_split,
         filter_params=filter_config_dict,
         hash_id=hash_id,
+        portfolio_stage=portfolio_stage,
     )
 
     writer.write_studies(
@@ -211,6 +213,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             - trade_percentage_local: Trade percentage
             - filter_pipeline: FilterPipeline instance (may be None)
             - position_manager_config_name: Position manager config name or path
+            - portfolio_manager_config_name: Portfolio manager config name or path
             - filter_config_dict: Filter config dict for hash computation
             - hash_id_local: Canonical hash ID for this backtest configuration
 
@@ -238,6 +241,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
         trade_percentage_local,
         filter_pipeline,
         position_manager_config_name,
+        portfolio_manager_config_name,
         filter_config_dict,
         hash_id_local,
     ) = args
@@ -261,6 +265,8 @@ def backtest_ticker_worker(args: tuple) -> dict:
             pipeline = load_position_manager_config(position_manager_config_name, logger)
             if pipeline is not None:
                 position_manager = PositionManager(pipeline, capital_per_trade_local, logger)
+
+        portfolio_stage = "phase1" if portfolio_manager_config_name is not None else "final"
 
         engine = BacktestEngine(
             strategy=strategy_instance,
@@ -304,6 +310,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
             train_split=train_split_local,
             filter_config_dict=filter_config_dict,
             hash_id=hash_id_local,
+            portfolio_stage=portfolio_stage,
         )
 
         if trades_success:

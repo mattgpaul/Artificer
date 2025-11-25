@@ -1,0 +1,4 @@
+rules:
+  - max_capital_deployed:
+      max_deployed_pct: 0.5
+
