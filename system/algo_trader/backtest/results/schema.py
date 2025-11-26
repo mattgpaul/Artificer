@@ -73,6 +73,7 @@ class BacktestTradesPayload(BaseModel):
     strategy_params: dict[str, Any] | None = None
     data: BacktestTimeSeriesData
     database: str | None = None
+    portfolio_stage: str | None = None
 
     @field_validator("ticker", "strategy_name")
     @classmethod

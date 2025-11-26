@@ -14,10 +14,19 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.cli_utils import resolve_tickers
 from system.algo_trader.backtest.core.execution import ExecutionConfig
-from system.algo_trader.backtest.processor.processor import BacktestProcessor, get_backtest_database
+from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
+from system.algo_trader.backtest.portfolio_main import run_portfolio_phase
+from system.algo_trader.backtest.processor.processor import (
+    BacktestProcessor,
+    get_backtest_database,
+)
+from system.algo_trader.backtest.results.hash import compute_backtest_hash
 from system.algo_trader.strategy.filters.config_loader import (
     load_filter_config_dicts,
     load_filter_configs,
+)
+from system.algo_trader.strategy.position_manager.config_loader import (
+    load_position_manager_config_dict,
 )
 from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
 from system.algo_trader.strategy.strategy import Side
@@ -179,6 +188,16 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--portfolio-manager",
+        type=str,
+        default=None,
+        help=(
+            "Name of portfolio manager YAML config under "
+            "'system/algo_trader/strategy/portfolio_manager/strategies' "
+            "(without .yaml), or an explicit path to a YAML file (optional)"
+        ),
+    )
+    parser.add_argument(
         "--filter",
         type=str,
         action="append",
@@ -208,7 +227,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main():  # noqa: PLR0911, PLR0915
     """Main entry point for backtesting CLI.
 
     Returns:
@@ -252,6 +271,7 @@ def main():
     )
 
     position_manager_config_name = args.position_manager
+    portfolio_manager_config_name = args.portfolio_manager
 
     filter_pipeline = load_filter_configs(args.filter, logger)
     filter_config_dict = load_filter_config_dicts(args.filter, logger)
@@ -272,6 +292,26 @@ def main():
 
         logger.info(f"Backtest ID: {backtest_id}")
         logger.info(f"Results Database: {results_database}")
+
+        hash_id = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=start_date,
+            end_date=end_date,
+            step_frequency=args.step_frequency,
+            database=args.database,
+            tickers=tickers,
+            capital_per_trade=args.capital,
+            risk_free_rate=args.risk_free_rate,
+            walk_forward=args.walk_forward,
+            train_days=args.train_days if args.walk_forward else None,
+            test_days=args.test_days if args.walk_forward else None,
+            train_split=args.train_split,
+            position_manager_params=load_position_manager_config_dict(
+                position_manager_config_name, logger
+            ),
+            filter_params=filter_config_dict,
+        )
 
         processor = BacktestProcessor(logger=logger)
         processor.process_tickers(
@@ -297,11 +337,36 @@ def main():
             trade_percentage=args.trade_percentage,
             filter_pipeline=filter_pipeline,
             position_manager_config_name=position_manager_config_name,
+            portfolio_manager_config_name=portfolio_manager_config_name,
             filter_config_dict=filter_config_dict,
         )
 
+        if portfolio_manager_config_name:
+            logger.info("Starting portfolio manager phase for backtest")
+            status = run_portfolio_phase(
+                database=results_database,
+                hashes=[hash_id],
+                portfolio_manager_config=portfolio_manager_config_name,
+                initial_account_value=args.account_value,
+                ohlcv_database=args.database,
+                logger=logger,
+            )
+            if status != 0:
+                logger.error("Portfolio manager phase failed")
+                return status
+
         return 0
 
+    except KeyboardInterrupt:
+        logger.info("Backtest interrupted by user")
+        if portfolio_manager_config_name:
+            try:
+                hash_id_local = locals().get("hash_id")
+                if hash_id_local:
+                    clear_for_hash(hash_id_local)
+            except Exception:
+                pass
+        return 1
     except Exception as e:
         logger.error(f"Backtest failed: {e}", exc_info=True)
         return 1

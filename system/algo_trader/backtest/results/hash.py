@@ -35,8 +35,9 @@ def compute_backtest_hash(
     Creates a SHA-256 hash from backtest parameters to uniquely identify
     a backtest configuration. Used for deduplication and result lookup.
 
-    Note: tickers, start_date, end_date, and database are NOT included in the hash
-    to allow comparing results across different time periods, tickers, and databases.
+    Note: tickers (as "universe") ARE included in the hash so different ticker sets
+    produce different IDs. start_date, end_date, and database are NOT included in
+    the hash to allow comparing results across different time periods and data sources.
 
     Args:
         strategy_params: Dictionary of strategy parameters.
@@ -45,7 +46,7 @@ def compute_backtest_hash(
         end_date: End date of backtest period (not included in hash).
         step_frequency: Frequency for time steps.
         database: Database name used for data access (not included in hash).
-        tickers: List of ticker symbols (not included in hash).
+        tickers: List of ticker symbols (included in hash as "universe").
         capital_per_trade: Capital allocated per trade.
         risk_free_rate: Risk-free rate for Sharpe ratio calculation.
         walk_forward: Whether walk-forward analysis is used.
@@ -75,6 +76,10 @@ def compute_backtest_hash(
         "train_days": train_days,
         "test_days": test_days,
         "train_split": train_split,
+        # Include universe in hash so different ticker sets produce different IDs.
+        "universe": sorted(tickers),
+        # Keep database and date range out of the hash so the same configuration
+        # can be compared across data sources and periods.
     }
     if position_manager_params is not None:
         args_dict["position_manager"] = position_manager_params
