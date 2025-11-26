@@ -1,7 +1,12 @@
+"""OHLCV caching module for backtesting.
+
+This module provides caching functionality for OHLCV data to improve
+backtesting performance by avoiding redundant data loads from InfluxDB.
+"""
+
 import pickle
 import zlib
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import yaml
@@ -14,15 +19,13 @@ _logger_config = get_logger("OhlcvCacheConfig")
 
 
 def _get_cache_config() -> tuple[int, int]:
-    global _config_cache
+    global _config_cache  # noqa: PLW0603
     if _config_cache is not None:
         return _config_cache
 
     config_path = Path(__file__).parent / "ohlcv_cache_config.yaml"
     if not config_path.exists():
-        _logger_config.warning(
-            f"OHLCV cache config not found at {config_path}, using defaults"
-        )
+        _logger_config.warning(f"OHLCV cache config not found at {config_path}, using defaults")
         _config_cache = (1000000000, 3600)
         return _config_cache
 
@@ -44,16 +47,41 @@ def _get_cache_config() -> tuple[int, int]:
 
 
 class OhlcvCacheClient(BaseRedisClient):
+    """Redis client for OHLCV cache operations.
+
+    Manages caching of OHLCV dataframes in Redis with size tracking
+    and TTL-based expiration.
+    """
+
     def _get_namespace(self) -> str:
         return "ohlcv_cache"
 
     def get_usage_key(self) -> str:
+        """Get Redis key for total cache usage tracking.
+
+        Returns:
+            Redis key string for usage tracking.
+        """
         return "usage:total_bytes"
 
     def get_size_key(self, hash_id: str, ticker: str) -> str:
+        """Get Redis key for a specific ticker's cache size.
+
+        Args:
+            hash_id: Backtest hash identifier.
+            ticker: Ticker symbol.
+
+        Returns:
+            Redis key string for size tracking.
+        """
         return f"size:{hash_id}:{ticker}"
 
     def get_current_usage(self) -> int:
+        """Get current total cache usage in bytes.
+
+        Returns:
+            Current cache usage in bytes, or 0 if not set.
+        """
         usage_str = self.get(self.get_usage_key())
         if usage_str:
             try:
@@ -63,15 +91,38 @@ class OhlcvCacheClient(BaseRedisClient):
         return 0
 
     def update_usage(self, delta_bytes: int, ttl: int) -> None:
+        """Update total cache usage by a delta amount.
+
+        Args:
+            delta_bytes: Change in bytes (can be negative).
+            ttl: Time-to-live in seconds for the usage key.
+        """
         current = self.get_current_usage()
         new_total = max(0, current + delta_bytes)
         self.set(self.get_usage_key(), str(new_total), ttl=ttl)
 
     def record_size(self, hash_id: str, ticker: str, size_bytes: int, ttl: int) -> None:
+        """Record the size of a cached ticker's data.
+
+        Args:
+            hash_id: Backtest hash identifier.
+            ticker: Ticker symbol.
+            size_bytes: Size of cached data in bytes.
+            ttl: Time-to-live in seconds.
+        """
         size_key = self.get_size_key(hash_id, ticker)
         self.set(size_key, str(size_bytes), ttl=ttl)
 
     def get_recorded_size(self, hash_id: str, ticker: str) -> int:
+        """Get recorded size for a cached ticker.
+
+        Args:
+            hash_id: Backtest hash identifier.
+            ticker: Ticker symbol.
+
+        Returns:
+            Recorded size in bytes, or 0 if not found.
+        """
         size_key = self.get_size_key(hash_id, ticker)
         size_str = self.get(size_key)
         if size_str:
@@ -82,6 +133,14 @@ class OhlcvCacheClient(BaseRedisClient):
         return 0
 
     def get_binary(self, key: str) -> bytes | None:
+        """Get binary data from cache.
+
+        Args:
+            key: Cache key (without namespace).
+
+        Returns:
+            Binary data if found, None otherwise.
+        """
         try:
             namespaced_key = self._build_key(key)
             value = self.client.get(namespaced_key)
@@ -91,6 +150,16 @@ class OhlcvCacheClient(BaseRedisClient):
             return None
 
     def set_binary(self, key: str, value: bytes, ttl: int | None = None) -> bool:
+        """Set binary data in cache.
+
+        Args:
+            key: Cache key (without namespace).
+            value: Binary data to store.
+            ttl: Optional time-to-live in seconds.
+
+        Returns:
+            True if successful, False otherwise.
+        """
         try:
             namespaced_key = self._build_key(key)
             result = self.client.set(namespaced_key, value, ex=ttl)
@@ -113,6 +182,15 @@ def _deserialize_dataframe(data: bytes) -> pd.DataFrame:
 
 
 def make_key(hash_id: str, ticker: str) -> str:
+    """Create a cache key from hash ID and ticker.
+
+    Args:
+        hash_id: Backtest hash identifier.
+        ticker: Ticker symbol.
+
+    Returns:
+        Cache key string.
+    """
     return f"{hash_id}:{ticker}"
 
 
@@ -121,13 +199,20 @@ _logger = get_logger("OhlcvCache")
 
 
 def _get_client() -> OhlcvCacheClient:
-    global _client
+    global _client  # noqa: PLW0603
     if _client is None:
         _client = OhlcvCacheClient()
     return _client
 
 
 def store_ohlcv_frame(hash_id: str, ticker: str, df: pd.DataFrame) -> None:
+    """Store OHLCV dataframe in cache.
+
+    Args:
+        hash_id: Backtest hash identifier.
+        ticker: Ticker symbol.
+        df: OHLCV dataframe to cache.
+    """
     if df is None or df.empty:
         return
 
@@ -159,6 +244,15 @@ def store_ohlcv_frame(hash_id: str, ticker: str, df: pd.DataFrame) -> None:
 
 
 def load_ohlcv_frame(hash_id: str, ticker: str) -> pd.DataFrame | None:
+    """Load OHLCV dataframe from cache.
+
+    Args:
+        hash_id: Backtest hash identifier.
+        ticker: Ticker symbol.
+
+    Returns:
+        OHLCV dataframe if found, None otherwise.
+    """
     client = _get_client()
     key = make_key(hash_id, ticker)
 
@@ -176,6 +270,11 @@ def load_ohlcv_frame(hash_id: str, ticker: str) -> pd.DataFrame | None:
 
 
 def clear_for_hash(hash_id: str) -> None:
+    """Clear all cached OHLCV data for a specific hash ID.
+
+    Args:
+        hash_id: Backtest hash identifier to clear.
+    """
     client = _get_client()
     data_pattern = f"{hash_id}:*"
     size_pattern = f"size:{hash_id}:*"
@@ -199,9 +298,8 @@ def clear_for_hash(hash_id: str) -> None:
         client.delete(key)
 
     if total_freed > 0:
-        max_bytes, ttl_seconds = _get_cache_config()
+        _max_bytes, ttl_seconds = _get_cache_config()
         client.update_usage(-total_freed, ttl_seconds)
 
     cleared_count = len(data_keys) + len(size_keys)
     _logger.info(f"Cleared {cleared_count} cached OHLCV entries for hash {hash_id}")
-

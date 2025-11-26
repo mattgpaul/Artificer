@@ -15,6 +15,7 @@ from system.algo_trader.backtest.core.execution import ExecutionConfig, Executio
 from system.algo_trader.backtest.core.results_generator import BacktestResults, ResultsGenerator
 from system.algo_trader.backtest.core.signal_collector import SignalCollector
 from system.algo_trader.backtest.core.time_stepper import TimeStepper
+from system.algo_trader.backtest.ohlcv_cache import store_ohlcv_frame
 from system.algo_trader.influx.market_data_influx import MarketDataInflux
 
 if TYPE_CHECKING:
@@ -39,6 +40,12 @@ class BacktestEngine:
         execution_config: Execution simulation configuration.
         capital_per_trade: Capital allocated per trade.
         risk_free_rate: Risk-free rate for performance calculations.
+        initial_account_value: Optional initial account value for account tracking.
+        trade_percentage: Optional percentage of account to use per trade.
+        filter_pipeline: Optional FilterPipeline instance for filtering signals.
+        position_manager: Optional PositionManager instance for position management.
+        hash_id: Optional hash ID for cache identification.
+        enable_caching: Whether to enable OHLCV caching.
     """
 
     def __init__(
@@ -60,6 +67,23 @@ class BacktestEngine:
         enable_caching: bool = False,
     ) -> None:
         """Initialize BacktestEngine with strategy and configuration.
+
+        Args:
+            strategy: Strategy instance to backtest.
+            tickers: List of ticker symbols to backtest.
+            start_date: Start date for the backtest period.
+            end_date: End date for the backtest period.
+            step_frequency: Time-stepping frequency (e.g., 'daily', 'hourly').
+            database: InfluxDB database name for OHLCV data.
+            execution_config: Execution simulation configuration.
+            capital_per_trade: Capital allocated per trade.
+            risk_free_rate: Risk-free rate for performance calculations.
+            initial_account_value: Optional initial account value for account tracking.
+            trade_percentage: Optional percentage of account to use per trade.
+            filter_pipeline: Optional FilterPipeline instance for filtering signals.
+            position_manager: Optional PositionManager instance for position management.
+            hash_id: Optional hash ID for cache identification.
+            enable_caching: Whether to enable OHLCV caching.
 
         Args:
             strategy: Strategy instance to backtest.
@@ -239,8 +263,6 @@ class BacktestEngine:
         self.logger.debug(f"{ticker}: Loaded {len(ticker_data)} OHLCV records")
 
         if self.enable_caching and self.hash_id is not None:
-            from system.algo_trader.backtest.ohlcv_cache import store_ohlcv_frame
-
             store_ohlcv_frame(self.hash_id, ticker, ticker_data)
 
         data_cache = {ticker: ticker_data}

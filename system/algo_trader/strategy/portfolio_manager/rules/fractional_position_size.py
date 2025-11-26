@@ -1,3 +1,9 @@
+"""Fractional position size rule for portfolio management.
+
+This module provides a portfolio rule that sizes positions as a fraction
+of total portfolio equity.
+"""
+
 import math
 
 import pandas as pd
@@ -5,13 +11,23 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
     PortfolioDecision,
-    PortfolioRule,
     PortfolioRuleContext,
 )
 
 
 class FractionalPositionSizeRule:
+    """Portfolio rule that sizes positions as a fraction of equity.
+
+    Calculates maximum position size based on a fraction of total portfolio equity.
+    """
+
     def __init__(self, fraction_of_equity: float = 0.01, logger=None):
+        """Initialize FractionalPositionSizeRule.
+
+        Args:
+            fraction_of_equity: Fraction of equity to allocate per position (default 0.01 = 1%).
+            logger: Optional logger instance.
+        """
         self.fraction_of_equity = fraction_of_equity
         self.logger = logger or get_logger(self.__class__.__name__)
 
@@ -43,7 +59,15 @@ class FractionalPositionSizeRule:
 
         return equity
 
-    def evaluate(self, context: PortfolioRuleContext) -> PortfolioDecision:
+    def evaluate(self, context: PortfolioRuleContext) -> PortfolioDecision:  # noqa: PLR0911
+        """Evaluate fractional position size rule.
+
+        Args:
+            context: PortfolioRuleContext containing signal and portfolio state.
+
+        Returns:
+            PortfolioDecision with max_shares calculated from equity fraction.
+        """
         signal = context.signal
         action = signal.get("action")
         if action not in {"buy_to_open", "sell_to_open"}:
@@ -78,5 +102,3 @@ class FractionalPositionSizeRule:
             max_shares=shares,
             reason=f"fractional_size:{self.fraction_of_equity:.2%}",
         )
-
-

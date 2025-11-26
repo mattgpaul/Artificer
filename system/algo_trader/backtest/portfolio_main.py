@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+"""Portfolio manager phase-2 for backtest trades.
+
+This module provides the CLI interface for running portfolio management
+on backtest execution results, applying portfolio rules and constraints.
+"""
+
 import argparse
 import sys
 import time
@@ -8,7 +14,11 @@ import pandas as pd
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.core.data_loader import DataLoader
-from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.ohlcv_cache import (
+    clear_for_hash,
+    load_ohlcv_frame,
+    store_ohlcv_frame,
+)
 from system.algo_trader.backtest.processor.processor import get_backtest_database
 from system.algo_trader.backtest.results.writer import ResultsWriter
 from system.algo_trader.backtest.utils.utils import BACKTEST_TRADES_QUEUE_NAME
@@ -21,9 +31,12 @@ from system.algo_trader.strategy.portfolio_manager.portfolio_manager import Port
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Portfolio manager phase-2 for backtest trades"
-    )
+    """Parse command-line arguments for portfolio manager.
+
+    Returns:
+        Parsed arguments namespace.
+    """
+    parser = argparse.ArgumentParser(description="Portfolio manager phase-2 for backtest trades")
     parser.add_argument(
         "--hash",
         dest="hashes",
@@ -65,11 +78,23 @@ def load_phase1_executions(
     max_wait_seconds: int = 30,
     poll_interval_seconds: float = 2.0,
 ) -> pd.DataFrame:
+    """Load phase-1 execution results from InfluxDB.
+
+    Args:
+        database: InfluxDB database name.
+        hashes: List of backtest hash IDs to load.
+        logger: Logger instance.
+        max_wait_seconds: Maximum time to wait for data.
+        poll_interval_seconds: Polling interval in seconds.
+
+    Returns:
+        DataFrame containing all phase-1 executions.
+    """
     client = MarketDataInflux(database=database)
     all_executions = []
 
     for hash_id in hashes:
-        query = f'SELECT * FROM "local_trades" WHERE hash = \'{hash_id}\' ORDER BY time ASC'
+        query = f"SELECT * FROM \"local_trades\" WHERE hash = '{hash_id}' ORDER BY time ASC"
 
         df = None
         start_time = time.time()
@@ -90,8 +115,7 @@ def load_phase1_executions(
                 break
 
             logger.info(
-                f"Waiting for phase-1 executions for hash {hash_id} "
-                f"(elapsed={int(elapsed)}s)..."
+                f"Waiting for phase-1 executions for hash {hash_id} (elapsed={int(elapsed)}s)..."
             )
             time.sleep(poll_interval_seconds)
 
@@ -121,6 +145,17 @@ def load_phase1_executions(
 def load_ohlcv_for_executions(
     executions: pd.DataFrame, ohlcv_database: str, hashes: list[str], logger
 ) -> dict[str, pd.DataFrame]:
+    """Load OHLCV data for execution tickers.
+
+    Args:
+        executions: DataFrame containing execution records.
+        ohlcv_database: InfluxDB database name for OHLCV data.
+        hashes: List of backtest hash IDs.
+        logger: Logger instance.
+
+    Returns:
+        Dictionary mapping ticker symbols to OHLCV dataframes.
+    """
     if executions.empty:
         return {}
 
@@ -132,8 +167,6 @@ def load_ohlcv_for_executions(
     ohlcv_by_ticker: dict[str, pd.DataFrame] = {}
 
     if hash_id:
-        from system.algo_trader.backtest.ohlcv_cache import load_ohlcv_frame
-
         for ticker in tickers:
             cached_df = load_ohlcv_frame(hash_id, ticker)
             if cached_df is not None and not cached_df.empty:
@@ -153,8 +186,6 @@ def load_ohlcv_for_executions(
         ohlcv_by_ticker.update(loaded_data)
 
         if hash_id:
-            from system.algo_trader.backtest.ohlcv_cache import store_ohlcv_frame
-
             for ticker, df in loaded_data.items():
                 if df is not None and not df.empty:
                     store_ohlcv_frame(hash_id, ticker, df)
@@ -169,6 +200,17 @@ def wait_for_phase1_completion(
     max_wait_seconds: int = 60,
     poll_interval_seconds: float = 2.0,
 ) -> bool:
+    """Wait for phase-1 backtest completion.
+
+    Args:
+        hashes: List of backtest hash IDs to wait for.
+        logger: Logger instance.
+        max_wait_seconds: Maximum time to wait.
+        poll_interval_seconds: Polling interval in seconds.
+
+    Returns:
+        True if all hashes completed, False if timeout.
+    """
     broker = QueueBroker(namespace="queue")
     start_time = time.time()
 
@@ -211,7 +253,7 @@ def wait_for_phase1_completion(
         time.sleep(poll_interval_seconds)
 
 
-def run_portfolio_phase(
+def run_portfolio_phase(  # noqa: PLR0912, PLR0913, PLR0915
     database: str,
     hashes: list[str],
     portfolio_manager_config: str,
@@ -219,6 +261,19 @@ def run_portfolio_phase(
     ohlcv_database: str,
     logger,
 ) -> int:
+    """Run portfolio management phase on backtest executions.
+
+    Args:
+        database: InfluxDB database name for executions.
+        hashes: List of backtest hash IDs to process.
+        portfolio_manager_config: Portfolio manager configuration name.
+        initial_account_value: Initial account value for portfolio.
+        ohlcv_database: InfluxDB database name for OHLCV data.
+        logger: Logger instance.
+
+    Returns:
+        Exit code (0 for success, non-zero for failure).
+    """
     logger.info("=" * 80)
     logger.info("Portfolio Manager Phase-2")
     logger.info("=" * 80)
@@ -314,6 +369,7 @@ def run_portfolio_phase(
 
 
 def main():
+    """Main entry point for portfolio manager phase-2."""
     args = parse_args()
     logger = get_logger("PortfolioPhase2")
 
@@ -331,8 +387,6 @@ def main():
     except KeyboardInterrupt:
         logger.info("Portfolio phase interrupted by user")
         if args.hashes:
-            from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
-
             for hash_id in args.hashes:
                 clear_for_hash(hash_id)
         return 1
@@ -340,4 +394,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
