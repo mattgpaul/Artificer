@@ -78,7 +78,10 @@ class PortfolioManager:
                 if not allow:
                     continue
 
-                eff_shares = shares if max_shares is None else min(shares, max_shares)
+                eff_shares = max_shares if max_shares is not None else shares
+                eff_shares = float(int(eff_shares))
+                if eff_shares <= 0.0:
+                    continue
                 required_capital = eff_shares * price
                 if required_capital <= 0.0 or required_capital > state.cash_available:
                     continue
@@ -132,12 +135,14 @@ class PortfolioManager:
         if pos.shares <= 0:
             return False
 
-        close_shares = min(shares, pos.shares)
+        close_shares = float(pos.shares)
         if close_shares <= 0:
             return False
 
-        pos.shares -= close_shares
+        row["shares"] = close_shares
+
         proceeds = close_shares * price
+        pos.shares = 0.0
 
         ts = pd.to_datetime(row["signal_time"]).tz_convert("UTC")
         trade_day = ts.normalize()

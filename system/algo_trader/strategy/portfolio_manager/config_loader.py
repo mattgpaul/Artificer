@@ -8,6 +8,9 @@ from system.algo_trader.strategy.portfolio_manager.rules.base import PortfolioRu
 from system.algo_trader.strategy.portfolio_manager.rules.max_capital_deployed import (
     MaxCapitalDeployedRule,
 )
+from system.algo_trader.strategy.portfolio_manager.rules.fractional_position_size import (
+    FractionalPositionSizeRule,
+)
 
 
 def _resolve_config_path(config_name: str) -> Path:
@@ -29,9 +32,23 @@ def _build_max_capital_deployed_rule(params: dict[str, Any], logger=None):
         return None
 
 
+def _build_fractional_position_size_rule(params: dict[str, Any], logger=None):
+    fraction = params.get("fraction_of_equity", 0.01)
+    try:
+        return FractionalPositionSizeRule(
+            fraction_of_equity=float(fraction),
+            logger=logger,
+        )
+    except (ValueError, TypeError) as e:
+        logger.error(f"fractional_position_size rule params must be numeric: {e}")
+        return None
+
+
 def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None):
     if rule_name == "max_capital_deployed":
         return _build_max_capital_deployed_rule(params, logger)
+    if rule_name == "fractional_position_size":
+        return _build_fractional_position_size_rule(params, logger)
     logger.error(f"Unknown rule type: {rule_name}")
     return None
 

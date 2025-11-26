@@ -8,6 +8,7 @@ py_library(
         "portfolio_manager.py",
         "rules/base.py",
         "rules/max_capital_deployed.py",
+        "rules/fractional_position_size.py",
     ],
     data = glob(["strategies/*.yaml"]),
     visibility = [
