@@ -2,6 +2,9 @@
 
 All common fixtures, mocks, and test parameters are defined here
 to reduce code duplication across test files.
+
+Note: Helper functions for queue_processor tests are defined in test_queue_processor.py
+due to Bazel's test runner not auto-importing conftest functions the same way pytest does.
 """
 
 from unittest.mock import MagicMock, patch

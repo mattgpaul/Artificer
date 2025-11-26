@@ -12,13 +12,115 @@ import pytest
 
 from system.algo_trader.backtest.core.execution import ExecutionConfig
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
-from system.algo_trader.backtest.results.writer import ResultsWriter
+from system.algo_trader.backtest.results.writer import (
+    ResultsWriter,
+    _compute_execution_id,
+)
 from system.algo_trader.backtest.utils.utils import (
     BACKTEST_METRICS_QUEUE_NAME,
     BACKTEST_REDIS_TTL,
     BACKTEST_STUDIES_QUEUE_NAME,
     BACKTEST_TRADES_QUEUE_NAME,
 )
+
+# Import helper function from conftest
+from tests.system.algo_trader.backtest.results.conftest import assert_execution_field
+
+
+class TestComputeExecutionId:
+    """Test _compute_execution_id function."""
+
+    @pytest.mark.unit
+    def test_execution_id_deterministic(self, base_execution_params):
+        """Test execution ID is deterministic for same inputs."""
+        exec_id_1 = _compute_execution_id(**base_execution_params)
+        exec_id_2 = _compute_execution_id(**base_execution_params)
+
+        assert exec_id_1 == exec_id_2
+        assert len(exec_id_1) == 16  # 16 hex characters
+
+    @pytest.mark.unit
+    def test_execution_id_different_for_different_inputs(self, base_execution_params):
+        """Test execution ID differs for different inputs."""
+        exec_id_base = _compute_execution_id(**base_execution_params)
+
+        # Different ticker
+        exec_id_ticker = _compute_execution_id(**{**base_execution_params, "ticker": "MSFT"})
+        assert exec_id_base != exec_id_ticker
+
+        # Different price
+        exec_id_price = _compute_execution_id(**{**base_execution_params, "price": 101.0})
+        assert exec_id_base != exec_id_price
+
+        # Different shares
+        exec_id_shares = _compute_execution_id(**{**base_execution_params, "shares": 200.0})
+        assert exec_id_base != exec_id_shares
+
+        # Different action
+        exec_id_action = _compute_execution_id(
+            **{**base_execution_params, "action": "sell_to_close"}
+        )
+        assert exec_id_base != exec_id_action
+
+        # Different timestamp
+        exec_id_time = _compute_execution_id(
+            **{**base_execution_params, "timestamp": pd.Timestamp("2024-01-06", tz="UTC")}
+        )
+        assert exec_id_base != exec_id_time
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize(
+        "trade_id,expected_empty",
+        [
+            (None, True),
+            (1, False),
+            (0, False),
+            ("", True),
+        ],
+    )
+    def test_execution_id_handles_none_trade_id(
+        self, base_execution_params, trade_id, expected_empty
+    ):
+        """Test execution ID handles None/empty trade_id correctly."""
+        exec_id = _compute_execution_id(**{**base_execution_params, "trade_id": trade_id})
+
+        assert len(exec_id) == 16
+        # Should still produce valid hash even with None trade_id
+        assert isinstance(exec_id, str)
+
+    @pytest.mark.unit
+    def test_execution_id_handles_invalid_timestamp(self, base_execution_params):
+        """Test execution ID handles invalid timestamp gracefully."""
+        exec_id = _compute_execution_id(
+            **{**base_execution_params, "timestamp": "invalid-timestamp"}
+        )
+
+        assert len(exec_id) == 16
+        assert isinstance(exec_id, str)
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize(
+        "side,action,expected_action",
+        [
+            ("LONG", "buy_to_open", "buy_to_open"),
+            ("LONG", "sell_to_close", "sell_to_close"),
+            ("SHORT", "sell_to_open", "sell_to_open"),
+            ("SHORT", "buy_to_close", "buy_to_close"),
+        ],
+    )
+    def test_execution_id_different_for_different_sides_and_actions(
+        self, base_execution_params, side, action, expected_action
+    ):
+        """Test execution ID differs for different sides and actions."""
+        exec_id_1 = _compute_execution_id(
+            **{**base_execution_params, "side": side, "action": action}
+        )
+        exec_id_2 = _compute_execution_id(
+            **{**base_execution_params, "side": "LONG", "action": "buy_to_open"}
+        )
+
+        if side != "LONG" or action != "buy_to_open":
+            assert exec_id_1 != exec_id_2
 
 
 class TestResultsWriterInitialization:
@@ -54,10 +156,9 @@ class TestResultsWriterWriteTrades:
     """Test write_trades method."""
 
     @pytest.mark.unit
-    def test_write_trades_empty(self, mock_queue_broker):
+    def test_write_trades_empty(self, results_writer, mock_queue_broker):
         """Test writing empty trades DataFrame."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
 
         result = writer.write_trades(
             trades=pd.DataFrame(),
@@ -69,11 +170,9 @@ class TestResultsWriterWriteTrades:
         mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.unit
-    def test_write_trades_success(self, mock_queue_broker, sample_trade_single):
+    def test_write_trades_success(self, results_writer, mock_queue_broker, sample_trade_single):
         """Test writing trades successfully."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -104,15 +203,14 @@ class TestResultsWriterWriteTrades:
     @pytest.mark.unit
     def test_write_trades_with_hash(
         self,
+        results_writer,
         mock_queue_broker,
         standard_backtest_params,
         standard_backtest_hash_id,
         sample_trade_single,
     ):
         """Test writing trades with backtest hash computation."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -159,11 +257,11 @@ class TestResultsWriterWriteTrades:
         assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
-    def test_write_trades_without_hash_params(self, mock_queue_broker, sample_trade_single):
+    def test_write_trades_without_hash_params(
+        self, results_writer, mock_queue_broker, sample_trade_single
+    ):
         """Test writing trades without hash computation parameters."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -179,10 +277,9 @@ class TestResultsWriterWriteTrades:
         assert queue_data["hash_id"] is None
 
     @pytest.mark.unit
-    def test_write_trades_failure(self, mock_queue_broker, sample_trade_single):
+    def test_write_trades_failure(self, results_writer, mock_queue_broker, sample_trade_single):
         """Test writing trades failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.return_value = False
 
         trades = sample_trade_single
@@ -196,10 +293,9 @@ class TestResultsWriterWriteTrades:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_trades_exception(self, mock_queue_broker, sample_trade_single):
+    def test_write_trades_exception(self, results_writer, mock_queue_broker, sample_trade_single):
         """Test writing trades exception handling."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.side_effect = Exception("Redis error")
 
         trades = sample_trade_single
@@ -215,15 +311,14 @@ class TestResultsWriterWriteTrades:
     @pytest.mark.unit
     def test_write_trades_walk_forward_hash(
         self,
+        results_writer,
         mock_queue_broker,
         walk_forward_backtest_params,
         walk_forward_backtest_hash_id,
         sample_trade_single,
     ):
         """Test hash computation includes walk-forward parameters."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -254,11 +349,11 @@ class TestResultsWriterWriteTrades:
         assert queue_data["hash_id"] == walk_forward_backtest_hash_id
 
     @pytest.mark.unit
-    def test_write_trades_dataframe_conversion(self, mock_queue_broker, sample_trade_single):
+    def test_write_trades_dataframe_conversion(
+        self, results_writer, mock_queue_broker, sample_trade_single
+    ):
         """Test DataFrame to dict conversion."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -276,13 +371,15 @@ class TestResultsWriterWriteTrades:
         assert isinstance(queue_data["data"]["datetime"], list)
         # Each trade becomes 2 journal rows (entry + exit)
         assert len(queue_data["data"]["datetime"]) == 2
+        # Verify execution field is present
+        assert_execution_field(queue_data, expected_count=2)
 
     @pytest.mark.unit
-    def test_write_trades_nan_handling(self, mock_queue_broker, sample_trade_with_nan):
+    def test_write_trades_nan_handling(
+        self, results_writer, mock_queue_broker, sample_trade_with_nan
+    ):
         """Test NaN handling in DataFrame conversion."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_with_nan
 
@@ -299,11 +396,9 @@ class TestResultsWriterWriteTrades:
         assert "data" in queue_data
 
     @pytest.mark.unit
-    def test_write_trades_all_nan_column(self, mock_queue_broker, sample_trade_with_nan):
+    def test_write_trades_all_nan_column(self, results_writer, sample_trade_with_nan):
         """Test handling of all-NaN columns."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         # Add all_nan_col to the fixture
         trades = sample_trade_with_nan.copy()
@@ -320,12 +415,10 @@ class TestResultsWriterWriteTrades:
 
     @pytest.mark.unit
     def test_write_trades_schema_validation_failure_mismatched_lengths(
-        self, mock_queue_broker, sample_trade_single
+        self, results_writer, mock_queue_broker, sample_trade_single
     ):
         """Test that schema validation failure prevents enqueue."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -349,12 +442,10 @@ class TestResultsWriterWriteTrades:
 
     @pytest.mark.unit
     def test_write_trades_schema_validation_failure_invalid_strategy_params(
-        self, mock_queue_broker, sample_trade_single
+        self, results_writer, mock_queue_broker, sample_trade_single
     ):
         """Test that invalid strategy_params keys cause validation failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -370,11 +461,11 @@ class TestResultsWriterWriteTrades:
         mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.integration
-    def test_write_trades_complete_workflow(self, mock_queue_broker, sample_trades_multiple):
+    def test_write_trades_complete_workflow(
+        self, results_writer, mock_queue_broker, sample_trades_multiple
+    ):
         """Test complete workflow: DataFrame → dict → Redis."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trades_multiple
 
@@ -407,17 +498,17 @@ class TestResultsWriterWriteTrades:
         assert queue_data["strategy_params"] == {"short_window": 10}
         # Each trade becomes 2 journal rows (entry + exit), so 2 trades = 4 rows
         assert len(queue_data["data"]["datetime"]) == 4
+        # Verify execution field is present
+        assert_execution_field(queue_data, expected_count=4)
 
 
 class TestResultsWriterWriteMetrics:
     """Test write_metrics method."""
 
     @pytest.mark.unit
-    def test_write_metrics_success(self, mock_queue_broker):
+    def test_write_metrics_success(self, results_writer, mock_queue_broker):
         """Test writing metrics successfully."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         metrics = {
             "total_trades": 10,
@@ -456,12 +547,10 @@ class TestResultsWriterWriteMetrics:
 
     @pytest.mark.unit
     def test_write_metrics_with_hash(
-        self, mock_queue_broker, standard_backtest_params, standard_backtest_hash_id
+        self, results_writer, mock_queue_broker, standard_backtest_params, standard_backtest_hash_id
     ):
         """Test writing metrics with hash computation."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         metrics = {"total_trades": 5}
 
@@ -488,10 +577,9 @@ class TestResultsWriterWriteMetrics:
         assert queue_data["hash_id"] == standard_backtest_hash_id
 
     @pytest.mark.unit
-    def test_write_metrics_failure(self, mock_queue_broker):
+    def test_write_metrics_failure(self, results_writer, mock_queue_broker):
         """Test writing metrics failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.return_value = False
 
         metrics = {"total_trades": 5}
@@ -505,11 +593,11 @@ class TestResultsWriterWriteMetrics:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_metrics_schema_validation_failure_invalid_ticker(self, mock_queue_broker):
+    def test_write_metrics_schema_validation_failure_invalid_ticker(
+        self, results_writer, mock_queue_broker
+    ):
         """Test that invalid ticker causes metrics payload validation failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         # Minimal metrics dictionary; hashing will be skipped.
         metrics = {"total_trades": 1}
@@ -524,10 +612,9 @@ class TestResultsWriterWriteMetrics:
         mock_queue_broker.enqueue.assert_not_called()
 
     @pytest.mark.unit
-    def test_write_metrics_exception(self, mock_queue_broker):
+    def test_write_metrics_exception(self, results_writer, mock_queue_broker):
         """Test writing metrics exception handling."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.side_effect = Exception("Redis error")
 
         metrics = {"total_trades": 5}
@@ -541,11 +628,9 @@ class TestResultsWriterWriteMetrics:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_metrics_rounding(self, mock_queue_broker):
+    def test_write_metrics_rounding(self, results_writer, mock_queue_broker):
         """Test metrics values are properly rounded."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         metrics = {
             "total_profit": 1234.56789,
@@ -708,11 +793,9 @@ class TestResultsWriterDataFrameConversion:
     """Test DataFrame to dict conversion."""
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_datetime_index(self, mock_queue_broker):
+    def test_dataframe_to_dict_datetime_index(self, results_writer, mock_queue_broker):
         """Test conversion with DatetimeIndex."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         dates = pd.date_range("2024-01-01", periods=5, freq="D", tz="UTC")
         trades = pd.DataFrame(
@@ -740,13 +823,13 @@ class TestResultsWriterDataFrameConversion:
         assert "datetime" in queue_data["data"]
         # Each trade becomes 2 journal rows (entry + exit), so 5 trades = 10 rows
         assert len(queue_data["data"]["datetime"]) == 10
+        # Verify execution field is present
+        assert_execution_field(queue_data, expected_count=10)
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_datetime_column(self, mock_queue_broker):
+    def test_dataframe_to_dict_datetime_column(self, results_writer, mock_queue_broker):
         """Test conversion with datetime column."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = pd.DataFrame(
             {
@@ -773,11 +856,11 @@ class TestResultsWriterDataFrameConversion:
         assert "datetime" not in queue_data["data"] or queue_data["data"]["datetime"] is not None
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_exit_time_column(self, mock_queue_broker, sample_trade_single):
+    def test_dataframe_to_dict_exit_time_column(
+        self, results_writer, mock_queue_broker, sample_trade_single
+    ):
         """Test conversion with exit_time column."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -793,11 +876,9 @@ class TestResultsWriterDataFrameConversion:
         assert "datetime" in queue_data["data"]
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_nan_string_columns(self, mock_queue_broker):
+    def test_dataframe_to_dict_nan_string_columns(self, results_writer):
         """Test NaN handling in string columns."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = pd.DataFrame(
             {
@@ -822,11 +903,9 @@ class TestResultsWriterDataFrameConversion:
         # NaN should be converted to empty string
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_nan_numeric_columns(self, mock_queue_broker):
+    def test_dataframe_to_dict_nan_numeric_columns(self, results_writer):
         """Test NaN handling in numeric columns."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = pd.DataFrame(
             {
@@ -851,11 +930,11 @@ class TestResultsWriterDataFrameConversion:
         # NaN should be converted to 0
 
     @pytest.mark.unit
-    def test_dataframe_to_dict_datetime_columns(self, mock_queue_broker, sample_trade_single):
+    def test_dataframe_to_dict_datetime_columns(
+        self, results_writer, mock_queue_broker, sample_trade_single
+    ):
         """Test datetime column conversion."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trade_single
 
@@ -877,11 +956,11 @@ class TestResultsWriterDataFrameConversion:
         assert isinstance(queue_data["data"]["price"], list)
 
     @pytest.mark.integration
-    def test_dataframe_to_dict_complete_conversion(self, mock_queue_broker, sample_trades_multiple):
+    def test_dataframe_to_dict_complete_conversion(
+        self, results_writer, mock_queue_broker, sample_trades_multiple
+    ):
         """Test complete DataFrame conversion workflow."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         trades = sample_trades_multiple.copy()
         trades["side"] = ["LONG", "LONG"]
@@ -903,15 +982,15 @@ class TestResultsWriterDataFrameConversion:
         # Note: gross_pnl may not be in journal rows, check for price instead
         assert "price" in data_dict
         assert len(data_dict["price"]) == 4
+        # Verify execution field is present
+        assert_execution_field(queue_data, expected_count=4)
 
     @pytest.mark.unit
     def test_write_trades_pm_managed_executions(
-        self, mock_queue_broker, sample_pm_executions_open_tp_close
+        self, results_writer, mock_queue_broker, sample_pm_executions_open_tp_close
     ):
         """Test execution-based journaling for PM-managed signals with actions/shares."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         # Simulate PM-managed executions: open, partial TP, final close
         executions = sample_pm_executions_open_tp_close
@@ -942,15 +1021,19 @@ class TestResultsWriterDataFrameConversion:
         assert data["shares"][1] == 67.0
         assert data["shares"][2] == 67.0
 
+        # Verify execution field is present and unique for each row
+        assert_execution_field(queue_data, expected_count=3)
+        # Each execution should be unique
+        assert len(set(data["execution"])) == 3
+
 
 class TestResultsWriterWriteStudies:
     """Test write_studies method."""
 
     @pytest.mark.unit
-    def test_write_studies_empty(self, mock_queue_broker):
+    def test_write_studies_empty(self, results_writer, mock_queue_broker):
         """Test writing empty studies DataFrame."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
 
         result = writer.write_studies(
             studies=pd.DataFrame(),
@@ -963,12 +1046,10 @@ class TestResultsWriterWriteStudies:
 
     @pytest.mark.unit
     def test_write_studies_success(
-        self, mock_queue_broker, sample_studies_data_minimal, execution_config
+        self, results_writer, mock_queue_broker, sample_studies_data_minimal, execution_config
     ):
         """Test writing studies successfully."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
         result = writer.write_studies(
             studies=sample_studies_data_minimal,
             strategy_name="TestStrategy",
@@ -995,15 +1076,14 @@ class TestResultsWriterWriteStudies:
     @pytest.mark.unit
     def test_write_studies_with_hash(
         self,
+        results_writer,
         mock_queue_broker,
         sample_studies_data_minimal,
         standard_backtest_params,
         standard_backtest_hash_id,
     ):
         """Test writing studies with backtest hash computation."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
         strategy_params = {"short_window": 10, "long_window": 20}
 
         # Compute hash for this specific strategy_params
@@ -1048,11 +1128,11 @@ class TestResultsWriterWriteStudies:
         assert len(queue_data["hash_id"]) == 16  # 16-char hex hash
 
     @pytest.mark.unit
-    def test_write_studies_without_hash_params(self, mock_queue_broker, sample_studies_data_single):
+    def test_write_studies_without_hash_params(
+        self, results_writer, mock_queue_broker, sample_studies_data_single
+    ):
         """Test writing studies without hash computation parameters."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         result = writer.write_studies(
             studies=sample_studies_data_single,
@@ -1066,10 +1146,11 @@ class TestResultsWriterWriteStudies:
         assert queue_data["hash_id"] is None
 
     @pytest.mark.unit
-    def test_write_studies_failure(self, mock_queue_broker, sample_studies_data_single):
+    def test_write_studies_failure(
+        self, results_writer, mock_queue_broker, sample_studies_data_single
+    ):
         """Test writing studies failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.return_value = False
 
         result = writer.write_studies(
@@ -1081,10 +1162,11 @@ class TestResultsWriterWriteStudies:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_studies_exception(self, mock_queue_broker, sample_studies_data_single):
+    def test_write_studies_exception(
+        self, results_writer, mock_queue_broker, sample_studies_data_single
+    ):
         """Test writing studies exception handling."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
+        writer = results_writer
         mock_queue_broker.enqueue.side_effect = Exception("Redis error")
 
         result = writer.write_studies(
@@ -1096,11 +1178,9 @@ class TestResultsWriterWriteStudies:
         assert result is False
 
     @pytest.mark.unit
-    def test_write_studies_schema_validation_failure(self, mock_queue_broker):
+    def test_write_studies_schema_validation_failure(self, results_writer, mock_queue_broker):
         """Test that schema validation failure prevents enqueue."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         studies = pd.DataFrame(
             {
@@ -1133,12 +1213,10 @@ class TestResultsWriterWriteStudies:
 
     @pytest.mark.unit
     def test_write_studies_invalid_strategy_params(
-        self, mock_queue_broker, sample_studies_data_single
+        self, results_writer, mock_queue_broker, sample_studies_data_single
     ):
         """Test that invalid strategy_params keys cause validation failure."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         # strategy_params with an empty key should fail BacktestStudiesPayload validation.
         result = writer.write_studies(
@@ -1154,15 +1232,14 @@ class TestResultsWriterWriteStudies:
     @pytest.mark.unit
     def test_write_studies_walk_forward_hash(
         self,
+        results_writer,
         mock_queue_broker,
         sample_studies_data_single,
         walk_forward_backtest_params,
         walk_forward_backtest_hash_id,
     ):
         """Test hash computation includes walk-forward parameters."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         result = writer.write_studies(
             studies=sample_studies_data_single,
@@ -1192,12 +1269,10 @@ class TestResultsWriterWriteStudies:
 
     @pytest.mark.integration
     def test_write_studies_complete_workflow(
-        self, mock_queue_broker, sample_studies_data, execution_config
+        self, results_writer, mock_queue_broker, sample_studies_data, execution_config
     ):
         """Test complete workflow: DataFrame → dict → Redis."""
-        writer = ResultsWriter()
-        writer.queue_broker = mock_queue_broker
-        mock_queue_broker.enqueue.return_value = True
+        writer = results_writer
 
         result = writer.write_studies(
             studies=sample_studies_data,
