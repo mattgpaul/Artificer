@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument(
         "--initial-account-value",
         type=float,
-        default=100000.0,
+        default=10000.0,
         help="Initial account value for portfolio (default: 100000)",
     )
     return parser.parse_args()
