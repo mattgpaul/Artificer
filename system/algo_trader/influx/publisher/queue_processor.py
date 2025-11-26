@@ -101,12 +101,19 @@ def process_queue(
             strategy_name = data.get("strategy_name")
             if strategy_name:
                 if queue_name == "backtest_trades_queue":
-                    dynamic_table_name = strategy_name
+                    portfolio_stage = data.get("portfolio_stage")
+                    if portfolio_stage == "phase1":
+                        dynamic_table_name = "local_trades"
+                    else:
+                        dynamic_table_name = "trades"
                 elif queue_name == "backtest_metrics_queue":
                     dynamic_table_name = f"{strategy_name}_summary"
+                elif queue_name == "backtest_studies_queue":
+                    # Strategy-specific studies live in per-strategy measurements.
+                    dynamic_table_name = strategy_name
 
             backtest_id = data.get("backtest_id")
-            hash_id = data.get("hash_id")
+            hash_value = data.get("hash") or data.get("hash_id")
 
             data_length = len(time_series_data.get("datetime", []))
             if data_length == 0:
@@ -115,26 +122,39 @@ def process_queue(
                 failed_count += 1
                 continue
 
-            # For backtest_studies_queue, do not add backtest_id as a tag
-            # Rely on hash_id, ticker, strategy, and parameter tags as the uniqueness key
-            if backtest_id and queue_name != "backtest_studies_queue":
+            # backtest_id is deprecated for new schema; do not add it as a tag or field
+            # for trades or studies. It may still be used for legacy metrics only.
+            if backtest_id and queue_name == "backtest_metrics_queue":
                 if "backtest_id" not in time_series_data:
                     time_series_data["backtest_id"] = [backtest_id] * data_length
                 tag_columns.append("backtest_id")
-            if hash_id:
-                if "hash_id" not in time_series_data:
-                    time_series_data["hash_id"] = [hash_id] * data_length
-                tag_columns.append("hash_id")
+            if hash_value:
+                if "hash" not in time_series_data:
+                    time_series_data["hash"] = [hash_value] * data_length
+                tag_columns.append("hash")
 
             if strategy_name:
                 if "strategy" not in time_series_data:
                     time_series_data["strategy"] = [strategy_name] * data_length
                 tag_columns.append("strategy")
 
-            # Add strategy parameters as tags if provided
+            # Add strategy parameters as tags if provided.
+            # For the new schema:
+            # - Trades: do NOT tag with strategy parameters; those belong in
+            #   strategy-specific tables, not in the shared trades measurement.
+            # - Studies/metrics: keep parameter tags (e.g., short_window/long_window)
+            #   but skip side, which is already expressed in trades.
             strategy_params = data.get("strategy_params")
-            if strategy_params and isinstance(strategy_params, dict):
+            if (
+                strategy_params
+                and isinstance(strategy_params, dict)
+                and queue_name != "backtest_trades_queue"
+            ):
                 for raw_key, param_value in strategy_params.items():
+                    # Skip side for strategy tables/metrics; side is a trade-level concept.
+                    if raw_key == "side":
+                        continue
+
                     # Preserve historic tag names for SMA crossover parameters to
                     # avoid line protocol issues and maintain dashboard queries.
                     if raw_key == "short":

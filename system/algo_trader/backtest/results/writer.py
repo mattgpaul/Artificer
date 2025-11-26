@@ -4,6 +4,7 @@ This module provides functionality to write backtest results (trades and metrics
 to Redis queues for later publication to InfluxDB by the influx-publisher service.
 """
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -32,6 +33,28 @@ def _determine_action(side: str, is_entry: bool) -> str:
         return "buy_to_open" if is_entry else "sell_to_close"
     else:
         return "sell_to_open" if is_entry else "buy_to_close"
+
+
+def _compute_execution_id(
+    ticker: str,
+    strategy: str,
+    trade_id: Any,
+    timestamp: Any,
+    side: str,
+    action: str,
+    price: float,
+    shares: float,
+) -> str:
+    """Compute a deterministic execution identifier for a single journal row."""
+    try:
+        ts = pd.to_datetime(timestamp, utc=True)
+        ts_str = ts.isoformat()
+    except Exception:
+        ts_str = str(timestamp)
+
+    trade_id_str = "" if trade_id is None else str(trade_id)
+    raw = f"{ticker}|{strategy}|{trade_id_str}|{ts_str}|{side}|{action}|{shares}|{price}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
 def _transform_trades_to_journal_rows(
@@ -143,20 +166,33 @@ def _assign_trade_id_for_execution(
 
     Returns None if the action is unknown and the row should be skipped.
     """
+    normalized_action: str | None
+    if action in {"open", "scale_in", "scale_out", "close"}:
+        normalized_action = str(action)
+    elif action in {"buy_to_open", "sell_to_open"}:
+        normalized_action = "open"
+    elif action in {"buy_to_close", "sell_to_close"}:
+        normalized_action = "close"
+    else:
+        return None
+
     if ticker not in trade_ids:
         trade_ids[ticker] = 0
         position_sizes[ticker] = 0.0
 
     current_size = position_sizes[ticker]
 
-    if action in {"open", "scale_in"} and current_size <= 0.0:
+    if normalized_action in {"close", "scale_out"} and current_size <= 0.0:
+        return None
+
+    if normalized_action in {"open", "scale_in"} and current_size <= 0.0:
         trade_ids[ticker] += 1
 
     trade_id = trade_ids[ticker]
 
-    if action in {"open", "scale_in"}:
+    if normalized_action in {"open", "scale_in"}:
         position_sizes[ticker] = current_size + shares
-    elif action in {"scale_out", "close"}:
+    elif normalized_action in {"scale_out", "close"}:
         position_sizes[ticker] = max(0.0, current_size - shares)
     else:
         return None
@@ -175,23 +211,40 @@ def _build_execution_journal_row(
 ) -> dict[str, Any]:
     """Build a single journal row dict from an execution row."""
     ticker = row.get("ticker", "")
-    strategy = row.get("strategy", "")
+    commission = row.get("commission", 0.0)
 
-    # Determine journal-side action (buy_to_open, sell_to_close, etc.)
-    action = _determine_action(
+    raw_action = row.get("action")
+    if raw_action in {"open", "scale_in", "scale_out", "close"}:
+        is_entry = raw_action in {"open", "scale_in"}
+    elif raw_action in {"buy_to_open", "sell_to_open"}:
+        is_entry = True
+    elif raw_action in {"buy_to_close", "sell_to_close"}:
+        is_entry = False
+    else:
+        return None
+
+    action = _determine_action(side=side, is_entry=is_entry)
+
+    execution_id = _compute_execution_id(
+        ticker=ticker,
+        strategy=row.get("strategy", ""),
+        trade_id=trade_id,
+        timestamp=timestamp,
         side=side,
-        is_entry=row.get("action") in {"open", "scale_in"},
+        action=action,
+        price=price_f,
+        shares=shares_f,
     )
 
     journal_row: dict[str, Any] = {
         "datetime": timestamp,
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": price_f,
         "shares": shares_f,
-        "commission": 0.0,
+        "commission": float(commission) if commission is not None else 0.0,
         "action": action,
+        "execution": execution_id,
     }
 
     if trade_id:
@@ -232,15 +285,40 @@ def _journal_rows_for_trade(trade: pd.Series) -> list[dict[str, Any]]:
     trade_id = trade.get("trade_id")
     commission = trade.get("commission", 0.0)
 
+    entry_action = _determine_action(side, True)
+    exit_action = _determine_action(side, False)
+
+    entry_execution = _compute_execution_id(
+        ticker=ticker,
+        strategy=strategy,
+        trade_id=trade_id,
+        timestamp=trade["entry_time"],
+        side=side,
+        action=entry_action,
+        price=float(trade["entry_price"]),
+        shares=float(trade["shares"]),
+    )
+
+    exit_execution = _compute_execution_id(
+        ticker=ticker,
+        strategy=strategy,
+        trade_id=trade_id,
+        timestamp=trade["exit_time"],
+        side=side,
+        action=exit_action,
+        price=float(trade["exit_price"]),
+        shares=float(trade["shares"]),
+    )
+
     entry_row: dict[str, Any] = {
         "datetime": trade["entry_time"],
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": trade["entry_price"],
         "shares": trade["shares"],
         "commission": commission,
-        "action": _determine_action(side, True),
+        "action": entry_action,
+        "execution": entry_execution,
     }
     if trade_id is not None:
         entry_row["trade_id"] = trade_id
@@ -248,12 +326,12 @@ def _journal_rows_for_trade(trade: pd.Series) -> list[dict[str, Any]]:
     exit_row: dict[str, Any] = {
         "datetime": trade["exit_time"],
         "ticker": ticker,
-        "strategy": strategy,
         "side": side,
         "price": trade["exit_price"],
         "shares": trade["shares"],
         "commission": commission,
-        "action": _determine_action(side, False),
+        "action": exit_action,
+        "execution": exit_execution,
     }
     if trade_id is not None:
         exit_row["trade_id"] = trade_id
@@ -302,6 +380,7 @@ class ResultsWriter:
         train_split: float | None = None,
         filter_params: dict[str, Any] | None = None,
         hash_id: str | None = None,
+        portfolio_stage: str = "final",
     ) -> bool:
         """Write backtest trades to Redis queue.
 
@@ -330,6 +409,7 @@ class ResultsWriter:
                 for hash computation. If None, filters are not included in hash.
             hash_id: Optional canonical hash ID for this backtest configuration.
                 If None, hash will be computed from other parameters.
+            portfolio_stage: Portfolio stage identifier (e.g., 'final', 'phase1').
 
         Returns:
             True if trades were successfully enqueued, False otherwise.
@@ -361,6 +441,7 @@ class ResultsWriter:
                 strategy_params=strategy_params,
                 data=trades_dict,
                 database=database,
+                portfolio_stage=portfolio_stage,
             )
         except ValidationError as e:
             self.logger.error(

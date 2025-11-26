@@ -26,6 +26,7 @@ py_library(
         "core/signal_collector.py",
         "core/time_stepper.py",
         "engine.py",
+        "ohlcv_cache.py",
         "processor/parallel.py",
         "processor/processor.py",
         "processor/sequential.py",
@@ -47,12 +48,15 @@ py_library(
         "//infrastructure:config",
         "//infrastructure/logging:logger",
         "//infrastructure/multiprocess:process_manager",
+        "//infrastructure/redis",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy/filters:filters_lib",
+        "//system/algo_trader/strategy/portfolio_manager:portfolio_manager_lib",
         "//system/algo_trader/strategy/position_manager:position_manager_lib",
         requirement("pandas"),
+        requirement("pyyaml"),
         requirement("tqdm"),
     ],
 )
@@ -67,6 +71,7 @@ py_library(
     deps = [
         ":backtest_lib",
         ":cli_utils",
+        ":portfolio_main_lib",
         "//infrastructure/logging:logger",
         "//system/algo_trader/strategy:strategies",
         "//system/algo_trader/strategy/filters:filters_lib",
@@ -79,10 +84,40 @@ py_library(
 py_binary(
     name = "main",
     srcs = ["main.py"],
+    data = ["ohlcv_cache_config.yaml"],
     main = "main.py",
     visibility = ["//visibility:public"],
     deps = [
         ":main_lib",
+    ],
+)
+
+py_library(
+    name = "portfolio_main_lib",
+    srcs = ["portfolio_main.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/backtest:__pkg__",
+    ],
+    deps = [
+        ":backtest_lib",
+        ":cli_utils",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/influx:market_data_influx",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/strategy/portfolio_manager:portfolio_manager_lib",
+        requirement("pandas"),
+    ],
+)
+
+py_binary(
+    name = "portfolio_main",
+    srcs = ["portfolio_main.py"],
+    data = ["ohlcv_cache_config.yaml"],
+    main = "portfolio_main.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":portfolio_main_lib",
     ],
 )
 
