@@ -2,25 +2,20 @@ load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
-    name = "filters_lib",
+    name = "moving_average_lib",
     srcs = [
-        "base.py",
-        "config_loader.py",
-        "core.py",
-        "filters.py",
-        "price_comparison.py",
-        "sma_comparison.py",
+        "ema_crossover.py",
+        "sma_crossover.py",
     ],
-    data = glob(["strategies/*.yaml"]),
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/backtest:__subpackages__",
         "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
-        "//infrastructure/logging:logger",
+        "//system/algo_trader/strategy:strategy_base",
+        "//system/algo_trader/strategy/studies:studies_lib",
         "//system/algo_trader/strategy/studies/moving_average:moving_average_lib",
         requirement("pandas"),
-        requirement("pyyaml"),
     ],
 )
+

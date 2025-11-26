@@ -3,29 +3,39 @@ load("@rules_python//python:defs.bzl", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "strategies",
+    name = "strategy_base",
+    srcs = ["strategy.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/strategy:__subpackages__",
+    ],
+    deps = [
+        "//system/algo_trader/strategy/studies:studies_lib",
+        requirement("pandas"),
+    ],
+)
+
+py_library(
+    name = "strategy_lib",
     srcs = [
         "journal/calculator.py",
         "journal/efficiency.py",
         "journal/journal.py",
         "journal/trade_matching.py",
-        "strategies/sma_crossover.py",
-        "strategy.py",
+        "strategy_registry.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",  # Available to algo_trader subpackages
         "//tests/system/algo_trader/strategy:__subpackages__",  # Allow test access
     ],
     deps = [
-        "//system/algo_trader/strategy/studies/moving_average:simple_moving_average",
-        "//system/algo_trader/strategy/studies/support_resistance:find_peaks",
-        "//system/algo_trader/strategy/studies/support_resistance:find_valleys",
+        ":strategy_base",
+        "//system/algo_trader/strategy/strategies:moving_average_lib",
         requirement("numpy"),
         requirement("pandas"),
     ],
 )
 
-# Test targets
 pytest_test(
     name = "test_journal",
     size = "small",
