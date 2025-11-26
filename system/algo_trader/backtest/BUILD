@@ -26,6 +26,7 @@ py_library(
         "core/signal_collector.py",
         "core/time_stepper.py",
         "engine.py",
+        "ohlcv_cache.py",
         "processor/parallel.py",
         "processor/processor.py",
         "processor/sequential.py",
@@ -47,6 +48,7 @@ py_library(
         "//infrastructure:config",
         "//infrastructure/logging:logger",
         "//infrastructure/multiprocess:process_manager",
+        "//infrastructure/redis:redis",
         "//system/algo_trader/influx:market_data_influx",
         "//system/algo_trader/redis:redis_services",
         "//system/algo_trader/strategy:strategies",
@@ -54,6 +56,7 @@ py_library(
         "//system/algo_trader/strategy/position_manager:position_manager_lib",
         "//system/algo_trader/strategy/portfolio_manager:portfolio_manager_lib",
         requirement("pandas"),
+        requirement("pyyaml"),
         requirement("tqdm"),
     ],
 )
@@ -82,6 +85,7 @@ py_binary(
     name = "main",
     srcs = ["main.py"],
     main = "main.py",
+    data = ["ohlcv_cache_config.yaml"],
     visibility = ["//visibility:public"],
     deps = [
         ":main_lib",
@@ -110,6 +114,7 @@ py_binary(
     name = "portfolio_main",
     srcs = ["portfolio_main.py"],
     main = "portfolio_main.py",
+    data = ["ohlcv_cache_config.yaml"],
     visibility = ["//visibility:public"],
     deps = [
         ":portfolio_main_lib",

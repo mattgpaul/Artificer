@@ -68,8 +68,9 @@ class PortfolioManager:
             )
 
             if is_close:
-                self._apply_close(state, pos, row, trading_days, price, shares)
-                approved_rows.append(row.to_dict())
+                applied = self._apply_close(state, pos, row, trading_days, price, shares)
+                if applied:
+                    approved_rows.append(row.to_dict())
                 continue
 
             if is_open:
@@ -127,11 +128,14 @@ class PortfolioManager:
         trading_days: list[pd.Timestamp],
         price: float,
         shares: float,
-    ) -> None:
+    ) -> bool:
         if pos.shares <= 0:
-            return
+            return False
 
         close_shares = min(shares, pos.shares)
+        if close_shares <= 0:
+            return False
+
         pos.shares -= close_shares
         proceeds = close_shares * price
 
@@ -141,7 +145,7 @@ class PortfolioManager:
         try:
             i = trading_days.index(trade_day)
         except ValueError:
-            return
+            return False
 
         j = min(i + self.settlement_lag_trading_days, len(trading_days) - 1)
         settle_day = trading_days[j]
@@ -153,4 +157,6 @@ class PortfolioManager:
             pos.shares = 0.0
             pos.avg_entry_price = 0.0
             pos.side = None
+
+        return True
 

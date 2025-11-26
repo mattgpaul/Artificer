@@ -119,7 +119,7 @@ def load_phase1_executions(
 
 
 def load_ohlcv_for_executions(
-    executions: pd.DataFrame, ohlcv_database: str, logger
+    executions: pd.DataFrame, ohlcv_database: str, hashes: list[str], logger
 ) -> dict[str, pd.DataFrame]:
     if executions.empty:
         return {}
@@ -128,14 +128,36 @@ def load_ohlcv_for_executions(
     if not tickers:
         return {}
 
-    signal_times = executions["signal_time"]
-    start_date = signal_times.min()
-    end_date = signal_times.max()
+    hash_id = hashes[0] if hashes else None
+    ohlcv_by_ticker: dict[str, pd.DataFrame] = {}
 
-    client = MarketDataInflux(database=ohlcv_database)
-    loader = DataLoader(client, logger)
-    ohlcv_by_ticker = loader.load_ohlcv_data(tickers, start_date, end_date)
-    client.close()
+    if hash_id:
+        from system.algo_trader.backtest.ohlcv_cache import load_ohlcv_frame
+
+        for ticker in tickers:
+            cached_df = load_ohlcv_frame(hash_id, ticker)
+            if cached_df is not None and not cached_df.empty:
+                ohlcv_by_ticker[ticker] = cached_df
+
+    missing_tickers = [t for t in tickers if t not in ohlcv_by_ticker]
+    if missing_tickers:
+        signal_times = executions["signal_time"]
+        start_date = signal_times.min()
+        end_date = signal_times.max()
+
+        client = MarketDataInflux(database=ohlcv_database)
+        loader = DataLoader(client, logger)
+        loaded_data = loader.load_ohlcv_data(missing_tickers, start_date, end_date)
+        client.close()
+
+        ohlcv_by_ticker.update(loaded_data)
+
+        if hash_id:
+            from system.algo_trader.backtest.ohlcv_cache import store_ohlcv_frame
+
+            for ticker, df in loaded_data.items():
+                if df is not None and not df.empty:
+                    store_ohlcv_frame(hash_id, ticker, df)
 
     logger.info(f"Loaded OHLCV data for {len(ohlcv_by_ticker)} ticker(s)")
     return ohlcv_by_ticker
@@ -224,7 +246,7 @@ def run_portfolio_phase(
         logger.warning("No phase-1 executions found for given hashes")
         return 0
 
-    ohlcv_by_ticker = load_ohlcv_for_executions(executions, ohlcv_database, logger)
+    ohlcv_by_ticker = load_ohlcv_for_executions(executions, ohlcv_database, hashes, logger)
 
     approved = pm.apply(executions, ohlcv_by_ticker)
 
@@ -270,6 +292,23 @@ def run_portfolio_phase(
                     f"{ticker} / {strategy_name} / {hash_id}"
                 )
 
+    total_signals = len(executions)
+    approved_signals = len(approved)
+    delta = total_signals - approved_signals
+
+    print(f"\n{'=' * 50}")
+    print("Portfolio Manager Phase-2 Summary")
+    print(f"{'=' * 50}")
+    if hashes:
+        if len(hashes) == 1:
+            print(f"Hash ID: {hashes[0]}")
+        else:
+            print(f"Hash IDs: {', '.join(hashes)}")
+    print(f"Total Signals: {total_signals}")
+    print(f"Signals Sent: {approved_signals}")
+    print(f"Signals Filtered: {delta}")
+    print(f"{'=' * 50}\n")
+
     logger.info("Portfolio phase-2 complete")
     return 0
 
@@ -280,14 +319,23 @@ def main():
 
     database = args.database or get_backtest_database()
 
-    return run_portfolio_phase(
-        database=database,
-        hashes=args.hashes,
-        portfolio_manager_config=args.portfolio_manager,
-        initial_account_value=args.initial_account_value,
-        ohlcv_database=args.ohlcv_database,
-        logger=logger,
-    )
+    try:
+        return run_portfolio_phase(
+            database=database,
+            hashes=args.hashes,
+            portfolio_manager_config=args.portfolio_manager,
+            initial_account_value=args.initial_account_value,
+            ohlcv_database=args.ohlcv_database,
+            logger=logger,
+        )
+    except KeyboardInterrupt:
+        logger.info("Portfolio phase interrupted by user")
+        if args.hashes:
+            from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
+
+            for hash_id in args.hashes:
+                clear_for_hash(hash_id)
+        return 1
 
 
 if __name__ == "__main__":
