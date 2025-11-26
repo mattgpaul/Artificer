@@ -174,7 +174,7 @@
           "hide": false,
           "panelId": 4,
           "rawQuery": true,
-          "rawSql": "SELECT price as entry,\n  time\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'buy_to_open'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "rawSql": "SELECT price as entry,\n  time\nFROM \"$table\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'buy_to_open'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "B",
           "sql": {
             "columns": [
@@ -204,7 +204,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT price as exit,\n  time\nFROM \"trades\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'sell_to_close'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
+          "rawSql": "SELECT price as exit,\n  time\nFROM \"$table\"\nWHERE strategy = '$strategy'\n  AND hash = '$hash'\n  AND ticker = '$symbol'\n  AND action = 'sell_to_close'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY time DESC;\n",
           "refId": "C",
           "sql": {
             "columns": [
@@ -265,9 +265,9 @@
             "byVariable": false,
             "include": {
               "names": [
-                "sma_20",
+                "sma_100",
                 "time",
-                "sma_10"
+                "sma_50"
               ]
             }
           }
@@ -470,7 +470,7 @@
           "format": "time_series",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
           "rawQuery": true,
-          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"trades\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"$table\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission,\n    MAX(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN time END) as exit_time\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    exit_time as time,\n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl,\n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_time IS NOT NULL\n)\nSELECT\n  time,\n  SUM(return_pct) OVER (ORDER BY time) as cumulative_return_pct\nFROM trade_metrics\nORDER BY time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -730,7 +730,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT \n  action,\n  commission,\n  price,\n  shares,\n  side,\n  time,\n  trade_id,\n  hash\nFROM \"trades\"\nWHERE hash = '$hash'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY trade_id ASC;\n",
+          "rawSql": "SELECT \n  action,\n  commission,\n  price,\n  shares,\n  side,\n  time,\n  trade_id,\n  hash\nFROM \"$table\"\nWHERE hash = '$hash'\n  AND ticker = '$symbol'\n  AND time >= $__timeFrom\n  AND time <= $__timeTo\nORDER BY trade_id ASC;\n",
           "refId": "B",
           "sql": {
             "columns": [
@@ -813,7 +813,7 @@
           "format": "table",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  AVG(pnl) as avg_return\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "WITH paired(trade_id, hold_duration) AS (\n  SELECT\n    trade_id,\n    MAX(time) - MIN(time)     -- this is hold_duration\n  FROM \"trades\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n  GROUP BY trade_id\n)\nSELECT\n  EXTRACT(EPOCH FROM AVG(hold_duration)) / 86400 AS average_days_held\nFROM paired;\n",
+          "rawSql": "WITH paired(trade_id, hold_duration) AS (\n  SELECT\n    trade_id,\n    MAX(time) - MIN(time)     -- this is hold_duration\n  FROM \"$table\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n  GROUP BY trade_id\n)\nSELECT\n  EXTRACT(EPOCH FROM AVG(hold_duration)) / 86400 AS average_days_held\nFROM paired;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -896,7 +896,7 @@
           "format": "table",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_value > 0 AND entry_value > 0\n)\nSELECT\n  AVG(return_pct) as avg_return_pct\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"trades\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_value > 0 AND entry_value > 0\n)\nSELECT\n  AVG(return_pct) as avg_return_pct\nFROM trade_metrics",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"$table\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN entry_value > 0 THEN \n        CASE \n          WHEN side = 'LONG' THEN (exit_value - entry_value - total_commission) / entry_value * 100.0\n          ELSE (entry_value - exit_value - total_commission) / entry_value * 100.0\n        END\n      ELSE NULL\n    END as return_pct\n  FROM trade_aggregates\n  WHERE exit_value > 0 AND entry_value > 0\n)\nSELECT\n  AVG(return_pct) as avg_return_pct\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -989,7 +989,7 @@
           "format": "table",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  (COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as win_percentage\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"trades\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  (COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as win_percentage\nFROM trade_metrics",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"$table\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  (COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)) as win_percentage\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1072,7 +1072,7 @@
           "format": "table",
           "query": "WITH fills AS (\n  SELECT \n    trade_id,\n    action,\n    price,\n    shares,\n    side,\n    commission,\n    time,\n    ticker\n  FROM \"$strategy\"\n  WHERE hash_id = '$hash_id'\n    AND backtest_id = '$backtest_id'\n    AND ('$symbol' = '$__all' OR '|' || REPLACE(REPLACE('$symbol', '(', ''), ')', '') || '|' LIKE '%|' || ticker || '|%')\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n    AND ('$side' = '$__all' OR '|' || REPLACE(REPLACE('$side', '(', ''), ')', '') || '|' LIKE '%|' || side || '|%')\n    AND ('$status' = '$__all' OR '|' || REPLACE(REPLACE('$status', '(', ''), ')', '') || '|' LIKE '%|' || status || '|%')\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  CASE\n    WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) /\n      SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM trade_metrics",
           "rawQuery": true,
-          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"trades\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  CASE\n    WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) /\n      SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM trade_metrics",
+          "rawSql": "WITH fills AS (\n  SELECT \n    action,\n    commission,\n    price,\n    shares,\n    side,\n    time,\n    trade_id,\n    hash\n  FROM \"$table\"\n  WHERE hash = '$hash'\n    AND ticker = '$symbol'\n    AND time >= $__timeFrom\n    AND time <= $__timeTo\n),\ntrade_aggregates AS (\n  SELECT \n    trade_id,\n    MAX(side) as side,\n    SUM(CASE WHEN action IN ('buy_to_open', 'sell_to_open') THEN price * shares ELSE 0 END) as entry_value,\n    SUM(CASE WHEN action IN ('sell_to_close', 'buy_to_close') THEN price * shares ELSE 0 END) as exit_value,\n    SUM(commission) as total_commission\n  FROM fills\n  GROUP BY trade_id\n),\ntrade_metrics AS (\n  SELECT \n    CASE \n      WHEN side = 'LONG' THEN exit_value - entry_value - total_commission\n      ELSE entry_value - exit_value - total_commission\n    END as pnl\n  FROM trade_aggregates\n  WHERE exit_value > 0\n)\nSELECT\n  CASE\n    WHEN SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END) > 0\n    THEN ROUND(\n      SUM(CASE WHEN pnl > 0 THEN pnl ELSE 0 END) /\n      SUM(CASE WHEN pnl < 0 THEN ABS(pnl) ELSE 0 END),\n      2\n    )\n    ELSE 0\n  END as profit_loss_ratio\nFROM trade_metrics",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1197,6 +1197,29 @@
         "refresh": 1,
         "regex": "",
         "type": "query"
+      },
+      {
+        "allowCustomValue": false,
+        "current": {
+          "text": "trades",
+          "value": "trades"
+        },
+        "label": "Table",
+        "name": "table",
+        "options": [
+          {
+            "selected": false,
+            "text": "local_trades",
+            "value": "local_trades"
+          },
+          {
+            "selected": true,
+            "text": "trades",
+            "value": "trades"
+          }
+        ],
+        "query": "local_trades, trades",
+        "type": "custom"
       }
     ]
   },
@@ -1208,5 +1231,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 121
+  "version": 123
 }

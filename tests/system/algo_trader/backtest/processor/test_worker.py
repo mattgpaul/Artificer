@@ -344,536 +344,208 @@ class TestBacktestTickerWorker:
     """Test backtest_ticker_worker function."""
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_success(self):
+    def test_backtest_ticker_worker_success(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_with_trades,
+        default_worker_args,
+    ):
         """Test worker function with successful execution."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-            patch(
-                "system.algo_trader.backtest.processor.worker.log_backtest_results"
-            ) as _mock_log_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_with_trades
+        deps["write_results"].return_value = True
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.metrics = {"total_trades": 1}
-            mock_results.strategy_name = "SMACrossover"
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(default_worker_args)
 
-            mock_write_results.return_value = True
-
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
-            assert result["trades"] == 1
-            mock_engine.run_ticker.assert_called_once_with("AAPL")
-            mock_write_results.assert_called_once()
-            mock_engine.influx_client.close.assert_called_once()
-            mock_strategy.close.assert_called_once()
+        assert result["success"] is True
+        assert result["trades"] == 1
+        mock_backtest_engine.run_ticker.assert_called_once_with("AAPL")
+        deps["write_results"].assert_called_once()
+        mock_backtest_engine.influx_client.close.assert_called_once()
+        mock_strategy.close.assert_called_once()
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_no_trades(self):
+    def test_backtest_ticker_worker_no_trades(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_empty,
+        default_worker_args,
+    ):
         """Test worker function when no trades generated."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_empty
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame()  # Empty trades
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(default_worker_args)
 
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
-            assert result["trades"] == 0
-            mock_write_results.assert_not_called()
+        assert result["success"] is True
+        assert result["trades"] == 0
+        deps["write_results"].assert_not_called()
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_write_failure(self):
+    def test_backtest_ticker_worker_write_failure(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_with_trades,
+        default_worker_args,
+    ):
         """Test worker function when write fails."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-            patch(
-                "system.algo_trader.backtest.processor.worker.log_backtest_results"
-            ) as _mock_log_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_with_trades
+        deps["write_results"].return_value = False
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.metrics = {"total_trades": 1}
-            mock_results.strategy_name = "SMACrossover"
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(default_worker_args)
 
-            mock_write_results.return_value = False
-
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is False
-            assert "error" in result
-            assert result["error"] == "Redis enqueue failed"
+        assert result["success"] is False
+        assert "error" in result
+        assert result["error"] == "Redis enqueue failed"
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_exception(self):
+    def test_backtest_ticker_worker_exception(self, mock_dependencies_worker, default_worker_args):
         """Test worker function exception handling."""
-        with patch(
-            "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-        ) as mock_create_strategy:
-            mock_create_strategy.side_effect = ValueError("Strategy creation error")
+        deps = mock_dependencies_worker
+        deps["create_strategy"].side_effect = ValueError("Strategy creation error")
 
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
+        result = backtest_ticker_worker(default_worker_args)
 
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is False
-            assert "error" in result
-            assert "Strategy creation error" in result["error"]
+        assert result["success"] is False
+        assert "error" in result
+        assert "Strategy creation error" in result["error"]
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_cleanup_on_exception(self):
+    def test_backtest_ticker_worker_cleanup_on_exception(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        default_worker_args,
+    ):
         """Test worker function cleanup on exception."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.side_effect = Exception("Engine error")
 
-            mock_engine = MagicMock()
-            mock_engine.run_ticker.side_effect = Exception("Engine error")
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(default_worker_args)
 
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is False
-            # Should still cleanup
-            mock_engine.influx_client.close.assert_called_once()
-            mock_strategy.close.assert_called_once()
+        assert result["success"] is False
+        # Should still cleanup
+        mock_backtest_engine.influx_client.close.assert_called_once()
+        mock_strategy.close.assert_called_once()
 
     @pytest.mark.unit
-    def test_backtest_ticker_worker_cleanup_close_error(self):
+    def test_backtest_ticker_worker_cleanup_close_error(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_with_trades,
+        default_worker_args,
+    ):
         """Test worker function handles cleanup errors gracefully."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_with_trades
+        mock_backtest_engine.influx_client.close.side_effect = Exception("Close error")
+        deps["write_results"].return_value = True
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.strategy_name = "SMACrossover"
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close.side_effect = Exception("Close error")
-            mock_engine_class.return_value = mock_engine
+        # Should not raise exception
+        result = backtest_ticker_worker(default_worker_args)
 
-            mock_write_results.return_value = True
-
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "test_db",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            # Should not raise exception
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
+        assert result["success"] is True
 
     @pytest.mark.integration
-    def test_backtest_ticker_worker_complete_workflow(self):
+    def test_backtest_ticker_worker_complete_workflow(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        default_worker_args,
+    ):
         """Test complete worker workflow: create → run → write."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-            patch(
-                "system.algo_trader.backtest.processor.worker.log_backtest_results"
-            ) as mock_log_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame(
-                {
-                    "ticker": ["AAPL"] * 5,
-                    "gross_pnl": [100.0, 200.0, -50.0, 150.0, 75.0],
-                }
-            )
-            mock_results.metrics = {"total_trades": 5, "total_profit": 475.0}
-            mock_results.strategy_name = "SMACrossover"
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        mock_results = BacktestResults()
+        mock_results.trades = pd.DataFrame(
+            {
+                "ticker": ["AAPL"] * 5,
+                "gross_pnl": [100.0, 200.0, -50.0, 150.0, 75.0],
+            }
+        )
+        mock_results.metrics = {"total_trades": 5, "total_profit": 475.0}
+        mock_results.strategy_name = "SMACrossover"
+        mock_backtest_engine.run_ticker.return_value = mock_results
+        deps["write_results"].return_value = True
 
-            mock_write_results.return_value = True
+        result = backtest_ticker_worker(default_worker_args)
 
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "debug",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
-            assert result["trades"] == 5
-            mock_create_strategy.assert_called_once()
-            mock_engine.run_ticker.assert_called_once()
-            mock_log_results.assert_called_once()
-            mock_write_results.assert_called_once()
-            mock_engine.influx_client.close.assert_called_once()
-            mock_strategy.close.assert_called_once()
+        assert result["success"] is True
+        assert result["trades"] == 5
+        deps["create_strategy"].assert_called_once()
+        mock_backtest_engine.run_ticker.assert_called_once()
+        deps["log_results"].assert_called_once()
+        deps["write_results"].assert_called_once()
+        mock_backtest_engine.influx_client.close.assert_called_once()
+        mock_strategy.close.assert_called_once()
 
     @pytest.mark.integration
-    def test_backtest_ticker_worker_account_tracking(self):
+    def test_backtest_ticker_worker_account_tracking(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_empty,
+        worker_args_with_account_tracking,
+    ):
         """Test worker with account value tracking."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_empty
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame()
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(worker_args_with_account_tracking)
 
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-01-31", tz="UTC"),
-                "daily",
-                "debug",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                False,
-                None,
-                None,
-                None,
-                50000.0,  # initial_account_value
-                0.10,  # trade_percentage
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
-            # Verify account tracking parameters passed to engine
-            call_args = mock_engine_class.call_args
-            assert call_args[1]["initial_account_value"] == 50000.0
-            assert call_args[1]["trade_percentage"] == 0.10
+        assert result["success"] is True
+        # Verify account tracking parameters passed to engine
+        call_args = deps["engine_class"].call_args
+        assert call_args[1]["initial_account_value"] == 50000.0
+        assert call_args[1]["trade_percentage"] == 0.10
 
     @pytest.mark.integration
-    def test_backtest_ticker_worker_walk_forward(self):
+    def test_backtest_ticker_worker_walk_forward(
+        self,
+        mock_dependencies_worker,
+        mock_strategy,
+        mock_backtest_engine,
+        mock_backtest_results_with_trades,
+        worker_args_with_walk_forward,
+    ):
         """Test worker with walk-forward parameters."""
-        with (
-            patch(
-                "system.algo_trader.backtest.processor.worker.create_strategy_instance"
-            ) as mock_create_strategy,
-            patch(
-                "system.algo_trader.backtest.processor.worker.BacktestEngine"
-            ) as mock_engine_class,
-            patch(
-                "system.algo_trader.backtest.processor.worker.write_backtest_results"
-            ) as mock_write_results,
-        ):
-            mock_strategy = MagicMock()
-            mock_strategy.close = MagicMock()
-            mock_create_strategy.return_value = mock_strategy
+        deps = mock_dependencies_worker
+        deps["create_strategy"].return_value = mock_strategy
+        deps["engine_class"].return_value = mock_backtest_engine
+        mock_backtest_engine.run_ticker.return_value = mock_backtest_results_with_trades
+        deps["write_results"].return_value = True
 
-            mock_engine = MagicMock()
-            mock_results = BacktestResults()
-            mock_results.trades = pd.DataFrame({"ticker": ["AAPL"], "gross_pnl": [100.0]})
-            mock_results.strategy_name = "SMACrossover"
-            mock_engine.run_ticker.return_value = mock_results
-            mock_engine.influx_client = MagicMock()
-            mock_engine.influx_client.close = MagicMock()
-            mock_engine_class.return_value = mock_engine
+        result = backtest_ticker_worker(worker_args_with_walk_forward)
 
-            mock_write_results.return_value = True
-
-            args = (
-                "AAPL",
-                "SMACrossover",
-                {"short_window": 10, "long_window": 20},
-                pd.Timestamp("2024-01-01", tz="UTC"),
-                pd.Timestamp("2024-12-31", tz="UTC"),
-                "daily",
-                "debug",
-                "debug",
-                {"slippage_bps": 5.0, "commission_per_share": 0.005},
-                10000.0,
-                0.04,
-                "test-backtest-id",
-                True,  # walk_forward
-                90,  # train_days
-                30,  # test_days
-                None,  # train_split
-                None,  # initial_account_value
-                None,  # trade_percentage
-                None,  # filter_pipeline
-                None,  # position_manager_config_dict
-                None,  # filter_config_dict
-                None,  # hash_id_local
-            )
-
-            result = backtest_ticker_worker(args)
-
-            assert result["success"] is True
-            # Verify walk-forward parameters passed to write_backtest_results
-            call_args = mock_write_results.call_args
-            assert call_args[1]["walk_forward"] is True
-            assert call_args[1]["train_days"] == 90
-            assert call_args[1]["test_days"] == 30
+        assert result["success"] is True
+        # Verify walk-forward parameters passed to write_backtest_results
+        call_args = deps["write_results"].call_args
+        assert call_args[1]["walk_forward"] is True
+        assert call_args[1]["train_days"] == 90
+        assert call_args[1]["test_days"] == 30

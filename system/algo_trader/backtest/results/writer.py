@@ -166,20 +166,33 @@ def _assign_trade_id_for_execution(
 
     Returns None if the action is unknown and the row should be skipped.
     """
+    normalized_action: str | None
+    if action in {"open", "scale_in", "scale_out", "close"}:
+        normalized_action = str(action)
+    elif action in {"buy_to_open", "sell_to_open"}:
+        normalized_action = "open"
+    elif action in {"buy_to_close", "sell_to_close"}:
+        normalized_action = "close"
+    else:
+        return None
+
     if ticker not in trade_ids:
         trade_ids[ticker] = 0
         position_sizes[ticker] = 0.0
 
     current_size = position_sizes[ticker]
 
-    if action in {"open", "scale_in"} and current_size <= 0.0:
+    if normalized_action in {"close", "scale_out"} and current_size <= 0.0:
+        return None
+
+    if normalized_action in {"open", "scale_in"} and current_size <= 0.0:
         trade_ids[ticker] += 1
 
     trade_id = trade_ids[ticker]
 
-    if action in {"open", "scale_in"}:
+    if normalized_action in {"open", "scale_in"}:
         position_sizes[ticker] = current_size + shares
-    elif action in {"scale_out", "close"}:
+    elif normalized_action in {"scale_out", "close"}:
         position_sizes[ticker] = max(0.0, current_size - shares)
     else:
         return None
@@ -200,11 +213,17 @@ def _build_execution_journal_row(
     ticker = row.get("ticker", "")
     commission = row.get("commission", 0.0)
 
-    # Determine journal-side action (buy_to_open, sell_to_close, etc.)
-    action = _determine_action(
-        side=side,
-        is_entry=row.get("action") in {"open", "scale_in"},
-    )
+    raw_action = row.get("action")
+    if raw_action in {"open", "scale_in", "scale_out", "close"}:
+        is_entry = raw_action in {"open", "scale_in"}
+    elif raw_action in {"buy_to_open", "sell_to_open"}:
+        is_entry = True
+    elif raw_action in {"buy_to_close", "sell_to_close"}:
+        is_entry = False
+    else:
+        return None
+
+    action = _determine_action(side=side, is_entry=is_entry)
 
     execution_id = _compute_execution_id(
         ticker=ticker,
@@ -361,6 +380,7 @@ class ResultsWriter:
         train_split: float | None = None,
         filter_params: dict[str, Any] | None = None,
         hash_id: str | None = None,
+        portfolio_stage: str = "final",
     ) -> bool:
         """Write backtest trades to Redis queue.
 
@@ -389,6 +409,7 @@ class ResultsWriter:
                 for hash computation. If None, filters are not included in hash.
             hash_id: Optional canonical hash ID for this backtest configuration.
                 If None, hash will be computed from other parameters.
+            portfolio_stage: Portfolio stage identifier (e.g., 'final', 'phase1').
 
         Returns:
             True if trades were successfully enqueued, False otherwise.
@@ -420,6 +441,7 @@ class ResultsWriter:
                 strategy_params=strategy_params,
                 data=trades_dict,
                 database=database,
+                portfolio_stage=portfolio_stage,
             )
         except ValidationError as e:
             self.logger.error(
