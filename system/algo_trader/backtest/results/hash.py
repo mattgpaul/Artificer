@@ -75,6 +75,10 @@ def compute_backtest_hash(
         "train_days": train_days,
         "test_days": test_days,
         "train_split": train_split,
+        # Include universe in hash so different ticker sets produce different IDs.
+        "universe": sorted(tickers),
+        # Keep database and date range out of the hash so the same configuration
+        # can be compared across data sources and periods.
     }
     if position_manager_params is not None:
         args_dict["position_manager"] = position_manager_params

@@ -182,6 +182,9 @@ def _assign_trade_id_for_execution(
 
     current_size = position_sizes[ticker]
 
+    if normalized_action in {"close", "scale_out"} and current_size <= 0.0:
+        return None
+
     if normalized_action in {"open", "scale_in"} and current_size <= 0.0:
         trade_ids[ticker] += 1
 

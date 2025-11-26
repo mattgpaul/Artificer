@@ -267,6 +267,7 @@ def backtest_ticker_worker(args: tuple) -> dict:
                 position_manager = PositionManager(pipeline, capital_per_trade_local, logger)
 
         portfolio_stage = "phase1" if portfolio_manager_config_name is not None else "final"
+        enable_caching = portfolio_manager_config_name is not None
 
         engine = BacktestEngine(
             strategy=strategy_instance,
@@ -282,6 +283,8 @@ def backtest_ticker_worker(args: tuple) -> dict:
             trade_percentage=trade_percentage_local,
             filter_pipeline=filter_pipeline,
             position_manager=position_manager,
+            hash_id=hash_id_local,
+            enable_caching=enable_caching,
         )
 
         results = engine.run_ticker(ticker)

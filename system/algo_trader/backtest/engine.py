@@ -56,6 +56,8 @@ class BacktestEngine:
         trade_percentage: float | None = None,
         filter_pipeline: "FilterPipeline | None" = None,
         position_manager: "PositionManager | None" = None,
+        hash_id: str | None = None,
+        enable_caching: bool = False,
     ) -> None:
         """Initialize BacktestEngine with strategy and configuration.
 
@@ -105,6 +107,8 @@ class BacktestEngine:
             filter_pipeline,
             position_manager,
         )
+        self.hash_id = hash_id
+        self.enable_caching = enable_caching
 
     def _extract_signal_flags(
         self, signals: pd.DataFrame | None, ticker: str
@@ -233,6 +237,11 @@ class BacktestEngine:
             return BacktestResults()
 
         self.logger.debug(f"{ticker}: Loaded {len(ticker_data)} OHLCV records")
+
+        if self.enable_caching and self.hash_id is not None:
+            from system.algo_trader.backtest.ohlcv_cache import store_ohlcv_frame
+
+            store_ohlcv_frame(self.hash_id, ticker, ticker_data)
 
         data_cache = {ticker: ticker_data}
         step_intervals = self.time_stepper.determine_step_intervals(data_cache)

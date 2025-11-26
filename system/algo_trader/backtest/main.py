@@ -356,6 +356,18 @@ def main():
 
         return 0
 
+    except KeyboardInterrupt:
+        logger.info("Backtest interrupted by user")
+        if portfolio_manager_config_name:
+            try:
+                hash_id_local = locals().get("hash_id")
+                if hash_id_local:
+                    from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
+
+                    clear_for_hash(hash_id_local)
+            except Exception:
+                pass
+        return 1
     except Exception as e:
         logger.error(f"Backtest failed: {e}", exc_info=True)
         return 1
