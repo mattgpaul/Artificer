@@ -7,7 +7,7 @@ py_library(
     srcs = ["test_journal.py"],
     visibility = ["//system/algo_trader/strategy:__pkg__"],
     deps = [
-        "//system/algo_trader/strategy:strategies",
+        "//system/algo_trader/strategy:strategy_lib",
         requirement("pandas"),
         requirement("pytest"),
     ],
@@ -22,7 +22,7 @@ py_library(
     ],
     visibility = ["//system/algo_trader/strategy:__pkg__"],
     deps = [
-        "//system/algo_trader/strategy:strategies",
+        "//system/algo_trader/strategy:strategy_lib",
         requirement("pandas"),
         requirement("pytest"),
     ],

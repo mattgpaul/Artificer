@@ -14,15 +14,15 @@ from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config,
 )
 from system.algo_trader.strategy.position_manager.position_manager import PositionManager
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
-from system.algo_trader.strategy.strategy import Side
+from system.algo_trader.strategy.strategy_registry import get_registry
 
 
 def create_strategy_instance(strategy_type: str, strategy_params: dict):
     """Create a strategy instance from type and parameters.
 
     Args:
-        strategy_type: Type of strategy to create (e.g., 'SMACrossover').
+        strategy_type: Type of strategy to create (e.g., 'SMACrossover' or 'sma-crossover').
+            Supports both class names (for backward compatibility) and CLI names.
         strategy_params: Dictionary of strategy parameters.
             Supports both old parameter names (short_window/long_window) and
             new parameter names (short/long) for backward compatibility.
@@ -33,23 +33,16 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict):
     Raises:
         ValueError: If strategy_type is not recognized.
     """
-    if strategy_type == "SMACrossover":
-        side_value = strategy_params.get("side", "LONG")
-        side = Side(side_value) if isinstance(side_value, str) else side_value
-        # Support both old (short_window/long_window) and new (short/long) parameter names
-        short = strategy_params.get("short")
-        if short is None:
-            short = strategy_params.get("short_window", 10)
-        long = strategy_params.get("long")
-        if long is None:
-            long = strategy_params.get("long_window", 20)
-        return SMACrossover(
-            short=short,
-            long=long,
-            window=strategy_params.get("window", 120),
-            side=side,
-        )
-    raise ValueError(f"Unknown strategy type: {strategy_type}")
+    registry = get_registry()
+    
+    # Handle backward compatibility: convert old parameter names
+    params = strategy_params.copy()
+    if "short" not in params and "short_window" in params:
+        params["short"] = params.pop("short_window")
+    if "long" not in params and "long_window" in params:
+        params["long"] = params.pop("long_window")
+    
+    return registry.create_strategy_from_params(strategy_type, params)
 
 
 def log_backtest_results(ticker: str, results: "BacktestResults") -> None:

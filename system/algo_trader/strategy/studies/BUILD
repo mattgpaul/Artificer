@@ -2,7 +2,7 @@ load("@pip//:requirements.bzl", "requirement")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "base_study",
+    name = "studies_lib",
     srcs = ["base_study.py"],
     visibility = [
         "//system/algo_trader:__subpackages__",

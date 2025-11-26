@@ -2,15 +2,18 @@ load("@pip//:requirements.bzl", "requirement")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
-    name = "simple_moving_average",
-    srcs = ["simple_moving_average.py"],
+    name = "moving_average_lib",
+    srcs = [
+        "simple_moving_average.py",
+        "exponential_moving_average.py",
+    ],
     visibility = [
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/strategy:__subpackages__",
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         requirement("pandas"),
     ],
 )

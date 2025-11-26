@@ -24,7 +24,7 @@ py_library(
         ":conftest_lib",
         "//infrastructure/logging:logger",
         "//system/algo_trader/backtest:backtest_lib",
-        "//system/algo_trader/strategy:strategies",
+        "//system/algo_trader/strategy:strategy_lib",
         "//tests/system/algo_trader/backtest:conftest_lib",
         "//tests/system/algo_trader/strategy:conftest_lib",
         requirement("numpy"),
