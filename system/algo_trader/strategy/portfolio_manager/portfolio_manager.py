@@ -1,3 +1,9 @@
+"""Portfolio manager for backtest executions.
+
+This module provides portfolio management functionality, applying portfolio
+rules and constraints to backtest execution results.
+"""
+
 from typing import Any
 
 import pandas as pd
@@ -12,6 +18,12 @@ from system.algo_trader.strategy.portfolio_manager.rules.base import (
 
 
 class PortfolioManager:
+    """Manages portfolio state and applies portfolio rules to executions.
+
+    Tracks cash, positions, and pending settlements while applying
+    portfolio rules to filter and size execution signals.
+    """
+
     def __init__(
         self,
         pipeline: PortfolioRulePipeline,
@@ -19,16 +31,36 @@ class PortfolioManager:
         settlement_lag_trading_days: int = 2,
         logger=None,
     ) -> None:
+        """Initialize PortfolioManager.
+
+        Args:
+            pipeline: PortfolioRulePipeline instance containing rules to apply.
+            initial_account_value: Initial account value in dollars.
+            settlement_lag_trading_days: Number of trading days for settlement lag.
+            logger: Optional logger instance.
+        """
         self.pipeline = pipeline
         self.initial_account_value = initial_account_value
         self.settlement_lag_trading_days = settlement_lag_trading_days
         self.logger = logger or get_logger(self.__class__.__name__)
 
-    def apply(
+    def apply(  # noqa: PLR0912, PLR0915
         self,
         executions: pd.DataFrame,
         ohlcv_by_ticker: dict[str, pd.DataFrame],
     ) -> pd.DataFrame:
+        """Apply portfolio rules to executions.
+
+        Processes executions through portfolio rules, tracking portfolio state
+        and filtering/sizing trades based on portfolio constraints.
+
+        Args:
+            executions: DataFrame containing execution signals.
+            ohlcv_by_ticker: Dictionary mapping tickers to OHLCV dataframes.
+
+        Returns:
+            DataFrame containing approved executions with adjusted sizes.
+        """
         if executions.empty:
             return executions
 
@@ -93,9 +125,8 @@ class PortfolioManager:
                     pos.avg_entry_price = price
                 else:
                     total_cost = (
-                        (pos.shares - eff_shares) * pos.avg_entry_price
-                        + eff_shares * price
-                    )
+                        pos.shares - eff_shares
+                    ) * pos.avg_entry_price + eff_shares * price
                     pos.avg_entry_price = total_cost / pos.shares
 
                 row_dict = row.to_dict()
@@ -123,7 +154,7 @@ class PortfolioManager:
         for d in to_release:
             state.cash_available += state.pending_settlements.pop(d)
 
-    def _apply_close(
+    def _apply_close(  # noqa: PLR0913
         self,
         state: PortfolioState,
         pos: PortfolioPosition,
@@ -164,4 +195,3 @@ class PortfolioManager:
             pos.side = None
 
         return True
-

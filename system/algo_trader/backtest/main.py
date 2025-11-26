@@ -14,12 +14,13 @@ import pandas as pd
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.backtest.cli_utils import resolve_tickers
 from system.algo_trader.backtest.core.execution import ExecutionConfig
+from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
+from system.algo_trader.backtest.portfolio_main import run_portfolio_phase
 from system.algo_trader.backtest.processor.processor import (
     BacktestProcessor,
     get_backtest_database,
 )
 from system.algo_trader.backtest.results.hash import compute_backtest_hash
-from system.algo_trader.backtest.portfolio_main import run_portfolio_phase
 from system.algo_trader.strategy.filters.config_loader import (
     load_filter_config_dicts,
     load_filter_configs,
@@ -226,7 +227,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main():  # noqa: PLR0911, PLR0915
     """Main entry point for backtesting CLI.
 
     Returns:
@@ -362,8 +363,6 @@ def main():
             try:
                 hash_id_local = locals().get("hash_id")
                 if hash_id_local:
-                    from system.algo_trader.backtest.ohlcv_cache import clear_for_hash
-
                     clear_for_hash(hash_id_local)
             except Exception:
                 pass

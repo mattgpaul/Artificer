@@ -1,3 +1,9 @@
+"""Portfolio manager configuration loader.
+
+This module provides functionality to load portfolio manager configurations
+from YAML files and construct PortfolioRulePipeline instances.
+"""
+
 from pathlib import Path
 from typing import Any
 
@@ -5,11 +11,11 @@ import yaml
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.portfolio_manager.rules.base import PortfolioRulePipeline
-from system.algo_trader.strategy.portfolio_manager.rules.max_capital_deployed import (
-    MaxCapitalDeployedRule,
-)
 from system.algo_trader.strategy.portfolio_manager.rules.fractional_position_size import (
     FractionalPositionSizeRule,
+)
+from system.algo_trader.strategy.portfolio_manager.rules.max_capital_deployed import (
+    MaxCapitalDeployedRule,
 )
 
 
@@ -111,6 +117,15 @@ def _load_pipeline_from_file(
 def load_portfolio_manager_config(
     config_name: str | None, logger=None
 ) -> PortfolioRulePipeline | None:
+    """Load portfolio manager configuration from YAML file.
+
+    Args:
+        config_name: Configuration name or path to YAML file.
+        logger: Optional logger instance.
+
+    Returns:
+        PortfolioRulePipeline instance if successful, None otherwise.
+    """
     if config_name is None:
         return None
 
@@ -122,4 +137,3 @@ def load_portfolio_manager_config(
     except Exception as e:
         logger.error(f"Failed to load portfolio manager config: {e}", exc_info=True)
         return None
-

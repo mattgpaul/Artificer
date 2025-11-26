@@ -409,6 +409,7 @@ class ResultsWriter:
                 for hash computation. If None, filters are not included in hash.
             hash_id: Optional canonical hash ID for this backtest configuration.
                 If None, hash will be computed from other parameters.
+            portfolio_stage: Portfolio stage identifier (e.g., 'final', 'phase1').
 
         Returns:
             True if trades were successfully enqueued, False otherwise.

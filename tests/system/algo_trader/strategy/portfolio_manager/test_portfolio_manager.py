@@ -1,105 +1,46 @@
+"""Unit tests for PortfolioManager.
+
+Tests cover portfolio manager application logic, rule pipeline integration,
+and capital management. All external dependencies are mocked via conftest.py.
+"""
+
 import pandas as pd
 
-from system.algo_trader.strategy.portfolio_manager.portfolio_manager import (
-    PortfolioManager,
-)
-from system.algo_trader.strategy.portfolio_manager.rules.base import (
-    PortfolioRulePipeline,
-)
 
+class TestPortfolioManager:
+    """Test PortfolioManager core functionality."""
 
-def _make_ohlcv(days: list[str]) -> dict[str, pd.DataFrame]:
-    idx = pd.to_datetime(days, utc=True)
-    df = pd.DataFrame(
-        {
-            "open": [100.0 for _ in days],
-            "high": [101.0 for _ in days],
-            "low": [99.0 for _ in days],
-            "close": [100.0 for _ in days],
-            "volume": [1000 for _ in days],
-        },
-        index=idx,
-    )
-    return {"TEST": df}
+    def test_portfolio_manager_keeps_valid_open_and_close(
+        self,
+        default_portfolio_manager,
+        sample_executions,
+        make_ohlcv,
+    ):
+        """Test portfolio manager keeps valid open and close operations."""
+        ohlcv = make_ohlcv(["2020-01-01", "2020-01-02", "2020-01-03"])
+        approved = default_portfolio_manager.apply(sample_executions, ohlcv)
 
+        assert len(approved) == 2
+        assert set(approved["action"]) == {"buy_to_open", "sell_to_close"}
 
-def test_portfolio_manager_keeps_valid_open_and_close():
-    executions = pd.DataFrame(
-        [
-            {
-                "ticker": "TEST",
-                "strategy": "SMA",
-                "side": "LONG",
-                "action": "buy_to_open",
-                "price": 10.0,
-                "shares": 10.0,
-                "signal_time": pd.Timestamp("2020-01-01", tz="UTC"),
-                "hash": "hash1",
-            },
-            {
-                "ticker": "TEST",
-                "strategy": "SMA",
-                "side": "LONG",
-                "action": "sell_to_close",
-                "price": 11.0,
-                "shares": 10.0,
-                "signal_time": pd.Timestamp("2020-01-02", tz="UTC"),
-                "hash": "hash1",
-            },
-        ]
-    )
+    def test_portfolio_manager_drops_close_without_position(
+        self,
+        portfolio_manager_insufficient_capital,
+        sample_executions_insufficient_capital,
+        make_ohlcv,
+    ):
+        """Test portfolio manager drops close operations without sufficient capital."""
+        ohlcv = make_ohlcv(["2020-01-01", "2020-01-02", "2020-01-03"])
+        approved = portfolio_manager_insufficient_capital.apply(
+            sample_executions_insufficient_capital, ohlcv
+        )
 
-    ohlcv = _make_ohlcv(["2020-01-01", "2020-01-02", "2020-01-03"])
-    pipeline = PortfolioRulePipeline(rules=[])
-    pm = PortfolioManager(
-        pipeline=pipeline,
-        initial_account_value=100000.0,
-        settlement_lag_trading_days=2,
-    )
+        assert approved.empty
 
-    approved = pm.apply(executions, ohlcv)
+    def test_portfolio_manager_empty_executions(self, default_portfolio_manager, make_ohlcv):
+        """Test portfolio manager handles empty executions."""
+        executions = pd.DataFrame()
+        ohlcv = make_ohlcv(["2020-01-01", "2020-01-02", "2020-01-03"])
+        approved = default_portfolio_manager.apply(executions, ohlcv)
 
-    assert len(approved) == 2
-    assert set(approved["action"]) == {"buy_to_open", "sell_to_close"}
-
-
-def test_portfolio_manager_drops_close_without_position():
-    executions = pd.DataFrame(
-        [
-            {
-                "ticker": "TEST",
-                "strategy": "SMA",
-                "side": "LONG",
-                "action": "buy_to_open",
-                "price": 10.0,
-                "shares": 1000.0,
-                "signal_time": pd.Timestamp("2020-01-01", tz="UTC"),
-                "hash": "hash1",
-            },
-            {
-                "ticker": "TEST",
-                "strategy": "SMA",
-                "side": "LONG",
-                "action": "sell_to_close",
-                "price": 11.0,
-                "shares": 1000.0,
-                "signal_time": pd.Timestamp("2020-01-02", tz="UTC"),
-                "hash": "hash1",
-            },
-        ]
-    )
-
-    ohlcv = _make_ohlcv(["2020-01-01", "2020-01-02", "2020-01-03"])
-    pipeline = PortfolioRulePipeline(rules=[])
-
-    pm = PortfolioManager(
-        pipeline=pipeline,
-        initial_account_value=50.0,
-        settlement_lag_trading_days=2,
-    )
-
-    approved = pm.apply(executions, ohlcv)
-
-    assert approved.empty
-
-
+        assert approved.empty

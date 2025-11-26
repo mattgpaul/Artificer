@@ -94,10 +94,8 @@ class TestResultsWriter:
 
         assert hash1 != hash2
 
-    def test_compute_backtest_hash_same_with_different_tickers_dates_database(
-        self, mock_queue_broker
-    ):
-        """Test backtest hash is same with different tickers, dates, and databases."""
+    def test_compute_backtest_hash_same_with_different_dates_database(self, mock_queue_broker):
+        """Test backtest hash is same with different dates and databases, but same tickers."""
         execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
         strategy_params = {"short_window": 10, "long_window": 20}
 
@@ -114,7 +112,7 @@ class TestResultsWriter:
             risk_free_rate=0.04,
         )
 
-        # Second hash with MSFT, Feb 2024, different_db - should be same hash
+        # Second hash with same ticker, different dates and database - should be same hash
         hash2 = compute_backtest_hash(
             strategy_params=strategy_params,
             execution_config=execution_config,
@@ -122,14 +120,50 @@ class TestResultsWriter:
             end_date=pd.Timestamp("2024-02-29", tz="UTC"),
             step_frequency="daily",
             database="different_db",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        # Hash should be the same since dates and database are not included
+        assert hash1 == hash2
+        assert len(hash1) == 16
+
+    def test_compute_backtest_hash_different_with_different_tickers(self, mock_queue_broker):
+        """Test backtest hash differs with different tickers (universe)."""
+        execution_config = ExecutionConfig(slippage_bps=5.0, commission_per_share=0.005)
+        strategy_params = {"short_window": 10, "long_window": 20}
+
+        # First hash with AAPL
+        hash1 = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="test_db",
+            tickers=["AAPL"],
+            capital_per_trade=10000.0,
+            risk_free_rate=0.04,
+        )
+
+        # Second hash with different tickers - should be different hash
+        hash2 = compute_backtest_hash(
+            strategy_params=strategy_params,
+            execution_config=execution_config,
+            start_date=pd.Timestamp("2024-01-01", tz="UTC"),
+            end_date=pd.Timestamp("2024-01-31", tz="UTC"),
+            step_frequency="daily",
+            database="test_db",
             tickers=["MSFT", "GOOGL"],
             capital_per_trade=10000.0,
             risk_free_rate=0.04,
         )
 
-        # Hash should be the same since tickers, dates, and database are not included
-        assert hash1 == hash2
+        # Hash should be different since tickers (universe) are included in hash
+        assert hash1 != hash2
         assert len(hash1) == 16
+        assert len(hash2) == 16
 
     def test_write_trades_empty_dataframe(self, mock_queue_broker):
         """Test write_trades with empty DataFrame."""

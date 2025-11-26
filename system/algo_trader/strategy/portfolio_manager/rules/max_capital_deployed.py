@@ -1,17 +1,42 @@
+"""Maximum capital deployed rule for portfolio management.
+
+This module provides a portfolio rule that limits the percentage of
+total capital that can be deployed in positions.
+"""
+
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
     PortfolioDecision,
-    PortfolioRule,
     PortfolioRuleContext,
 )
 
 
 class MaxCapitalDeployedRule:
+    """Portfolio rule that limits maximum capital deployment percentage.
+
+    Blocks new entries when deployed capital exceeds the configured percentage.
+    """
+
     def __init__(self, max_deployed_pct: float = 0.5, logger=None):
+        """Initialize MaxCapitalDeployedRule.
+
+        Args:
+            max_deployed_pct: Maximum percentage of capital that can be deployed
+                (default 0.5 = 50%).
+            logger: Optional logger instance.
+        """
         self.max_deployed_pct = max_deployed_pct
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def evaluate(self, context: PortfolioRuleContext) -> PortfolioDecision:
+        """Evaluate maximum capital deployed rule.
+
+        Args:
+            context: PortfolioRuleContext containing signal and portfolio state.
+
+        Returns:
+            PortfolioDecision blocking entry if deployment limit exceeded.
+        """
         signal = context.signal
         action = signal.get("action")
         entry_actions = {"buy_to_open", "sell_to_open"}
@@ -24,8 +49,8 @@ class MaxCapitalDeployedRule:
             return PortfolioDecision(allow_entry=True)
 
         try:
-            price_f = float(price)
-            shares_f = float(shares)
+            float(price)
+            float(shares)
         except (TypeError, ValueError):
             return PortfolioDecision(allow_entry=True)
 
@@ -52,4 +77,3 @@ class MaxCapitalDeployedRule:
             )
 
         return PortfolioDecision(allow_entry=True)
-
