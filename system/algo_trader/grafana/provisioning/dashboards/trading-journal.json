@@ -66,6 +66,7 @@
               "mode": "off"
             }
           },
+          "decimals": 2,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -128,7 +129,7 @@
         "mode": "candles+volume",
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -265,9 +266,9 @@
             "byVariable": false,
             "include": {
               "names": [
-                "sma_100",
+                "ema_4",
                 "time",
-                "sma_50"
+                "ema_8"
               ]
             }
           }
@@ -1231,5 +1232,5 @@
   "timezone": "",
   "title": "Trading Journal",
   "uid": "trading-journal",
-  "version": 123
+  "version": 128
 }

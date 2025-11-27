@@ -5,7 +5,7 @@ rules:
 
   - take_profit:
       field_price: price
-      target_pct: 0.1
+      target_pct: 0.05
       fraction: 0.5
 
   - stop_loss:
