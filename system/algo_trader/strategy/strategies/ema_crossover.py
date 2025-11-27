@@ -120,3 +120,4 @@ class EMACrossover(Strategy):
 
         if prev > 0.0 and curr < 0.0:
             return self._build_price_signal(ohlcv_data)
+        return pd.DataFrame()

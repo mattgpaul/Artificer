@@ -10,7 +10,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         requirement("pandas"),
         requirement("scipy"),
     ],
@@ -33,7 +33,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         requirement("pandas"),
         requirement("scipy"),
     ],

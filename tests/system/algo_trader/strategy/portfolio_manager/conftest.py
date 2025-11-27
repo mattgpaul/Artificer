@@ -4,6 +4,8 @@ All common fixtures, mocks, and test parameters are defined here
 to reduce code duplication across test files.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
 import pytest
 
@@ -13,6 +15,15 @@ from system.algo_trader.strategy.portfolio_manager.portfolio_manager import (
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
     PortfolioRulePipeline,
 )
+
+
+@pytest.fixture(autouse=True)
+def mock_logger():
+    """Auto-mock logger to prevent logging calls."""
+    with patch("infrastructure.logging.logger.get_logger") as mock_logger_func:
+        mock_logger_instance = MagicMock()
+        mock_logger_func.return_value = mock_logger_instance
+        yield mock_logger_instance
 
 
 @pytest.fixture

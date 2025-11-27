@@ -4,6 +4,8 @@ This module provides a filter that compares two Simple Moving Average (SMA) valu
 either from signal fields or computed from OHLCV data.
 """
 
+from __future__ import annotations
+
 from typing import Any, ClassVar
 
 import pandas as pd
