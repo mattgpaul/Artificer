@@ -4,6 +4,8 @@ This module provides functionality to load portfolio manager configurations
 from YAML files and construct PortfolioRulePipeline instances.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,9 @@ from system.algo_trader.strategy.portfolio_manager.rules.fractional_position_siz
 )
 from system.algo_trader.strategy.portfolio_manager.rules.max_capital_deployed import (
     MaxCapitalDeployedRule,
+)
+from system.algo_trader.strategy.portfolio_manager.rules.registry import (
+    get_registry as get_portfolio_rule_registry,
 )
 
 
@@ -55,6 +60,22 @@ def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None
         return _build_max_capital_deployed_rule(params, logger)
     if rule_name == "fractional_position_size":
         return _build_fractional_position_size_rule(params, logger)
+
+    registry = get_portfolio_rule_registry()
+    rule_class = registry.get_rule_class(rule_name)
+    if rule_class is not None:
+        from_config = getattr(rule_class, "from_config", None)
+        if callable(from_config):
+            result = from_config(params, logger=logger)
+            if result is None:
+                logger.error(f"Failed to create portfolio rule '{rule_name}' from config")
+            return result
+        try:
+            return rule_class(**params, logger=logger)
+        except Exception as e:
+            logger.error(f"Failed to create portfolio rule '{rule_name}': {e}")
+            return None
+
     logger.error(f"Unknown rule type: {rule_name}")
     return None
 

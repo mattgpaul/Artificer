@@ -9,6 +9,7 @@ py_library(
         "position_manager.py",
         "rules/base.py",
         "rules/pipeline.py",
+        "rules/registry.py",
         "rules/scaling.py",
         "rules/stop_loss.py",
         "rules/take_profit.py",

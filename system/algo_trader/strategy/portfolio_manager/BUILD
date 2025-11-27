@@ -9,6 +9,7 @@ py_library(
         "portfolio_manager.py",
         "rules/base.py",
         "rules/fractional_position_size.py",
+        "rules/registry.py",
         "rules/max_capital_deployed.py",
     ],
     data = glob(["strategies/*.yaml"]),

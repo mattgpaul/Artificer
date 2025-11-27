@@ -8,6 +8,7 @@ py_library(
         "config_loader.py",
         "core.py",
         "filters.py",
+        "registry.py",
         "price_comparison.py",
         "sma_comparison.py",
     ],
