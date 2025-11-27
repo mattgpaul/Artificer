@@ -4,7 +4,10 @@ This module provides a portfolio rule that sizes positions as a fraction
 of total portfolio equity.
 """
 
+from __future__ import annotations
+
 import math
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -20,6 +23,8 @@ class FractionalPositionSizeRule:
 
     Calculates maximum position size based on a fraction of total portfolio equity.
     """
+
+    rule_type: ClassVar[str] = "fractional_position_size"
 
     def __init__(self, fraction_of_equity: float = 0.01, logger=None):
         """Initialize FractionalPositionSizeRule.
@@ -102,3 +107,24 @@ class FractionalPositionSizeRule:
             max_shares=shares,
             reason=f"fractional_size:{self.fraction_of_equity:.2%}",
         )
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> FractionalPositionSizeRule | None:
+        """Create a FractionalPositionSizeRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - fraction_of_equity: Fraction of equity to use per position (default: 0.01).
+            logger: Optional logger instance.
+
+        Returns:
+            FractionalPositionSizeRule instance if configuration is valid, None otherwise.
+        """
+        fraction = params.get("fraction_of_equity", 0.01)
+        try:
+            fraction_f = float(fraction)
+        except (TypeError, ValueError):
+            if logger is not None:
+                logger.error(f"fractional_position_size rule params must be numeric: {fraction}")
+            return None
+        return cls(fraction_of_equity=fraction_f, logger=logger)

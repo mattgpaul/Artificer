@@ -4,6 +4,8 @@ This module provides the PositionRulePipeline class which evaluates a list
 of position rules and combines their decisions.
 """
 
+from __future__ import annotations
+
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.position_manager.rules.base import (
     PositionRule,

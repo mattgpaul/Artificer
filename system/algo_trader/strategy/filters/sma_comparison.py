@@ -4,7 +4,9 @@ This module provides a filter that compares two Simple Moving Average (SMA) valu
 either from signal fields or computed from OHLCV data.
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, ClassVar
 
 import pandas as pd
 
@@ -17,6 +19,8 @@ from system.algo_trader.strategy.studies.moving_average.simple_moving_average im
 
 class SmaComparisonFilter(BaseComparisonFilter):
     """Filter that compares two SMA (Simple Moving Average) values."""
+
+    filter_type: ClassVar[str] = "sma_comparison"
 
     def __init__(
         self,
@@ -101,3 +105,45 @@ class SmaComparisonFilter(BaseComparisonFilter):
                 return False
 
         return self._compare_values(fast_value, slow_value)
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> SmaComparisonFilter | None:
+        """Create an SmaComparisonFilter instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing filter configuration with keys:
+                - field_fast: Name of signal field for fast SMA.
+                - field_slow: Name of signal field for slow SMA.
+                - operator: Comparison operator (>, <, >=, <=, ==, !=).
+                - fast_window: Optional fast SMA window period.
+                - slow_window: Optional slow SMA window period.
+            logger: Optional logger instance.
+
+        Returns:
+            SmaComparisonFilter instance if configuration is valid, None otherwise.
+        """
+        field_fast = params.get("field_fast")
+        field_slow = params.get("field_slow")
+        operator = params.get("operator")
+        fast_window = params.get("fast_window")
+        slow_window = params.get("slow_window")
+
+        if field_fast is None or field_slow is None or operator is None:
+            if logger is not None:
+                logger.error(
+                    "sma_comparison filter missing required params: "
+                    "field_fast, field_slow, operator"
+                )
+            return None
+
+        windows: tuple[int | None, int | None] | None = None
+        if fast_window is not None or slow_window is not None:
+            windows = (fast_window, slow_window)
+
+        return cls(
+            field_fast=field_fast,
+            field_slow=field_slow,
+            operator=operator,
+            windows=windows,
+            logger=logger,
+        )

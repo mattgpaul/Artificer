@@ -122,7 +122,7 @@ class Strategy(ABC):
             DataFrame with 'price' column and DatetimeIndex, or empty DataFrame
             if input is invalid.
         """
-        if ohlcv_data.empty or "close" not in ohlcv_data.columns:
+        if ohlcv_data is None or ohlcv_data.empty or "close" not in ohlcv_data.columns:
             return pd.DataFrame()
         ts = ohlcv_data.index[-1]
         price = float(ohlcv_data["close"].iloc[-1])

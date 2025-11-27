@@ -10,6 +10,7 @@ py_library(
         "rules/base.py",
         "rules/fractional_position_size.py",
         "rules/max_capital_deployed.py",
+        "rules/registry.py",
     ],
     data = glob(["strategies/*.yaml"]),
     visibility = [

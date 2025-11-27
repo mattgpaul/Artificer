@@ -18,7 +18,6 @@ from system.algo_trader.backtest.processor.worker import (
     log_backtest_results,
     write_backtest_results,
 )
-from system.algo_trader.strategy.strategy import Side
 
 
 class TestCreateStrategyInstance:
@@ -28,33 +27,48 @@ class TestCreateStrategyInstance:
     def test_create_strategy_instance_sma_crossover(self):
         """Test creating SMA crossover strategy instance."""
         with patch(
-            "system.algo_trader.backtest.processor.worker.SMACrossover"
-        ) as mock_strategy_class:
+            "system.algo_trader.backtest.processor.worker.get_registry"
+        ) as mock_get_registry:
+            mock_registry = MagicMock()
             mock_strategy = MagicMock()
-            mock_strategy_class.return_value = mock_strategy
+            mock_registry.create_strategy_from_params.return_value = mock_strategy
+            mock_get_registry.return_value = mock_registry
 
             result = create_strategy_instance("SMACrossover", {"short": 10, "long": 20})
 
             assert result == mock_strategy
-            mock_strategy_class.assert_called_once_with(
-                short=10, long=20, window=120, side=Side("LONG")
+            mock_registry.create_strategy_from_params.assert_called_once_with(
+                "SMACrossover", {"short": 10, "long": 20}
             )
 
     @pytest.mark.unit
     def test_create_strategy_instance_unknown_type(self):
         """Test creating unknown strategy type raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown strategy type"):
-            create_strategy_instance("UnknownStrategy", {})
+        with patch(
+            "system.algo_trader.backtest.processor.worker.get_registry"
+        ) as mock_get_registry:
+            mock_registry = MagicMock()
+            mock_registry.create_strategy_from_params.side_effect = ValueError(
+                "Unknown strategy type: 'UnknownStrategy'"
+            )
+            mock_get_registry.return_value = mock_registry
+
+            with pytest.raises(ValueError, match="Unknown strategy"):
+                create_strategy_instance("UnknownStrategy", {})
 
     @pytest.mark.unit
     def test_create_strategy_instance_missing_params(self):
         """Test creating strategy with missing parameters."""
         with patch(
-            "system.algo_trader.backtest.processor.worker.SMACrossover"
-        ) as mock_strategy_class:
-            mock_strategy_class.side_effect = KeyError("Missing parameter")
+            "system.algo_trader.backtest.processor.worker.get_registry"
+        ) as mock_get_registry:
+            mock_registry = MagicMock()
+            mock_registry.create_strategy_from_params.side_effect = ValueError(
+                "Failed to create strategy UnknownStrategy: Missing parameter"
+            )
+            mock_get_registry.return_value = mock_registry
 
-            with pytest.raises(KeyError):
+            with pytest.raises(ValueError):
                 create_strategy_instance("SMACrossover", {})
 
 

@@ -6,7 +6,9 @@ This module provides the CLI interface for running backtests on trading strategi
 """
 
 import argparse
+import inspect
 import sys
+from typing import Any
 from uuid import uuid4
 
 import pandas as pd
@@ -28,8 +30,7 @@ from system.algo_trader.strategy.filters.config_loader import (
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config_dict,
 )
-from system.algo_trader.strategy.strategies.sma_crossover import SMACrossover
-from system.algo_trader.strategy.strategy import Side
+from system.algo_trader.strategy.strategy_registry import get_registry
 
 
 def create_strategy(args, logger):
@@ -45,20 +46,52 @@ def create_strategy(args, logger):
     Raises:
         ValueError: If strategy type is unknown.
     """
-    if args.strategy == "sma-crossover":
-        logger.info(
-            "Initializing SMA Crossover: "
-            f"short={args.short}, long={args.long}, window={args.window}, side={args.side}"
-        )
-        side = Side(args.side)
-        return SMACrossover(
-            short=args.short,
-            long=args.long,
-            window=args.window,
-            side=side,
-        )
-    else:
-        raise ValueError(f"Unknown strategy: {args.strategy}")
+    registry = get_registry()
+    strategy = registry.create_strategy(args.strategy, args, logger)
+
+    # Log strategy initialization
+    strategy_params = {
+        "side": getattr(args, "side", "LONG"),
+        "window": getattr(args, "window", None),
+    }
+    # Add strategy-specific parameters
+    for attr in dir(args):
+        if not attr.startswith("_") and attr not in (
+            "strategy",
+            "side",
+            "window",
+            "tickers",
+            "start_date",
+            "end_date",
+            "database",
+            "step_frequency",
+            "walk_forward",
+            "train_days",
+            "test_days",
+            "train_split",
+            "slippage_bps",
+            "commission",
+            "capital",
+            "account_value",
+            "trade_percentage",
+            "risk_free_rate",
+            "max_processes",
+            "no_multiprocessing",
+            "position_manager",
+            "portfolio_manager",
+            "filter",
+            "lookback_bars",
+        ):
+            value = getattr(args, attr, None)
+            if value is not None:
+                strategy_params[attr] = value
+
+    logger.info(
+        f"Initializing {args.strategy}: "
+        f"{', '.join(f'{k}={v}' for k, v in strategy_params.items() if v is not None)}"
+    )
+
+    return strategy
 
 
 def parse_args():
@@ -219,15 +252,15 @@ def parse_args():
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to backtest"
     )
-    sma_parser = subparsers.add_parser(
-        "sma-crossover", help="Simple Moving Average crossover strategy"
-    )
-    SMACrossover.add_arguments(sma_parser)
+
+    # Auto-register all strategies from the registry
+    registry = get_registry()
+    registry.register_cli_arguments(subparsers, subparsers.add_parser)
 
     return parser.parse_args()
 
 
-def main():  # noqa: PLR0911, PLR0915
+def main():  # noqa: C901, PLR0911, PLR0912, PLR0915
     """Main entry point for backtesting CLI.
 
     Returns:
@@ -276,15 +309,21 @@ def main():  # noqa: PLR0911, PLR0915
     filter_pipeline = load_filter_configs(args.filter, logger)
     filter_config_dict = load_filter_config_dicts(args.filter, logger)
 
-    strategy_params = {}
-    if args.strategy == "sma-crossover":
-        strategy_params = {
-            "short": args.short,
-            "long": args.long,
-            "side": args.side,
-        }
-        if args.window is not None:
-            strategy_params["window"] = args.window
+    # Extract strategy parameters dynamically
+    strategy_params: dict[str, Any] = {}
+    registry = get_registry()
+    strategy_class = registry.get_strategy_class(args.strategy)
+
+    if strategy_class:
+        # Get strategy-specific parameters by inspecting the constructor
+        sig = inspect.signature(strategy_class.__init__)
+        for param_name, _param in sig.parameters.items():
+            if param_name in ("self", "extra", "_"):
+                continue
+            if hasattr(args, param_name):
+                value = getattr(args, param_name)
+                if value is not None:
+                    strategy_params[param_name] = value
 
     try:
         backtest_id = str(uuid4())

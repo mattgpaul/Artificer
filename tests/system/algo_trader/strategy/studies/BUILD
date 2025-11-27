@@ -20,7 +20,7 @@ py_library(
     deps = [
         ":conftest_lib",
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         requirement("pandas"),
         requirement("pytest"),
     ],

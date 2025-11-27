@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from system.algo_trader.backtest.main import create_strategy, main, parse_args
-from system.algo_trader.strategy.strategy import Side
 
 
 class TestParseArgs:
@@ -164,15 +163,17 @@ class TestCreateStrategy:
         args.window = 120
         args.side = "LONG"
 
-        with patch("system.algo_trader.backtest.main.SMACrossover") as mock_strategy_class:
+        with patch("system.algo_trader.backtest.main.get_registry") as mock_get_registry:
+            mock_registry = MagicMock()
             mock_strategy = MagicMock()
-            mock_strategy_class.return_value = mock_strategy
+            mock_registry.create_strategy.return_value = mock_strategy
+            mock_get_registry.return_value = mock_registry
 
             result = create_strategy(args, mock_logger)
 
             assert result == mock_strategy
-            mock_strategy_class.assert_called_once_with(
-                short=10, long=20, window=120, side=Side("LONG")
+            mock_registry.create_strategy.assert_called_once_with(
+                "sma-crossover", args, mock_logger
             )
 
     @pytest.mark.unit

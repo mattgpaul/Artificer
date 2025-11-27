@@ -4,6 +4,10 @@ This module provides a portfolio rule that limits the percentage of
 total capital that can be deployed in positions.
 """
 
+from __future__ import annotations
+
+from typing import Any, ClassVar
+
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
     PortfolioDecision,
@@ -16,6 +20,8 @@ class MaxCapitalDeployedRule:
 
     Blocks new entries when deployed capital exceeds the configured percentage.
     """
+
+    rule_type: ClassVar[str] = "max_capital_deployed"
 
     def __init__(self, max_deployed_pct: float = 0.5, logger=None):
         """Initialize MaxCapitalDeployedRule.
@@ -77,3 +83,26 @@ class MaxCapitalDeployedRule:
             )
 
         return PortfolioDecision(allow_entry=True)
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> MaxCapitalDeployedRule | None:
+        """Create a MaxCapitalDeployedRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - max_deployed_pct: Maximum percentage of capital to deploy (default: 0.5).
+            logger: Optional logger instance.
+
+        Returns:
+            MaxCapitalDeployedRule instance if configuration is valid, None otherwise.
+        """
+        max_deployed_pct = params.get("max_deployed_pct", 0.5)
+        try:
+            pct = float(max_deployed_pct)
+        except (TypeError, ValueError):
+            if logger is not None:
+                logger.error(
+                    f"max_capital_deployed rule params must be numeric: {max_deployed_pct}"
+                )
+            return None
+        return cls(max_deployed_pct=pct, logger=logger)
