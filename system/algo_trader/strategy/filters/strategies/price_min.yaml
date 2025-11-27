@@ -3,5 +3,5 @@ filters:
     params:
       field: price
       operator: ">="
-      value: 1.0
+      value: 50.0
 
