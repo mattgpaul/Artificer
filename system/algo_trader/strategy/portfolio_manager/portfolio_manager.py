@@ -44,7 +44,7 @@ class PortfolioManager:
         self.settlement_lag_trading_days = settlement_lag_trading_days
         self.logger = logger or get_logger(self.__class__.__name__)
 
-    def apply(  # noqa: PLR0912, PLR0915
+    def apply(  # noqa: PLR0912, PLR0915, C901
         self,
         executions: pd.DataFrame,
         ohlcv_by_ticker: dict[str, pd.DataFrame],
@@ -73,6 +73,7 @@ class PortfolioManager:
         state = PortfolioState(cash_available=self.initial_account_value)
         approved_rows: list[dict[str, Any]] = []
         current_day = None
+        pm_position_sizes: dict[str, float] = {}
 
         for _, row in df.iterrows():
             ts = pd.to_datetime(row["signal_time"]).tz_convert("UTC")
@@ -100,12 +101,44 @@ class PortfolioManager:
             )
 
             if is_close:
-                applied = self._apply_close(state, pos, row, trading_days, price, shares)
+                pm_before = pm_position_sizes.get(ticker, 0.0)
+
+                closed_pm_shares = max(0.0, shares)
+                if pm_before <= 0.0:
+                    pm_position_sizes[ticker] = 0.0
+                    if pos.shares <= 0.0:
+                        continue
+                    fraction = 1.0
+                else:
+                    closed_pm_shares = min(closed_pm_shares, pm_before)
+                    pm_after = pm_before - closed_pm_shares
+                    pm_position_sizes[ticker] = pm_after
+                    if pm_before > 0.0:
+                        fraction = closed_pm_shares / pm_before
+                    else:
+                        fraction = 0.0
+
+                if fraction <= 0.0 or pos.shares <= 0.0:
+                    continue
+
+                portfolio_close_shares = pos.shares * fraction
+
+                applied = self._apply_close(
+                    state,
+                    pos,
+                    row,
+                    trading_days,
+                    price,
+                    portfolio_close_shares,
+                )
                 if applied:
                     approved_rows.append(row.to_dict())
                 continue
 
             if is_open:
+                pm_prev = pm_position_sizes.get(ticker, 0.0)
+                pm_position_sizes[ticker] = pm_prev + max(0.0, shares)
+
                 allow, max_shares, reason = self.pipeline.decide_entry(ctx)
                 if not allow:
                     continue
@@ -166,14 +199,15 @@ class PortfolioManager:
         if pos.shares <= 0:
             return False
 
-        close_shares = float(pos.shares)
+        requested_shares_int = max(1, int(shares))
+        close_shares = min(float(requested_shares_int), pos.shares)
         if close_shares <= 0:
             return False
 
         row["shares"] = close_shares
 
         proceeds = close_shares * price
-        pos.shares = 0.0
+        pos.shares = max(0.0, pos.shares - close_shares)
 
         ts = pd.to_datetime(row["signal_time"]).tz_convert("UTC")
         trade_day = ts.normalize()

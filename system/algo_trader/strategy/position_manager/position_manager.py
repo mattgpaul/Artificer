@@ -6,6 +6,7 @@ rules to trading signals, handling entry, exit, and scaling operations.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import pandas as pd
@@ -164,14 +165,17 @@ class PositionManager:
         except (ValueError, TypeError):
             return None
 
-        shares = self.capital_per_trade / price
-        position.size_shares = shares
+        shares = math.floor(self.capital_per_trade / price)
+        if shares <= 0:
+            return None
+
+        position.size_shares = float(shares)
         position.size = 1.0
         position.side = side
         position.entry_price = price
         position.avg_entry_price = price
 
-        signal["shares"] = shares
+        signal["shares"] = float(shares)
         signal["action"] = "open"
         signal["reason"] = "strategy_entry"
         return signal
@@ -201,8 +205,13 @@ class PositionManager:
         if exit_fraction <= 0.0:
             exit_fraction = 1.0
 
-        shares_to_close = position.size_shares * exit_fraction
-        position.size_shares = max(0.0, position.size_shares - shares_to_close)
+        shares_to_close_float = position.size_shares * exit_fraction
+        floor_shares_to_close = math.floor(shares_to_close_float)
+        floor_position_shares = math.floor(position.size_shares)
+        shares_to_close = max(1, min(floor_shares_to_close, floor_position_shares))
+        shares_to_close = int(shares_to_close)
+        shares_to_close_float = float(shares_to_close)
+        position.size_shares = max(0.0, position.size_shares - shares_to_close_float)
         position.size = max(0.0, position.size - exit_fraction)
 
         if position.size_shares <= 0.0:
@@ -218,7 +227,7 @@ class PositionManager:
         else:
             signal["action"] = "scale_out"
 
-        signal["shares"] = shares_to_close
+        signal["shares"] = shares_to_close_float
         signal["reason"] = "strategy_exit"
         return signal
 
@@ -267,8 +276,13 @@ class PositionManager:
         if exit_fraction <= 0.0:
             return None
 
-        shares_to_close = position.size_shares * exit_fraction
-        position.size_shares = max(0.0, position.size_shares - shares_to_close)
+        shares_to_close_float = position.size_shares * exit_fraction
+        floor_shares_to_close = math.floor(shares_to_close_float)
+        floor_position_shares = math.floor(position.size_shares)
+        shares_to_close = max(1, min(floor_shares_to_close, floor_position_shares))
+        shares_to_close = int(shares_to_close)
+        shares_to_close_float = float(shares_to_close)
+        position.size_shares = max(0.0, position.size_shares - shares_to_close_float)
         position.size = max(0.0, position.size - exit_fraction)
 
         if position.size_shares <= 0.0:
@@ -282,7 +296,7 @@ class PositionManager:
         else:
             synthetic_signal["action"] = "scale_out"
 
-        synthetic_signal["shares"] = shares_to_close
+        synthetic_signal["shares"] = shares_to_close_float
         if rule_reason is not None:
             synthetic_signal["reason"] = rule_reason
 
@@ -321,14 +335,20 @@ class PositionManager:
         if not allow_entry:
             return None
 
-        shares_to_add = self.capital_per_trade / current_price
-        total_shares = position.size_shares + shares_to_add
-        total_cost = position.size_shares * position.avg_entry_price + shares_to_add * current_price
+        shares_to_add = math.floor(self.capital_per_trade / current_price)
+        if shares_to_add <= 0:
+            return None
+
+        shares_to_add_float = float(shares_to_add)
+        total_shares = position.size_shares + shares_to_add_float
+        total_cost = (
+            position.size_shares * position.avg_entry_price + shares_to_add_float * current_price
+        )
         position.avg_entry_price = total_cost / total_shares
         position.size_shares = total_shares
         position.size += 1.0
 
-        synthetic_signal["shares"] = shares_to_add
+        synthetic_signal["shares"] = shares_to_add_float
         synthetic_signal["action"] = "scale_in"
         synthetic_signal["reason"] = "scale_in_rule"
 
