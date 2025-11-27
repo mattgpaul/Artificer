@@ -3,12 +3,18 @@
 This module provides a filter that compares a signal field value to a constant threshold.
 """
 
+from __future__ import annotations
+
+from typing import Any, ClassVar
+
 from system.algo_trader.strategy.filters.base import BaseComparisonFilter
 from system.algo_trader.strategy.filters.core import FilterContext
 
 
 class PriceComparisonFilter(BaseComparisonFilter):
     """Filter that compares a signal field value to a constant threshold."""
+
+    filter_type: ClassVar[str] = "price_comparison"
 
     def __init__(self, field: str, operator: str, value: float, logger=None):
         """Initialize price comparison filter.
@@ -48,3 +54,37 @@ class PriceComparisonFilter(BaseComparisonFilter):
             return False
 
         return self._compare_values(field_value, self.value)
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> PriceComparisonFilter | None:
+        """Create a PriceComparisonFilter instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing filter configuration with keys:
+                - field: Name of the signal field to compare.
+                - operator: Comparison operator (>, <, >=, <=, ==, !=).
+                - value: Threshold value to compare against.
+            logger: Optional logger instance.
+
+        Returns:
+            PriceComparisonFilter instance if configuration is valid, None otherwise.
+        """
+        field = params.get("field")
+        operator = params.get("operator")
+        value = params.get("value")
+
+        if field is None or operator is None or value is None:
+            if logger is not None:
+                logger.error(
+                    "price_comparison filter missing required params: field, operator, value"
+                )
+            return None
+
+        try:
+            value_float = float(value)
+        except (ValueError, TypeError):
+            if logger is not None:
+                logger.error(f"price_comparison filter value must be numeric, got {value}")
+            return None
+
+        return cls(field=field, operator=operator, value=value_float, logger=logger)

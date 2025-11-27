@@ -42,8 +42,8 @@ class SignalCollector:
         return timestamp.tz_convert("UTC")
 
     def _normalize_index(self, data: pd.DataFrame) -> pd.DataFrame:
-        if data.empty:
-            return data
+        if data is None or data.empty:
+            return pd.DataFrame() if data is None else data
         result = data.copy()
         if result.index.tz is None:
             result.index = result.index.tz_localize("UTC")
@@ -52,8 +52,8 @@ class SignalCollector:
         return result
 
     def _slice_window(self, data: pd.DataFrame, current_time: pd.Timestamp) -> pd.DataFrame:
-        if data.empty:
-            return data
+        if data is None or data.empty:
+            return pd.DataFrame() if data is None else data
 
         current_time_utc = self._normalize_timestamp(current_time)
         data_utc = self._normalize_index(data)
@@ -80,7 +80,7 @@ class SignalCollector:
         collected_keys: set,
         out: list,
     ) -> None:
-        if signals.empty:
+        if signals is None or signals.empty:
             return
 
         df = signals.copy()

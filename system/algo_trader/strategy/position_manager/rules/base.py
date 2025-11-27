@@ -5,6 +5,8 @@ management rules, including PositionState, PositionDecision, PositionRuleContext
 and the PositionRule protocol.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Protocol
 

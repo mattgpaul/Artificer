@@ -4,6 +4,10 @@ This module provides the TakeProfitRule class which triggers position exits
 when profits exceed a configured threshold.
 """
 
+from __future__ import annotations
+
+from typing import Any, ClassVar
+
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.position_manager.rules.base import (
     AnchorConfig,
@@ -20,6 +24,8 @@ class TakeProfitRule:
     Evaluates current price against anchor price and exits a fraction
     of the position if profit exceeds the configured percentage.
     """
+
+    rule_type: ClassVar[str] = "take_profit"
 
     def __init__(
         self,
@@ -78,3 +84,49 @@ class TakeProfitRule:
         if pnl_pct >= self.target_pct:
             return PositionDecision(exit_fraction=self.fraction, reason="take_profit")
         return PositionDecision()
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> TakeProfitRule | None:
+        """Create a TakeProfitRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - field_price: Name of the price field to monitor.
+                - target_pct: Target profit percentage to trigger exit.
+                - fraction: Fraction of position to exit when triggered.
+                - anchor: Optional anchor configuration dictionary.
+            logger: Optional logger instance.
+
+        Returns:
+            TakeProfitRule instance if configuration is valid, None otherwise.
+        """
+        field_price = params.get("field_price")
+        target_pct = params.get("target_pct")
+        fraction = params.get("fraction")
+        if field_price is None or target_pct is None or fraction is None:
+            if logger is not None:
+                logger.error(
+                    "take_profit rule missing required params: field_price, target_pct, fraction"
+                )
+            return None
+        anchor_cfg = params.get("anchor", {}) or {}
+        anchor_config = AnchorConfig(
+            anchor_type=anchor_cfg.get("type", "entry_price"),
+            anchor_field=anchor_cfg.get("field"),
+            lookback_bars=int(anchor_cfg["lookback_bars"])
+            if anchor_cfg.get("lookback_bars") is not None
+            else None,
+            one_shot=bool(params.get("one_shot", True)),
+        )
+        try:
+            return cls(
+                field_price=field_price,
+                target_pct=float(target_pct),
+                fraction=float(fraction),
+                anchor_config=anchor_config,
+                logger=logger,
+            )
+        except (ValueError, TypeError) as e:
+            if logger is not None:
+                logger.error(f"take_profit rule params must be numeric where required: {e}")
+            return None

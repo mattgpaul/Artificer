@@ -4,6 +4,8 @@ This module defines the core data structures and interfaces for portfolio
 management rules, including PortfolioState, PortfolioDecision, and PortfolioRule.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Protocol
 

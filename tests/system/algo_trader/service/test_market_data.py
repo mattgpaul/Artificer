@@ -5,106 +5,12 @@ All external dependencies are mocked to avoid external service requirements.
 """
 
 from datetime import datetime, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 from system.algo_trader.service.market_data.historical import HistoricalMarketService
 from system.algo_trader.service.market_data.live import LiveMarketService
-
-
-@pytest.fixture
-def mock_redis():
-    """Mock Redis client for testing."""
-    with patch("redis.Redis") as mock:
-        yield mock.return_value
-
-
-@pytest.fixture
-def mock_influx():
-    """Mock InfluxDB client for testing."""
-    with patch("influxdb_client_3.InfluxDBClient3") as mock:
-        yield mock.return_value
-
-
-@pytest.fixture
-def mock_schwab_api():
-    """Mock Schwab API handler for testing."""
-    with patch("system.algo_trader.schwab.market_handler.MarketHandler") as mock:
-        mock_handler = mock.return_value
-        mock_handler.get_quotes.return_value = {
-            "AAPL": {"symbol": "AAPL", "lastPrice": 150.0},
-            "GOOGL": {"symbol": "GOOGL", "lastPrice": 2800.0},
-        }
-        mock_handler.get_market_hours.return_value = {
-            "start": datetime.now(timezone.utc).isoformat(),
-            "end": datetime.now(timezone.utc).isoformat(),
-        }
-        yield mock_handler
-
-
-@pytest.fixture
-def mock_live_dependencies():
-    """Fixture to mock all LiveMarketService dependencies."""
-    with (
-        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
-        patch("system.algo_trader.service.market_data.live.LiveMarketBroker") as mock_live_broker,
-    ):
-        mock_market_handler_instance = Mock()
-        mock_market_handler.return_value = mock_market_handler_instance
-
-        mock_watchlist_instance = Mock()
-        mock_watchlist.return_value = mock_watchlist_instance
-
-        mock_live_broker_instance = Mock()
-        mock_live_broker.return_value = mock_live_broker_instance
-
-        yield {
-            "market_handler": mock_market_handler,
-            "market_handler_instance": mock_market_handler_instance,
-            "watchlist": mock_watchlist,
-            "watchlist_instance": mock_watchlist_instance,
-            "live_broker": mock_live_broker,
-            "live_broker_instance": mock_live_broker_instance,
-        }
-
-
-@pytest.fixture
-def mock_historical_dependencies():
-    """Fixture to mock all HistoricalMarketService dependencies."""
-    with (
-        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
-        patch(
-            "system.algo_trader.service.market_data.historical.HistoricalMarketBroker"
-        ) as mock_historical_broker,
-        patch(
-            "system.algo_trader.service.market_data.historical.MarketDataInflux"
-        ) as mock_influx_handler,
-    ):
-        mock_market_handler_instance = Mock()
-        mock_market_handler.return_value = mock_market_handler_instance
-
-        mock_watchlist_instance = Mock()
-        mock_watchlist.return_value = mock_watchlist_instance
-
-        mock_historical_broker_instance = Mock()
-        mock_historical_broker.return_value = mock_historical_broker_instance
-
-        mock_influx_handler_instance = Mock()
-        mock_influx_handler.return_value = mock_influx_handler_instance
-
-        yield {
-            "market_handler": mock_market_handler,
-            "market_handler_instance": mock_market_handler_instance,
-            "watchlist": mock_watchlist,
-            "watchlist_instance": mock_watchlist_instance,
-            "historical_broker": mock_historical_broker,
-            "historical_broker_instance": mock_historical_broker_instance,
-            "influx_handler": mock_influx_handler,
-            "influx_handler_instance": mock_influx_handler_instance,
-        }
 
 
 class TestMarketDataCLIIntegration:

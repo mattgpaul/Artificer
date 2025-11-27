@@ -4,6 +4,8 @@ This module provides functionality to load position manager configurations
 from YAML files and create rule pipelines from them.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,9 @@ import yaml
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.position_manager.rules.base import AnchorConfig
 from system.algo_trader.strategy.position_manager.rules.pipeline import PositionRulePipeline
+from system.algo_trader.strategy.position_manager.rules.registry import (
+    get_registry as get_position_rule_registry,
+)
 from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
 from system.algo_trader.strategy.position_manager.rules.stop_loss import StopLossRule
 from system.algo_trader.strategy.position_manager.rules.take_profit import TakeProfitRule
@@ -137,14 +142,36 @@ def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None
     Returns:
         Rule instance if successful, None otherwise.
     """
-    if rule_name == "scaling":
-        return _build_scaling_rule(params, logger)
-    if rule_name == "take_profit":
-        return _build_take_profit_rule(params, logger)
-    if rule_name == "stop_loss":
-        return _build_stop_loss_rule(params, logger)
-    logger.error(f"Unknown rule type: {rule_name}")
-    return None
+    # Handle built-in rule types
+    builtin_rules = {
+        "scaling": _build_scaling_rule,
+        "take_profit": _build_take_profit_rule,
+        "stop_loss": _build_stop_loss_rule,
+    }
+    if rule_name in builtin_rules:
+        return builtin_rules[rule_name](params, logger)
+
+    # Try to find rule in registry
+    registry = get_position_rule_registry()
+    rule_class = registry.get_rule_class(rule_name)
+    if rule_class is None:
+        logger.error(f"Unknown rule type: {rule_name}")
+        return None
+
+    # Try from_config method first
+    from_config = getattr(rule_class, "from_config", None)
+    if callable(from_config):
+        result = from_config(params, logger=logger)
+        if result is None:
+            logger.error(f"Failed to create rule '{rule_name}' from config")
+        return result
+
+    # Fall back to direct instantiation
+    try:
+        return rule_class(**params, logger=logger)
+    except Exception as e:
+        logger.error(f"Failed to create rule '{rule_name}': {e}")
+        return None
 
 
 def _load_pipeline_from_file(
