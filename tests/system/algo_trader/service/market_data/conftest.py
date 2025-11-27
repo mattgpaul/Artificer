@@ -150,4 +150,3 @@ def mock_schwab_api():
             "end": datetime.now(timezone.utc).isoformat(),
         }
         yield mock_handler
-

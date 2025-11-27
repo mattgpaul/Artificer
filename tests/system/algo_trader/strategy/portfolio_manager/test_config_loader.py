@@ -240,4 +240,3 @@ class TestLoadPortfolioManagerConfig:
 
                 assert result is None
                 mock_logger.warning.assert_called()
-

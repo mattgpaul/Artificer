@@ -5,7 +5,6 @@ PositionRule protocol, and utility functions. All external dependencies are mock
 """
 
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.position_manager.rules.base import (
     AnchorConfig,
@@ -173,9 +172,7 @@ class TestComputeAnchorPrice:
         position = PositionState(entry_price=100.0)
         ohlcv = pd.DataFrame(
             {"high": [101.0, 102.0, 103.0]},
-            index=pd.DatetimeIndex(
-                ["2024-01-01", "2024-01-02", "2024-01-03"], tz="UTC"
-            ),
+            index=pd.DatetimeIndex(["2024-01-01", "2024-01-02", "2024-01-03"], tz="UTC"),
         )
         context = PositionRuleContext(signal, position, {"AAPL": ohlcv})
 
@@ -189,9 +186,7 @@ class TestComputeAnchorPrice:
         position = PositionState(entry_price=100.0)
         ohlcv = pd.DataFrame(
             {"low": [99.0, 98.0, 97.0]},
-            index=pd.DatetimeIndex(
-                ["2024-01-01", "2024-01-02", "2024-01-03"], tz="UTC"
-            ),
+            index=pd.DatetimeIndex(["2024-01-01", "2024-01-02", "2024-01-03"], tz="UTC"),
         )
         context = PositionRuleContext(signal, position, {"AAPL": ohlcv})
 
@@ -324,4 +319,3 @@ class TestValidateExitSignalAndGetPrice:
         price = validate_exit_signal_and_get_price(context, "price")
 
         assert price is None
-

@@ -160,4 +160,3 @@ class TestExponentialMovingAverageCalculation:
 
         assert result is not None
         assert isinstance(result, pd.Series)
-

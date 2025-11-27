@@ -4,14 +4,10 @@ Tests cover initialization, loss threshold evaluation, anchor price calculation,
 and error handling. All external dependencies are mocked via conftest.py.
 """
 
-from unittest.mock import MagicMock
-
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.position_manager.rules.base import (
     AnchorConfig,
-    PositionDecision,
     PositionRuleContext,
     PositionState,
 )
@@ -215,9 +211,7 @@ class TestStopLossRuleEvaluation:
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
         ohlcv = pd.DataFrame(
             {"low": [95.0, 94.0, 93.0, 92.0, 91.0]},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=5, freq="1D", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=5, freq="1D", tz="UTC")),
         )
         context = PositionRuleContext(signal, position, {"AAPL": ohlcv})
 
@@ -226,4 +220,3 @@ class TestStopLossRuleEvaluation:
         # Should trigger if current price (85.0) is 5% below rolling min (91.0)
         # Loss = (85.0 - 91.0) / 91.0 = -6.0 / 91.0 ≈ -6.6% < -5% threshold
         assert decision.exit_fraction is not None
-

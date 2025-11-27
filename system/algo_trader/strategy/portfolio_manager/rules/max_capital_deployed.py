@@ -85,14 +85,24 @@ class MaxCapitalDeployedRule:
         return PortfolioDecision(allow_entry=True)
 
     @classmethod
-    def from_config(
-        cls, params: dict[str, Any], logger=None
-    ) -> "MaxCapitalDeployedRule" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> MaxCapitalDeployedRule | None:
+        """Create a MaxCapitalDeployedRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - max_deployed_pct: Maximum percentage of capital to deploy (default: 0.5).
+            logger: Optional logger instance.
+
+        Returns:
+            MaxCapitalDeployedRule instance if configuration is valid, None otherwise.
+        """
         max_deployed_pct = params.get("max_deployed_pct", 0.5)
         try:
             pct = float(max_deployed_pct)
         except (TypeError, ValueError):
             if logger is not None:
-                logger.error(f"max_capital_deployed rule params must be numeric: {max_deployed_pct}")
+                logger.error(
+                    f"max_capital_deployed rule params must be numeric: {max_deployed_pct}"
+                )
             return None
         return cls(max_deployed_pct=pct, logger=logger)

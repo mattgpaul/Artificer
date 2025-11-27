@@ -5,7 +5,6 @@ All external dependencies are mocked via conftest.py.
 """
 
 import argparse
-from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -118,9 +117,7 @@ class TestStrategyBuildPriceSignal:
 
         ohlcv_data = pd.DataFrame(
             {"close": [100.0, 101.0, 102.0]},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=3, freq="1D", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=3, freq="1D", tz="UTC")),
         )
 
         signal = strategy._build_price_signal(ohlcv_data)
@@ -154,9 +151,7 @@ class TestStrategyBuildPriceSignal:
 
         ohlcv_data = pd.DataFrame(
             {"open": [100.0, 101.0, 102.0]},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=3, freq="1D", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=3, freq="1D", tz="UTC")),
         )
 
         signal = strategy._build_price_signal(ohlcv_data)
@@ -192,4 +187,3 @@ class TestSideEnum:
         """Test Side enum has correct values."""
         assert Side.LONG.value == "LONG"
         assert Side.SHORT.value == "SHORT"
-

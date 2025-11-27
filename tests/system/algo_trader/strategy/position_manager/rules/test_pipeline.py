@@ -6,9 +6,6 @@ and scaling rule integration. All external dependencies are mocked via conftest.
 
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
-import pytest
-
 from system.algo_trader.strategy.position_manager.rules.base import (
     PositionDecision,
     PositionRuleContext,
@@ -33,7 +30,9 @@ class TestPositionRulePipelineInitialization:
     def test_initialization_creates_logger(self):
         """Test initialization creates logger if not provided."""
         rules = []
-        with patch("system.algo_trader.strategy.position_manager.rules.pipeline.get_logger") as mock_get_logger:
+        with patch(
+            "system.algo_trader.strategy.position_manager.rules.pipeline.get_logger"
+        ) as mock_get_logger:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
             pipeline = PositionRulePipeline(rules)
@@ -162,11 +161,11 @@ class TestPositionRulePipelineExit:
         context = PositionRuleContext(signal, position, {})
 
         # First call should trigger
-        fraction1, reason1 = pipeline.decide_exit(context)
+        fraction1, _reason1 = pipeline.decide_exit(context)
         assert fraction1 == 0.5
 
         # Second call should not trigger (one-shot)
-        fraction2, reason2 = pipeline.decide_exit(context)
+        fraction2, _reason2 = pipeline.decide_exit(context)
         assert fraction2 == 0.0
 
     def test_decide_exit_scale_out_disabled(self, mock_logger):
@@ -181,7 +180,7 @@ class TestPositionRulePipelineExit:
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
         context = PositionRuleContext(signal, position, {})
 
-        fraction, reason = pipeline.decide_exit(context)
+        fraction, _reason = pipeline.decide_exit(context)
 
         # Should return 1.0 (full exit) when scale-out is disabled
         assert fraction == 1.0
@@ -197,7 +196,7 @@ class TestPositionRulePipelineExit:
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
         context = PositionRuleContext(signal, position, {})
 
-        fraction, reason = pipeline.decide_exit(context)
+        fraction, _reason = pipeline.decide_exit(context)
 
         assert fraction == 0.0
         mock_logger.warning.assert_called()
@@ -257,6 +256,5 @@ class TestPositionRulePipelineReset:
         pipeline.reset_for_ticker("AAPL")
 
         # Rule should be able to fire again
-        fraction, reason = pipeline.decide_exit(context)
+        fraction, _reason = pipeline.decide_exit(context)
         assert fraction == 0.5
-

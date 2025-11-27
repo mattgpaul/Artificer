@@ -7,7 +7,6 @@ and PortfolioRulePipeline. All external dependencies are mocked via conftest.py.
 from unittest.mock import MagicMock
 
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
     PortfolioDecision,
@@ -170,7 +169,7 @@ class TestPortfolioRulePipeline:
         state = PortfolioState(cash_available=100000.0)
         context = PortfolioRuleContext(signal, state, {})
 
-        allow, max_shares, reason = pipeline.decide_entry(context)
+        allow, max_shares, _reason = pipeline.decide_entry(context)
 
         assert allow is True
         assert max_shares == 100.0
@@ -180,7 +179,9 @@ class TestPortfolioRulePipeline:
         rule1 = MagicMock()
         rule1.evaluate.return_value = PortfolioDecision(allow_entry=True)
         rule2 = MagicMock()
-        rule2.evaluate.return_value = PortfolioDecision(allow_entry=False, reason="insufficient_capital")
+        rule2.evaluate.return_value = PortfolioDecision(
+            allow_entry=False, reason="insufficient_capital"
+        )
 
         pipeline = PortfolioRulePipeline([rule1, rule2], logger=mock_logger)
 
@@ -188,7 +189,7 @@ class TestPortfolioRulePipeline:
         state = PortfolioState(cash_available=100000.0)
         context = PortfolioRuleContext(signal, state, {})
 
-        allow, max_shares, reason = pipeline.decide_entry(context)
+        allow, _max_shares, reason = pipeline.decide_entry(context)
 
         assert allow is False
         assert reason == "insufficient_capital"
@@ -206,7 +207,7 @@ class TestPortfolioRulePipeline:
         state = PortfolioState(cash_available=100000.0)
         context = PortfolioRuleContext(signal, state, {})
 
-        allow, max_shares, reason = pipeline.decide_entry(context)
+        allow, max_shares, _reason = pipeline.decide_entry(context)
 
         assert allow is True
         assert max_shares == 50.0
@@ -222,9 +223,8 @@ class TestPortfolioRulePipeline:
         state = PortfolioState(cash_available=100000.0)
         context = PortfolioRuleContext(signal, state, {})
 
-        allow, max_shares, reason = pipeline.decide_entry(context)
+        allow, max_shares, _reason = pipeline.decide_entry(context)
 
         assert allow is False
         assert max_shares is None
         mock_logger.warning.assert_called()
-

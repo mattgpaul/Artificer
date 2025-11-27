@@ -6,6 +6,7 @@ This module provides the CLI interface for running backtests on trading strategi
 """
 
 import argparse
+import inspect
 import sys
 from typing import Any
 from uuid import uuid4
@@ -29,7 +30,6 @@ from system.algo_trader.strategy.filters.config_loader import (
 from system.algo_trader.strategy.position_manager.config_loader import (
     load_position_manager_config_dict,
 )
-from system.algo_trader.strategy.strategy import Side
 from system.algo_trader.strategy.strategy_registry import get_registry
 
 
@@ -48,7 +48,7 @@ def create_strategy(args, logger):
     """
     registry = get_registry()
     strategy = registry.create_strategy(args.strategy, args, logger)
-    
+
     # Log strategy initialization
     strategy_params = {
         "side": getattr(args, "side", "LONG"),
@@ -57,21 +57,40 @@ def create_strategy(args, logger):
     # Add strategy-specific parameters
     for attr in dir(args):
         if not attr.startswith("_") and attr not in (
-            "strategy", "side", "window", "tickers", "start_date", "end_date",
-            "database", "step_frequency", "walk_forward", "train_days", "test_days",
-            "train_split", "slippage_bps", "commission", "capital", "account_value",
-            "trade_percentage", "risk_free_rate", "max_processes", "no_multiprocessing",
-            "position_manager", "portfolio_manager", "filter", "lookback_bars",
+            "strategy",
+            "side",
+            "window",
+            "tickers",
+            "start_date",
+            "end_date",
+            "database",
+            "step_frequency",
+            "walk_forward",
+            "train_days",
+            "test_days",
+            "train_split",
+            "slippage_bps",
+            "commission",
+            "capital",
+            "account_value",
+            "trade_percentage",
+            "risk_free_rate",
+            "max_processes",
+            "no_multiprocessing",
+            "position_manager",
+            "portfolio_manager",
+            "filter",
+            "lookback_bars",
         ):
             value = getattr(args, attr, None)
             if value is not None:
                 strategy_params[attr] = value
-    
+
     logger.info(
         f"Initializing {args.strategy}: "
         f"{', '.join(f'{k}={v}' for k, v in strategy_params.items() if v is not None)}"
     )
-    
+
     return strategy
 
 
@@ -233,7 +252,7 @@ def parse_args():
     subparsers = parser.add_subparsers(
         dest="strategy", required=True, help="Trading strategy to backtest"
     )
-    
+
     # Auto-register all strategies from the registry
     registry = get_registry()
     registry.register_cli_arguments(subparsers, subparsers.add_parser)
@@ -241,7 +260,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():  # noqa: PLR0911, PLR0915
+def main():  # noqa: C901, PLR0911, PLR0912, PLR0915
     """Main entry point for backtesting CLI.
 
     Returns:
@@ -294,12 +313,11 @@ def main():  # noqa: PLR0911, PLR0915
     strategy_params: dict[str, Any] = {}
     registry = get_registry()
     strategy_class = registry.get_strategy_class(args.strategy)
-    
+
     if strategy_class:
         # Get strategy-specific parameters by inspecting the constructor
-        import inspect
         sig = inspect.signature(strategy_class.__init__)
-        for param_name, param in sig.parameters.items():
+        for param_name, _param in sig.parameters.items():
             if param_name in ("self", "extra", "_"):
                 continue
             if hasattr(args, param_name):

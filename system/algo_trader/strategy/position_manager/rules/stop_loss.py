@@ -86,7 +86,20 @@ class StopLossRule:
         return PositionDecision()
 
     @classmethod
-    def from_config(cls, params: dict[str, Any], logger=None) -> "StopLossRule" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> StopLossRule | None:
+        """Create a StopLossRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - field_price: Name of the price field to monitor.
+                - loss_pct: Loss percentage threshold to trigger exit.
+                - fraction: Fraction of position to exit when triggered.
+                - anchor: Optional anchor configuration dictionary.
+            logger: Optional logger instance.
+
+        Returns:
+            StopLossRule instance if configuration is valid, None otherwise.
+        """
         field_price = params.get("field_price")
         loss_pct = params.get("loss_pct")
         fraction = params.get("fraction")
@@ -115,7 +128,5 @@ class StopLossRule:
             )
         except (ValueError, TypeError) as e:
             if logger is not None:
-                logger.error(
-                    f"stop_loss rule params must be numeric where required: {e}"
-                )
+                logger.error(f"stop_loss rule params must be numeric where required: {e}")
             return None

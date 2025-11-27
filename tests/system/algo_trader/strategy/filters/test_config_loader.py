@@ -6,9 +6,7 @@ and error handling. All external dependencies are mocked via conftest.py.
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 import yaml
 
 from system.algo_trader.strategy.filters.config_loader import (
@@ -213,7 +211,7 @@ class TestLoadFilterConfigs:
         """Test loading and combining multiple config files."""
         config_files = []
         try:
-            for i, config_data in enumerate(
+            for _i, config_data in enumerate(
                 [
                     {
                         "filters": [
@@ -338,4 +336,3 @@ class TestLoadFilterConfigDicts:
         result = load_filter_config_dicts(None, mock_logger)
 
         assert result is None
-

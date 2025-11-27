@@ -4,8 +4,8 @@ load("//:pytest_test.bzl", "pytest_test")
 py_library(
     name = "moving_average_lib",
     srcs = [
-        "simple_moving_average.py",
         "exponential_moving_average.py",
+        "simple_moving_average.py",
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",

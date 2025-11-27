@@ -7,10 +7,8 @@ All external dependencies are mocked via conftest.py.
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.filters.base import BaseComparisonFilter
-from system.algo_trader.strategy.filters.core import FilterContext
 from system.algo_trader.strategy.filters.sma_comparison import SmaComparisonFilter
 
 
@@ -337,4 +335,3 @@ class TestSmaComparisonFilterHelperMethods:
         result = filter_instance._get_value_from_signal(signal, "sma_fast")
 
         assert result is None
-

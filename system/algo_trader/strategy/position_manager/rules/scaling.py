@@ -55,7 +55,18 @@ class ScalingRule:
         return PositionDecision()
 
     @classmethod
-    def from_config(cls, params: dict[str, Any], logger=None) -> "ScalingRule":
+    def from_config(cls, params: dict[str, Any], logger=None) -> ScalingRule:
+        """Create a ScalingRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - allow_scale_in: Whether to allow scaling into positions (default: False).
+                - allow_scale_out: Whether to allow scaling out of positions (default: True).
+            logger: Optional logger instance.
+
+        Returns:
+            ScalingRule instance.
+        """
         allow_scale_in = params.get("allow_scale_in", False)
         allow_scale_out = params.get("allow_scale_out", True)
         return cls(

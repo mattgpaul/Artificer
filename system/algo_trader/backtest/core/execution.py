@@ -160,9 +160,9 @@ class ExecutionSimulator:
         Returns:
             Base fill price before slippage.
         """
-        if self.config.use_limit_orders:
-            return bar["open"]
-        return bar["close"]
+        # Always execute at the open of T+1 (the next bar after signal detection)
+        # Signal is produced at T (close), execution happens at T+1 (open)
+        return bar["open"]
 
     def _apply_slippage(self, fill_price: float, side: str) -> float:
         """Apply slippage to fill price.

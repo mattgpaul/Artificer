@@ -102,4 +102,3 @@ def mock_historical_dependencies():
             "influx_handler": mock_influx_handler,
             "influx_handler_instance": mock_influx_handler_instance,
         }
-

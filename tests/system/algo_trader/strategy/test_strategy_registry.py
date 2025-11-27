@@ -5,7 +5,6 @@ and strategy creation. All external dependencies are mocked via conftest.py.
 """
 
 import argparse
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -190,4 +189,3 @@ class TestGetRegistry:
         registry = get_registry()
 
         assert len(registry.get_all_strategy_names()) > 0
-

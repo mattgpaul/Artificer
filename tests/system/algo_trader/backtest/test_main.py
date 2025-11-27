@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from system.algo_trader.backtest.main import create_strategy, main, parse_args
-from system.algo_trader.strategy.strategy import Side
 
 
 class TestParseArgs:

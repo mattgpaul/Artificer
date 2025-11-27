@@ -86,7 +86,20 @@ class TakeProfitRule:
         return PositionDecision()
 
     @classmethod
-    def from_config(cls, params: dict[str, Any], logger=None) -> "TakeProfitRule" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> TakeProfitRule | None:
+        """Create a TakeProfitRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - field_price: Name of the price field to monitor.
+                - target_pct: Target profit percentage to trigger exit.
+                - fraction: Fraction of position to exit when triggered.
+                - anchor: Optional anchor configuration dictionary.
+            logger: Optional logger instance.
+
+        Returns:
+            TakeProfitRule instance if configuration is valid, None otherwise.
+        """
         field_price = params.get("field_price")
         target_pct = params.get("target_pct")
         fraction = params.get("fraction")
@@ -115,7 +128,5 @@ class TakeProfitRule:
             )
         except (ValueError, TypeError) as e:
             if logger is not None:
-                logger.error(
-                    f"take_profit rule params must be numeric where required: {e}"
-                )
+                logger.error(f"take_profit rule params must be numeric where required: {e}")
             return None

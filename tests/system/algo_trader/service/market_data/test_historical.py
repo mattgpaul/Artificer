@@ -6,8 +6,6 @@ and pipeline execution. All external dependencies are mocked to avoid external s
 
 from unittest.mock import Mock, patch
 
-import pytest
-
 from system.algo_trader.service.market_data.base import MarketHoursType
 from system.algo_trader.service.market_data.historical import (
     HistoricalMarketService,

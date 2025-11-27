@@ -83,4 +83,3 @@ pytest_test(
     tags = ["unit"],
     test_lib = ":test_registry_lib",
 )
-

@@ -109,9 +109,17 @@ class FractionalPositionSizeRule:
         )
 
     @classmethod
-    def from_config(
-        cls, params: dict[str, Any], logger=None
-    ) -> "FractionalPositionSizeRule" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> FractionalPositionSizeRule | None:
+        """Create a FractionalPositionSizeRule instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing rule configuration with keys:
+                - fraction_of_equity: Fraction of equity to use per position (default: 0.01).
+            logger: Optional logger instance.
+
+        Returns:
+            FractionalPositionSizeRule instance if configuration is valid, None otherwise.
+        """
         fraction = params.get("fraction_of_equity", 0.01)
         try:
             fraction_f = float(fraction)

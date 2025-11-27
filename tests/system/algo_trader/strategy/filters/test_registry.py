@@ -4,10 +4,7 @@ Tests cover filter discovery, registration, retrieval, and error handling.
 All external dependencies are mocked via conftest.py.
 """
 
-import importlib
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from system.algo_trader.strategy.filters.registry import FilterRegistry, get_registry
 
@@ -101,4 +98,3 @@ class TestGetRegistry:
         filter_types = registry.get_all_filter_types()
 
         assert len(filter_types) > 0
-

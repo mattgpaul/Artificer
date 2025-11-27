@@ -4,9 +4,7 @@ Tests cover initialization, sleep interval calculation, pipeline execution, and 
 All external dependencies are mocked to avoid external service requirements.
 """
 
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import Mock
 
 from system.algo_trader.service.market_data.base import MarketHoursType
 from system.algo_trader.service.market_data.live import LiveMarketService

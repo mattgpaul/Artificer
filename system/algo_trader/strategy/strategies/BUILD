@@ -18,5 +18,3 @@ py_library(
         requirement("pandas"),
     ],
 )
-
-
