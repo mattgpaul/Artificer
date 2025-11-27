@@ -4,6 +4,8 @@ This module provides the PositionManager class which applies position management
 rules to trading signals, handling entry, exit, and scaling operations.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 import pandas as pd

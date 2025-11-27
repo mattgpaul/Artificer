@@ -53,44 +53,32 @@ class StrategyRegistry:
         self._discover_strategies()
 
     def _discover_strategies(self) -> None:
-        """Discover all Strategy subclasses from imported modules.
-
-        This method searches through all imported modules to find classes
-        that inherit from Strategy. It registers them using their CLI name
-        (derived from class name).
-
-        Strategies are discovered by importing modules from the strategies
-        package. To add a new strategy:
-        1. Create the strategy class file in strategies/
-        2. Add it to system/algo_trader/strategy/BUILD (strategies library)
-        3. Import it in this method (or use dynamic discovery)
-        """
+        """Discover all Strategy subclasses from the strategies package."""
         import importlib
+        import pkgutil
 
-        # List of strategy modules to import
-        # This list should match the strategies in the BUILD file
-        strategy_module_names = [
-            "system.algo_trader.strategy.strategies.sma_crossover",
-            "system.algo_trader.strategy.strategies.ema_crossover",
-            # Add new strategies here, or use dynamic discovery below
-        ]
+        package_name = "system.algo_trader.strategy.strategies"
+        try:
+            package = importlib.import_module(package_name)
+        except ImportError:
+            return
 
-        # Import and discover strategies
-        for module_name in strategy_module_names:
+        for _, module_name, _ in pkgutil.iter_modules(
+            package.__path__, package.__name__ + "."
+        ):
             try:
                 module = importlib.import_module(module_name)
-                # Find all Strategy subclasses in this module
-                for name, obj in inspect.getmembers(module, inspect.isclass):
-                    if (
-                        issubclass(obj, Strategy)
-                        and obj is not Strategy
-                        and obj.__module__ == module_name
-                    ):
-                        cli_name = _class_name_to_cli_name(name)
-                        self._strategies[cli_name] = obj
             except ImportError:
-                # Skip modules that can't be imported (may not be in BUILD)
                 continue
+
+            for name, obj in inspect.getmembers(module, inspect.isclass):
+                if (
+                    issubclass(obj, Strategy)
+                    and obj is not Strategy
+                    and obj.__module__ == module.__name__
+                ):
+                    cli_name = _class_name_to_cli_name(name)
+                    self._strategies[cli_name] = obj
 
     def get_strategy_class(self, cli_name: str) -> type[Strategy] | None:
         """Get a strategy class by its CLI name.

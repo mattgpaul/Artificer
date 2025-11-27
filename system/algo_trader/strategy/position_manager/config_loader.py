@@ -4,6 +4,8 @@ This module provides functionality to load position manager configurations
 from YAML files and create rule pipelines from them.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,9 @@ from system.algo_trader.strategy.position_manager.rules.pipeline import Position
 from system.algo_trader.strategy.position_manager.rules.scaling import ScalingRule
 from system.algo_trader.strategy.position_manager.rules.stop_loss import StopLossRule
 from system.algo_trader.strategy.position_manager.rules.take_profit import TakeProfitRule
+from system.algo_trader.strategy.position_manager.rules.registry import (
+    get_registry as get_position_rule_registry,
+)
 
 
 def _resolve_config_path(config_name: str) -> Path:
@@ -143,6 +148,22 @@ def _create_rule_from_config(rule_name: str, params: dict[str, Any], logger=None
         return _build_take_profit_rule(params, logger)
     if rule_name == "stop_loss":
         return _build_stop_loss_rule(params, logger)
+
+    registry = get_position_rule_registry()
+    rule_class = registry.get_rule_class(rule_name)
+    if rule_class is not None:
+        from_config = getattr(rule_class, "from_config", None)
+        if callable(from_config):
+            result = from_config(params, logger=logger)
+            if result is None:
+                logger.error(f"Failed to create rule '{rule_name}' from config")
+            return result
+        try:
+            return rule_class(**params, logger=logger)
+        except Exception as e:
+            logger.error(f"Failed to create rule '{rule_name}': {e}")
+            return None
+
     logger.error(f"Unknown rule type: {rule_name}")
     return None
 

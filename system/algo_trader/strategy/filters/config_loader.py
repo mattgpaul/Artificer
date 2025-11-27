@@ -11,8 +11,7 @@ import yaml
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.filters.core import Filter, FilterPipeline
-from system.algo_trader.strategy.filters.price_comparison import PriceComparisonFilter
-from system.algo_trader.strategy.filters.sma_comparison import SmaComparisonFilter
+from system.algo_trader.strategy.filters.registry import get_registry as get_filter_registry
 
 
 def _resolve_config_path(config_name: str) -> Path:
@@ -42,50 +41,24 @@ def _create_filter_from_config(filter_config: dict[str, Any], logger=None) -> Fi
 
     params = filter_config.get("params", {})
 
-    if filter_type == "price_comparison":
-        field = params.get("field")
-        operator = params.get("operator")
-        value = params.get("value")
-
-        if field is None or operator is None or value is None:
-            logger.error("price_comparison filter missing required params: field, operator, value")
-        else:
-            try:
-                value_float = float(value)
-                return PriceComparisonFilter(
-                    field=field, operator=operator, value=value_float, logger=logger
-                )
-            except (ValueError, TypeError):
-                logger.error(f"price_comparison filter value must be numeric, got {value}")
+    registry = get_filter_registry()
+    filter_class = registry.get_filter_class(filter_type)
+    if filter_class is None:
+        logger.error(f"Unknown filter type: {filter_type}")
         return None
 
-    if filter_type == "sma_comparison":
-        field_fast = params.get("field_fast")
-        field_slow = params.get("field_slow")
-        operator = params.get("operator")
-        fast_window = params.get("fast_window")
-        slow_window = params.get("slow_window")
+    from_config = getattr(filter_class, "from_config", None)
+    if callable(from_config):
+        result = from_config(params, logger=logger)
+        if result is None:
+            logger.error(f"Failed to create filter of type {filter_type} from config")
+        return result
 
-        if field_fast is None or field_slow is None or operator is None:
-            logger.error(
-                "sma_comparison filter missing required params: field_fast, field_slow, operator"
-            )
-            return None
-
-        windows = None
-        if fast_window is not None or slow_window is not None:
-            windows = (fast_window, slow_window)
-
-        return SmaComparisonFilter(
-            field_fast=field_fast,
-            field_slow=field_slow,
-            operator=operator,
-            windows=windows,
-            logger=logger,
-        )
-
-    logger.error(f"Unknown filter type: {filter_type}")
-    return None
+    try:
+        return filter_class(**params, logger=logger)
+    except Exception as e:
+        logger.error(f"Failed to create filter of type {filter_type}: {e}")
+        return None
 
 
 def load_filter_config(config_name: str | None, logger=None) -> FilterPipeline | None:

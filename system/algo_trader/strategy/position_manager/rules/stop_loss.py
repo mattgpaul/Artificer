@@ -4,6 +4,10 @@ This module provides the StopLossRule class which triggers position exits
 when losses exceed a configured threshold.
 """
 
+from __future__ import annotations
+
+from typing import Any, ClassVar
+
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.strategy.position_manager.rules.base import (
     AnchorConfig,
@@ -20,6 +24,8 @@ class StopLossRule:
     Evaluates current price against anchor price and exits a fraction
     of the position if loss exceeds the configured percentage.
     """
+
+    rule_type: ClassVar[str] = "stop_loss"
 
     def __init__(
         self,
@@ -78,3 +84,38 @@ class StopLossRule:
         if pnl_pct <= -self.loss_pct:
             return PositionDecision(exit_fraction=self.fraction, reason="stop_loss")
         return PositionDecision()
+
+    @classmethod
+    def from_config(cls, params: dict[str, Any], logger=None) -> "StopLossRule" | None:
+        field_price = params.get("field_price")
+        loss_pct = params.get("loss_pct")
+        fraction = params.get("fraction")
+        if field_price is None or loss_pct is None or fraction is None:
+            if logger is not None:
+                logger.error(
+                    "stop_loss rule missing required params: field_price, loss_pct, fraction"
+                )
+            return None
+        anchor_cfg = params.get("anchor", {}) or {}
+        anchor_config = AnchorConfig(
+            anchor_type=anchor_cfg.get("type", "entry_price"),
+            anchor_field=anchor_cfg.get("field"),
+            lookback_bars=int(anchor_cfg["lookback_bars"])
+            if anchor_cfg.get("lookback_bars") is not None
+            else None,
+            one_shot=bool(params.get("one_shot", True)),
+        )
+        try:
+            return cls(
+                field_price=field_price,
+                loss_pct=float(loss_pct),
+                fraction=float(fraction),
+                anchor_config=anchor_config,
+                logger=logger,
+            )
+        except (ValueError, TypeError) as e:
+            if logger is not None:
+                logger.error(
+                    f"stop_loss rule params must be numeric where required: {e}"
+                )
+            return None
