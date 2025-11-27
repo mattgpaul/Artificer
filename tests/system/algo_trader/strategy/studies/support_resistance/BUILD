@@ -8,7 +8,7 @@ py_library(
     visibility = ["//system/algo_trader/strategy/studies/support_resistance:__pkg__"],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         "//system/algo_trader/strategy/studies/support_resistance:find_peaks",
         "//tests/system/algo_trader/strategy/studies:conftest_lib",
         requirement("numpy"),
@@ -24,7 +24,7 @@ py_library(
     visibility = ["//system/algo_trader/strategy/studies/support_resistance:__pkg__"],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/strategy/studies:base_study",
+        "//system/algo_trader/strategy/studies:studies_lib",
         "//system/algo_trader/strategy/studies/support_resistance:find_valleys",
         "//tests/system/algo_trader/strategy/studies:conftest_lib",
         requirement("numpy"),

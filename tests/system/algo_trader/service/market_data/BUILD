@@ -1,5 +1,17 @@
+load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
+
+# Conftest library
+py_library(
+    name = "conftest_lib",
+    testonly = True,
+    srcs = ["conftest.py"],
+    visibility = ["//tests/system/algo_trader/service/market_data:__subpackages__"],
+    deps = [
+        requirement("pytest"),
+    ],
+)
 
 # Library for MarketBase tests
 py_library(
@@ -8,6 +20,7 @@ py_library(
     srcs = ["test_base.py"],
     visibility = ["//system/algo_trader/service/market_data:__pkg__"],
     deps = [
+        ":conftest_lib",
         "//system/algo_trader/service/market_data:market_data_lib",
         "//system/algo_trader/utils:schema",
     ],
@@ -20,6 +33,7 @@ py_library(
     srcs = ["test_live.py"],
     visibility = ["//system/algo_trader/service/market_data:__pkg__"],
     deps = [
+        ":conftest_lib",
         "//system/algo_trader/service/market_data:market_data_lib",
     ],
 )
@@ -31,6 +45,7 @@ py_library(
     srcs = ["test_historical.py"],
     visibility = ["//system/algo_trader/service/market_data:__pkg__"],
     deps = [
+        ":conftest_lib",
         "//system/algo_trader/service/market_data:market_data_lib",
     ],
 )

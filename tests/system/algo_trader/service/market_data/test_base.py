@@ -15,33 +15,6 @@ from system.algo_trader.service.market_data.base import MarketBase, MarketHoursT
 from system.algo_trader.utils.schema import MarketHours
 
 
-@pytest.fixture
-def mock_base_dependencies():
-    """Fixture to mock all base MarketBase dependencies."""
-    with (
-        patch("system.algo_trader.service.market_data.base.get_logger") as mock_logger,
-        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
-    ):
-        mock_logger_instance = Mock()
-        mock_logger.return_value = mock_logger_instance
-
-        mock_market_handler_instance = Mock()
-        mock_market_handler.return_value = mock_market_handler_instance
-
-        mock_watchlist_instance = Mock()
-        mock_watchlist.return_value = mock_watchlist_instance
-
-        yield {
-            "logger": mock_logger,
-            "logger_instance": mock_logger_instance,
-            "market_handler": mock_market_handler,
-            "market_handler_instance": mock_market_handler_instance,
-            "watchlist": mock_watchlist,
-            "watchlist_instance": mock_watchlist_instance,
-        }
-
-
 class ConcreteMarketService(MarketBase):
     """Concrete implementation for testing MarketBase."""
 

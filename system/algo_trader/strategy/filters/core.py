@@ -4,6 +4,8 @@ This module defines the Filter protocol, FilterContext for passing data to filte
 and FilterPipeline for chaining multiple filters together.
 """
 
+from __future__ import annotations
+
 from typing import Any, Protocol
 
 import pandas as pd

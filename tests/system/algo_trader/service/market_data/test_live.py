@@ -12,39 +12,6 @@ from system.algo_trader.service.market_data.base import MarketHoursType
 from system.algo_trader.service.market_data.live import LiveMarketService
 
 
-@pytest.fixture
-def mock_live_dependencies():
-    """Fixture to mock all LiveMarketService dependencies."""
-    with (
-        patch("system.algo_trader.service.market_data.base.get_logger") as mock_logger,
-        patch("system.algo_trader.service.market_data.base.MarketHandler") as mock_market_handler,
-        patch("system.algo_trader.service.market_data.base.WatchlistBroker") as mock_watchlist,
-        patch("system.algo_trader.service.market_data.live.LiveMarketBroker") as mock_live_broker,
-    ):
-        mock_logger_instance = Mock()
-        mock_logger.return_value = mock_logger_instance
-
-        mock_market_handler_instance = Mock()
-        mock_market_handler.return_value = mock_market_handler_instance
-
-        mock_watchlist_instance = Mock()
-        mock_watchlist.return_value = mock_watchlist_instance
-
-        mock_live_broker_instance = Mock()
-        mock_live_broker.return_value = mock_live_broker_instance
-
-        yield {
-            "logger": mock_logger,
-            "logger_instance": mock_logger_instance,
-            "market_handler": mock_market_handler,
-            "market_handler_instance": mock_market_handler_instance,
-            "watchlist": mock_watchlist,
-            "watchlist_instance": mock_watchlist_instance,
-            "live_broker": mock_live_broker,
-            "live_broker_instance": mock_live_broker_instance,
-        }
-
-
 class TestLiveMarketServiceInitialization:
     """Test LiveMarketService initialization and configuration."""
 

@@ -4,6 +4,8 @@ This module provides functions to load filter configurations from YAML files
 and create FilterPipeline instances from them.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 
