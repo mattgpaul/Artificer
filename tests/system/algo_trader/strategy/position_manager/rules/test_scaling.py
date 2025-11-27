@@ -4,13 +4,7 @@ Tests cover initialization, scale-in/scale-out control, and error handling.
 All external dependencies are mocked via conftest.py.
 """
 
-from unittest.mock import MagicMock
-
-import pandas as pd
-import pytest
-
 from system.algo_trader.strategy.position_manager.rules.base import (
-    PositionDecision,
     PositionRuleContext,
     PositionState,
 )
@@ -121,4 +115,3 @@ class TestScalingRuleEvaluation:
         decision = rule.evaluate(context)
 
         assert decision.allow_entry is None  # No opinion for exit signals
-

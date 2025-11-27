@@ -66,4 +66,3 @@ def empty_filter_context():
     """Fixture providing FilterContext with empty OHLCV data."""
     signal = {"ticker": "AAPL", "signal_time": "2024-01-01T10:00:00Z"}
     return FilterContext(signal, {})
-

@@ -34,14 +34,14 @@ def create_strategy_instance(strategy_type: str, strategy_params: dict):
         ValueError: If strategy_type is not recognized.
     """
     registry = get_registry()
-    
+
     # Handle backward compatibility: convert old parameter names
     params = strategy_params.copy()
     if "short" not in params and "short_window" in params:
         params["short"] = params.pop("short_window")
     if "long" not in params and "long_window" in params:
         params["long"] = params.pop("long_window")
-    
+
     return registry.create_strategy_from_params(strategy_type, params)
 
 

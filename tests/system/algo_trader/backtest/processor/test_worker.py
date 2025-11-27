@@ -18,7 +18,6 @@ from system.algo_trader.backtest.processor.worker import (
     log_backtest_results,
     write_backtest_results,
 )
-from system.algo_trader.strategy.strategy import Side
 
 
 class TestCreateStrategyInstance:

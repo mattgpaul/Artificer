@@ -7,11 +7,13 @@ imported modules, eliminating the need for manual registration.
 
 from __future__ import annotations
 
+import importlib
 import inspect
+import pkgutil
 import re
 from typing import Any
 
-from system.algo_trader.strategy.strategy import Strategy
+from system.algo_trader.strategy.strategy import Side, Strategy
 
 
 def _class_name_to_cli_name(class_name: str) -> str:
@@ -31,7 +33,8 @@ def _class_name_to_cli_name(class_name: str) -> str:
     """
     # Handle acronyms at the start (e.g., SMA, EMA, RSI)
     # Split on transitions from lowercase to uppercase or uppercase to uppercase+lowercase
-    # Pattern: insert hyphen before uppercase letter that follows lowercase or another uppercase+lowercase
+    # Pattern: insert hyphen before uppercase letter that follows lowercase or
+    # another uppercase+lowercase
     name = re.sub(r"([a-z])([A-Z])", r"\1-\2", class_name)
     # Also handle sequences of uppercase followed by lowercase (acronyms)
     name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", name)
@@ -54,18 +57,13 @@ class StrategyRegistry:
 
     def _discover_strategies(self) -> None:
         """Discover all Strategy subclasses from the strategies package."""
-        import importlib
-        import pkgutil
-
         package_name = "system.algo_trader.strategy.strategies"
         try:
             package = importlib.import_module(package_name)
         except ImportError:
             return
 
-        for _, module_name, _ in pkgutil.iter_modules(
-            package.__path__, package.__name__ + "."
-        ):
+        for _, module_name, _ in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
             try:
                 module = importlib.import_module(module_name)
             except ImportError:
@@ -99,9 +97,7 @@ class StrategyRegistry:
         """
         return sorted(self._strategies.keys())
 
-    def create_strategy(
-        self, cli_name: str, args: Any, logger=None
-    ) -> Strategy:
+    def create_strategy(self, cli_name: str, args: Any, logger=None) -> Strategy:
         """Create a strategy instance from CLI arguments.
 
         Args:
@@ -118,14 +114,9 @@ class StrategyRegistry:
         strategy_class = self.get_strategy_class(cli_name)
         if strategy_class is None:
             available = ", ".join(self.get_all_strategy_names())
-            raise ValueError(
-                f"Unknown strategy: '{cli_name}'. "
-                f"Available strategies: {available}"
-            )
+            raise ValueError(f"Unknown strategy: '{cli_name}'. Available strategies: {available}")
 
         # Extract common strategy parameters
-        from system.algo_trader.strategy.strategy import Side
-
         side = Side(getattr(args, "side", "LONG"))
         window = getattr(args, "window", None)
 
@@ -136,7 +127,7 @@ class StrategyRegistry:
             strategy_params["window"] = window
 
         # Extract all other parameters from args that match the constructor
-        for param_name, param in sig.parameters.items():
+        for param_name, _param in sig.parameters.items():
             if param_name in ("self", "side", "window", "extra", "_"):
                 continue
             if hasattr(args, param_name):
@@ -150,9 +141,7 @@ class StrategyRegistry:
                 logger.error(f"Failed to create strategy {cli_name}: {e}")
             raise ValueError(f"Failed to create strategy {cli_name}: {e}") from e
 
-    def register_cli_arguments(
-        self, subparsers: Any, parser_factory: Any
-    ) -> None:
+    def register_cli_arguments(self, subparsers: Any, parser_factory: Any) -> None:
         """Register CLI arguments for all strategies.
 
         Args:
@@ -186,7 +175,7 @@ class StrategyRegistry:
         strategy_class = self.get_strategy_class(strategy_type)
         if strategy_class is None:
             # Try class name (for backward compatibility)
-            for cli_name, cls in self._strategies.items():
+            for _cli_name, cls in self._strategies.items():
                 if cls.__name__ == strategy_type:
                     strategy_class = cls
                     break
@@ -194,14 +183,11 @@ class StrategyRegistry:
         if strategy_class is None:
             available = ", ".join(self.get_all_strategy_names())
             raise ValueError(
-                f"Unknown strategy type: '{strategy_type}'. "
-                f"Available strategies: {available}"
+                f"Unknown strategy type: '{strategy_type}'. Available strategies: {available}"
             )
 
         # Convert side parameter if it's a string
         if "side" in strategy_params:
-            from system.algo_trader.strategy.strategy import Side
-
             side_value = strategy_params["side"]
             if isinstance(side_value, str):
                 strategy_params["side"] = Side(side_value)
@@ -210,9 +196,7 @@ class StrategyRegistry:
         try:
             return strategy_class(**strategy_params)
         except Exception as e:
-            raise ValueError(
-                f"Failed to create strategy {strategy_type}: {e}"
-            ) from e
+            raise ValueError(f"Failed to create strategy {strategy_type}: {e}") from e
 
 
 # Global registry instance
@@ -225,8 +209,7 @@ def get_registry() -> StrategyRegistry:
     Returns:
         StrategyRegistry instance.
     """
-    global _registry
+    global _registry  # noqa: PLW0603
     if _registry is None:
         _registry = StrategyRegistry()
     return _registry
-

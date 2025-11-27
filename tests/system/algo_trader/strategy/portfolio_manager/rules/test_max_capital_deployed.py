@@ -4,13 +4,7 @@ Tests cover initialization, capital deployment calculation, entry blocking, and 
 All external dependencies are mocked via conftest.py.
 """
 
-from unittest.mock import MagicMock
-
-import pandas as pd
-import pytest
-
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
-    PortfolioDecision,
     PortfolioPosition,
     PortfolioRuleContext,
     PortfolioState,
@@ -52,7 +46,9 @@ class TestMaxCapitalDeployedRuleInitialization:
 
     def test_from_config_invalid(self, mock_logger):
         """Test from_config with invalid parameters."""
-        rule = MaxCapitalDeployedRule.from_config({"max_deployed_pct": "invalid"}, logger=mock_logger)
+        rule = MaxCapitalDeployedRule.from_config(
+            {"max_deployed_pct": "invalid"}, logger=mock_logger
+        )
 
         assert rule is None
         mock_logger.error.assert_called()
@@ -100,9 +96,7 @@ class TestMaxCapitalDeployedRuleEvaluation:
             "price": 100.0,
             "shares": 10.0,
         }
-        positions = {
-            "MSFT": PortfolioPosition(shares=500.0, avg_entry_price=100.0, side="LONG")
-        }
+        positions = {"MSFT": PortfolioPosition(shares=500.0, avg_entry_price=100.0, side="LONG")}
         state = PortfolioState(cash_available=50000.0, positions=positions)
         context = PortfolioRuleContext(signal, state, {})
 
@@ -121,9 +115,7 @@ class TestMaxCapitalDeployedRuleEvaluation:
             "price": 100.0,
             "shares": 10.0,
         }
-        positions = {
-            "MSFT": PortfolioPosition(shares=600.0, avg_entry_price=100.0, side="LONG")
-        }
+        positions = {"MSFT": PortfolioPosition(shares=600.0, avg_entry_price=100.0, side="LONG")}
         state = PortfolioState(cash_available=40000.0, positions=positions)
         context = PortfolioRuleContext(signal, state, {})
 
@@ -199,13 +191,10 @@ class TestMaxCapitalDeployedRuleEvaluation:
             "price": 100.0,
             "shares": 10.0,
         }
-        positions = {
-            "MSFT": PortfolioPosition(shares=0.0, avg_entry_price=100.0, side="LONG")
-        }
+        positions = {"MSFT": PortfolioPosition(shares=0.0, avg_entry_price=100.0, side="LONG")}
         state = PortfolioState(cash_available=100000.0, positions=positions)
         context = PortfolioRuleContext(signal, state, {})
 
         decision = rule.evaluate(context)
 
         assert decision.allow_entry is True
-

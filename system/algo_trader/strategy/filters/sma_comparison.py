@@ -107,7 +107,21 @@ class SmaComparisonFilter(BaseComparisonFilter):
         return self._compare_values(fast_value, slow_value)
 
     @classmethod
-    def from_config(cls, params: dict[str, Any], logger=None) -> "SmaComparisonFilter" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> SmaComparisonFilter | None:
+        """Create an SmaComparisonFilter instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing filter configuration with keys:
+                - field_fast: Name of signal field for fast SMA.
+                - field_slow: Name of signal field for slow SMA.
+                - operator: Comparison operator (>, <, >=, <=, ==, !=).
+                - fast_window: Optional fast SMA window period.
+                - slow_window: Optional slow SMA window period.
+            logger: Optional logger instance.
+
+        Returns:
+            SmaComparisonFilter instance if configuration is valid, None otherwise.
+        """
         field_fast = params.get("field_fast")
         field_slow = params.get("field_slow")
         operator = params.get("operator")

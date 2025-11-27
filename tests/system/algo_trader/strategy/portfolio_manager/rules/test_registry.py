@@ -4,11 +4,6 @@ Tests cover rule discovery, registration, retrieval, and error handling.
 All external dependencies are mocked via conftest.py.
 """
 
-import importlib
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 from system.algo_trader.strategy.portfolio_manager.rules.registry import (
     PortfolioRuleRegistry,
     get_registry,
@@ -69,4 +64,3 @@ class TestGetRegistry:
         registry = get_registry()
 
         assert len(registry.get_all_rule_types()) > 0
-

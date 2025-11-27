@@ -5,7 +5,6 @@ and signal generation. All external dependencies are mocked to avoid logging cal
 """
 
 import argparse
-from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -252,4 +251,3 @@ class TestEMACrossoverSignalGeneration:
         signals = strategy.sell(ohlcv_data, "AAPL")
 
         assert signals.empty
-

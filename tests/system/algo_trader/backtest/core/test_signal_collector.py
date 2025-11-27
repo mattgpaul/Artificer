@@ -7,7 +7,6 @@ and error handling. All external dependencies are mocked via conftest.py.
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 from system.algo_trader.backtest.core.signal_collector import SignalCollector
 
@@ -34,7 +33,9 @@ class TestSignalCollectorInitialization:
     def test_initialization_creates_logger_if_none(self):
         """Test initialization creates logger if not provided."""
         strategy = MagicMock()
-        with patch("system.algo_trader.backtest.core.signal_collector.get_logger") as mock_get_logger:
+        with patch(
+            "system.algo_trader.backtest.core.signal_collector.get_logger"
+        ) as mock_get_logger:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
             collector = SignalCollector(strategy)
@@ -132,9 +133,7 @@ class TestSignalCollectorWindowSlicing:
 
         data = pd.DataFrame(
             {"close": range(10)},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")),
         )
         current_time = pd.Timestamp("2024-01-01 10:00:00", tz="UTC")
 
@@ -151,9 +150,7 @@ class TestSignalCollectorWindowSlicing:
 
         data = pd.DataFrame(
             {"close": range(10)},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")),
         )
         current_time = pd.Timestamp("2024-01-01 10:00:00", tz="UTC")
 
@@ -169,9 +166,7 @@ class TestSignalCollectorWindowSlicing:
 
         data = pd.DataFrame(
             {"close": range(10)},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=10, freq="1H", tz="UTC")),
         )
         current_time = pd.Timestamp("2024-01-01 10:00:00", tz="UTC")
 
@@ -198,9 +193,7 @@ class TestSignalCollectorWindowSlicing:
 
         data = pd.DataFrame(
             {"close": range(10)},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-02", periods=10, freq="1H", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-02", periods=10, freq="1H", tz="UTC")),
         )
         current_time = pd.Timestamp("2024-01-01 10:00:00", tz="UTC")
 
@@ -238,7 +231,9 @@ class TestSignalCollectorSignalCollection:
         )
         data_cache = {"AAPL": ohlcv}
 
-        with patch("system.algo_trader.backtest.core.signal_collector.ticker_progress_bar") as mock_pbar:
+        with patch(
+            "system.algo_trader.backtest.core.signal_collector.ticker_progress_bar"
+        ) as mock_pbar:
             mock_pbar.return_value.__enter__.return_value = None
             signals = collector.collect_signals_for_ticker("AAPL", step_intervals, data_cache)
 
@@ -300,7 +295,9 @@ class TestSignalCollectorSignalCollection:
         )
         data_cache = {"AAPL": ohlcv, "MSFT": ohlcv}
 
-        signals = collector.collect_signals_for_all_tickers(step_intervals, ["AAPL", "MSFT"], data_cache)
+        signals = collector.collect_signals_for_all_tickers(
+            step_intervals, ["AAPL", "MSFT"], data_cache
+        )
 
         assert len(signals) >= 2
         assert all(s["ticker"] in ["AAPL", "MSFT"] for s in signals)
@@ -330,12 +327,16 @@ class TestSignalCollectorSignalCollection:
         )
         data_cache = {"AAPL": ohlcv}
 
-        with patch("system.algo_trader.backtest.core.signal_collector.ticker_progress_bar") as mock_pbar:
+        with patch(
+            "system.algo_trader.backtest.core.signal_collector.ticker_progress_bar"
+        ) as mock_pbar:
             mock_pbar.return_value.__enter__.return_value = None
             signals = collector.collect_signals_for_ticker("AAPL", step_intervals, data_cache)
 
             # Should not have duplicates
-            signal_keys = {(s["ticker"], s["signal_time"], s["signal_type"], s["price"]) for s in signals}
+            signal_keys = {
+                (s["ticker"], s["signal_time"], s["signal_type"], s["price"]) for s in signals
+            }
             assert len(signal_keys) == len(signals)
 
     def test_collect_signals_error_handling(self, mock_logger):
@@ -358,11 +359,12 @@ class TestSignalCollectorSignalCollection:
         )
         data_cache = {"AAPL": ohlcv}
 
-        with patch("system.algo_trader.backtest.core.signal_collector.ticker_progress_bar") as mock_pbar:
+        with patch(
+            "system.algo_trader.backtest.core.signal_collector.ticker_progress_bar"
+        ) as mock_pbar:
             mock_pbar.return_value.__enter__.return_value = None
             signals = collector.collect_signals_for_ticker("AAPL", step_intervals, data_cache)
 
             # Should continue despite errors
             assert isinstance(signals, list)
             mock_logger.error.assert_called()
-

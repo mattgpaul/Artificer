@@ -4,10 +4,7 @@ Tests cover initialization, evaluation, comparison operators, and error handling
 All external dependencies are mocked via conftest.py.
 """
 
-import pytest
-
 from system.algo_trader.strategy.filters.base import BaseComparisonFilter
-from system.algo_trader.strategy.filters.core import FilterContext
 from system.algo_trader.strategy.filters.price_comparison import PriceComparisonFilter
 
 
@@ -197,4 +194,3 @@ class TestPriceComparisonFilterFromConfig:
 
         assert result is not None
         assert result.value == 100.5
-

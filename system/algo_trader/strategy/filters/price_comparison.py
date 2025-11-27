@@ -56,7 +56,19 @@ class PriceComparisonFilter(BaseComparisonFilter):
         return self._compare_values(field_value, self.value)
 
     @classmethod
-    def from_config(cls, params: dict[str, Any], logger=None) -> "PriceComparisonFilter" | None:
+    def from_config(cls, params: dict[str, Any], logger=None) -> PriceComparisonFilter | None:
+        """Create a PriceComparisonFilter instance from configuration parameters.
+
+        Args:
+            params: Dictionary containing filter configuration with keys:
+                - field: Name of the signal field to compare.
+                - operator: Comparison operator (>, <, >=, <=, ==, !=).
+                - value: Threshold value to compare against.
+            logger: Optional logger instance.
+
+        Returns:
+            PriceComparisonFilter instance if configuration is valid, None otherwise.
+        """
         field = params.get("field")
         operator = params.get("operator")
         value = params.get("value")

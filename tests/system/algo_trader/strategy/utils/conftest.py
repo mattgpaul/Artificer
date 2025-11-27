@@ -83,4 +83,3 @@ def sample_trades():
             "gross_pnl_pct": [3.33, -1.94, 8.11],
         }
     )
-

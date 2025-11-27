@@ -4,13 +4,9 @@ Tests cover initialization, equity calculation, position sizing, and error handl
 All external dependencies are mocked via conftest.py.
 """
 
-from unittest.mock import MagicMock
-
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.portfolio_manager.rules.base import (
-    PortfolioDecision,
     PortfolioPosition,
     PortfolioRuleContext,
     PortfolioState,
@@ -165,9 +161,7 @@ class TestFractionalPositionSizeRuleEvaluation:
             "price": 200.0,
             "signal_time": pd.Timestamp("2024-01-01", tz="UTC"),
         }
-        positions = {
-            "AAPL": PortfolioPosition(shares=50.0, avg_entry_price=150.0, side="LONG")
-        }
+        positions = {"AAPL": PortfolioPosition(shares=50.0, avg_entry_price=150.0, side="LONG")}
         state = PortfolioState(cash_available=100000.0, positions=positions)
         ohlcv = {
             "AAPL": pd.DataFrame(
@@ -224,4 +218,3 @@ class TestFractionalPositionSizeRuleEvaluation:
         decision = rule.evaluate(context)
 
         assert decision.allow_entry is True
-

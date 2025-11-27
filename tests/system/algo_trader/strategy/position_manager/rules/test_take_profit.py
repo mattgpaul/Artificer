@@ -4,14 +4,10 @@ Tests cover initialization, profit target evaluation, anchor price calculation,
 and error handling. All external dependencies are mocked via conftest.py.
 """
 
-from unittest.mock import MagicMock
-
 import pandas as pd
-import pytest
 
 from system.algo_trader.strategy.position_manager.rules.base import (
     AnchorConfig,
-    PositionDecision,
     PositionRuleContext,
     PositionState,
 )
@@ -109,7 +105,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_profit_triggered_long(self, mock_logger):
         """Test evaluate with LONG position and profit target reached."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "sell", "price": 110.0}
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
@@ -122,7 +120,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_profit_not_triggered_long(self, mock_logger):
         """Test evaluate with LONG position and profit target not reached."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "sell", "price": 109.0}
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
@@ -134,7 +134,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_profit_triggered_short(self, mock_logger):
         """Test evaluate with SHORT position and profit target reached."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "buy", "price": 90.0}
         position = PositionState(size=1.0, side="SHORT", entry_price=100.0)
@@ -147,7 +149,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_full_exit(self, mock_logger):
         """Test evaluate with full exit fraction."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=1.0, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=1.0, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "sell", "price": 110.0}
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
@@ -159,7 +163,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_missing_price(self, mock_logger):
         """Test evaluate with missing price."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "sell"}
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
@@ -171,7 +177,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_no_position(self, mock_logger):
         """Test evaluate with no position."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "sell", "price": 110.0}
         position = PositionState(size=0.0)
@@ -183,7 +191,9 @@ class TestTakeProfitRuleEvaluation:
 
     def test_evaluate_wrong_signal_type(self, mock_logger):
         """Test evaluate with wrong signal type."""
-        rule = TakeProfitRule(field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger)
+        rule = TakeProfitRule(
+            field_price="price", target_pct=0.10, fraction=0.5, logger=mock_logger
+        )
 
         signal = {"ticker": "AAPL", "signal_type": "buy", "price": 110.0}
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
@@ -215,9 +225,7 @@ class TestTakeProfitRuleEvaluation:
         position = PositionState(size=1.0, side="LONG", entry_price=100.0)
         ohlcv = pd.DataFrame(
             {"high": [105.0, 106.0, 107.0, 108.0, 109.0]},
-            index=pd.DatetimeIndex(
-                pd.date_range("2024-01-01", periods=5, freq="1D", tz="UTC")
-            ),
+            index=pd.DatetimeIndex(pd.date_range("2024-01-01", periods=5, freq="1D", tz="UTC")),
         )
         context = PositionRuleContext(signal, position, {"AAPL": ohlcv})
 
@@ -226,4 +234,3 @@ class TestTakeProfitRuleEvaluation:
         # Should trigger if current price (120.0) is 10% above rolling max (109.0)
         # Profit = (120.0 - 109.0) / 109.0 = 11.0 / 109.0 ≈ 10.1% > 10% threshold
         assert decision.exit_fraction is not None
-
