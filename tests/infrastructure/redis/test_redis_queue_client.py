@@ -16,10 +16,6 @@ import pytest
 class TestRedisQueueClient:
     """Contract tests for a dedicated queue Redis client."""
 
-    @pytest.mark.xfail(
-        reason="RedisQueueClient.enqueue has not been fully implemented yet.",
-        strict=False,
-    )
     def test_enqueue_uses_rpush_and_sets_ttl_when_provided(
         self,
         redis_mocks: Dict[str, Any],
@@ -40,10 +36,6 @@ class TestRedisQueueClient:
             60,
         )
 
-    @pytest.mark.xfail(
-        reason="RedisQueueClient.enqueue failure handling has not been implemented yet.",
-        strict=False,
-    )
     def test_enqueue_returns_false_on_failure(
         self,
         redis_mocks: Dict[str, Any],
@@ -56,10 +48,6 @@ class TestRedisQueueClient:
 
         assert result is False
 
-    @pytest.mark.xfail(
-        reason="RedisQueueClient.dequeue (non-blocking) has not been implemented yet.",
-        strict=False,
-    )
     def test_dequeue_non_blocking_uses_lpop_and_decodes(
         self,
         redis_mocks: Dict[str, Any],
@@ -73,10 +61,6 @@ class TestRedisQueueClient:
         assert result == "job-1"
         redis_mocks["client"].lpop.assert_called_once_with("test_namespace:jobs")
 
-    @pytest.mark.xfail(
-        reason="RedisQueueClient.dequeue (blocking) has not been implemented yet.",
-        strict=False,
-    )
     def test_dequeue_blocking_uses_blpop_when_timeout_provided(
         self,
         redis_mocks: Dict[str, Any],
@@ -97,10 +81,6 @@ class TestRedisQueueClient:
             timeout=5,
         )
 
-    @pytest.mark.xfail(
-        reason="RedisQueueClient.dequeue empty-queue behavior has not been implemented yet.",
-        strict=False,
-    )
     def test_dequeue_returns_none_when_queue_empty(
         self,
         redis_mocks: Dict[str, Any],
