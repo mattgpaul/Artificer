@@ -12,6 +12,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from infrastructure.redis.base_redis_client import BaseRedisClient
+from infrastructure.redis.redis_pub_sub_client import RedisPubSubClient
+from infrastructure.redis.redis_queue_client import RedisQueueClient
+from infrastructure.redis.redis_stream_client import RedisStreamClient
 
 @pytest.fixture
 def redis_mocks() -> Dict[str, Any]:
@@ -41,5 +45,61 @@ def redis_mocks() -> Dict[str, Any]:
             "client": mock_client,
             "logger": mock_logger_instance,
         }
+
+
+class _TestBaseRedisClient(BaseRedisClient):
+    """Concrete BaseRedisClient used only for tests.
+
+    Provides a fixed namespace so contracts around key building and connection
+    wiring can be asserted without coupling tests to production namespaces.
+    """
+
+    def _get_namespace(self) -> str:
+        return "test_namespace"
+
+
+class _TestRedisPubSubClient(RedisPubSubClient):
+    """Concrete RedisPubSubClient with a fixed test namespace."""
+
+    def _get_namespace(self) -> str:
+        return "test_namespace"
+
+
+class _TestRedisQueueClient(RedisQueueClient):
+    """Concrete RedisQueueClient with a fixed test namespace."""
+
+    def _get_namespace(self) -> str:
+        return "test_namespace"
+
+
+class _TestRedisStreamClient(RedisStreamClient):
+    """Concrete RedisStreamClient with a fixed test namespace."""
+
+    def _get_namespace(self) -> str:
+        return "test_namespace"
+
+
+@pytest.fixture
+def base_redis_client(redis_mocks: Dict[str, Any]) -> BaseRedisClient:
+    """Provide a fully-wired BaseRedisClient instance for contract tests."""
+    return _TestBaseRedisClient()
+
+
+@pytest.fixture
+def redis_pub_sub_client(redis_mocks: Dict[str, Any]) -> RedisPubSubClient:
+    """Provide a concrete pub/sub client with a known namespace."""
+    return _TestRedisPubSubClient()
+
+
+@pytest.fixture
+def redis_queue_client(redis_mocks: Dict[str, Any]) -> RedisQueueClient:
+    """Provide a concrete queue client with a known namespace."""
+    return _TestRedisQueueClient()
+
+
+@pytest.fixture
+def redis_stream_client(redis_mocks: Dict[str, Any]) -> RedisStreamClient:
+    """Provide a concrete stream client with a known namespace."""
+    return _TestRedisStreamClient()
 
 

@@ -17,54 +17,61 @@ from typing import Any, Dict
 
 import pytest
 
-from infrastructure.redis.base_redis_client import BaseRedisClient
-
-
-class ConcreteBaseRedisClient(BaseRedisClient):
-    """Minimal concrete implementation for testing the base class."""
-
-    def _get_namespace(self) -> str:
-        return "test_namespace"
-
 
 @pytest.mark.unit
 class TestBaseRedisClientCore:
     """Test the core responsibilities of BaseRedisClient."""
 
-    def test_initializes_connection_pool_and_client(self, redis_mocks: Dict[str, Any]) -> None:
+    def test_initializes_connection_pool_and_client(
+        self,
+        redis_mocks: Dict[str, Any],
+        base_redis_client,
+    ) -> None:
         """Base client should create a connection pool and Redis client."""
-        client = ConcreteBaseRedisClient()
+        client = base_redis_client
 
-        assert client.namespace == "test_namespace"
+        assert client.namespace == "test_namespace"  # type: ignore[attr-defined]
 
         # These are already patched by the redis_mocks fixture; we assert the
         # stored attributes match what the fixture created.
         assert client.pool is redis_mocks["pool"]
         assert client.client is redis_mocks["client"]
 
-    def test_build_key_prefixes_namespace(self, redis_mocks: Dict[str, Any]) -> None:
+    def test_build_key_prefixes_namespace(
+        self,
+        redis_mocks: Dict[str, Any],
+        base_redis_client,
+    ) -> None:
         """_build_key should consistently prefix keys with the namespace."""
-        client = ConcreteBaseRedisClient()
+        client = base_redis_client
 
         assert client._build_key("orders") == "test_namespace:orders"
         assert client._build_key("lock:job") == "test_namespace:lock:job"
 
-    def test_ping_delegates_to_underlying_client(self, redis_mocks: Dict[str, Any]) -> None:
+    def test_ping_delegates_to_underlying_client(
+        self,
+        redis_mocks: Dict[str, Any],
+        base_redis_client,
+    ) -> None:
         """ping should delegate to the underlying Redis client."""
         redis_mocks["client"].ping.return_value = True
-        client = ConcreteBaseRedisClient()
+        client = base_redis_client
 
         assert client.ping() is True
         redis_mocks["client"].ping.assert_called_once_with()
 
-    def test_base_client_does_not_expose_high_level_helpers(self, redis_mocks: Dict[str, Any]) -> None:
+    def test_base_client_does_not_expose_high_level_helpers(
+        self,
+        redis_mocks: Dict[str, Any],
+        base_redis_client,
+    ) -> None:
         """Base client should NOT provide pattern-specific helper methods.
 
         These higher-level operations belong in dedicated pattern clients.
         The current implementation still exposes many of these, so this test
         is expected to fail until the refactor is complete.
         """
-        client = ConcreteBaseRedisClient()
+        client = base_redis_client
 
         forbidden_methods = [
             # Data-structure helpers

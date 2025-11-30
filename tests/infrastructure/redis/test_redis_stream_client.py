@@ -11,8 +11,6 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
-from infrastructure.redis.redis_stream_client import RedisStreamClient
-
 
 @pytest.mark.unit
 class TestRedisStreamClient:
@@ -25,12 +23,15 @@ class TestRedisStreamClient:
     def test_add_event_uses_xadd_with_namespaced_stream(
         self,
         redis_mocks: Dict[str, Any],
+        redis_stream_client,
     ) -> None:
         """`add_event` should append to a namespaced stream and return the entry ID."""
         redis_mocks["client"].xadd.return_value = "123-0"
-        client = RedisStreamClient()
 
-        event_id = client.add_event("prices", {"symbol": "AAPL", "price": "100"})
+        event_id = redis_stream_client.add_event(
+            "prices",
+            {"symbol": "AAPL", "price": "100"},
+        )
 
         assert event_id == "123-0"
         redis_mocks["client"].xadd.assert_called_once_with(
@@ -46,12 +47,12 @@ class TestRedisStreamClient:
     def test_add_event_returns_none_on_exception(
         self,
         redis_mocks: Dict[str, Any],
+        redis_stream_client,
     ) -> None:
         """`add_event` should log and return None when xadd fails."""
         redis_mocks["client"].xadd.side_effect = Exception("Redis error")
-        client = RedisStreamClient()
 
-        event_id = client.add_event("prices", {"symbol": "AAPL"})
+        event_id = redis_stream_client.add_event("prices", {"symbol": "AAPL"})
 
         assert event_id is None
         redis_mocks["logger"].error.assert_called()
@@ -63,6 +64,7 @@ class TestRedisStreamClient:
     def test_read_events_uses_xread_with_namespaced_stream_and_last_id(
         self,
         redis_mocks: Dict[str, Any],
+        redis_stream_client,
     ) -> None:
         """`read_events` should call XREAD with correct streams mapping and options."""
         sample_response: List[
@@ -77,8 +79,12 @@ class TestRedisStreamClient:
         ]
         redis_mocks["client"].xread.return_value = sample_response
 
-        client = RedisStreamClient()
-        result = client.read_events("prices", last_id="0-0", count=10, block_ms=None)
+        result = redis_stream_client.read_events(
+            "prices",
+            last_id="0-0",
+            count=10,
+            block_ms=None,
+        )
 
         assert result == sample_response
         redis_mocks["client"].xread.assert_called_once_with(
