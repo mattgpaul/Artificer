@@ -93,4 +93,22 @@ class TestRedisQueueClient:
 
         assert result is None
 
+    def test_enqueue_emits_metrics_on_success(
+        self,
+        redis_mocks: Dict[str, Any],
+        redis_queue_client,
+        redis_metrics,
+    ) -> None:
+        """`enqueue` should emit a success metric when an item is pushed."""
+        redis_mocks["client"].rpush.return_value = 1
+        redis_queue_client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        result = redis_queue_client.enqueue("jobs", "job-1", ttl=60)
+
+        assert result is True
+        redis_metrics.incr.assert_any_call(
+            "redis.queue.enqueue.success",
+            tags={"namespace": "test_namespace", "queue": "jobs"},
+        )
+
 

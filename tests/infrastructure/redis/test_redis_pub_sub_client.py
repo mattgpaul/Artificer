@@ -65,4 +65,22 @@ class TestRedisPubSubClient:
         )
         assert result is pubsub_mock
 
+    def test_publish_emits_metrics_on_success(
+        self,
+        redis_mocks: Dict[str, Any],
+        redis_pub_sub_client,
+        redis_metrics,
+    ) -> None:
+        """`publish` should emit a success metric when messages are delivered."""
+        redis_mocks["client"].publish.return_value = 1
+        redis_pub_sub_client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        result = redis_pub_sub_client.publish("orders", "payload")
+
+        assert result is True
+        redis_metrics.incr.assert_any_call(
+            "redis.pubsub.publish.success",
+            tags={"namespace": "test_namespace", "channel": "orders"},
+        )
+
 

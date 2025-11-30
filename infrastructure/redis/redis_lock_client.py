@@ -35,12 +35,29 @@ class RedisLockClient(BaseRedisClient):
             # SET key token NX EX ttl -> acquire lock only if it does not exist.
             acquired = self.client.set(key, token, ex=ttl, nx=True)
             if not acquired:
+                if self.metrics:
+                    self.metrics.incr(
+                        "redis.lock.acquire.contended",
+                        tags={"namespace": self.namespace, "lock": name},
+                    )
                 return None
 
             self.logger.debug("Acquired lock %s with token %s", key, token)
+
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.lock.acquire.success",
+                    tags={"namespace": self.namespace, "lock": name},
+                )
+
             return token
         except Exception as exc:  # pragma: no cover - defensive logging
             self.logger.error("Failed to acquire lock %s: %s", key, exc)
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.lock.acquire.error",
+                    tags={"namespace": self.namespace, "lock": name},
+                )
             return None
 
     def release_lock(self, name: str, token: str) -> bool:
@@ -58,15 +75,30 @@ class RedisLockClient(BaseRedisClient):
 
             if released:
                 self.logger.debug("Released lock %s with token %s", key, token)
+                if self.metrics:
+                    self.metrics.incr(
+                        "redis.lock.release.success",
+                        tags={"namespace": self.namespace, "lock": name},
+                    )
             else:
                 self.logger.warning(
                     "Did not release lock %s; token mismatch or missing key",
                     key,
                 )
+                if self.metrics:
+                    self.metrics.incr(
+                        "redis.lock.release.noop",
+                        tags={"namespace": self.namespace, "lock": name},
+                    )
 
             return released
         except Exception as exc:  # pragma: no cover - defensive logging
             self.logger.error("Failed to release lock %s: %s", key, exc)
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.lock.release.error",
+                    tags={"namespace": self.namespace, "lock": name},
+                )
             return False
-
-
+ 
+ 

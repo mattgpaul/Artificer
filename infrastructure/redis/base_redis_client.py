@@ -1,19 +1,45 @@
-"""Redis client base class with namespacing and TTL support.
+"""Redis client base class with namespacing and connection management.
 
 This module provides the BaseRedisClient abstract class for Redis operations
-with automatic key namespacing, TTL management, and support for various data
-types including strings, hashes, JSON, and sets.
+with automatic key namespacing, connection pooling and health checks.
+Pattern-specific helpers (queues, streams, pub/sub, locks, KV, etc.) are
+implemented in dedicated clients that compose this base.
 """
 
 import json
 import time
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Dict, Optional, Protocol
 
 import redis
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
+
+
+class MetricsRecorder(Protocol):
+    """Lightweight protocol for recording metrics.
+
+    Concrete implementations can integrate with Prometheus, StatsD, etc.
+    """
+
+    def incr(
+        self,
+        name: str,
+        value: int = 1,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Increment a counter."""
+        ...
+
+    def observe(
+        self,
+        name: str,
+        value: float,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Record a timing/measurement."""
+        ...
 
 
 class BaseRedisClient(Client):
@@ -35,7 +61,7 @@ class BaseRedisClient(Client):
         client: Redis client instance.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, metrics: Optional[MetricsRecorder] = None):
         """Initialize Redis client with connection pool and configuration.
 
         Args:
@@ -44,6 +70,7 @@ class BaseRedisClient(Client):
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
         self.namespace = self._get_namespace()
+        self.metrics = metrics
 
         # Auto-populate from environment if not provided
         if config is None:
@@ -90,9 +117,27 @@ class BaseRedisClient(Client):
 
     def ping(self) -> bool:
         try:
+            start = time.monotonic()
             result = self.client.ping()
+            elapsed_ms = (time.monotonic() - start) * 1000
+
             self.logger.debug(f"PING -> {result}")
+
+            if self.metrics:
+                tags = {"namespace": self.namespace}
+                metric_base = "redis.ping"
+                if result:
+                    self.metrics.incr(f"{metric_base}.success", tags=tags)
+                else:
+                    self.metrics.incr(f"{metric_base}.failure", tags=tags)
+                self.metrics.observe(f"{metric_base}.latency_ms", elapsed_ms, tags=tags)
+
             return result
         except Exception as e:
             self.logger.error(f"Redis ping failed: {e}")
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.ping.error",
+                    tags={"namespace": self.namespace},
+                )
             return False

@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Tuple, Optional
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
+
 class RedisStreamClient(BaseRedisClient):
     """Redis Stream client for managing Redis Streams.
 
@@ -16,9 +17,21 @@ class RedisStreamClient(BaseRedisClient):
         try:
             event_id: str = self.client.xadd(key, fields, id='*')
             self.logger.debug(f"Added event to stream {key} with id {event_id}")
+
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.stream.add_event.success",
+                    tags={"namespace": self.namespace, "stream": stream},
+                )
+
             return event_id
         except Exception as e:
             self.logger.error(f"Failed to add event to stream {key}: {e}")
+            if self.metrics:
+                self.metrics.incr(
+                    "redis.stream.add_event.error",
+                    tags={"namespace": self.namespace, "stream": stream},
+                )
             return None
 
     def read_events(
@@ -37,4 +50,21 @@ class RedisStreamClient(BaseRedisClient):
         self.logger.debug(
             f"Read events from stream {key} starting at {last_id} (count={count}, block={block_ms})"
         )
+
+        if self.metrics:
+            batch_size = 0
+            for _, entries in result:
+                batch_size += len(entries)
+
+            tags = {"namespace": self.namespace, "stream": stream}
+            self.metrics.incr(
+                "redis.stream.read_events.calls",
+                tags=tags,
+            )
+            self.metrics.observe(
+                "redis.stream.read_events.batch_size",
+                float(batch_size),
+                tags=tags,
+            )
+
         return result

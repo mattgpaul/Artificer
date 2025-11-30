@@ -19,6 +19,7 @@ from infrastructure.redis.redis_stream_client import RedisStreamClient
 from infrastructure.redis.redis_kv_client import RedisKVClient
 from infrastructure.redis.redis_lock_client import RedisLockClient
 
+
 @pytest.fixture
 def redis_mocks() -> Dict[str, Any]:
     """Mock the `redis` client and logger used by the Redis base client.
@@ -93,6 +94,16 @@ class _TestRedisLockClient(RedisLockClient):
 
     def _get_namespace(self) -> str:
         return "test_namespace"
+
+
+@pytest.fixture
+def redis_metrics() -> MagicMock:
+    """Metrics recorder mock shared across Redis client tests."""
+    metrics = MagicMock()
+    # Ensure expected API exists for type checkers and tests.
+    metrics.incr = MagicMock()
+    metrics.observe = MagicMock()
+    return metrics
 
 
 @pytest.fixture

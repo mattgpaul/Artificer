@@ -81,4 +81,39 @@ class TestRedisStreamClient:
             block=None,
         )
 
+    def test_read_events_emits_metrics_with_batch_size(
+        self,
+        redis_mocks: Dict[str, Any],
+        redis_stream_client,
+        redis_metrics,
+    ) -> None:
+        """`read_events` should emit a batch size metric when metrics are enabled."""
+        sample_response: List[
+            Tuple[bytes, List[Tuple[bytes, Dict[bytes, bytes]]]]
+        ] = [
+            (
+                b"test_namespace:prices",
+                [
+                    (b"123-0", {b"symbol": b"AAPL", b"price": b"100"}),
+                    (b"124-0", {b"symbol": b"AAPL", b"price": b"101"}),
+                ],
+            ),
+        ]
+        redis_mocks["client"].xread.return_value = sample_response
+        redis_stream_client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        result = redis_stream_client.read_events(
+            "prices",
+            last_id="0-0",
+            count=10,
+            block_ms=None,
+        )
+
+        assert result == sample_response
+        redis_metrics.observe.assert_any_call(
+            "redis.stream.read_events.batch_size",
+            float(2),
+            tags={"namespace": "test_namespace", "stream": "prices"},
+        )
+
 

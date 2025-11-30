@@ -103,4 +103,29 @@ class TestRedisLockClient:
         assert result is False
         redis_mocks["logger"].error.assert_called()
 
+    def test_acquire_and_release_emit_metrics_when_present(
+        self,
+        redis_mocks: Dict[str, Any],
+        redis_lock_client,
+        redis_metrics,
+    ) -> None:
+        """`acquire_lock` and `release_lock` should emit metrics when enabled."""
+        redis_mocks["client"].set.return_value = True
+        redis_mocks["client"].eval.return_value = 1
+        redis_lock_client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        token = redis_lock_client.acquire_lock("orders", ttl=60)
+        assert token is not None
+
+        assert redis_lock_client.release_lock("orders", token=token) is True
+
+        redis_metrics.incr.assert_any_call(
+            "redis.lock.acquire.success",
+            tags={"namespace": "test_namespace", "lock": "orders"},
+        )
+        redis_metrics.incr.assert_any_call(
+            "redis.lock.release.success",
+            tags={"namespace": "test_namespace", "lock": "orders"},
+        )
+
 

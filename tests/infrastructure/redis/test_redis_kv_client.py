@@ -100,4 +100,27 @@ class TestRedisKVClient:
         assert result is None
         redis_mocks["logger"].error.assert_called()
 
+    def test_get_and_set_emit_metrics_when_present(
+        self,
+        redis_mocks: Dict[str, Any],
+        redis_kv_client,
+        redis_metrics,
+    ) -> None:
+        """`get`/`set` should emit metrics when a recorder is attached."""
+        redis_mocks["client"].set.return_value = True
+        redis_mocks["client"].get.return_value = b"value"
+        redis_kv_client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        assert redis_kv_client.set("config", "value", ttl=60) is True
+        assert redis_kv_client.get("config") == "value"
+
+        redis_metrics.incr.assert_any_call(
+            "redis.kv.set.success",
+            tags={"namespace": "test_namespace", "key": "config"},
+        )
+        redis_metrics.incr.assert_any_call(
+            "redis.kv.get.hit",
+            tags={"namespace": "test_namespace", "key": "config"},
+        )
+
 

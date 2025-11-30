@@ -60,6 +60,23 @@ class TestBaseRedisClientCore:
         assert client.ping() is True
         redis_mocks["client"].ping.assert_called_once_with()
 
+    def test_ping_records_metrics_when_present(
+        self,
+        redis_mocks: Dict[str, Any],
+        base_redis_client,
+        redis_metrics,
+    ) -> None:
+        """ping should emit success and latency metrics when a recorder is attached."""
+        redis_mocks["client"].ping.return_value = True
+        client = base_redis_client
+        client.metrics = redis_metrics  # type: ignore[attr-defined]
+
+        assert client.ping() is True
+        redis_metrics.incr.assert_any_call(
+            "redis.ping.success",
+            tags={"namespace": "test_namespace"},
+        )
+
     def test_base_client_does_not_expose_high_level_helpers(
         self,
         redis_mocks: Dict[str, Any],
