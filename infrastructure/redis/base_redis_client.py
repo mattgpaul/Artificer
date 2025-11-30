@@ -87,3 +87,12 @@ class BaseRedisClient(Client):
     def _build_key(self, key: str) -> str:
         """Build namsepace key: namespace:key."""
         return f"{self.namespace}:{key}"
+
+    def ping(self) -> bool:
+        try:
+            result = self.client.ping()
+            self.logger.debug(f"PING -> {result}")
+            return result
+        except Exception as e:
+            self.logger.error(f"Redis ping failed: {e}")
+            return False
