@@ -16,10 +16,6 @@ import pytest
 class TestRedisStreamClient:
     """Contract tests for a dedicated streams Redis client."""
 
-    @pytest.mark.xfail(
-        reason="RedisStreamClient.add_event has not been fully implemented yet.",
-        strict=False,
-    )
     def test_add_event_uses_xadd_with_namespaced_stream(
         self,
         redis_mocks: Dict[str, Any],
@@ -40,10 +36,6 @@ class TestRedisStreamClient:
             id="*",
         )
 
-    @pytest.mark.xfail(
-        reason="RedisStreamClient.add_event error handling has not been implemented yet.",
-        strict=False,
-    )
     def test_add_event_returns_none_on_exception(
         self,
         redis_mocks: Dict[str, Any],
@@ -57,10 +49,6 @@ class TestRedisStreamClient:
         assert event_id is None
         redis_mocks["logger"].error.assert_called()
 
-    @pytest.mark.xfail(
-        reason="RedisStreamClient.read_events has not been fully implemented yet.",
-        strict=False,
-    )
     def test_read_events_uses_xread_with_namespaced_stream_and_last_id(
         self,
         redis_mocks: Dict[str, Any],
