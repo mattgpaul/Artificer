@@ -712,7 +712,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "LK2FAPoEJAYKf+35mu6bJe/4XnwBiGjQt/m3Cxrqqj8=",
-        "usagesDigest": "BQbPRWywkuCRmuns8iM4smfSWFMwNcJwsHpgqwQqKs0=",
+        "usagesDigest": "eFY6cbTyBKCl/g9DhzmczsCDV/2+05ucB/lyta/4qtc=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -891,6 +891,35 @@
               "reproducible": true
             }
           },
+          "timescaledb_linux_amd64": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_pull",
+            "attributes": {
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "timescale/timescaledb",
+              "identifier": "sha256:a6581100f2f1cd1e03a29a94a49c488a174de65e57301c04de255804645e5a31",
+              "platform": "linux/amd64",
+              "target_name": "timescaledb_linux_amd64",
+              "bazel_tags": []
+            }
+          },
+          "timescaledb": {
+            "repoRuleId": "@@rules_oci+//oci/private:pull.bzl%oci_alias",
+            "attributes": {
+              "target_name": "timescaledb",
+              "www_authenticate_challenges": {},
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "timescale/timescaledb",
+              "identifier": "sha256:a6581100f2f1cd1e03a29a94a49c488a174de65e57301c04de255804645e5a31",
+              "platforms": {
+                "@@platforms//cpu:x86_64": "@timescaledb_linux_amd64"
+              },
+              "bzlmod_repository": "timescaledb",
+              "reproducible": true
+            }
+          },
           "oci_crane_darwin_amd64": {
             "repoRuleId": "@@rules_oci+//oci:repositories.bzl%crane_repositories",
             "attributes": {
@@ -1018,7 +1047,9 @@
             "sqlite",
             "sqlite_linux_amd64",
             "mysql",
-            "mysql_linux_amd64"
+            "mysql_linux_amd64",
+            "timescaledb",
+            "timescaledb_linux_amd64"
           ],
           "explicitRootModuleDirectDevDeps": [],
           "useAllRepos": "NO",

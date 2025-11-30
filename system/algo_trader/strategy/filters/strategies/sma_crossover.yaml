@@ -1,9 +1,0 @@
-filters:
-  - type: sma_comparison
-    params:
-      field_fast: sma_short
-      field_slow: sma_long
-      operator: ">"
-      fast_window: 10
-      slow_window: 20
-

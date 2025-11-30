@@ -105,3 +105,11 @@ oci.pull(
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "mysql", "mysql_linux_amd64")
+
+oci.pull(
+    name = "timescaledb",
+    digest = "sha256:a6581100f2f1cd1e03a29a94a49c488a174de65e57301c04de255804645e5a31",
+    image = "docker.io/timescale/timescaledb:latest-pg17",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "timescaledb", "timescaledb_linux_amd64")

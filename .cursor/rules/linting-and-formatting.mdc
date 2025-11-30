@@ -30,11 +30,8 @@ line-ending = "auto"
 
 **Usage**:
 ```bash
-# Format all Python files
+# Format check all Python files
 bazel run //:format
-
-# Check formatting without changes
-bazel run //tools:ruff -- format --check .
 ```
 
 **Key Rules**:
@@ -110,11 +107,8 @@ section-order = [
 
 **Usage**:
 ```bash
-# Lint all Python files
+# Lint check all Python files
 bazel run //:lint
-
-# Auto-fix issues
-bazel run //tools:ruff -- check --fix .
 ```
 
 **Key Rules**:
