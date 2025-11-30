@@ -171,6 +171,24 @@ class MySQLConfig(BaseSettings):
     )
 
 
+class TimescaleDBConfig(BaseSettings):
+    """TimescaleDB connection configuration with environment variable support.
+
+    Reads from TIMESCALEDB_* environment variables automatically.
+    """
+
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    user: str = Field(default="root")
+    password: str = Field(default="")
+    database: str = Field(default="timescaledb")
+
+    model_config = SettingsConfigDict(
+        env_prefix="TIMESCALEDB_",
+        env_file=None,
+    )
+
+
 class ProcessConfig(BaseSettings):
     """Process manager configuration with environment variable support.
 

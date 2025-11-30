@@ -4,7 +4,12 @@ load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
     name = "redis",
-    srcs = ["redis.py"],
+    srcs = [
+        "base_redis_client.py",
+        "redis_pub_sub_client.py",
+        "redis_queue_client.py",
+        "redis_stream_client.py",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//infrastructure:client",
