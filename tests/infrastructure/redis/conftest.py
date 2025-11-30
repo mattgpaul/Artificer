@@ -17,6 +17,7 @@ from infrastructure.redis.redis_pub_sub_client import RedisPubSubClient
 from infrastructure.redis.redis_queue_client import RedisQueueClient
 from infrastructure.redis.redis_stream_client import RedisStreamClient
 from infrastructure.redis.redis_kv_client import RedisKVClient
+from infrastructure.redis.redis_lock_client import RedisLockClient
 
 @pytest.fixture
 def redis_mocks() -> Dict[str, Any]:
@@ -87,6 +88,13 @@ class _TestRedisKVClient(RedisKVClient):
         return "test_namespace"
 
 
+class _TestRedisLockClient(RedisLockClient):
+    """Concrete RedisLockClient with a fixed test namespace."""
+
+    def _get_namespace(self) -> str:
+        return "test_namespace"
+
+
 @pytest.fixture
 def base_redis_client(redis_mocks: Dict[str, Any]) -> BaseRedisClient:
     """Provide a fully-wired BaseRedisClient instance for contract tests."""
@@ -115,5 +123,11 @@ def redis_stream_client(redis_mocks: Dict[str, Any]) -> RedisStreamClient:
 def redis_kv_client(redis_mocks: Dict[str, Any]) -> RedisKVClient:
     """Provide a concrete KV client with a known namespace."""
     return _TestRedisKVClient()
+
+
+@pytest.fixture
+def redis_lock_client(redis_mocks: Dict[str, Any]) -> RedisLockClient:
+    """Provide a concrete lock client with a known namespace."""
+    return _TestRedisLockClient()
 
 

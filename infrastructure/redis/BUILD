@@ -7,6 +7,7 @@ py_library(
     srcs = [
         "base_redis_client.py",
         "redis_kv_client.py",
+        "redis_lock_client.py",
         "redis_pub_sub_client.py",
         "redis_queue_client.py",
         "redis_stream_client.py",

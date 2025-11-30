@@ -6,6 +6,7 @@ py_library(
     srcs = [
         "conftest.py",
         "test_redis_kv_client.py",
+        "test_redis_lock_client.py",
         "test_base_redis_client.py",
         "test_redis_pub_sub_client.py",
         "test_redis_queue_client.py",
