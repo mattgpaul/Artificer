@@ -11,7 +11,6 @@ from infrastructure.config import (
     InfluxDBConfig,
     RedisConfig,
     SQLiteConfig,
-    ThreadConfig,
 )
 
 
@@ -165,32 +164,3 @@ class TestInfluxDBConfig:
             assert config.port == 8086
             assert config.token == "token123"
             assert config.database == "mydb"
-
-
-class TestThreadConfig:
-    """Test ThreadConfig initialization and configuration."""
-
-    def test_thread_config_defaults(self):
-        """Test ThreadConfig uses default values when no env vars set."""
-        with patch.dict(os.environ, {}, clear=True):
-            config = ThreadConfig()
-
-            assert config.daemon_threads is True
-            assert config.max_threads == 10
-            assert config.thread_timeout == 30
-
-    def test_thread_config_from_env_vars(self):
-        """Test ThreadConfig reads from environment variables."""
-        with patch.dict(
-            os.environ,
-            {
-                "THREAD_DAEMON_THREADS": "false",
-                "THREAD_MAX_THREADS": "20",
-                "THREAD_THREAD_TIMEOUT": "60",
-            },
-        ):
-            config = ThreadConfig()
-
-            assert config.daemon_threads is False
-            assert config.max_threads == 20
-            assert config.thread_timeout == 60
