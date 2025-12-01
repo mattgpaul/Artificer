@@ -98,27 +98,6 @@ class InfluxDBConfig(BaseSettings):
         return cls()
 
 
-class ThreadConfig(BaseSettings):
-    """Thread manager configuration with environment variable support.
-
-    Reads from THREAD_* environment variables automatically.
-
-    Attributes:
-        daemon_threads: Whether threads should be daemon threads.
-        max_threads: Maximum number of concurrent threads allowed.
-        thread_timeout: Default timeout for thread operations in seconds.
-    """
-
-    daemon_threads: bool = Field(default=True)
-    max_threads: int = Field(default=10)
-    thread_timeout: int = Field(default=30)
-
-    model_config = SettingsConfigDict(
-        env_prefix="THREAD_",
-        env_file=None,
-    )
-
-
 class SQLiteConfig(BaseSettings):
     """SQLite connection configuration with environment variable support.
 
@@ -185,26 +164,5 @@ class TimescaleDBConfig(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="TIMESCALEDB_",
-        env_file=None,
-    )
-
-
-class ProcessConfig(BaseSettings):
-    """Process manager configuration with environment variable support.
-
-    Reads from PROCESS_* environment variables automatically.
-
-    Attributes:
-        max_processes: Maximum number of concurrent processes allowed (None = auto-detect).
-        process_timeout: Default timeout for process operations in seconds.
-        start_method: Process start method (spawn, fork, forkserver).
-    """
-
-    max_processes: int | None = Field(default=None)
-    process_timeout: int = Field(default=600)
-    start_method: str = Field(default="spawn")
-
-    model_config = SettingsConfigDict(
-        env_prefix="PROCESS_",
         env_file=None,
     )
