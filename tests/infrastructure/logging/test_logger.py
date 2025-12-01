@@ -12,7 +12,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from infrastructure.logging.logger import ColoredFormatter, _setup_global_logging, get_logger
+from infrastructure.logging.logger import (
+    ColoredFormatter,
+    _setup_global_logging,
+    configure_logging,
+    get_logger,
+)
 
 
 class TestColoredFormatter:
@@ -386,9 +391,6 @@ class TestConfigureLogging:
 
     def test_configure_logging_sets_explicit_level(self):
         """configure_logging(level=...) should set the root logger to that level."""
-        # Import inside test so it continues to fail clearly until implemented.
-        from infrastructure.logging.logger import configure_logging  # type: ignore[attr-defined]
-
         with patch.dict(os.environ, {}, clear=True), patch("logging.getLogger") as mock_get_logger:
             mock_root = MagicMock()
             mock_root.handlers = []
@@ -402,8 +404,6 @@ class TestConfigureLogging:
 
     def test_configure_logging_uses_env_level_when_not_provided(self):
         """configure_logging() without level should respect LOG_LEVEL from environment."""
-        from infrastructure.logging.logger import configure_logging  # type: ignore[attr-defined]
-
         with (
             patch.dict(os.environ, {"LOG_LEVEL": "WARNING"}),
             patch("logging.getLogger") as mock_get_logger,

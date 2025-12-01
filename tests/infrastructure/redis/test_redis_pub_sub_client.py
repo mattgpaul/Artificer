@@ -8,6 +8,7 @@ implementation is provided.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -51,8 +52,6 @@ class TestRedisPubSubClient:
         redis_pub_sub_client,
     ) -> None:
         """`subscribe` should create a pubsub object and subscribe to namespaced channels."""
-        from unittest.mock import MagicMock
-
         pubsub_mock = MagicMock()
         redis_mocks["client"].pubsub.return_value = pubsub_mock
 

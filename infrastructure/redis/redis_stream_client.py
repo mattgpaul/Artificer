@@ -1,3 +1,9 @@
+"""Redis stream client implementation.
+
+This module provides a Redis client for stream operations, enabling
+append-only log patterns with event sourcing capabilities.
+"""
+
 from typing import Any
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
@@ -13,6 +19,15 @@ class RedisStreamClient(BaseRedisClient):
     """
 
     def add_event(self, stream: str, fields: dict[str, Any]) -> bool:
+        """Add an event to a stream.
+
+        Args:
+            stream: The stream name to add the event to.
+            fields: Dictionary of field names and values for the event.
+
+        Returns:
+            The event ID if successful, None otherwise.
+        """
         key = self._build_key(stream)
         try:
             event_id: str = self.client.xadd(key, fields, id="*")
@@ -37,6 +52,17 @@ class RedisStreamClient(BaseRedisClient):
     def read_events(
         self, stream: str, last_id: str, count: int, block_ms: int | None = None
     ) -> list[tuple[bytes, list[tuple[bytes, dict[bytes, bytes]]]]]:
+        """Read events from a stream.
+
+        Args:
+            stream: The stream name to read from.
+            last_id: The last event ID to read from (use '0' for all).
+            count: Maximum number of events to return.
+            block_ms: Optional blocking timeout in milliseconds.
+
+        Returns:
+            List of tuples containing stream entries with event data.
+        """
         key = self._build_key(stream)
         result = self.client.xread(
             streams={key: last_id},

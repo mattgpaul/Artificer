@@ -1,9 +1,28 @@
+"""Redis key-value client implementation.
+
+This module provides a Redis client for key-value operations including
+get and set operations with optional TTL support.
+"""
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
 
 class RedisKVClient(BaseRedisClient):
+    """Redis key-value client for simple get/set operations.
+
+    Provides methods for storing and retrieving string values with optional
+    TTL (time-to-live) support.
+    """
+
     def get(self, key_id: str):
+        """Retrieve a value by key.
+
+        Args:
+            key_id: The key identifier to retrieve.
+
+        Returns:
+            The decoded string value if found, None otherwise.
+        """
         key = self._build_key(key_id)
         try:
             raw = self.client.get(key)
@@ -39,6 +58,16 @@ class RedisKVClient(BaseRedisClient):
             return None
 
     def set(self, key_id: str, value: str, ttl: int | None = None) -> bool:
+        """Set a key-value pair with optional TTL.
+
+        Args:
+            key_id: The key identifier to set.
+            value: The string value to store.
+            ttl: Optional time-to-live in seconds.
+
+        Returns:
+            True if the operation succeeded, False otherwise.
+        """
         key = self._build_key(key_id)
         try:
             result = self.client.set(key, value, ex=ttl)

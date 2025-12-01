@@ -65,6 +65,7 @@ class BaseRedisClient(Client):
 
         Args:
             config: Optional RedisConfig object. If None, auto-populates from environment.
+            metrics: Optional metrics recorder for tracking Redis operations.
         """
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
@@ -115,6 +116,11 @@ class BaseRedisClient(Client):
         return f"{self.namespace}:{key}"
 
     def ping(self) -> bool:
+        """Check Redis connection health.
+
+        Returns:
+            True if connection is healthy, False otherwise.
+        """
         try:
             start = time.monotonic()
             result = self.client.ping()

@@ -95,6 +95,11 @@ class BaseTimescaleDBClient(Client):
             return False
 
     def close(self):
+        """Close the TimescaleDB connection.
+
+        Safely closes the database connection if it exists, handling
+        any errors that occur during the close operation.
+        """
         if self._connection:
             try:
                 self._connection.close()

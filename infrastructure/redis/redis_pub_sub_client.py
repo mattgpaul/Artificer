@@ -1,3 +1,9 @@
+"""Redis PubSub client implementation.
+
+This module provides a Redis client for publish-subscribe operations,
+enabling message broadcasting and subscription patterns.
+"""
+
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
 
@@ -11,6 +17,15 @@ class RedisPubSubClient(BaseRedisClient):
     """
 
     def publish(self, channel: str, message: str) -> bool:
+        """Publish a message to a channel.
+
+        Args:
+            channel: The channel name to publish to.
+            message: The message content to publish.
+
+        Returns:
+            True if message was published, False otherwise.
+        """
         namespaced = self._build_key(channel)
         try:
             result = self.client.publish(namespaced, message)
@@ -35,6 +50,14 @@ class RedisPubSubClient(BaseRedisClient):
             return False
 
     def subscribe(self, channels: list[str]):
+        """Subscribe to one or more channels.
+
+        Args:
+            channels: List of channel names to subscribe to.
+
+        Returns:
+            Redis pubsub object for receiving messages.
+        """
         pubsub = self.client.pubsub()
         namespaced_channels: list[str] = [self._build_key(c) for c in channels]
         pubsub.subscribe(*namespaced_channels)

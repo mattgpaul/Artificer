@@ -1,3 +1,9 @@
+"""Redis distributed lock client implementation.
+
+This module provides a Redis client for distributed locking operations,
+enabling coordination across threads and processes.
+"""
+
 from uuid import uuid4
 
 from infrastructure.redis.base_redis_client import BaseRedisClient

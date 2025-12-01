@@ -1,6 +1,6 @@
 """Unit tests / contract tests for the RedisKVClient.
 
-These tests define the expected behavior of a dedicated key–value client built
+These tests define the expected behavior of a dedicated key-value client built
 on top of `BaseRedisClient`.
 """
 

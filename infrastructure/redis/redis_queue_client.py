@@ -1,3 +1,8 @@
+"""Redis queue client implementation.
+
+This module provides a Redis client for queue operations, enabling
+FIFO (first-in-first-out) message queuing with optional blocking operations.
+"""
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
@@ -12,6 +17,16 @@ class RedisQueueClient(BaseRedisClient):
     """
 
     def enqueue(self, queue: str, value: str, ttl: int | None = None) -> bool:
+        """Add a value to the end of a queue.
+
+        Args:
+            queue: The queue name to enqueue to.
+            value: The string value to enqueue.
+            ttl: Optional time-to-live in seconds for the queue.
+
+        Returns:
+            True if the operation succeeded, False otherwise.
+        """
         key = self._build_key(queue)
         try:
             result = self.client.rpush(key, value)
@@ -40,6 +55,15 @@ class RedisQueueClient(BaseRedisClient):
             return False
 
     def dequeue(self, queue: str, timeout: int | None = None) -> bool:
+        """Remove and return a value from the front of a queue.
+
+        Args:
+            queue: The queue name to dequeue from.
+            timeout: Optional timeout in seconds for blocking dequeue.
+
+        Returns:
+            The dequeued string value, or None if queue is empty or timeout occurs.
+        """
         key = self._build_key(queue)
         try:
             if timeout is None:
