@@ -93,3 +93,24 @@ class BaseTimescaleDBClient(Client):
         except Exception as e:
             self.logger.debug(f"TimescaleDB ping failed: {e}")
             return False
+
+    def close(self):
+        if self._connection:
+            try:
+                self._connection.close()
+                self._connection = None
+                self.logger.info("TimescaleDB connection closed")
+            except Exception as e:
+                self.logger.warning(f"Error closing TimescaleDB connection: {e}")
+            self._connection = None
+        else:
+            self.logger.warning("TimescaleDB connection not initialized, skipping close")
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.close()
+        return False
