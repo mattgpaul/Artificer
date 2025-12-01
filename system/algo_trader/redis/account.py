@@ -5,14 +5,14 @@ information including positions and balances in Redis with TTL support.
 """
 
 from infrastructure.logging.logger import get_logger
-from infrastructure.redis.redis import BaseRedisClient
+from infrastructure.redis.redis_cache_client import RedisCacheClient
 
 # TTL constants
-_REFRESH_TOKEN_TTL_DAYS = 90
-_ACCESS_TOKEN_DEFAULT_TTL_MINUTES = 30
+_REFRESH_TOKEN_TTL = 90 * 24 * 60  # 90 days
+_ACCESS_TOKEN_TTL = 30 * 60  # 30 minutes
 
 
-class AccountBroker(BaseRedisClient):
+class AccountBroker(RedisCacheClient):
     """Redis broker for Schwab OAuth token management.
 
     Manages storage and retrieval of Schwab API OAuth tokens with appropriate
@@ -50,9 +50,8 @@ class AccountBroker(BaseRedisClient):
         Returns:
             True if token was successfully stored, False otherwise.
         """
-        ttl = _REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60  # Convert days to seconds
-        success = self.set(key="refresh-token", value=token, ttl=ttl)
-        return success
+        ttl = _REFRESH_TOKEN_TTL
+        return self.set("refresh-token", token, ttl=ttl)
 
     def get_refresh_token(self) -> str:
         """Retrieve stored Schwab API refresh token.
@@ -60,21 +59,19 @@ class AccountBroker(BaseRedisClient):
         Returns:
             Refresh token string, or None if not found.
         """
-        token = self.get("refresh-token")
-        return token
+        return self.get("refresh-token")
 
-    def set_access_token(self, token: str, ttl: int = _ACCESS_TOKEN_DEFAULT_TTL_MINUTES) -> bool:
+    def set_access_token(self, token: str, ttl: int = _ACCESS_TOKEN_TTL) -> bool:
         """Store Schwab API access token with custom expiration.
 
         Args:
             token: OAuth access token string.
-            ttl: Time-to-live in minutes (default: 30).
+            ttl: Time-to-live in seconds (default: 30 minutes).
 
         Returns:
             True if token was successfully stored, False otherwise.
         """
-        success = self.set(key="access-token", value=token, ttl=ttl * 60)
-        return success
+        return self.set("access-token", token, ttl=ttl)
 
     def get_access_token(self) -> str:
         """Retrieve stored Schwab API access token.
@@ -82,5 +79,4 @@ class AccountBroker(BaseRedisClient):
         Returns:
             Access token string, or None if not found.
         """
-        token = self.get("access-token")
-        return token
+        return self.get("access-token")

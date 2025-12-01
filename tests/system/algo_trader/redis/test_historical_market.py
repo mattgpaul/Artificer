@@ -18,7 +18,7 @@ class TestHistoricalMarketBrokerInitialization:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -67,7 +67,7 @@ class TestHistoricalMarketBrokerSetHistorical:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -197,7 +197,7 @@ class TestHistoricalMarketBrokerGetHistorical:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -285,7 +285,7 @@ class TestHistoricalMarketBrokerMarketHours:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -366,7 +366,7 @@ class TestHistoricalMarketBrokerIntegration:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -420,7 +420,7 @@ class TestHistoricalMarketBrokerEdgeCases:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 

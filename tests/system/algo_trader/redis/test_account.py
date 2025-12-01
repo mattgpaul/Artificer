@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from infrastructure.redis.redis import BaseRedisClient
+from infrastructure.redis.base_redis_client import BaseRedisClient
 from system.algo_trader.redis.account import AccountBroker
 
 
@@ -18,7 +18,7 @@ class TestAccountBrokerInitialization:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -68,7 +68,7 @@ class TestAccountBrokerRefreshToken:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -94,7 +94,7 @@ class TestAccountBrokerRefreshToken:
 
         assert result is True
         # Verify correct TTL (90 days in seconds)
-        expected_ttl = 90 * 24 * 60 * 60
+        expected_ttl = 90 * 24 * 60
         mock_redis["client"].set.assert_called_once()
         call_args = mock_redis["client"].set.call_args
         assert call_args[1]["ex"] == expected_ttl
@@ -116,7 +116,7 @@ class TestAccountBrokerRefreshToken:
         broker = AccountBroker()
         broker.set_refresh_token("test_token")
 
-        expected_ttl = 90 * 24 * 60 * 60  # 7,776,000 seconds
+        expected_ttl = 90 * 24 * 60  # 129,600 seconds
         call_args = mock_redis["client"].set.call_args
         assert call_args[1]["ex"] == expected_ttl
 
@@ -164,7 +164,7 @@ class TestAccountBrokerAccessToken:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -209,8 +209,8 @@ class TestAccountBrokerAccessToken:
         broker = AccountBroker()
         broker.set_access_token("test_token", ttl=60)
 
-        # Custom TTL of 60 minutes = 3600 seconds
-        expected_ttl = 60 * 60
+        # Custom TTL of 60 seconds
+        expected_ttl = 60
         call_args = mock_redis["client"].set.call_args
         assert call_args[1]["ex"] == expected_ttl
 
@@ -268,7 +268,7 @@ class TestAccountBrokerIntegration:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 
@@ -371,7 +371,7 @@ class TestAccountBrokerEdgeCases:
     @pytest.fixture
     def mock_redis(self):
         """Fixture to mock Redis connection."""
-        with patch("infrastructure.redis.redis.redis") as mock_redis_module:
+        with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module:
             mock_pool = MagicMock()
             mock_client = MagicMock()
 

@@ -12,10 +12,8 @@ py_library(
     name = "redis_services",
     srcs = [
         "account.py",
-        "check_queues.py",
         "historical_market.py",
         "live_market.py",
-        "queue_broker.py",
         "watchlist.py",
     ],
     visibility = [
@@ -29,7 +27,6 @@ py_library(
     deps = [
         "//infrastructure/logging:logger",
         "//infrastructure/redis",
-        "//system/algo_trader/utils:schema",
     ],
 )
 
