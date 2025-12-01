@@ -52,6 +52,7 @@ class TestTimescaleDBClientInitialization:
         assert client.user == "env-user"
         assert client.password == "env-pass"
         assert client.database == "env-db"
+
     def test_initialization_from_env_vars(
         self, timescaledb_env_from_vars, mock_psycopg2_connect_success, mock_logger
     ):
@@ -186,3 +187,91 @@ class TestTimescaleDBClientPing:
         assert result is False
         # Connection handle should remain unset when connect() raises.
         assert client._connection is None
+
+
+class TestTimescaleDBClientCloseAndContext:
+    """Test high-level close() and context manager behavior."""
+
+    def test_close_closes_active_connection_and_clears_handle(
+        self,
+        mock_psycopg2_connect_success,
+        mock_logger,
+    ):
+        """Close should close the active connection and reset the handle."""
+        config = TimescaleDBConfig(
+            host="db.example.com",
+            port=55432,
+            user="ts_user",
+            password="ts_pass",
+            database="ts_db",
+        )
+        client = BaseTimescaleDBClient(config=config)
+
+        # Force connection creation so close() has something to work on.
+        conn = client._get_connection()
+        assert conn is mock_psycopg2_connect_success["connection"]
+
+        client.close()
+
+        mock_psycopg2_connect_success["connection"].close.assert_called_once()
+        assert client._connection is None
+
+    def test_close_is_safe_when_no_connection(self, mock_logger):
+        """Close should be safe to call when no connection has been created."""
+        client = BaseTimescaleDBClient()
+
+        # _connection starts as None; close() should be a no-op and not raise.
+        assert client._connection is None
+        client.close()
+        assert client._connection is None
+
+    def test_context_manager_closes_connection_on_exit(
+        self,
+        mock_psycopg2_connect_success,
+        mock_logger,
+    ):
+        """Using the client as a context manager should always close on exit."""
+        config = TimescaleDBConfig(
+            host="db.example.com",
+            port=55432,
+            user="ts_user",
+            password="ts_pass",
+            database="ts_db",
+        )
+        client = BaseTimescaleDBClient(config=config)
+
+        # Ensure a connection exists before entering the context.
+        client._get_connection()
+
+        with client as ctx:
+            # __enter__ should return the client itself for ergonomic usage.
+            assert ctx is client
+            assert client._connection is mock_psycopg2_connect_success["connection"]
+
+        mock_psycopg2_connect_success["connection"].close.assert_called_once()
+
+    def test_context_manager_closes_connection_on_exception(
+        self,
+        mock_psycopg2_connect_success,
+        mock_logger,
+    ):
+        """Close should still be invoked when the context body raises."""
+        config = TimescaleDBConfig(
+            host="db.example.com",
+            port=55432,
+            user="ts_user",
+            password="ts_pass",
+            database="ts_db",
+        )
+        client = BaseTimescaleDBClient(config=config)
+
+        client._get_connection()
+
+        try:
+            with client:
+                raise ValueError("boom")
+        except ValueError:
+            # Exception should propagate; we only assert cleanup behavior here.
+            pass
+
+        mock_psycopg2_connect_success["connection"].close.assert_called_once()

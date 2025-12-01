@@ -6,7 +6,7 @@ on top of `BaseRedisClient`.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -17,7 +17,7 @@ class TestRedisKVClient:
 
     def test_set_uses_namespaced_key_and_sets_ttl_when_provided(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`set` should set a namespaced key with TTL when requested."""
@@ -34,7 +34,7 @@ class TestRedisKVClient:
 
     def test_set_without_ttl_does_not_set_expiration(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`set` without TTL should not set expiration."""
@@ -51,7 +51,7 @@ class TestRedisKVClient:
 
     def test_set_returns_false_and_logs_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`set` should catch errors, log, and return False."""
@@ -64,7 +64,7 @@ class TestRedisKVClient:
 
     def test_get_returns_decoded_value_when_present(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`get` should namespace keys and decode bytes to str."""
@@ -77,7 +77,7 @@ class TestRedisKVClient:
 
     def test_get_returns_none_when_key_missing(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`get` should return None when the key does not exist."""
@@ -89,7 +89,7 @@ class TestRedisKVClient:
 
     def test_get_logs_and_returns_none_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
     ) -> None:
         """`get` should catch errors, log, and return None."""
@@ -102,7 +102,7 @@ class TestRedisKVClient:
 
     def test_get_and_set_emit_metrics_when_present(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_kv_client,
         redis_metrics,
     ) -> None:
@@ -122,5 +122,3 @@ class TestRedisKVClient:
             "redis.kv.get.hit",
             tags={"namespace": "test_namespace", "key": "config"},
         )
-
-

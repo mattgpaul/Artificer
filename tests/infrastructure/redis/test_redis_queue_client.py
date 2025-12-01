@@ -7,7 +7,7 @@ implementation is provided.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -18,7 +18,7 @@ class TestRedisQueueClient:
 
     def test_enqueue_uses_rpush_and_sets_ttl_when_provided(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
     ) -> None:
         """`enqueue` should push to the queue tail and set TTL when requested."""
@@ -38,7 +38,7 @@ class TestRedisQueueClient:
 
     def test_enqueue_returns_false_on_failure(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
     ) -> None:
         """`enqueue` should return False when the underlying push fails."""
@@ -50,7 +50,7 @@ class TestRedisQueueClient:
 
     def test_dequeue_non_blocking_uses_lpop_and_decodes(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
     ) -> None:
         """Non-blocking `dequeue` should use LPOP and decode bytes."""
@@ -63,7 +63,7 @@ class TestRedisQueueClient:
 
     def test_dequeue_blocking_uses_blpop_when_timeout_provided(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
     ) -> None:
         """Blocking `dequeue` should use BLPOP with the given timeout."""
@@ -83,7 +83,7 @@ class TestRedisQueueClient:
 
     def test_dequeue_returns_none_when_queue_empty(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
     ) -> None:
         """`dequeue` should return None when the queue is empty."""
@@ -95,7 +95,7 @@ class TestRedisQueueClient:
 
     def test_enqueue_emits_metrics_on_success(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_queue_client,
         redis_metrics,
     ) -> None:
@@ -110,5 +110,3 @@ class TestRedisQueueClient:
             "redis.queue.enqueue.success",
             tags={"namespace": "test_namespace", "queue": "jobs"},
         )
-
-

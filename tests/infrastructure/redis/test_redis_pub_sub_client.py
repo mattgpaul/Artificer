@@ -7,7 +7,7 @@ implementation is provided.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -18,7 +18,7 @@ class TestRedisPubSubClient:
 
     def test_publish_sends_message_to_namespaced_channel(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_pub_sub_client,
     ) -> None:
         """`publish` should namespace channels and return True on success."""
@@ -34,7 +34,7 @@ class TestRedisPubSubClient:
 
     def test_publish_logs_and_returns_false_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_pub_sub_client,
     ) -> None:
         """`publish` should swallow errors, log, and return False."""
@@ -47,7 +47,7 @@ class TestRedisPubSubClient:
 
     def test_subscribe_creates_pubsub_and_subscribes_to_namespaced_channels(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_pub_sub_client,
     ) -> None:
         """`subscribe` should create a pubsub object and subscribe to namespaced channels."""
@@ -67,7 +67,7 @@ class TestRedisPubSubClient:
 
     def test_publish_emits_metrics_on_success(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_pub_sub_client,
         redis_metrics,
     ) -> None:
@@ -82,5 +82,3 @@ class TestRedisPubSubClient:
             "redis.pubsub.publish.success",
             tags={"namespace": "test_namespace", "channel": "orders"},
         )
-
-

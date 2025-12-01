@@ -13,7 +13,7 @@ intentionally *not* part of this base and are covered by dedicated clients.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -24,7 +24,7 @@ class TestBaseRedisClientCore:
 
     def test_initializes_connection_pool_and_client(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         base_redis_client,
     ) -> None:
         """Base client should create a connection pool and Redis client."""
@@ -39,7 +39,7 @@ class TestBaseRedisClientCore:
 
     def test_build_key_prefixes_namespace(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         base_redis_client,
     ) -> None:
         """_build_key should consistently prefix keys with the namespace."""
@@ -50,10 +50,10 @@ class TestBaseRedisClientCore:
 
     def test_ping_delegates_to_underlying_client(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         base_redis_client,
     ) -> None:
-        """ping should delegate to the underlying Redis client."""
+        """Ping should delegate to the underlying Redis client."""
         redis_mocks["client"].ping.return_value = True
         client = base_redis_client
 
@@ -62,11 +62,11 @@ class TestBaseRedisClientCore:
 
     def test_ping_records_metrics_when_present(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         base_redis_client,
         redis_metrics,
     ) -> None:
-        """ping should emit success and latency metrics when a recorder is attached."""
+        """Ping should emit success and latency metrics when a recorder is attached."""
         redis_mocks["client"].ping.return_value = True
         client = base_redis_client
         client.metrics = redis_metrics  # type: ignore[attr-defined]
@@ -79,7 +79,7 @@ class TestBaseRedisClientCore:
 
     def test_base_client_does_not_expose_high_level_helpers(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         base_redis_client,
     ) -> None:
         """Base client should NOT provide pattern-specific helper methods.
@@ -131,3 +131,62 @@ class TestBaseRedisClientCore:
             ), f"BaseRedisClient should not expose high-level helper '{name}'"
 
 
+@pytest.mark.unit
+class TestBaseRedisClientConnectionManagement:
+    """Test connection lifecycle and cleanup behavior for BaseRedisClient."""
+
+    def test_close_delegates_to_underlying_client(
+        self,
+        redis_mocks: dict[str, Any],
+        base_redis_client,
+    ) -> None:
+        """Close should delegate to the underlying Redis client and not raise."""
+        client = base_redis_client
+
+        # Simulate an open client; the concrete implementation is responsible
+        # for calling the low-level close hook on cleanup.
+        client.close()
+
+        redis_mocks["client"].close.assert_called_once_with()
+
+    def test_close_is_safe_when_no_client(
+        self,
+        redis_mocks: dict[str, Any],
+        base_redis_client,
+    ) -> None:
+        """Close should be safe to call even if no Redis client is present."""
+        client = base_redis_client
+
+        # Drop the reference to the underlying client to simulate a partially
+        # initialized instance or a previous cleanup.
+        client.client = None  # type: ignore[attr-defined]
+
+        # Should not raise
+        client.close()
+
+    def test_context_manager_closes_client_on_exit(
+        self,
+        redis_mocks: dict[str, Any],
+        base_redis_client,
+    ) -> None:
+        """Using the client as a context manager should always close on exit."""
+        with base_redis_client as client:
+            # __enter__ should return the client instance itself.
+            assert client is base_redis_client
+
+        redis_mocks["client"].close.assert_called_once_with()
+
+    def test_context_manager_closes_client_on_exception(
+        self,
+        redis_mocks: dict[str, Any],
+        base_redis_client,
+    ) -> None:
+        """Close should still be invoked when the context body raises."""
+        try:
+            with base_redis_client:
+                raise ValueError("boom")
+        except ValueError:
+            # Exception should propagate; we only assert cleanup behavior here.
+            pass
+
+        redis_mocks["client"].close.assert_called_once_with()

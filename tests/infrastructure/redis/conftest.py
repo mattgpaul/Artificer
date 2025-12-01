@@ -6,22 +6,21 @@ Redis server. Fixtures here are reused across all Redis client tests.
 
 from __future__ import annotations
 
-from typing import Any, Dict
-
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
+from infrastructure.redis.redis_kv_client import RedisKVClient
+from infrastructure.redis.redis_lock_client import RedisLockClient
 from infrastructure.redis.redis_pub_sub_client import RedisPubSubClient
 from infrastructure.redis.redis_queue_client import RedisQueueClient
 from infrastructure.redis.redis_stream_client import RedisStreamClient
-from infrastructure.redis.redis_kv_client import RedisKVClient
-from infrastructure.redis.redis_lock_client import RedisLockClient
 
 
 @pytest.fixture
-def redis_mocks() -> Dict[str, Any]:
+def redis_mocks() -> dict[str, Any]:
     """Mock the `redis` client and logger used by the Redis base client.
 
     Provides:
@@ -30,9 +29,12 @@ def redis_mocks() -> Dict[str, Any]:
     - client: mocked Redis client instance
     - logger: mocked logger instance
     """
-    with patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module, patch(
-        "infrastructure.redis.base_redis_client.get_logger",
-    ) as mock_get_logger:
+    with (
+        patch("infrastructure.redis.base_redis_client.redis") as mock_redis_module,
+        patch(
+            "infrastructure.redis.base_redis_client.get_logger",
+        ) as mock_get_logger,
+    ):
         mock_pool = MagicMock()
         mock_client = MagicMock()
 
@@ -107,38 +109,36 @@ def redis_metrics() -> MagicMock:
 
 
 @pytest.fixture
-def base_redis_client(redis_mocks: Dict[str, Any]) -> BaseRedisClient:
+def base_redis_client(redis_mocks: dict[str, Any]) -> BaseRedisClient:
     """Provide a fully-wired BaseRedisClient instance for contract tests."""
     return _TestBaseRedisClient()
 
 
 @pytest.fixture
-def redis_pub_sub_client(redis_mocks: Dict[str, Any]) -> RedisPubSubClient:
+def redis_pub_sub_client(redis_mocks: dict[str, Any]) -> RedisPubSubClient:
     """Provide a concrete pub/sub client with a known namespace."""
     return _TestRedisPubSubClient()
 
 
 @pytest.fixture
-def redis_queue_client(redis_mocks: Dict[str, Any]) -> RedisQueueClient:
+def redis_queue_client(redis_mocks: dict[str, Any]) -> RedisQueueClient:
     """Provide a concrete queue client with a known namespace."""
     return _TestRedisQueueClient()
 
 
 @pytest.fixture
-def redis_stream_client(redis_mocks: Dict[str, Any]) -> RedisStreamClient:
+def redis_stream_client(redis_mocks: dict[str, Any]) -> RedisStreamClient:
     """Provide a concrete stream client with a known namespace."""
     return _TestRedisStreamClient()
 
 
 @pytest.fixture
-def redis_kv_client(redis_mocks: Dict[str, Any]) -> RedisKVClient:
+def redis_kv_client(redis_mocks: dict[str, Any]) -> RedisKVClient:
     """Provide a concrete KV client with a known namespace."""
     return _TestRedisKVClient()
 
 
 @pytest.fixture
-def redis_lock_client(redis_mocks: Dict[str, Any]) -> RedisLockClient:
+def redis_lock_client(redis_mocks: dict[str, Any]) -> RedisLockClient:
     """Provide a concrete lock client with a known namespace."""
     return _TestRedisLockClient()
-
-

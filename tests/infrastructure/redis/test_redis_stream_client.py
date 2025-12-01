@@ -7,7 +7,7 @@ implementation is provided.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -18,7 +18,7 @@ class TestRedisStreamClient:
 
     def test_add_event_uses_xadd_with_namespaced_stream(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_stream_client,
     ) -> None:
         """`add_event` should append to a namespaced stream and return the entry ID."""
@@ -38,7 +38,7 @@ class TestRedisStreamClient:
 
     def test_add_event_returns_none_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_stream_client,
     ) -> None:
         """`add_event` should log and return None when xadd fails."""
@@ -51,13 +51,11 @@ class TestRedisStreamClient:
 
     def test_read_events_uses_xread_with_namespaced_stream_and_last_id(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_stream_client,
     ) -> None:
         """`read_events` should call XREAD with correct streams mapping and options."""
-        sample_response: List[
-            Tuple[bytes, List[Tuple[bytes, Dict[bytes, bytes]]]]
-        ] = [
+        sample_response: list[tuple[bytes, list[tuple[bytes, dict[bytes, bytes]]]]] = [
             (
                 b"test_namespace:prices",
                 [
@@ -83,14 +81,12 @@ class TestRedisStreamClient:
 
     def test_read_events_emits_metrics_with_batch_size(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_stream_client,
         redis_metrics,
     ) -> None:
         """`read_events` should emit a batch size metric when metrics are enabled."""
-        sample_response: List[
-            Tuple[bytes, List[Tuple[bytes, Dict[bytes, bytes]]]]
-        ] = [
+        sample_response: list[tuple[bytes, list[tuple[bytes, dict[bytes, bytes]]]]] = [
             (
                 b"test_namespace:prices",
                 [
@@ -115,5 +111,3 @@ class TestRedisStreamClient:
             float(2),
             tags={"namespace": "test_namespace", "stream": "prices"},
         )
-
-

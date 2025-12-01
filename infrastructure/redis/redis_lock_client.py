@@ -1,5 +1,3 @@
-from typing import Optional
-
 from uuid import uuid4
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
@@ -22,7 +20,7 @@ class RedisLockClient(BaseRedisClient):
     end
     """
 
-    def acquire_lock(self, name: str, ttl: int = 30) -> Optional[str]:
+    def acquire_lock(self, name: str, ttl: int = 30) -> str | None:
         """Attempt to acquire a lock on ``name``.
 
         Returns a lock token (string) if acquired, or None if the lock is
@@ -100,5 +98,3 @@ class RedisLockClient(BaseRedisClient):
                     tags={"namespace": self.namespace, "lock": name},
                 )
             return False
- 
- 

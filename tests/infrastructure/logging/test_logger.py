@@ -379,3 +379,40 @@ class TestLoggerEdgeCases:
 
         # Should return the same logger instance
         assert logger1 is logger2
+
+
+class TestConfigureLogging:
+    """Test the explicit configure_logging entrypoint."""
+
+    def test_configure_logging_sets_explicit_level(self):
+        """configure_logging(level=...) should set the root logger to that level."""
+        # Import inside test so it continues to fail clearly until implemented.
+        from infrastructure.logging.logger import configure_logging  # type: ignore[attr-defined]
+
+        with patch.dict(os.environ, {}, clear=True), patch("logging.getLogger") as mock_get_logger:
+            mock_root = MagicMock()
+            mock_root.handlers = []
+            mock_root.manager.loggerDict = {}
+            mock_get_logger.return_value = mock_root
+
+            configure_logging(level="DEBUG")
+
+            # Explicit level should be honored regardless of environment.
+            mock_root.setLevel.assert_any_call(logging.DEBUG)
+
+    def test_configure_logging_uses_env_level_when_not_provided(self):
+        """configure_logging() without level should respect LOG_LEVEL from environment."""
+        from infrastructure.logging.logger import configure_logging  # type: ignore[attr-defined]
+
+        with (
+            patch.dict(os.environ, {"LOG_LEVEL": "WARNING"}),
+            patch("logging.getLogger") as mock_get_logger,
+        ):
+            mock_root = MagicMock()
+            mock_root.handlers = []
+            mock_root.manager.loggerDict = {}
+            mock_get_logger.return_value = mock_root
+
+            configure_logging()
+
+            mock_root.setLevel.assert_any_call(logging.WARNING)

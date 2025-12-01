@@ -1,4 +1,3 @@
-from typing import Optional
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
@@ -12,7 +11,7 @@ class RedisQueueClient(BaseRedisClient):
     - Managing queue consumers
     """
 
-    def enqueue(self, queue: str, value: str, ttl: Optional[int] = None) -> bool:
+    def enqueue(self, queue: str, value: str, ttl: int | None = None) -> bool:
         key = self._build_key(queue)
         try:
             result = self.client.rpush(key, value)
@@ -40,7 +39,7 @@ class RedisQueueClient(BaseRedisClient):
                 )
             return False
 
-    def dequeue(self, queue: str, timeout: Optional[int] = None) -> bool:
+    def dequeue(self, queue: str, timeout: int | None = None) -> bool:
         key = self._build_key(queue)
         try:
             if timeout is None:
@@ -83,4 +82,3 @@ class RedisQueueClient(BaseRedisClient):
                     tags={"namespace": self.namespace, "queue": queue},
                 )
             return None
-

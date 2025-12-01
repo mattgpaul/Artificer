@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
@@ -12,10 +12,10 @@ class RedisStreamClient(BaseRedisClient):
     - Managing stream consumers
     """
 
-    def add_event(self, stream: str, fields: Dict[str, Any]) -> bool:
+    def add_event(self, stream: str, fields: dict[str, Any]) -> bool:
         key = self._build_key(stream)
         try:
-            event_id: str = self.client.xadd(key, fields, id='*')
+            event_id: str = self.client.xadd(key, fields, id="*")
             self.logger.debug(f"Added event to stream {key} with id {event_id}")
 
             if self.metrics:
@@ -35,12 +35,8 @@ class RedisStreamClient(BaseRedisClient):
             return None
 
     def read_events(
-        self,
-        stream: str,
-        last_id: str,
-        count: int,
-        block_ms: Optional[int] = None
-    ) -> List[Tuple[bytes, List[Tuple[bytes, Dict[bytes, bytes]]]]]:
+        self, stream: str, last_id: str, count: int, block_ms: int | None = None
+    ) -> list[tuple[bytes, list[tuple[bytes, dict[bytes, bytes]]]]]:
         key = self._build_key(stream)
         result = self.client.xread(
             streams={key: last_id},

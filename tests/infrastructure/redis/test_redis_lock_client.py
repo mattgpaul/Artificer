@@ -6,7 +6,7 @@ built on top of `BaseRedisClient`.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import ANY
 
 import pytest
@@ -18,7 +18,7 @@ class TestRedisLockClient:
 
     def test_acquire_lock_uses_namespaced_lock_key_and_sets_ttl(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """`acquire_lock` should set a namespaced lock key with NX + TTL."""
@@ -36,7 +36,7 @@ class TestRedisLockClient:
 
     def test_acquire_lock_returns_none_when_lock_already_held(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """If `SET NX` fails, `acquire_lock` should return None."""
@@ -48,7 +48,7 @@ class TestRedisLockClient:
 
     def test_acquire_lock_logs_and_returns_none_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """`acquire_lock` should catch errors, log, and return None."""
@@ -61,7 +61,7 @@ class TestRedisLockClient:
 
     def test_release_lock_uses_lua_script_and_deletes_on_match(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """`release_lock` should use a Lua script to safely delete the lock."""
@@ -80,7 +80,7 @@ class TestRedisLockClient:
 
     def test_release_lock_returns_false_when_script_reports_no_delete(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """If the script returns 0, the lock was not released."""
@@ -92,7 +92,7 @@ class TestRedisLockClient:
 
     def test_release_lock_logs_and_returns_false_on_exception(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
     ) -> None:
         """`release_lock` should catch errors, log, and return False."""
@@ -105,7 +105,7 @@ class TestRedisLockClient:
 
     def test_acquire_and_release_emit_metrics_when_present(
         self,
-        redis_mocks: Dict[str, Any],
+        redis_mocks: dict[str, Any],
         redis_lock_client,
         redis_metrics,
     ) -> None:
@@ -127,5 +127,3 @@ class TestRedisLockClient:
             "redis.lock.release.success",
             tags={"namespace": "test_namespace", "lock": "orders"},
         )
-
-

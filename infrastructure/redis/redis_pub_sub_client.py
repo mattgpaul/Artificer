@@ -9,7 +9,7 @@ class RedisPubSubClient(BaseRedisClient):
     - Reading and writing messages to channels
     - Managing channel consumers
     """
-    
+
     def publish(self, channel: str, message: str) -> bool:
         namespaced = self._build_key(channel)
         try:

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from infrastructure.redis.base_redis_client import BaseRedisClient
 
@@ -39,7 +38,7 @@ class RedisKVClient(BaseRedisClient):
                 )
             return None
 
-    def set(self, key_id: str, value: str, ttl: Optional[int] = None) -> bool:
+    def set(self, key_id: str, value: str, ttl: int | None = None) -> bool:
         key = self._build_key(key_id)
         try:
             result = self.client.set(key, value, ex=ttl)

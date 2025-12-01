@@ -6,10 +6,9 @@ Pattern-specific helpers (queues, streams, pub/sub, locks, KV, etc.) are
 implemented in dedicated clients that compose this base.
 """
 
-import json
 import time
 from abc import abstractmethod
-from typing import Any, Dict, Optional, Protocol
+from typing import Protocol
 
 import redis
 
@@ -27,7 +26,7 @@ class MetricsRecorder(Protocol):
         self,
         name: str,
         value: int = 1,
-        tags: Optional[Dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         """Increment a counter."""
         ...
@@ -36,7 +35,7 @@ class MetricsRecorder(Protocol):
         self,
         name: str,
         value: float,
-        tags: Optional[Dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         """Record a timing/measurement."""
         ...
@@ -61,7 +60,7 @@ class BaseRedisClient(Client):
         client: Redis client instance.
     """
 
-    def __init__(self, config=None, metrics: Optional[MetricsRecorder] = None):
+    def __init__(self, config=None, metrics: MetricsRecorder | None = None):
         """Initialize Redis client with connection pool and configuration.
 
         Args:
@@ -141,3 +140,25 @@ class BaseRedisClient(Client):
                     tags={"namespace": self.namespace},
                 )
             return False
+
+    def close(self):
+        """Close the Redis connection pool."""
+        if not self.client:
+            self.logger.warning("Redis client not initialized, skipping close")
+            return
+        try:
+            self.client.close()
+            self.pool.disconnect()
+            self.logger.debug(f"Redis connection pool closed for namespace: {self.namespace}")
+        except Exception as e:
+            self.logger.error(f"Failed to close Redis connection pool: {e}")
+            raise
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.close()
+        return False
