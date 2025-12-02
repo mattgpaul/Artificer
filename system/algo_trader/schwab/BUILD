@@ -7,8 +7,11 @@ py_library(
     srcs = [
         "account_handler.py",
         "market_handler.py",
+        "oauth2_handler.py",
+        "schwab_base.py",
         "schwab_client.py",
         "timescale_enum.py",
+        "token_manager.py",
     ],
     visibility = [
         "//system:__pkg__",  # Allow system package access
@@ -19,7 +22,7 @@ py_library(
         "//infrastructure:client",
         "//infrastructure/logging:logger",
         "//system/algo_trader/redis:redis_services",
-        "//system/algo_trader/schwab/auth",
+        "//system/algo_trader:config",
         requirement("requests"),
     ],
 )

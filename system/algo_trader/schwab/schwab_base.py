@@ -11,10 +11,11 @@ class SchwabBase(Client):
         self.api_key = config.api_key
         self.secret = config.secret
         self.app_name = config.app_name
+        self.refresh_token = config.refresh_token
         self.base_url = "https://api.schwabapi.com"
 
-        if not all([self.api_key, self.secret, self.app_name]):
+        if not all([self.api_key, self.secret, self.app_name, self.refresh_token]):
             raise ValueError(
                 "Missing required Schwab environment variables. "
-                "Please set SCHWAB_API_KEY, SCHWAB_SECRET, and SCHWAB_APP_NAME"
+                "Please set SCHWAB_API_KEY, SCHWAB_SECRET, SCHWAB_APP_NAME, and SCHWAB_REFRESH_TOKEN"
             )

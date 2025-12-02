@@ -7,10 +7,10 @@ information, positions, and balances from Schwab's account endpoints.
 from typing import Any
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.schwab.schwab_client import SchwabClient
+from system.algo_trader.schwab.schwab_base import SchwabBase
 
 
-class AccountHandler(SchwabClient):
+class AccountHandler(SchwabBase):
     """Schwab Account API Handler.
 
     Provides methods for retrieving account information, positions, and account-related

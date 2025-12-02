@@ -9,16 +9,9 @@ Token Flow:
 3. If refresh token missing from Redis, load from env and store in Redis → refresh
 4. If refresh token expired, initiate OAuth2 flow → save to Redis, display for manual save
 """
-
-import os
-from typing import Any
-
 import requests
 
-from infrastructure.client import Client
-from infrastructure.logging.logger import get_logger
 from system.algo_trader.schwab.schwab_base import SchwabBase
-from system.algo_trader.schwab.oauth2_handler import OAuth2Handler
 from system.algo_trader.schwab.token_manager import TokenManager
 
 
@@ -31,55 +24,10 @@ class SchwabClient(SchwabBase):
     variables as Redis is ephemeral.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Schwab client with environment configuration."""
         super().__init__()
-        self.logger = get_logger(self.__class__.__name__)
-        self.oauth2_handler = OAuth2Handler()
         self.token_manager = TokenManager()
-
-    def get_valid_access_token(self) -> str:
-        """Get a valid access token, refreshing if necessary.
-
-        This method implements the complete token lifecycle with distributed locking
-        to prevent multiple threads from refreshing simultaneously:
-        1. Check Redis for valid access token
-        2. If expired/missing, acquire lock and attempt refresh
-        3. If lock not acquired, wait for other thread to complete refresh
-        4. If refresh token missing, load from env file and store in Redis
-        5. If refresh token expired, initiate OAuth2 flow
-
-        Returns:
-            str: Valid access token
-
-        Raises:
-            Exception: If unable to obtain valid token after all attempts
-        """
-        return self.token_manager.get_valid_access_token()
-
-    def refresh_token(self) -> bool:
-        """Refresh access token using stored refresh token.
-
-        Returns:
-            bool: True if refresh was successful, False otherwise
-        """
-        return self.token_manager.refresh_token()
-
-    def load_token(self) -> bool:
-        """Load refresh token from environment and store in Redis.
-
-        Returns:
-            bool: True if refresh token was loaded and stored, False otherwise
-        """
-        return self.token_manager.load_token()
-
-    def authenticate(self) -> dict[str, Any] | None:
-        """Perform complete OAuth2 authentication flow.
-
-        Returns:
-            Dict containing tokens if successful, None otherwise
-        """
-        return self.oauth2_handler.authenticate()
 
     def get_auth_headers(self) -> dict[str, str]:
         """Get authentication headers for API requests.
@@ -87,7 +35,7 @@ class SchwabClient(SchwabBase):
         Returns:
             Dict containing Authorization header with valid access token
         """
-        token = self.get_valid_access_token()
+        token = self.token_manager.get_valid_access_token()
         return {
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",

@@ -5,17 +5,14 @@ token retrieval, refresh, and loading from environment variables.
 """
 
 import base64
-import os
 import time
 
 import requests
 
-from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.account import AccountBroker
-from system.algo_trader.schwab.auth.oauth2 import OAuth2Handler
+from system.algo_trader.schwab.schwab_base import SchwabBase
 
-
-class TokenManager:
+class TokenManager(SchwabBase):
     """Manages OAuth2 access tokens for Schwab API.
 
     Handles token lifecycle including retrieval, refresh, and validation.
@@ -30,15 +27,7 @@ class TokenManager:
         logger: Optional logger instance. If not provided, creates a new logger.
     """
 
-    def __init__(
-        self,
-        api_key: str,
-        secret: str,
-        base_url: str,
-        account_broker: AccountBroker,
-        oauth2_handler: OAuth2Handler,
-        logger=None,
-    ):
+    def __init__(self) -> None:
         """Initialize TokenManager with API credentials and handlers.
 
         Args:
@@ -49,12 +38,8 @@ class TokenManager:
             oauth2_handler: OAuth2Handler instance for token refresh.
             logger: Optional logger instance. If not provided, creates a new logger.
         """
-        self.api_key = api_key
-        self.secret = secret
-        self.base_url = base_url
-        self.account_broker = account_broker
-        self.oauth2_handler = oauth2_handler
-        self.logger = logger or get_logger(self.__class__.__name__)
+        super().__init__()
+        self.account_broker = AccountBroker()
 
     def get_valid_access_token(self) -> str:
         """Get a valid access token, refreshing if necessary.
@@ -95,7 +80,7 @@ class TokenManager:
 
                 self.logger.info("Redis refresh failed, checking environment file")
 
-                if self.load_token():
+                if self._load_token_from_config():
                     if self.refresh_token():
                         access_token = self.account_broker.get_access_token()
                         if access_token:
@@ -169,22 +154,19 @@ class TokenManager:
 
         return False
 
-    def load_token(self) -> bool:
-        """Load refresh token from environment variable.
+    def _load_token_from_config(self) -> bool:
+        """Bootstrap Redis refresh token from config-backed attribute."""
+        if not self.refresh_token:
+            self.logger.debug("No refresh token present in SchwabConfig")
+            return False
 
-        Attempts to load refresh token from SCHWAB_REFRESH_TOKEN environment
-        variable and store it in Redis.
-
-        Returns:
-            True if token was loaded successfully, False otherwise.
-        """
         try:
-            refresh_token = os.getenv("SCHWAB_REFRESH_TOKEN")
-            if refresh_token:
-                self.account_broker.set_refresh_token(refresh_token)
-                self.logger.info("Loaded refresh token from environment and stored in Redis")
-                return True
+            ok = self.account_broker.set_refresh_token(self.refresh_token)
+            if ok:
+                self.logger.info("Loaded refresh token from config into Redis")
+            else:
+                self.logger.error("Failed to store refresh token in Redis")
+            return ok
         except Exception as e:
-            self.logger.error(f"Failed to load refresh token from env: {e}")
-
-        return False
+            self.logger.error(f"Failed to load refresh token from config into Redis: {e}")
+            return False
