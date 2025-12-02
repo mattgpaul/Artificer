@@ -11,9 +11,10 @@ import requests
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.account import AccountBroker
+from system.algo_trader.schwab.schwab_base import SchwabBase
 
 
-class OAuth2Handler:
+class OAuth2Handler(SchwabBase):
     """Handles OAuth2 authentication flow for Schwab API.
 
     Manages the OAuth2 authorization code flow, including generating authorization
@@ -26,24 +27,6 @@ class OAuth2Handler:
         account_broker: AccountBroker instance for token storage.
         logger: Optional logger instance. If not provided, creates a new logger.
     """
-
-    def __init__(
-        self, api_key: str, secret: str, base_url: str, account_broker: AccountBroker, logger=None
-    ):
-        """Initialize OAuth2Handler with API credentials.
-
-        Args:
-            api_key: Schwab API key (client ID).
-            secret: Schwab API secret (client secret).
-            base_url: Base URL for Schwab API.
-            account_broker: AccountBroker instance for token storage.
-            logger: Optional logger instance. If not provided, creates a new logger.
-        """
-        self.api_key = api_key
-        self.secret = secret
-        self.base_url = base_url
-        self.account_broker = account_broker
-        self.logger = logger or get_logger(self.__class__.__name__)
 
     def authenticate(self) -> dict[str, Any] | None:
         """Perform OAuth2 authentication flow.

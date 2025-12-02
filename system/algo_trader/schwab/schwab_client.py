@@ -17,12 +17,12 @@ import requests
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.redis.account import AccountBroker
-from system.algo_trader.schwab.auth.oauth2 import OAuth2Handler
-from system.algo_trader.schwab.auth.token_manager import TokenManager
+from system.algo_trader.schwab.schwab_base import SchwabBase
+from system.algo_trader.schwab.oauth2_handler import OAuth2Handler
+from system.algo_trader.schwab.token_manager import TokenManager
 
 
-class SchwabClient(Client):
+class SchwabClient(SchwabBase):
     """Consolidated Schwab API client with Redis-first token management.
 
     This client handles OAuth2 authentication, token refresh, and provides
@@ -33,34 +33,10 @@ class SchwabClient(Client):
 
     def __init__(self):
         """Initialize Schwab client with environment configuration."""
+        super().__init__()
         self.logger = get_logger(self.__class__.__name__)
-
-        self.api_key = os.getenv("SCHWAB_API_KEY")
-        self.secret = os.getenv("SCHWAB_SECRET")
-        self.app_name = os.getenv("SCHWAB_APP_NAME")
-        self.base_url = "https://api.schwabapi.com"
-
-        if not all([self.api_key, self.secret, self.app_name]):
-            raise ValueError(
-                "Missing required Schwab environment variables. "
-                "Please set SCHWAB_API_KEY, SCHWAB_SECRET, and SCHWAB_APP_NAME"
-            )
-
-        self.account_broker = AccountBroker()
-
-        self.oauth2_handler = OAuth2Handler(
-            self.api_key, self.secret, self.base_url, self.account_broker, self.logger
-        )
-        self.token_manager = TokenManager(
-            self.api_key,
-            self.secret,
-            self.base_url,
-            self.account_broker,
-            self.oauth2_handler,
-            self.logger,
-        )
-
-        self.logger.info("SchwabClient initialized successfully")
+        self.oauth2_handler = OAuth2Handler()
+        self.token_manager = TokenManager()
 
     def get_valid_access_token(self) -> str:
         """Get a valid access token, refreshing if necessary.
