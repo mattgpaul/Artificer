@@ -30,8 +30,8 @@ py_library(
 # OAuth2 authentication binary
 py_binary(
     name = "authenticate",
-    srcs = ["authenticate.py"],
-    main = "authenticate.py",
+    srcs = ["oauth2_handler.py"],
+    main = "oauth2_handler.py",
     visibility = ["//visibility:public"],
     deps = [":schwab_services"],
 )

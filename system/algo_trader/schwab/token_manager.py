@@ -11,6 +11,7 @@ import requests
 
 from system.algo_trader.redis.account import AccountBroker
 from system.algo_trader.schwab.schwab_base import SchwabBase
+from system.algo_trader.schwab.oauth2_handler import OAuth2Handler
 
 class TokenManager(SchwabBase):
     """Manages OAuth2 access tokens for Schwab API.
@@ -40,6 +41,7 @@ class TokenManager(SchwabBase):
         """
         super().__init__()
         self.account_broker = AccountBroker()
+        self.oauth2_handler = OAuth2Handler()
 
     def get_valid_access_token(self) -> str:
         """Get a valid access token, refreshing if necessary.

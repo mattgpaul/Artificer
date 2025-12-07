@@ -9,7 +9,32 @@ fixtures in ``conftest.py``.
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 import pytest
+
+
+@pytest.mark.unit
+class TestOAuth2HandlerInit:
+    """Construction-time behavior for OAuth2Handler."""
+
+    def test_default_constructor_initializes_account_broker(self) -> None:
+        """OAuth2Handler() should create an AccountBroker for token persistence.
+
+        This guards the CLI path used by the ``authenticate`` Bazel binary,
+        where OAuth2Handler is instantiated directly without test fixtures.
+        """
+        from system.algo_trader.schwab.oauth2_handler import OAuth2Handler
+
+        with patch(
+            "system.algo_trader.schwab.oauth2_handler.AccountBroker"
+        ) as BrokerCls:
+            broker_instance = MagicMock()
+            BrokerCls.return_value = broker_instance
+
+            handler = OAuth2Handler()
+
+        assert handler.account_broker is broker_instance
 
 
 @pytest.mark.unit

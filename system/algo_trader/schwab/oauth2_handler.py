@@ -6,10 +6,8 @@ for Schwab API, including authorization URL generation and token exchange.
 
 import base64
 from typing import Any
-
 import requests
 
-from infrastructure.logging.logger import get_logger
 from system.algo_trader.redis.account import AccountBroker
 from system.algo_trader.schwab.schwab_base import SchwabBase
 
@@ -27,6 +25,9 @@ class OAuth2Handler(SchwabBase):
         account_broker: AccountBroker instance for token storage.
         logger: Optional logger instance. If not provided, creates a new logger.
     """
+    def __init__(self) -> None:
+        super().__init__()
+        self.account_broker = AccountBroker()
 
     def authenticate(self) -> dict[str, Any] | None:
         """Perform OAuth2 authentication flow.
@@ -114,3 +115,7 @@ class OAuth2Handler(SchwabBase):
 
         input("\nPress ENTER to continue after copying the token...")
         self.logger.info("User confirmed token copied")
+
+if __name__ == "__main__":
+    oauth2_handler = OAuth2Handler()
+    oauth2_handler.authenticate()
