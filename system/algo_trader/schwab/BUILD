@@ -71,3 +71,23 @@ pytest_test(
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/schwab:test_timescale_enum_lib",
 )
+
+
+# Test for TokenManager - Token lifecycle and refresh behavior
+pytest_test(
+    name = "test_token_manager",
+    size = "small",
+    coverage_path = "system.algo_trader.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/schwab:test_token_manager_lib",
+)
+
+
+# Test for OAuth2Handler - OAuth2 authorization flow
+pytest_test(
+    name = "test_oauth2_handler",
+    size = "small",
+    coverage_path = "system.algo_trader.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/schwab:test_oauth2_handler_lib",
+)

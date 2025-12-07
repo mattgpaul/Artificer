@@ -86,3 +86,131 @@ def account_handler_request_mock(account_handler) -> MagicMock:
     account_handler.make_authenticated_request = request_mock
     return request_mock
 
+
+@pytest.fixture
+def market_handler():
+    """Provide a MarketHandler instance with real config but mocked HTTP."""
+    from system.algo_trader.schwab.market_handler import MarketHandler
+
+    handler = MarketHandler()
+    return handler
+
+
+@pytest.fixture
+def market_handler_request_mock(market_handler) -> MagicMock:
+    """Attach and return a MagicMock for MarketHandler.make_authenticated_request."""
+    request_mock: MagicMock = MagicMock()
+    market_handler.make_authenticated_request = request_mock
+    return request_mock
+
+
+@pytest.fixture
+def market_handler_send_request_mock(market_handler) -> MagicMock:
+    """Attach and return a MagicMock for MarketHandler._send_request."""
+    send_request_mock: MagicMock = MagicMock()
+    market_handler._send_request = send_request_mock
+    return send_request_mock
+
+
+@pytest.fixture
+def token_manager_fixtures():
+    """Provide a TokenManager instance with patched dependencies for unit tests.
+
+    Patches:
+    - AccountBroker to avoid real Redis
+    - requests module to avoid real HTTP
+    - time module to avoid real sleeping
+    """
+    with (
+        patch("system.algo_trader.schwab.token_manager.AccountBroker") as BrokerCls,
+        patch("system.algo_trader.schwab.token_manager.requests") as requests_mod,
+        patch("system.algo_trader.schwab.token_manager.time") as time_mod,
+    ):
+        broker = MagicMock()
+        BrokerCls.return_value = broker
+        time_mod.sleep = MagicMock()
+
+        from system.algo_trader.schwab.token_manager import TokenManager
+
+        manager = TokenManager()
+        oauth2_handler = MagicMock()
+        refresh_mock = MagicMock()
+
+        # Attach mocks to the manager instance for tests to configure.
+        manager.oauth2_handler = oauth2_handler
+        manager.refresh_token = refresh_mock
+
+        yield {
+            "manager": manager,
+            "broker": broker,
+            "requests": requests_mod,
+            "time": time_mod,
+            "oauth2_handler": oauth2_handler,
+            "refresh_mock": refresh_mock,
+        }
+
+
+@pytest.fixture
+def token_manager_refresh_fixtures():
+    """Provide TokenManager and dependencies for refresh/_load_token_from_config tests."""
+    with (
+        patch("system.algo_trader.schwab.token_manager.AccountBroker") as BrokerCls,
+        patch("system.algo_trader.schwab.token_manager.requests") as requests_mod,
+    ):
+        broker = MagicMock()
+        BrokerCls.return_value = broker
+
+        from system.algo_trader.schwab.token_manager import TokenManager
+
+        manager = TokenManager()
+        manager.oauth2_handler = MagicMock()
+
+        yield {
+            "manager": manager,
+            "broker": broker,
+            "requests": requests_mod,
+        }
+
+
+@pytest.fixture
+def oauth2_requests_mock() -> MagicMock:
+    """Patch the requests module used in OAuth2Handler."""
+    with patch("system.algo_trader.schwab.oauth2_handler.requests") as mock_requests:
+        yield mock_requests
+
+
+@pytest.fixture
+def input_mock(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Patch builtins.input with a MagicMock for interactive flows."""
+    mock = MagicMock()
+    monkeypatch.setattr("builtins.input", mock)
+    return mock
+
+
+@pytest.fixture
+def oauth2_handler(oauth2_requests_mock: MagicMock):
+    """Provide an OAuth2Handler instance with patched HTTP and broker."""
+    from system.algo_trader.schwab.oauth2_handler import OAuth2Handler
+
+    handler = OAuth2Handler()
+    handler.account_broker = MagicMock()
+    return handler
+
+
+@pytest.fixture
+def oauth2_handler_with_mocks(oauth2_handler):
+    """Provide OAuth2Handler plus MagicMocks for internal helpers.
+
+    Used by authenticate() tests to assert interactions without exercising the
+    underlying HTTP/token logic again.
+    """
+    exchange_mock = MagicMock()
+    display_mock = MagicMock()
+    oauth2_handler._exchange_code_for_tokens = exchange_mock
+    oauth2_handler._display_refresh_token_instructions = display_mock
+    return {
+        "handler": oauth2_handler,
+        "exchange_mock": exchange_mock,
+        "display_mock": display_mock,
+    }
+
