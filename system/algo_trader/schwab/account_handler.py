@@ -21,8 +21,6 @@ class AccountHandler(SchwabBase):
         """Initialize AccountHandler with account API endpoint."""
         super().__init__()
         self.account_url = f"{self.base_url}/trader/v1"
-        self.logger = get_logger(self.__class__.__name__)
-        self.logger.info("AccountHandler initialized successfully")
 
     def get_accounts(self) -> dict[str, Any]:
         """Get all accounts associated with the authenticated user.

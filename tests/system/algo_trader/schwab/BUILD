@@ -16,3 +16,19 @@ py_library(
     ],
 )
 
+
+py_library(
+    name = "test_account_handler_lib",
+    testonly = True,
+    srcs = [
+        "conftest.py",
+        "test_account_handler.py",
+    ],
+    visibility = ["//system/algo_trader/schwab:__pkg__"],
+    deps = [
+        "//system/algo_trader/schwab:schwab_services",
+        requirement("pytest"),
+        requirement("requests"),
+    ],
+)
+

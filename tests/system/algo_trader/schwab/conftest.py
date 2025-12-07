@@ -23,6 +23,7 @@ def schwab_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SCHWAB_API_KEY", "test-api-key")
     monkeypatch.setenv("SCHWAB_SECRET", "test-secret")
     monkeypatch.setenv("SCHWAB_APP_NAME", "test-app")
+    monkeypatch.setenv("SCHWAB_REFRESH_TOKEN", "test-refresh-token")
 
 
 @pytest.fixture
@@ -61,4 +62,27 @@ def schwab_client(
     from system.algo_trader.schwab.schwab_client import SchwabClient
 
     return SchwabClient()
+
+
+@pytest.fixture
+def account_handler():
+    """Provide an AccountHandler instance with real config but mocked HTTP.
+
+    The underlying ``make_authenticated_request`` method is replaced with a
+    ``MagicMock`` so tests can control responses and assert call contracts
+    without performing real network I/O.
+    """
+    from system.algo_trader.schwab.account_handler import AccountHandler
+
+    handler = AccountHandler()
+    return handler
+
+
+@pytest.fixture
+def account_handler_request_mock(account_handler) -> MagicMock:
+    """Attach and return a MagicMock for AccountHandler.make_authenticated_request."""
+    request_mock: MagicMock = MagicMock()
+    # Patch the bound method on this instance only; we don't touch the class.
+    account_handler.make_authenticated_request = request_mock
+    return request_mock
 
