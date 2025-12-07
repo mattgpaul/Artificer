@@ -13,6 +13,7 @@ from typing import Protocol
 import redis
 
 from infrastructure.client import Client
+from infrastructure.config import RedisConfig
 from infrastructure.logging.logger import get_logger
 
 
@@ -74,8 +75,6 @@ class BaseRedisClient(Client):
 
         # Auto-populate from environment if not provided
         if config is None:
-            from infrastructure.config import RedisConfig  # noqa: PLC0415
-
             config = RedisConfig()
 
         # Use config values (either provided or from environment)
