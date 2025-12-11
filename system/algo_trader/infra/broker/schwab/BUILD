@@ -1,0 +1,93 @@
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary")
+load("//:pytest_test.bzl", "pytest_test")
+
+py_library(
+    name = "schwab_services",
+    srcs = [
+        "account_handler.py",
+        "market_handler.py",
+        "oauth2_handler.py",
+        "schwab_base.py",
+        "schwab_client.py",
+        "timescale_enum.py",
+        "token_manager.py",
+    ],
+    visibility = [
+        "//system:__pkg__",  # Allow system package access
+        "//system/algo_trader:__subpackages__",
+        "//tests:__subpackages__",  # Allow test access
+    ],
+    deps = [
+        "//infrastructure:client",
+        "//infrastructure/logging:logger",
+        "//system/algo_trader/infra/database/redis:redis_services",
+        "//system/algo_trader/config:config",
+        requirement("requests"),
+    ],
+)
+
+# OAuth2 authentication binary
+py_binary(
+    name = "authenticate",
+    srcs = ["oauth2_handler.py"],
+    main = "oauth2_handler.py",
+    visibility = ["//visibility:public"],
+    deps = [":schwab_services"],
+)
+
+# Test for SchwabClient - OAuth2 and Token Management
+pytest_test(
+    name = "test_schwab_client",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_schwab_client_lib",
+)
+
+# Test for MarketHandler - Market data operations
+pytest_test(
+    name = "test_market_handler",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_market_handler_lib",
+)
+
+# Test for AccountHandler - Account API operations
+pytest_test(
+    name = "test_account_handler",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_account_handler_lib",
+)
+
+# Test for Timescale Enums - Period and Frequency validation
+pytest_test(
+    name = "test_timescale_enum",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_timescale_enum_lib",
+)
+
+
+# Test for TokenManager - Token lifecycle and refresh behavior
+pytest_test(
+    name = "test_token_manager",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_token_manager_lib",
+)
+
+
+# Test for OAuth2Handler - OAuth2 authorization flow
+pytest_test(
+    name = "test_oauth2_handler",
+    size = "small",
+    coverage_path = "system.algo_trader.infra.broker.schwab",
+    tags = ["unit"],
+    test_lib = "//tests/system/algo_trader/infra/broker/schwab:test_oauth2_handler_lib",
+)
