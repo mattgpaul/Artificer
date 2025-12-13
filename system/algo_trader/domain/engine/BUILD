@@ -14,5 +14,7 @@ py_library(
     ],
     deps = [
         requirement("pandas"),
+        requirement("pydantic"),
+        requirement("pandera"),
     ],
 )

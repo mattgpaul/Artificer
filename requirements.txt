@@ -495,6 +495,10 @@ matplotlib==3.10.5 \
     --hash=sha256:ee98a5c5344dc7f48dc261b6ba5d9900c008fc12beb3fa6ebda81273602cc389 \
     --hash=sha256:f6adb644c9d040ffb0d3434e440490a66cf73dbfa118a6f79cd7568431f7a012
     # via -r requirements.in
+mypy-extensions==1.1.0 \
+    --hash=sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505 \
+    --hash=sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558
+    # via typing-inspect
 numpy==2.3.2 \
     --hash=sha256:07b62978075b67eee4065b166d000d457c82a1efe726cce608b9db9dd66a73a5 \
     --hash=sha256:087ffc25890d89a43536f75c5fe8770922008758e8eeeef61733957041ed2f9b \
@@ -581,6 +585,7 @@ packaging==25.0 \
     --hash=sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f
     # via
     #   matplotlib
+    #   pandera
     #   pytest
 pandas==2.3.2 \
     --hash=sha256:0064187b80a5be6f2f9c9d6bdde29372468751dfa89f4211a3c5871854cfbf7a \
@@ -625,6 +630,10 @@ pandas==2.3.2 \
     --hash=sha256:d4a558c7620340a0931828d8065688b3cc5b4c8eb674bcaf33d18ff4a6870b4a \
     --hash=sha256:df4df0b9d02bb873a106971bb85d448378ef14b86ba96f035f50bbd3688456b4 \
     --hash=sha256:e190b738675a73b581736cc8ec71ae113d6c3768d0bd18bffa5b9a0927b0b6ea
+    # via -r requirements.in
+pandera==0.27.0 \
+    --hash=sha256:83c66d5896b97b3a91c810621038d2495f56c83864493819e7587d2059e641ad \
+    --hash=sha256:e43b8062dfcde984300d798686815cc93feaae09645d3cddee3ab437f2d11ed5
     # via -r requirements.in
 pillow==11.3.0 \
     --hash=sha256:023f6d2d11784a465f09fd09a34b150ea4672e85fb3d05931d89f373ab14abb2 \
@@ -799,6 +808,7 @@ pydantic==2.11.7 \
     --hash=sha256:dde5df002701f6de26248661f6835bbe296a47bf73990135c7d07ce741b9623b
     # via
     #   -r requirements.in
+    #   pandera
     #   pydantic-settings
 pydantic-core==2.33.2 \
     --hash=sha256:0069c9acc3f3981b9ff4cdfaf088e98d83440a4c7ea1bc07460af3d4dc22e72d \
@@ -1113,14 +1123,25 @@ tqdm==4.67.1 \
     --hash=sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2 \
     --hash=sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2
     # via -r requirements.in
+typeguard==4.4.4 \
+    --hash=sha256:3a7fd2dffb705d4d0efaed4306a704c89b9dee850b688f060a8b1615a79e5f74 \
+    --hash=sha256:b5f562281b6bfa1f5492470464730ef001646128b180769880468bd84b68b09e
+    # via pandera
 typing-extensions==4.15.0 \
     --hash=sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466 \
     --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
     # via
+    #   pandera
     #   pydantic
     #   pydantic-core
     #   reactivex
+    #   typeguard
+    #   typing-inspect
     #   typing-inspection
+typing-inspect==0.9.0 \
+    --hash=sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f \
+    --hash=sha256:b23fc42ff6f6ef6954e4852c1fb512cdd18dbea03134f91f856a95ccc9461f78
+    # via pandera
 typing-inspection==0.4.1 \
     --hash=sha256:389055682238f53b04f7badcb49b989835495a96700ced5dab2d8feae4b26f51 \
     --hash=sha256:6ae134cc0203c33377d43188d4064e9b357dba58cff3185f22924610e70a9d28
