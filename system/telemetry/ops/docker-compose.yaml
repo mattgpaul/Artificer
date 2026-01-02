@@ -68,6 +68,28 @@ services:
     profiles:
       - node
 
+  amd-gpu-metrics:
+    image: python:3.11-slim
+    container_name: telemetry-amd-gpu-metrics
+    restart: unless-stopped
+    # Writes AMD GPU metrics into node_exporter textfile collector volume.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python /opt/amd_gpu_textfile.py --output-dir /var/lib/node_exporter/textfile_collector --interval-seconds 5
+    networks:
+      - telemetry-net
+    volumes:
+      # Read sysfs for AMDGPU metrics
+      - /sys:/sys:ro
+      # Write into node_exporter textfile collector volume (must be RW here)
+      - node-exporter-textfile:/var/lib/node_exporter/textfile_collector:rw
+      # Mount the script from the repo
+      - ../gpu/amd_gpu_textfile.py:/opt/amd_gpu_textfile.py:ro
+    profiles:
+      - amd
+
 volumes:
   prometheus-data:
   grafana-data:

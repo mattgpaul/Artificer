@@ -137,20 +137,25 @@ This stack starts with a single dashboard:
 
 ### AMD GPU Metrics
 
-The AMD GPU dashboard expects metrics from node_exporter's textfile collector. To enable:
+AMD GPU metrics are automated via a Compose profile that writes sysfs-based GPU
+metrics into node_exporter’s textfile collector volume (no ROCm required).
 
-1. Create a script that exports AMD GPU metrics in Prometheus format
-2. Write metrics to `/var/lib/node_exporter/textfile_collector/` (mounted volume)
-3. Metrics should follow naming convention: `node_textfile_gpu_*`
-
-Example script using `rocm-smi`:
+Enable it on a node by running both profiles:
 
 ```bash
-#!/bin/bash
-OUTPUT_DIR="/var/lib/node_exporter/textfile_collector"
-rocm-smi --showtemp --showuse --showmemuse --showpower --showclocks --json > /tmp/gpu.json
-# Parse and write Prometheus format metrics to $OUTPUT_DIR/gpu.prom
+cd system/telemetry/ops
+docker-compose --profile node --profile amd up -d
 ```
+
+If you prefer not to use profiles:
+
+```bash
+docker-compose up -d node-exporter amd-gpu-metrics
+```
+
+The metrics are written to the node_exporter textfile collector as `amd_gpu.prom`
+and should populate the **Telemetry Overview** dashboard’s GPU panel (when your
+kernel exposes the relevant AMDGPU sysfs files).
 
 ## Robustness Features
 
