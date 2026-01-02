@@ -106,23 +106,23 @@ class TestGrafanaDashboards:
 class TestGrafanaDashboardJSON:
     """Test Grafana dashboard JSON files."""
 
-    def test_node_overview_dashboard_parses(self):
-        """Test that node-overview.json is valid JSON."""
-        dashboard = load_grafana_dashboard("node-overview.json")
+    def test_telemetry_overview_dashboard_parses(self):
+        """Test that telemetry-overview.json is valid JSON."""
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
         assert dashboard is not None
         assert isinstance(dashboard, dict)
 
-    def test_node_overview_dashboard_has_required_fields(self):
-        """Test that node-overview.json has required dashboard fields."""
-        dashboard = load_grafana_dashboard("node-overview.json")
+    def test_telemetry_overview_dashboard_has_required_fields(self):
+        """Test that telemetry-overview.json has required dashboard fields."""
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
         assert "title" in dashboard
         assert "panels" in dashboard
         assert isinstance(dashboard["panels"], list)
         assert len(dashboard["panels"]) > 0
 
-    def test_node_overview_dashboard_has_panels(self):
-        """Test that node-overview.json has dashboard panels."""
-        dashboard = load_grafana_dashboard("node-overview.json")
+    def test_telemetry_overview_dashboard_has_panels(self):
+        """Test that telemetry-overview.json has dashboard panels."""
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
         panels = dashboard["panels"]
         assert len(panels) > 0
         for panel in panels:
@@ -130,22 +130,9 @@ class TestGrafanaDashboardJSON:
             assert "type" in panel
             assert "targets" in panel
 
-    def test_gpu_amd_dashboard_parses(self):
-        """Test that gpu-amd.json is valid JSON."""
-        dashboard = load_grafana_dashboard("gpu-amd.json")
-        assert dashboard is not None
-        assert isinstance(dashboard, dict)
-
-    def test_gpu_amd_dashboard_has_required_fields(self):
-        """Test that gpu-amd.json has required dashboard fields."""
-        dashboard = load_grafana_dashboard("gpu-amd.json")
-        assert "title" in dashboard
-        assert "panels" in dashboard
-        assert isinstance(dashboard["panels"], list)
-
     def test_dashboard_panels_have_datasource(self):
         """Test that dashboard panels reference the Prometheus datasource."""
-        dashboard = load_grafana_dashboard("node-overview.json")
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
         for panel in dashboard["panels"]:
             if "targets" in panel and len(panel["targets"]) > 0:
                 target = panel["targets"][0]

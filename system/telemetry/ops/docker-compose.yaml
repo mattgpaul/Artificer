@@ -62,7 +62,9 @@ services:
       - /:/rootfs:ro
       - node-exporter-textfile:/var/lib/node_exporter/textfile_collector:ro
     ports:
-      - "127.0.0.1:9100:9100"
+      # Expose on all interfaces so a central Prometheus can scrape this node over the LAN.
+      # If you only want local scraping, change back to "127.0.0.1:9100:9100".
+      - "9100:9100"
     profiles:
       - node
 

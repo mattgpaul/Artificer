@@ -17,6 +17,11 @@ The stack supports two deployment modes:
 - Bazel installed
 - Images built via Bazel (see below)
 
+Note: On some systems, Compose is available as `docker-compose` (standalone).
+On others, it is available as `docker compose` (Docker CLI plugin). This repo’s
+examples use `docker-compose` because it works even when the plugin subcommand
+is not installed.
+
 ### Building Images
 
 Build all required images:
@@ -41,9 +46,15 @@ On your central monitoring box (e.g., Raspberry Pi):
 cd system/telemetry/ops
 ```
 
-2. Start the central stack:
+2. Start the central stack (Prometheus + Grafana):
 ```bash
-docker compose --profile central up -d
+docker-compose --profile central up -d
+```
+
+If you prefer not to use Compose profiles, you can start the same services by name:
+
+```bash
+docker-compose up -d prometheus grafana
 ```
 
 3. Access Grafana at `http://localhost:3001` (default credentials: admin/admin)
@@ -59,9 +70,15 @@ On each Linux host you want to monitor:
 cd system/telemetry/ops
 ```
 
-2. Start node_exporter:
+2. Start node_exporter (this profile only runs the exporter; it will NOT start Grafana):
 ```bash
-docker compose --profile node up -d
+docker-compose --profile node up -d
+```
+
+If you prefer not to use Compose profiles, you can start the same service by name:
+
+```bash
+docker-compose up -d node-exporter
 ```
 
 3. Add the node to Prometheus file service discovery:
@@ -85,8 +102,8 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/path/to/Artificer/system/telemetry/ops
-ExecStart=/usr/bin/docker compose --profile central up -d
-ExecStop=/usr/bin/docker compose --profile central down
+ExecStart=/usr/bin/docker-compose --profile central up -d
+ExecStop=/usr/bin/docker-compose --profile central down
 Restart=on-failure
 RestartSec=10
 
@@ -114,6 +131,9 @@ Dashboards are automatically provisioned from `system/telemetry/grafana/provisio
 - Edit existing dashboards in Grafana UI (changes persist)
 - Add new dashboard JSON files to the directory
 - Dashboards auto-refresh every 10 seconds
+
+This stack starts with a single dashboard:
+- **Telemetry Overview** (`uid=telemetry-overview`): CPU, memory, disk, network, and optional GPU (textfile collector).
 
 ### AMD GPU Metrics
 
