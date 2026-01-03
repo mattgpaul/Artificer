@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release Systems
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for tag detection
+      
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@v0.8.1
+        with:
+          bazelisk-version: latest
+      
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Start Docker daemon
+        run: |
+          sudo systemctl start docker || true
+          sudo chmod 666 /var/run/docker.sock || true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Detect impacted systems and compute versions
+        id: detect
+        run: |
+          python3 .github/scripts/release.py > /tmp/release_info.json
+          cat /tmp/release_info.json
+          
+          IMPACTED=$(jq -r '.impacted[]' /tmp/release_info.json | jq -R -s -c 'split("\n")[:-1]')
+          VERSIONS=$(jq -r '.versions[]' /tmp/release_info.json | jq -R -s -c 'split("\n")[:-1]')
+          COUNT=$(jq '.impacted | length' /tmp/release_info.json)
+          
+          echo "impacted=$IMPACTED" >> $GITHUB_OUTPUT
+          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          
+          # Also output per-system for easier access
+          jq -r '.systems | to_entries[] | "\(.key)=\(.value)"' /tmp/release_info.json >> $GITHUB_OUTPUT || true
+      
+      - name: Build and release impacted systems
+        if: steps.detect.outputs.count > 0
+        run: |
+          SYSTEMS=$(echo '${{ steps.detect.outputs.impacted }}' | jq -r '.[]')
+          VERSIONS=$(echo '${{ steps.detect.outputs.versions }}' | jq -r '.[]')
+          
+          # Convert to arrays
+          readarray -t SYSTEM_ARRAY <<< "$SYSTEMS"
+          readarray -t VERSION_ARRAY <<< "$VERSIONS"
+          
+          for i in "${!SYSTEM_ARRAY[@]}"; do
+            SYSTEM="${SYSTEM_ARRAY[$i]}"
+            VERSION="${VERSION_ARRAY[$i]}"
+            TAG="${SYSTEM}/v${VERSION}"
+            
+            echo "Building release for $SYSTEM version $VERSION"
+            
+            # Pre-load all images into docker (needed for tarball generation)
+            echo "Loading images into Docker..."
+            bazel run //infrastructure/prometheus:prometheus_image || true
+            bazel run //infrastructure/grafana:grafana_image || true
+            bazel run //infrastructure/node_exporter:node_exporter_image || true
+            bazel run //infrastructure/redis:redis_image || true
+            bazel run //infrastructure/influxdb:influxdb3_image || true
+            bazel run //infrastructure/mysql:mysql_image || true
+            bazel run //system/algo_trader/influx:publisher_image || true
+            bazel run //system/algo_trader/mysql:mysql_daemon_image || true
+            
+            # Build release targets
+            echo "Building release targets..."
+            bazel build //system/${SYSTEM}:release_images
+            bazel build //system/${SYSTEM}:release_bundle
+            
+            # Get artifact paths from bazel-bin
+            BAZEL_BIN=$(bazel info bazel-bin)
+            
+            # Collect image tarballs
+            echo "Collecting image tarballs..."
+            for IMAGE_TARGET in prometheus grafana node_exporter redis influxdb3 mysql publisher mysql_daemon; do
+              TARBALL_PATH="${BAZEL_BIN}/infrastructure/${IMAGE_TARGET}/artificer-${IMAGE_TARGET}.tar"
+              if [ ! -f "$TARBALL_PATH" ] && [ "$IMAGE_TARGET" = "influxdb3" ]; then
+                TARBALL_PATH="${BAZEL_BIN}/infrastructure/influxdb/artificer-influxdb.tar"
+              fi
+              if [ ! -f "$TARBALL_PATH" ] && [ "$IMAGE_TARGET" = "publisher" ]; then
+                TARBALL_PATH="${BAZEL_BIN}/system/algo_trader/influx/artificer-influx-publisher.tar"
+              fi
+              if [ ! -f "$TARBALL_PATH" ] && [ "$IMAGE_TARGET" = "mysql_daemon" ]; then
+                TARBALL_PATH="${BAZEL_BIN}/system/algo_trader/mysql/artificer-mysql-daemon.tar"
+              fi
+              
+              if [ -f "$TARBALL_PATH" ]; then
+                echo "Found tarball: $TARBALL_PATH"
+                cp "$TARBALL_PATH" "/tmp/$(basename $TARBALL_PATH)"
+              fi
+            done
+            
+            # Get bundle tarball
+            BUNDLE_TARBALL=$(find "${BAZEL_BIN}/system/${SYSTEM}" -name "*.tar" -type f | head -1 || echo "")
+            if [ -z "$BUNDLE_TARBALL" ]; then
+              BUNDLE_TARBALL=$(find "${BAZEL_BIN}" -path "*/system/${SYSTEM}/*.tar" -type f | head -1 || echo "")
+            fi
+            
+            # Create git tag
+            echo "Creating tag $TAG..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $SYSTEM v$VERSION" || true
+            git push origin "$TAG" || true
+            
+            # Create GitHub Release
+            echo "Creating GitHub Release $TAG..."
+            gh release create "$TAG" \
+              --title "$SYSTEM v$VERSION" \
+              --notes "Automated release of $SYSTEM system" \
+              --target main || true
+            
+            # Upload image tarballs
+            echo "Uploading artifacts..."
+            for TARBALL in /tmp/artificer-*.tar; do
+              if [ -f "$TARBALL" ]; then
+                echo "Uploading $(basename $TARBALL)..."
+                gh release upload "$TAG" "$TARBALL" --clobber || true
+              fi
+            done
+            
+            # Upload bundle if found
+            if [ -f "$BUNDLE_TARBALL" ]; then
+              echo "Processing bundle: $BUNDLE_TARBALL"
+              TEMP_DIR=$(mktemp -d)
+              tar -xf "$BUNDLE_TARBALL" -C "$TEMP_DIR" 2>/dev/null || true
+              
+              # Inject version into manifest
+              find "$TEMP_DIR" -name "release_manifest.json.template" -exec sh -c 'sed "s/\${VERSION}/'$VERSION'/g" "$1" > "${1%.template}"' _ {} \; || true
+              
+              # Create final bundle
+              FINAL_BUNDLE="/tmp/${SYSTEM}-v${VERSION}-bundle.tar.gz"
+              cd "$TEMP_DIR"
+              tar -czf "$FINAL_BUNDLE" . 2>/dev/null || tar -czf "$FINAL_BUNDLE" * 2>/dev/null || true
+              cd -
+              
+              if [ -f "$FINAL_BUNDLE" ]; then
+                gh release upload "$TAG" "$FINAL_BUNDLE" --clobber || true
+              fi
+              rm -rf "$TEMP_DIR"
+            fi
+            
+            echo "Release $TAG completed"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

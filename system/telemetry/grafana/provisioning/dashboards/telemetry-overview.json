@@ -1,6 +1,6 @@
 {
   "annotations": { "list": [] },
-  "description": "Conky-inspired telemetry overview: STATUS + SYSTEM + CPU + GPU + MEMORY + NETWORK + PROCESSES (optional).",
+  "description": "Conky-inspired telemetry overview: STATUS + CPU + GPU + MEMORY + NETWORK + PROCESSES (optional).",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,

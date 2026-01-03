@@ -44,3 +44,13 @@ oci_load(
     image = ":influxdb3_image_lib",
     repo_tags = ["artificer-influxdb:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "influxdb3_tarball",
+    srcs = [],
+    outs = ["artificer-influxdb.tar"],
+    cmd = "$(location :influxdb3_image) && docker save artificer-influxdb:latest -o $@",
+    tags = ["release"],
+    tools = [":influxdb3_image"],
+)

@@ -148,7 +148,6 @@ class TestGrafanaDashboardJSON:
         dashboard = load_grafana_dashboard("telemetry-overview.json")
         row_titles = {p.get("title") for p in dashboard.get("panels", []) if p.get("type") == "row"}
         assert "STATUS" in row_titles
-        assert "SYSTEM" in row_titles
         assert "CPU" in row_titles
         assert "GPU" in row_titles
         assert "MEMORY + DISK" in row_titles

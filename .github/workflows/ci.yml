@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint-and-format:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@v0.8.1
+        with:
+          bazelisk-version: latest
+      
+      - name: Run format check
+        run: bazel run //:format -- --check
+      
+      - name: Run lint
+        run: bazel run //:lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@v0.8.1
+        with:
+          bazelisk-version: latest
+      
+      - name: Run tests
+        run: bazel test //... --test_output=errors
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@v0.8.1
+        with:
+          bazelisk-version: latest
+      
+      - name: Build all systems
+        run: |
+          bazel build //system/telemetry:release
+          bazel build //system/algo_trader:release
+
