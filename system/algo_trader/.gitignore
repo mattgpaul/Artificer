@@ -1,0 +1,10 @@
+# Algo Trader System - Git Ignore
+
+# Token files - NEVER commit these!
+.tokens.json
+*tokens.json
+*.tokens.json
+
+# Environment files (if any system-specific ones exist)
+*.env.local
+

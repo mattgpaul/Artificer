@@ -1,0 +1,73 @@
+# Project name can be overridden via COMPOSE_PROJECT_NAME environment variable
+# This controls how containers are grouped in Docker (e.g., VSCode Docker extension)
+# Defaults to system-specific name, can be overridden per system
+name: ${COMPOSE_PROJECT_NAME:-algo_trader}
+
+services:
+  influxdb:
+    image: ${INFLUXDB3_IMAGE:-influxdb:3-core}
+    container_name: ${INFLUXDB3_CONTAINER_NAME:-algotrader-influxdb}
+    command:
+      - serve
+      - --node-id=${INFLUXDB3_NODE_IDENTIFIER_PREFIX:-node0}
+      - --object-store=${INFLUXDB3_OBJECT_STORE:-file}
+      - --data-dir=${INFLUXDB3_DATA_DIR:-/var/lib/influxdb3}
+      - --http-bind=${INFLUXDB3_HTTP_BIND_ADDR:-0.0.0.0:8181}
+      - --without-auth
+    ports:
+      - "${INFLUXDB3_PORT:-8181}:${INFLUXDB3_PORT:-8181}"
+    volumes:
+      - ${INFLUXDB3_VOLUME_NAME:-influxdb-data}:${INFLUXDB3_DATA_DIR:-/var/lib/influxdb3}
+    networks:
+      - ${DOCKER_NETWORK_NAME:-algo-trader-network}
+    restart: ${INFLUXDB3_RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://${INFLUXDB3_HTTP_BIND_ADDR:-0.0.0.0:8181}/health || exit 1"]
+      interval: ${INFLUXDB3_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${INFLUXDB3_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${INFLUXDB3_HEALTHCHECK_RETRIES:-5}
+      start_period: ${INFLUXDB3_HEALTHCHECK_START_PERIOD:-20s}
+
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:latest}
+    container_name: ${GRAFANA_CONTAINER_NAME:-algotrader-grafana}
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      # Authentication settings from environment
+      - GF_AUTH_ANONYMOUS_ENABLED=${GRAFANA_ANONYMOUS_AUTH_ENABLED:-true}
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANONYMOUS_ORG_ROLE:-Admin}
+      - GF_AUTH_DISABLE_LOGIN_FORM=${GRAFANA_DISABLE_LOGIN_FORM:-true}
+      - GF_SECURITY_ALLOW_EMBEDDING=${GRAFANA_ALLOW_EMBEDDING:-true}
+      - GF_INSTALL_PLUGINS=${GRAFANA_INSTALL_PLUGINS:-}
+      # Admin credentials from environment (fallback to defaults)
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ${GRAFANA_PROVISIONING_PATH:-./system/algo_trader/grafana}:${GRAFANA_PROVISIONING_MOUNT:-/etc/grafana/provisioning/dashboards}
+      - ${GRAFANA_VOLUME_NAME:-grafana-storage}:${GRAFANA_STORAGE_PATH:-/var/lib/grafana}
+    networks:
+      - ${DOCKER_NETWORK_NAME:-algo-trader-network}
+    extra_hosts:
+      - "${GRAFANA_EXTRA_HOST:-host.docker.internal}:host-gateway"
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    restart: ${GRAFANA_RESTART_POLICY:-unless-stopped}
+    healthcheck:
+      test: ["CMD-SHELL", "${GRAFANA_HEALTHCHECK_COMMAND:-wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1}"]
+      interval: ${GRAFANA_HEALTHCHECK_INTERVAL:-10s}
+      timeout: ${GRAFANA_HEALTHCHECK_TIMEOUT:-5s}
+      retries: ${GRAFANA_HEALTHCHECK_RETRIES:-5}
+      start_period: ${GRAFANA_HEALTHCHECK_START_PERIOD:-30s}
+
+networks:
+  algo-trader-network:
+    driver: ${DOCKER_NETWORK_DRIVER:-bridge}
+
+volumes:
+  influxdb-data:
+    driver: ${INFLUXDB3_VOLUME_DRIVER:-local}
+  grafana-storage:
+    driver: ${GRAFANA_VOLUME_DRIVER:-local}
+
