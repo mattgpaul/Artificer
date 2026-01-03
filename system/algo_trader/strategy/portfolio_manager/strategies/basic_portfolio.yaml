@@ -1,0 +1,6 @@
+rules:
+  - fractional_position_size:
+      fraction_of_equity: 0.1
+  - max_capital_deployed:
+      max_deployed_pct: 0.5
+

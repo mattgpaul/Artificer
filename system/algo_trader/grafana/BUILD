@@ -1,7 +1,15 @@
-# Grafana dashboard JSON files
-# These are loaded by AlgoTraderGrafanaClient at runtime
 filegroup(
-    name = "dashboard_json",
-    srcs = glob(["*.json"]),
-    visibility = ["//system/algo_trader:__subpackages__"],
+    name = "provisioning",
+    srcs = glob([
+        "provisioning/**/*.yaml",
+        "provisioning/**/*.json",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+# buildifier: disable=native-sh-binary
+sh_binary(
+    name = "exec",
+    srcs = ["grafana_cli.sh"],
+    visibility = ["//visibility:public"],
 )

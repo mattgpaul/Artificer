@@ -1,0 +1,190 @@
+"""EMA crossover strategy implementation.
+
+This module provides a strategy that generates buy and sell signals based on
+exponential moving average (EMA) crossovers. A buy signal occurs when the
+short EMA crosses above the long EMA, and a sell signal occurs when the short
+EMA crosses below the long EMA.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pandas as pd
+
+from system.algo_trader.strategy.strategy import Side, Strategy
+from system.algo_trader.strategy.studies.base_study import StudySpec
+from system.algo_trader.strategy.studies.moving_average.exponential_moving_average import (
+    ExponentialMovingAverage,
+)
+
+
+class EMACrossover(Strategy):
+    """Strategy that generates signals based on EMA crossovers.
+
+    This strategy monitors two exponential moving averages (short and long periods)
+    and generates buy signals when the short EMA crosses above the long EMA, and
+    sell signals when the short EMA crosses below the long EMA.
+
+    Args:
+        short: Short-term EMA window period (default: 3).
+        long: Long-term EMA window period (default: 8).
+        window: Lookback window for historical data (default: 120).
+        side: Trading side - LONG or SHORT (default: Side.LONG).
+        **extra: Additional keyword arguments passed to base Strategy class.
+    """
+
+    def __init__(
+        self,
+        short: int = 3,
+        long: int = 8,
+        window: int = 120,
+        side: Side = Side.LONG,
+        **extra: Any,
+    ) -> None:
+        """Initialize the EMA crossover strategy.
+
+        Args:
+            short: Short-term EMA window period (default: 3).
+            long: Long-term EMA window period (default: 8).
+            window: Lookback window for historical data (default: 120).
+            side: Trading side - LONG or SHORT (default: Side.LONG).
+            **extra: Additional keyword arguments passed to base Strategy class.
+
+        Raises:
+            ValueError: If short >= long or short < 2.
+        """
+        if short >= long:
+            raise ValueError(f"short ({short}) must be less than long ({long})")
+        if short < 2:
+            raise ValueError(f"short must be at least 2, got {short}")
+
+        super().__init__(side=side, window=window, **extra)
+        self.short = short
+        self.long = long
+        self.ema_study = ExponentialMovingAverage()
+
+    @classmethod
+    def add_arguments(cls, parser) -> None:
+        """Add strategy-specific command-line arguments to the parser.
+
+        Args:
+            parser: Argument parser instance to add arguments to.
+        """
+        Strategy.add_arguments(parser)
+        parser.add_argument(
+            "--short",
+            type=int,
+            default=3,
+            help="Short-term EMA window period (default: 3)",
+        )
+        parser.add_argument(
+            "--long",
+            type=int,
+            default=8,
+            help="Long-term EMA window period (default: 8)",
+        )
+
+    def get_study_specs(self) -> list[StudySpec]:
+        """Get the study specifications required by this strategy.
+
+        Returns:
+            List of StudySpec objects defining the EMA studies needed.
+        """
+        return [
+            StudySpec(
+                name="ema_short",
+                study=self.ema_study,
+                params={"window": self.short, "column": "close"},
+                min_bars=self.short,
+            ),
+            StudySpec(
+                name="ema_long",
+                study=self.ema_study,
+                params={"window": self.long, "column": "close"},
+                min_bars=self.long,
+            ),
+        ]
+
+    def _calculate_emas(
+        self, ohlcv_data: pd.DataFrame, ticker: str
+    ) -> tuple[pd.Series, pd.Series] | tuple[None, None]:
+        ema_short = self.ema_study.compute(
+            ohlcv_data=ohlcv_data,
+            window=self.short,
+            ticker=ticker,
+            column="close",
+        )
+        if ema_short is None:
+            return None, None
+
+        ema_long = self.ema_study.compute(
+            ohlcv_data=ohlcv_data,
+            window=self.long,
+            ticker=ticker,
+            column="close",
+        )
+        if ema_long is None:
+            return None, None
+
+        return ema_short, ema_long
+
+    def _last_crossover_state(
+        self, ema_short: pd.Series, ema_long: pd.Series
+    ) -> tuple[float, float] | None:
+        if len(ema_short) < 2 or len(ema_long) < 2:
+            return None
+        diff = ema_short - ema_long
+        prev = float(diff.iloc[-2])
+        curr = float(diff.iloc[-1])
+        return prev, curr
+
+    def buy(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate buy signals based on EMA crossover.
+
+        A buy signal is generated when the short EMA crosses above the long EMA.
+
+        Args:
+            ohlcv_data: DataFrame containing OHLCV data for the ticker.
+            ticker: Ticker symbol being analyzed.
+
+        Returns:
+            DataFrame containing buy signal if crossover detected, empty DataFrame otherwise.
+        """
+        ema_short, ema_long = self._calculate_emas(ohlcv_data, ticker)
+        if ema_short is None:
+            return pd.DataFrame()
+
+        state = self._last_crossover_state(ema_short, ema_long)
+        if state is None:
+            return pd.DataFrame()
+        prev, curr = state
+
+        if prev < 0.0 and curr > 0.0:
+            return self._build_price_signal(ohlcv_data)
+        return pd.DataFrame()
+
+    def sell(self, ohlcv_data: pd.DataFrame, ticker: str) -> pd.DataFrame:
+        """Generate sell signals based on EMA crossover.
+
+        A sell signal is generated when the short EMA crosses below the long EMA.
+
+        Args:
+            ohlcv_data: DataFrame containing OHLCV data for the ticker.
+            ticker: Ticker symbol being analyzed.
+
+        Returns:
+            DataFrame containing sell signal if crossover detected, empty DataFrame otherwise.
+        """
+        ema_short, ema_long = self._calculate_emas(ohlcv_data, ticker)
+        if ema_short is None:
+            return pd.DataFrame()
+
+        state = self._last_crossover_state(ema_short, ema_long)
+        if state is None:
+            return pd.DataFrame()
+        prev, curr = state
+
+        if prev > 0.0 and curr < 0.0:
+            return self._build_price_signal(ohlcv_data)
+        return pd.DataFrame()

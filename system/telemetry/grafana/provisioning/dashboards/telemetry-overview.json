@@ -1,0 +1,342 @@
+{
+  "annotations": { "list": [] },
+  "description": "Conky-inspired telemetry overview: STATUS + SYSTEM + CPU + GPU + MEMORY + NETWORK + PROCESSES (optional).",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "content": "<div style=\"text-align:center;font-size:64px;font-weight:700;color:#E02F44;\">CEREBRO</div>",
+        "mode": "html"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": {
+        "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "dateTimeAsIso" },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Uptime" },
+            "properties": [
+              { "id": "unit", "value": "s" }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "time() * 1000", "legendFormat": "Time", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "time() - node_boot_time_seconds{hostname=~\"$host\"}", "legendFormat": "Uptime", "refId": "B" }
+      ],
+      "title": "Time + Uptime",
+      "type": "stat"
+    },
+    
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+      "id": 10,
+      "panels": [],
+      "title": "STATUS",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 }] },
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": ".* RAM$" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#5794F2" } },
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": ".* CPU$" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#E24D42" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": ".* GPU$" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "#B877D9" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 6, "w": 18, "x": 0, "y": 5 },
+      "id": 11,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "max by (hostname) (node_hwmon_temp_celsius{chip=~\"pci0000:00_.*\",hostname=~\"$host\"})", "legendFormat": "{{hostname}} CPU", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "max by (hostname) (node_textfile_gpu_temperature_celsius{hostname=~\"$host\"})", "legendFormat": "{{hostname}} GPU", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "100 * (1 - (node_memory_MemAvailable_bytes{hostname=~\"$host\"} / node_memory_MemTotal_bytes{hostname=~\"$host\"}))", "legendFormat": "{{hostname}} RAM", "refId": "C" }
+      ],
+      "title": "CPU/GPU Temps + RAM Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 25000000 }, { "color": "red", "value": 100000000 }] },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 5 },
+      "id": 14,
+      "options": { "orientation": "auto", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "sum by (hostname) (rate(node_network_receive_bytes_total{device!=\"lo\",hostname=~\"$host\"}[1m]))", "legendFormat": "{{hostname}}", "refId": "A" }
+      ],
+      "title": "Download Speed (bytes/sec)",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 1, "text": "WARNING" },
+                "1": { "color": "green", "index": 0, "text": "GO" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 11 },
+      "id": 15,
+      "options": {
+        "alignValue": "center",
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" },
+        "mergeValues": true,
+        "showValue": "never",
+        "tooltip": { "mode": "single" }
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "up{job=\"node-exporter\",hostname=~\"$host\"}", "legendFormat": "Operating System", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "max by (hostname) (node_hwmon_temp_celsius{chip=~\"pci0000:00_.*\",hostname=~\"$host\"}) < bool 90", "legendFormat": "Processor Temp < 90°C", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "max by (hostname) (node_textfile_gpu_temperature_celsius{hostname=~\"$host\"}) < bool 100", "legendFormat": "Graphics Hotspot < 100°C", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "(100 * (1 - (node_memory_MemAvailable_bytes{hostname=~\"$host\"} / node_memory_MemTotal_bytes{hostname=~\"$host\"}))) < bool 90", "legendFormat": "Memory Usage < 90%", "refId": "D" }
+      ],
+      "title": "Status Timeline",
+      "type": "state-timeline"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 30,
+      "panels": [],
+      "title": "CPU",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "id": 31,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "100 - (avg by (hostname) (rate(node_cpu_seconds_total{mode=\"idle\",hostname=~\"$host\"}[1m])) * 100)", "legendFormat": "{{hostname}}", "refId": "A" }],
+      "title": "CPU Usage (%)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "id": 32,
+      "options": { "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showUnfilled": true },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+          "expr": "100 - (avg by (hostname, cpu) (rate(node_cpu_seconds_total{mode=\"idle\",hostname=~\"$host\"}[1m])) * 100)",
+          "legendFormat": "{{hostname}} cpu{{cpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Per-Core CPU Usage (%)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 40,
+      "panels": [],
+      "title": "GPU",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 27 },
+      "id": 41,
+      "options": { "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showUnfilled": true },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "node_textfile_gpu_utilization_percent{hostname=~\"$host\"}", "legendFormat": "{{hostname}} {{gpu}}", "refId": "A" }],
+      "title": "GPU Usage (%) (optional)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 27 },
+      "id": 42,
+      "options": { "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showUnfilled": true },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+          "expr": "100 * (node_textfile_gpu_memory_used_bytes{hostname=~\"$host\"} / node_textfile_gpu_memory_total_bytes{hostname=~\"$host\"})",
+          "legendFormat": "{{hostname}} {{gpu}}",
+          "refId": "A"
+        }
+      ],
+      "title": "VRAM Usage (%) (optional)",
+      "type": "bargauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "id": 50,
+      "panels": [],
+      "title": "MEMORY + DISK",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 34 },
+      "id": 53,
+      "options": { "orientation": "auto", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showThresholdLabels": false, "showThresholdMarkers": true, "text": {} },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\",hostname=~\"$host\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\",hostname=~\"$host\"})", "refId": "A" }],
+      "title": "Disk Usage (root %)",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "id": 60,
+      "panels": [],
+      "title": "NETWORK",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 43 },
+      "id": 61,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "sum by (hostname) (rate(node_network_receive_bytes_total{device!=\"lo\",hostname=~\"$host\"}[1m]))", "legendFormat": "{{hostname}} download", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "sum by (hostname) (rate(node_network_transmit_bytes_total{device!=\"lo\",hostname=~\"$host\"}[1m]))", "legendFormat": "{{hostname}} upload", "refId": "B" }
+      ],
+      "title": "Network (total bytes/sec)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 },
+      "id": 70,
+      "panels": [],
+      "title": "PROCESSES (optional)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 52 },
+      "id": 71,
+      "options": { "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showUnfilled": true },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "node_textfile_top_process_cpu_percent{hostname=~\"$host\"}", "legendFormat": "{{rank}} {{comm}}", "refId": "A" }
+      ],
+      "title": "Top CPU processes (requires processes profile)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 52 },
+      "id": 72,
+      "options": { "orientation": "horizontal", "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" }, "showUnfilled": true },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" }, "expr": "node_textfile_top_process_rss_bytes{hostname=~\"$host\"}", "legendFormat": "{{rank}} {{comm}}", "refId": "A" }
+      ],
+      "title": "Top memory processes (requires processes profile)",
+      "type": "bargauge"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["telemetry", "overview", "conky"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "prometheus-telemetry" },
+        "definition": "label_values(up{job=\"node-exporter\"}, hostname)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Host",
+        "multi": true,
+        "name": "host",
+        "options": [],
+        "query": { "query": "label_values(up{job=\"node-exporter\"}, hostname)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Telemetry Overview",
+  "uid": "telemetry-overview",
+  "version": 1,
+  "weekStart": ""
+}

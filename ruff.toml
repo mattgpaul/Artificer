@@ -1,0 +1,157 @@
+# Ruff configuration for Artificer monorepo
+# See: https://docs.astral.sh/ruff/configuration/
+
+# Formatting settings
+line-length = 100
+indent-width = 4
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# Linting settings
+[lint]
+select = [
+    "F",      # Pyflakes - basic errors
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "I",      # isort - import sorting
+    "N",      # pep8-naming - naming conventions
+    "D",      # pydocstyle - docstring conventions
+    "UP",     # pyupgrade - Python version upgrades
+    "B",      # bugbear - likely bugs
+    "C90",    # mccabe - complexity checking
+    "PL",     # Pylint subset
+    "RUF",    # Ruff-specific rules
+]
+
+ignore = [
+    "D203",    # one-blank-line-before-class (conflicts with D211)
+    "D213",    # multi-line-summary-second-line (conflicts with D212)
+    "PLR2004", # magic-value-comparison (too noisy for constants like HTTP codes, TTLs)
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude specific directories
+exclude = [
+    ".git",
+    ".bazel",
+    "bazel-*",
+    "__pycache__",
+    "*.egg-info",
+    ".venv",
+    "venv",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["D104"]  # Don't require docstrings in __init__.py
+"tests/**/*.py" = [
+    "D100",   # Missing docstring in public module
+    "D103",   # Missing docstring in public function
+    "PLR0913",  # Too many arguments (common in test functions with mocks)
+    "F841",   # Unused variables (common for mock context managers in tests)
+]
+# Configuration functions legitimately need many parameters
+"system/algo_trader/backtest/engine.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/backtest/processor.py" = [
+    "PLR0913",  # Configuration functions with many params
+    "C901",     # process_tickers complexity (already refactored)
+]
+"system/algo_trader/backtest/results.py" = [
+    "PLR0913",  # Configuration functions with many params
+]
+# New refactored backtest processor files - keep PLR0913 for functions with many params
+"system/algo_trader/backtest/processor/**/*.py" = [
+    "PLR0913",  # Too many arguments (configuration functions)
+]
+# New refactored backtest results files - keep PLR0913 for functions with many params
+"system/algo_trader/backtest/results/**/*.py" = [
+    "PLR0913",  # Too many arguments (configuration functions)
+]
+# New refactored influx publisher files - keep complexity warnings for queue processing
+"system/algo_trader/influx/publisher/**/*.py" = [
+    "C901",     # Complexity (queue processing logic)
+    "PLR0912",  # Too many branches (queue processing logic)
+    "PLR0915",  # Too many statements (queue processing logic)
+]
+# New refactored schwab auth files - keep PLR0913 for OAuth2 configuration
+"system/algo_trader/schwab/auth/**/*.py" = [
+    "PLR0913",  # Too many arguments (OAuth2 configuration)
+]
+# New refactored strategy core files - keep PLR0913 for strategy configuration
+"system/algo_trader/strategy/core/**/*.py" = [
+    "PLR0913",  # Too many arguments (strategy configuration)
+]
+# New refactored strategy journal files - keep PLR0913 for trade matching configuration
+"system/algo_trader/strategy/journal/**/*.py" = [
+    "PLR0913",  # Too many arguments (trade matching configuration)
+]
+# New refactored strategy strategies files
+"system/algo_trader/strategy/strategies/**/*.py" = [
+    "PLR0913",  # Too many arguments (strategy initialization)
+]
+"system/algo_trader/datasource/populate/fundamentals/processor.py" = [
+    "PLR0915",  # Too many statements (already refactored)
+    "C901",     # Complexity (already refactored)
+]
+# Strategy initialization methods legitimately need many parameters
+"system/algo_trader/strategy/base.py" = ["PLR0913"]  # __init__ with many config params
+"system/algo_trader/strategy/sma_crossover.py" = ["PLR0913"]  # __init__ with many config params
+# Market handler API methods legitimately need many parameters
+"system/algo_trader/schwab/market_handler.py" = ["PLR0913"]  # API methods with many params
+# Publisher queue processing is complex but necessary
+"system/algo_trader/influx/publisher.py" = [
+    "PLR0915",  # Too many statements (queue processing logic)
+    "C901",     # Complexity (queue processing logic)
+    "PLR0912",  # Too many branches (queue processing logic)
+]
+# SIC enrichment has many branches for data mapping
+"system/algo_trader/datasource/sec/tickers/sic.py" = ["PLR0912"]  # Data enrichment logic
+# OHLCV processor has many statements for data processing
+"system/algo_trader/datasource/populate/ohlcv/processor.py" = [
+    "PLR0915",  # Too many statements (data processing logic)
+    "C901",     # Complexity (data processing logic)
+    "PLR0911",  # Too many return statements (data processing logic)
+]
+# OHLCV handler has complex argument processing logic
+"system/algo_trader/datasource/populate/ohlcv/handler.py" = [
+    "PLR0912",  # Too many branches (argument validation logic)
+    "PLR0915",  # Too many statements (argument processing logic)
+]
+# Results generator __init__ legitimately needs many parameters
+"system/algo_trader/backtest/core/results_generator.py" = [
+    "PLR0913",  # Too many arguments (configuration parameters)
+]
+# Trade matching has complex logic for matching signals
+"system/algo_trader/strategy/journal/trade_matching.py" = [
+    "PLR0912",  # Too many branches (trade matching logic)
+]
+# DataFrame building has complex logic for SEC data processing
+"system/algo_trader/datasource/sec/tickers/dataframe.py" = [
+    "PLR0913",  # Too many arguments (data extraction methods)
+    "C901",     # Complexity (dataframe building logic)
+    "PLR0912",  # Too many branches (dataframe building logic)
+]
+
+[lint.mccabe]
+max-complexity = 15  # Google standard
+
+[lint.pydocstyle]
+convention = "google"  # Use Google docstring style
+
+[lint.isort]
+# Import order: stdlib → third-party → local
+known-first-party = ["infrastructure", "system", "component"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+

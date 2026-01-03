@@ -1,0 +1,716 @@
+---
+alwaysApply: true
+---
+
+# Development Workflow Standards
+
+## Purpose
+
+This document establishes mandatory practices for all code modifications in the Artificer monorepo. These standards ensure code quality, maintainability, and project consistency.
+
+## Mandatory Practices
+
+### 1. Feature Branch Workflow
+
+**Rule**: ALL code changes MUST be made on a feature branch, never directly on `algo_trader` or other long-lived branches.
+
+#### Branch Naming Convention
+
+Use descriptive branch names following this pattern:
+
+```
+<type>/<short-description>
+```
+
+**Types**:
+- `feature/` - New features or enhancements
+- `fix/` - Bug fixes
+- `refactor/` - Code refactoring without behavior changes
+- `docs/` - Documentation updates
+- `test/` - Test additions or modifications
+- `chore/` - Build, CI/CD, or maintenance tasks
+
+**Examples**:
+- `feature/add-market-sentiment-analysis`
+- `fix/oauth-token-persistence`
+- `refactor/redis-client-error-handling`
+- `docs/update-deployment-guide`
+- `test/add-schwab-client-coverage`
+- `chore/upgrade-bazel-rules`
+
+#### Creating Feature Branches
+
+```bash
+# Always branch from latest algo_trader
+git checkout algo_trader
+git pull origin algo_trader
+git checkout -b <type>/<description>
+```
+
+#### Branch Lifecycle
+
+1. **Create**: Branch from `algo_trader` for each logical unit of work
+2. **Develop**: Make commits with clear messages
+3. **Test**: Ensure all tests pass before merging
+4. **Review**: Get code review (when applicable)
+5. **Merge**: Merge back to `algo_trader` when complete
+6. **Delete**: Remove branch after successful merge
+
+### 2. Test Requirements
+
+**Rule**: ALL code modifications MUST include corresponding test updates or additions.
+
+#### When to Update Tests
+
+- **New Functions/Methods**: Add comprehensive test coverage
+- **Modified Behavior**: Update existing tests to match new behavior
+- **Bug Fixes**: Add regression tests that would have caught the bug
+- **Refactoring**: Ensure existing tests still pass, add tests for edge cases
+- **API Changes**: Update integration tests
+
+#### Test Coverage Standards
+
+Minimum requirements for each change:
+
+- **Success Path**: Test normal operation
+- **Error Handling**: Test failure scenarios
+- **Edge Cases**: Test boundary conditions, empty data, None values
+- **Integration**: Test interaction with other components (when applicable)
+
+#### Example Test Checklist
+
+For any code change, verify:
+
+- [ ] All existing tests pass: `bazel test //path/to:tests`
+- [ ] New tests added for new functionality
+- [ ] Tests cover success and failure paths
+- [ ] Tests cover edge cases
+- [ ] Mock external dependencies appropriately
+- [ ] Test names are descriptive
+- [ ] Tests follow project structure conventions
+
+### 3. Pre-Commit Checklist
+
+**Rule**: Complete this checklist before EVERY commit.
+
+#### Checklist
+
+- [ ] **Branch**: Working on a feature branch (not algo_trader)
+- [ ] **Tests**: All tests pass locally
+  ```bash
+  bazel test //path/to/modified:tests
+  ```
+- [ ] **Linting**: Code passes linter checks
+  ```bash
+  bazel run //tools:ruff -- check .
+  ```
+- [ ] **Formatting**: Code is properly formatted
+  ```bash
+  bazel run //tools:ruff -- format .
+  ```
+- [ ] **Build**: Code builds successfully
+  ```bash
+  bazel build //path/to/modified:target
+  ```
+- [ ] **Documentation**: Updated relevant documentation
+- [ ] **Commit Message**: Clear, descriptive commit message
+
+### 4. Commit Message Standards
+
+**Format**:
+```
+<type>: <short summary (50 chars or less)>
+
+<detailed description (optional, 72 chars per line)>
+
+<footer (optional)>
+```
+
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code refactoring
+- `docs`: Documentation changes
+- `test`: Test additions or modifications
+- `chore`: Build or maintenance tasks
+- `perf`: Performance improvements
+- `style`: Code style changes (formatting, whitespace)
+
+**Examples**:
+
+```
+fix: prevent OAuth token writes to Bazel runfiles
+
+Remove environment file writing from OAuth2 flow to prevent writes
+to read-only Bazel runfiles directory. Tokens now displayed to user
+for manual persistence via environment variables.
+
+- Removed _update_env_file_with_tokens() method
+- Added _display_refresh_token_instructions() with user confirmation
+- Updated tests to verify console output instead of file writes
+- Updated README with new token persistence workflow
+```
+
+```
+feat: add market sentiment analysis endpoint
+
+Implement new API endpoint for retrieving market sentiment data
+using NLP analysis of news articles and social media.
+```
+
+### 5. Code Review Standards (When Applicable)
+
+When working in a team environment:
+
+#### Before Requesting Review
+
+- [ ] All tests pass
+- [ ] Code is formatted and linted
+- [ ] Documentation is updated
+- [ ] Commit messages are clear
+- [ ] Branch is up to date with algo_trader
+
+#### Review Checklist
+
+Reviewers should verify:
+
+- [ ] Code follows project style guidelines
+- [ ] Tests are comprehensive
+- [ ] Error handling is appropriate
+- [ ] Performance implications considered
+- [ ] Security implications reviewed
+- [ ] Documentation is accurate
+- [ ] No obvious bugs or issues
+
+### 6. Testing Commands Reference
+
+#### Run Specific Test
+
+```bash
+# Run a single test target
+bazel test //infrastructure/redis:test_redis
+
+# Run with verbose output
+bazel test //infrastructure/redis:test_redis --test_output=all
+
+# Run with coverage
+bazel test //infrastructure/redis:test_redis --test_output=all
+```
+
+#### Run Multiple Tests
+
+```bash
+# Run all tests in a package
+bazel test //infrastructure/...
+
+# Run all tests in multiple packages
+bazel test //infrastructure/... //system/...
+
+# Run all tests in the project
+bazel test //...
+```
+
+#### Test Flags
+
+```bash
+--test_output=errors    # Show only errors (default)
+--test_output=all       # Show all output (debugging)
+--test_output=summary   # Show summary only
+--test_size_filters=small  # Run only small/fast tests
+-c dbg                  # Debug build configuration
+```
+
+### 7. Formatting and Linting Commands
+
+#### Format Code
+
+```bash
+# Format all Python code
+bazel run //tools:ruff -- format .
+
+# Check formatting without changes
+bazel run //tools:ruff -- format --check .
+
+# Format specific directory
+bazel run //tools:ruff -- format system/algo_trader/
+```
+
+#### Lint Code
+
+```bash
+# Lint all Python code
+bazel run //tools:ruff -- check .
+
+# Auto-fix lint issues
+bazel run //tools:ruff -- check --fix .
+
+# Lint specific files
+bazel run //tools:ruff -- check system/algo_trader/schwab/
+```
+
+#### Format Bazel Files
+
+```bash
+# Format all BUILD files
+bazel run //tools:buildifier -- -r .
+
+# Lint Bazel files
+bazel run //tools:buildifier -- -lint=warn -mode=check -r .
+```
+
+### 8. Common Workflow Example
+
+#### Complete Feature Development Workflow
+
+```bash
+# 1. Create feature branch
+git checkout main
+git pull origin main
+git checkout -b feature/add-new-endpoint
+
+# 2. Make code changes
+# ... edit files ...
+
+# 3. Update/add tests
+# ... edit test files ...
+
+# 4. Run tests
+bazel test //path/to:tests
+
+# 5. Format code
+bazel run //tools:ruff -- format .
+
+# 6. Lint code
+bazel run //tools:ruff -- check --fix .
+
+# 7. Verify everything passes
+bazel test //path/to:tests
+bazel build //path/to:target
+
+# 8. Commit changes
+git add .
+git commit -m "feat: add new endpoint for X functionality
+
+Implemented new endpoint that provides Y capability.
+
+- Added endpoint handler
+- Added tests with 95% coverage
+- Updated API documentation"
+
+# 9. Push and create PR (when applicable)
+git push origin feature/add-new-endpoint
+
+# 10. After merge, cleanup
+git checkout algo_trader
+git pull origin algo_trader
+git branch -d feature/add-new-endpoint
+```
+
+## Consequences of Non-Compliance
+
+Failure to follow these standards may result in:
+
+- **Failed builds** - Code won't pass CI/CD checks
+- **Rejected code reviews** - Changes require rework
+- **Bugs in production** - Untested code causes issues
+- **Technical debt** - Inconsistent code is harder to maintain
+- **Merge conflicts** - Working on wrong branch causes issues
+
+## Exceptions
+
+Exceptions to these rules are rare but may include:
+
+- **Hotfixes**: Critical production issues may require expedited process
+- **Documentation-only changes**: May not require tests
+- **Configuration changes**: May have lighter testing requirements
+
+**Note**: Even exceptions should follow commit message standards and be properly documented.
+
+## Tools and Resources
+
+### Required Tools
+
+- **Bazel**: Build and test runner
+- **Ruff**: Python formatter and linter
+- **Buildifier**: Bazel file formatter
+- **Git**: Version control
+
+### Documentation References
+
+- [Testing Standards](./testing.mdc)
+- [Bazel Monorepo Patterns](./bazel-monorepo-python.mdc)
+- [Linting and Formatting](./linting-and-formatting.mdc)
+- [Python Best Practices](./python-fastapi.mdc)
+
+## Summary
+
+**Remember**: These are not suggestions - they are requirements for maintaining code quality in the Artificer monorepo.
+
+1. **Always** create a feature branch
+2. **Always** update or add tests
+3. **Always** format and lint before committing
+4. **Always** verify tests pass
+5. **Always** write clear commit messages
+
+Following these standards ensures:
+- High code quality
+- Comprehensive test coverage
+- Consistent codebase
+- Easier collaboration
+- Reduced bugs and technical debt
+# Development Workflow Standards
+
+## Purpose
+
+This document establishes mandatory practices for all code modifications in the Artificer monorepo. These standards ensure code quality, maintainability, and project consistency.
+
+## Mandatory Practices
+
+### 1. Feature Branch Workflow
+
+**Rule**: ALL code changes MUST be made on a feature branch, never directly on `algo_trader` or other long-lived branches.
+
+#### Branch Naming Convention
+
+Use descriptive branch names following this pattern:
+
+```
+<type>/<short-description>
+```
+
+**Types**:
+- `feature/` - New features or enhancements
+- `fix/` - Bug fixes
+- `refactor/` - Code refactoring without behavior changes
+- `docs/` - Documentation updates
+- `test/` - Test additions or modifications
+- `chore/` - Build, CI/CD, or maintenance tasks
+
+**Examples**:
+- `feature/add-market-sentiment-analysis`
+- `fix/oauth-token-persistence`
+- `refactor/redis-client-error-handling`
+- `docs/update-deployment-guide`
+- `test/add-schwab-client-coverage`
+- `chore/upgrade-bazel-rules`
+
+#### Creating Feature Branches
+
+```bash
+# Always branch from latest algo_trader
+git checkout algo_trader
+git pull origin algo_trader
+git checkout -b <type>/<description>
+```
+
+#### Branch Lifecycle
+
+1. **Create**: Branch from `algo_trader` for each logical unit of work
+2. **Develop**: Make commits with clear messages
+3. **Test**: Ensure all tests pass before merging
+4. **Review**: Get code review (when applicable)
+5. **Merge**: Merge back to `algo_trader` when complete
+6. **Delete**: Remove branch after successful merge
+
+### 2. Test Requirements
+
+**Rule**: ALL code modifications MUST include corresponding test updates or additions.
+
+#### When to Update Tests
+
+- **New Functions/Methods**: Add comprehensive test coverage
+- **Modified Behavior**: Update existing tests to match new behavior
+- **Bug Fixes**: Add regression tests that would have caught the bug
+- **Refactoring**: Ensure existing tests still pass, add tests for edge cases
+- **API Changes**: Update integration tests
+
+#### Test Coverage Standards
+
+Minimum requirements for each change:
+
+- **Success Path**: Test normal operation
+- **Error Handling**: Test failure scenarios
+- **Edge Cases**: Test boundary conditions, empty data, None values
+- **Integration**: Test interaction with other components (when applicable)
+
+#### Example Test Checklist
+
+For any code change, verify:
+
+- [ ] All existing tests pass: `bazel test //path/to:tests`
+- [ ] New tests added for new functionality
+- [ ] Tests cover success and failure paths
+- [ ] Tests cover edge cases
+- [ ] Mock external dependencies appropriately
+- [ ] Test names are descriptive
+- [ ] Tests follow project structure conventions
+
+### 3. Pre-Commit Checklist
+
+**Rule**: Complete this checklist before EVERY commit.
+
+#### Checklist
+
+- [ ] **Branch**: Working on a feature branch (not algo_trader)
+- [ ] **Tests**: All tests pass locally
+  ```bash
+  bazel test //path/to/modified:tests
+  ```
+- [ ] **Linting**: Code passes linter checks
+  ```bash
+  bazel run //tools:ruff -- check .
+  ```
+- [ ] **Formatting**: Code is properly formatted
+  ```bash
+  bazel run //tools:ruff -- format .
+  ```
+- [ ] **Build**: Code builds successfully
+  ```bash
+  bazel build //path/to/modified:target
+  ```
+- [ ] **Documentation**: Updated relevant documentation
+- [ ] **Commit Message**: Clear, descriptive commit message
+
+### 4. Commit Message Standards
+
+**Format**:
+```
+<type>: <short summary (50 chars or less)>
+
+<detailed description (optional, 72 chars per line)>
+
+<footer (optional)>
+```
+
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code refactoring
+- `docs`: Documentation changes
+- `test`: Test additions or modifications
+- `chore`: Build or maintenance tasks
+- `perf`: Performance improvements
+- `style`: Code style changes (formatting, whitespace)
+
+**Examples**:
+
+```
+fix: prevent OAuth token writes to Bazel runfiles
+
+Remove environment file writing from OAuth2 flow to prevent writes
+to read-only Bazel runfiles directory. Tokens now displayed to user
+for manual persistence via environment variables.
+
+- Removed _update_env_file_with_tokens() method
+- Added _display_refresh_token_instructions() with user confirmation
+- Updated tests to verify console output instead of file writes
+- Updated README with new token persistence workflow
+```
+
+```
+feat: add market sentiment analysis endpoint
+
+Implement new API endpoint for retrieving market sentiment data
+using NLP analysis of news articles and social media.
+```
+
+### 5. Code Review Standards (When Applicable)
+
+When working in a team environment:
+
+#### Before Requesting Review
+
+- [ ] All tests pass
+- [ ] Code is formatted and linted
+- [ ] Documentation is updated
+- [ ] Commit messages are clear
+- [ ] Branch is up to date with algo_trader
+
+#### Review Checklist
+
+Reviewers should verify:
+
+- [ ] Code follows project style guidelines
+- [ ] Tests are comprehensive
+- [ ] Error handling is appropriate
+- [ ] Performance implications considered
+- [ ] Security implications reviewed
+- [ ] Documentation is accurate
+- [ ] No obvious bugs or issues
+
+### 6. Testing Commands Reference
+
+#### Run Specific Test
+
+```bash
+# Run a single test target
+bazel test //infrastructure/redis:test_redis
+
+# Run with verbose output
+bazel test //infrastructure/redis:test_redis --test_output=all
+
+# Run with coverage
+bazel test //infrastructure/redis:test_redis --test_output=all
+```
+
+#### Run Multiple Tests
+
+```bash
+# Run all tests in a package
+bazel test //infrastructure/...
+
+# Run all tests in multiple packages
+bazel test //infrastructure/... //system/...
+
+# Run all tests in the project
+bazel test //...
+```
+
+#### Test Flags
+
+```bash
+--test_output=errors    # Show only errors (default)
+--test_output=all       # Show all output (debugging)
+--test_output=summary   # Show summary only
+--test_size_filters=small  # Run only small/fast tests
+-c dbg                  # Debug build configuration
+```
+
+### 7. Formatting and Linting Commands
+
+#### Format Code
+
+```bash
+# Format all Python code
+bazel run //tools:ruff -- format .
+
+# Check formatting without changes
+bazel run //tools:ruff -- format --check .
+
+# Format specific directory
+bazel run //tools:ruff -- format system/algo_trader/
+```
+
+#### Lint Code
+
+```bash
+# Lint all Python code
+bazel run //tools:ruff -- check .
+
+# Auto-fix lint issues
+bazel run //tools:ruff -- check --fix .
+
+# Lint specific files
+bazel run //tools:ruff -- check system/algo_trader/schwab/
+```
+
+#### Format Bazel Files
+
+```bash
+# Format all BUILD files
+bazel run //tools:buildifier -- -r .
+
+# Lint Bazel files
+bazel run //tools:buildifier -- -lint=warn -mode=check -r .
+```
+
+### 8. Common Workflow Example
+
+#### Complete Feature Development Workflow
+
+```bash
+# 1. Create feature branch
+git checkout main
+git pull origin main
+git checkout -b feature/add-new-endpoint
+
+# 2. Make code changes
+# ... edit files ...
+
+# 3. Update/add tests
+# ... edit test files ...
+
+# 4. Run tests
+bazel test //path/to:tests
+
+# 5. Format code
+bazel run //tools:ruff -- format .
+
+# 6. Lint code
+bazel run //tools:ruff -- check --fix .
+
+# 7. Verify everything passes
+bazel test //path/to:tests
+bazel build //path/to:target
+
+# 8. Commit changes
+git add .
+git commit -m "feat: add new endpoint for X functionality
+
+Implemented new endpoint that provides Y capability.
+
+- Added endpoint handler
+- Added tests with 95% coverage
+- Updated API documentation"
+
+# 9. Push and create PR (when applicable)
+git push origin feature/add-new-endpoint
+
+# 10. After merge, cleanup
+git checkout algo_trader
+git pull origin algo_trader
+git branch -d feature/add-new-endpoint
+```
+
+## Consequences of Non-Compliance
+
+Failure to follow these standards may result in:
+
+- **Failed builds** - Code won't pass CI/CD checks
+- **Rejected code reviews** - Changes require rework
+- **Bugs in production** - Untested code causes issues
+- **Technical debt** - Inconsistent code is harder to maintain
+- **Merge conflicts** - Working on wrong branch causes issues
+
+## Exceptions
+
+Exceptions to these rules are rare but may include:
+
+- **Hotfixes**: Critical production issues may require expedited process
+- **Documentation-only changes**: May not require tests
+- **Configuration changes**: May have lighter testing requirements
+
+**Note**: Even exceptions should follow commit message standards and be properly documented.
+
+## Tools and Resources
+
+### Required Tools
+
+- **Bazel**: Build and test runner
+- **Ruff**: Python formatter and linter
+- **Buildifier**: Bazel file formatter
+- **Git**: Version control
+
+### Documentation References
+
+- [Testing Standards](./testing.mdc)
+- [Bazel Monorepo Patterns](./bazel-monorepo-python.mdc)
+- [Linting and Formatting](./linting-and-formatting.mdc)
+- [Python Best Practices](./python-fastapi.mdc)
+
+## Summary
+
+**Remember**: These are not suggestions - they are requirements for maintaining code quality in the Artificer monorepo.
+
+1. **Always** create a feature branch
+2. **Always** update or add tests
+3. **Always** format and lint before committing
+4. **Always** verify tests pass
+5. **Always** write clear commit messages
+
+Following these standards ensures:
+- High code quality
+- Comprehensive test coverage
+- Consistent codebase
+- Easier collaboration
+- Reduced bugs and technical debt
