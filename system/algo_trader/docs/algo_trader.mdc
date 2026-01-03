@@ -1,0 +1,498 @@
+---
+alwaysApply: true
+---
+# Algo Trader - Implementation Context
+
+## Overview
+This project aims to collect information about companies in the US capital markets and make trade decisions based on that information. Strategies are used to make decisions about what to invest in, and those strategies are tested against historical data. All statistical information about these decisions, trades, and data is stored for long term analysis on performance.
+
+## Current Status
+- **Phase:** Phase 4.3 (Ticker Data Visualization) - COMPLETED
+- **Version:** v0.4.3
+- **Started:** October 2024
+- **Last Updated:** October 2025
+- **Key Milestone:** Complete end-to-end data flow from Schwab API through dockerized InfluxDB to Grafana candlestick visualization
+
+## Phase 1: Schwab API Authentication and Market Data
+
+**Goal:** Perform a manual authentication and token refresh with the schwab api, and verify market data can be pulled.
+
+**Core Flow:**
+- System activates
+- Client attempts to pull market historical data from a ticker using the schwab API
+- Failed attempt should prompt a refresh token. OATH2 manual authentication may be required
+- refresh token stored in Redis
+- API token stored in `algo_trader.env`
+- Historical market data printed to the console for `ticker` using periods and frequencies defined in the schwab API documentation
+- Unit tests and integration tests are built for all code creations and updates
+
+### Phase 1 Learnings
+
+### Token Management
+- **Access tokens** expire in ~30 minutes and are used for API calls
+- **Refresh tokens** last ~1 month and are used to obtain new access tokens
+- **OAuth2 authentication** only required once per month when refresh token expires
+- Both tokens stored in Redis with appropriate TTL (access token) or persistent (refresh token)
+- Automatic token refresh implemented via `_get_valid_token()` method
+
+### Infrastructure vs System Separation
+- Infrastructure `SchwabClient` should be **stateless** and not manage token storage
+- Infrastructure should provide discrete OAuth methods: `get_authorization_url()`, `get_tokens_from_code()`, `refresh_access_token()`
+- System-level code (`SchwabHandler`) orchestrates the flow and manages storage via Redis
+- Environment variables loaded at system level, not hardcoded in infrastructure
+
+### First-Run Authentication Flow
+- First run requires **manual OAuth2** with user interaction (visit URL, paste callback)
+- This is expected behavior and not a bug - OAuth2 requires human authorization
+- Subsequent runs use stored refresh token automatically
+- Interactive `input()` during first run is acceptable and necessary
+
+### Testing Strategy
+- Unit tests mock all external dependencies (Redis, API calls, user input)
+- Integration tests verify Redis connectivity and token storage
+- **Manual verification required** to confirm end-to-end Schwab API functionality
+- Run the main entry point to verify Phase deliverables actually work
+
+### Environment Variables
+- `.env` files are user-managed and should never be created/edited by agent
+- System reads from environment variables using `os.getenv()`
+- No dependency on `artificer.env` for system-specific credentials
+- Schwab API credentials are system-specific, not shared infrastructure
+
+
+
+### Phase 1.1 - COMPLETED
+**Goal:** Cleanup from Phase 1 to better match industry standard
+
+**Completed:**
+- Consolidated all external service wrappers into `clients/` directory
+- Renamed `SchwabHandler` to `AlgoTraderSchwabClient` for consistency
+- Updated all BUILD files to reference new structure
+- No `__init__.py` files (Bazel handles package structure)
+
+**Deliverables**
+[✓] - `redis` and `schwab` files organized in `clients/` directory following industry standard
+[✓] - All unit and integration tests passing
+[✓] - main.py functionality preserved, imports updated
+[✓] - Consistent client naming pattern: `AlgoTraderRedisClient`, `AlgoTraderSchwabClient`
+
+## Phase 2: InfluxDB Integration - COMPLETED
+
+**Goal:** Store historical candle data for multiple frequencies, periods, and tickers into an influxdb database
+
+**Objectives:**
+- System activates
+- Market data is pulled using the schwab client
+- Market data should include 3 different tickers, periods, and frequencies
+- Frequency should be at least 1 day (no intraday market data)
+- Database name should be `historical-market-data`
+- The batch write config into InfluxDB should be large enough such that all this data can be written in 1 batch
+- InfluxDB tables should be organized by ticker symbol 
+- Queries of ticker symbols should be able to seamlessly include the period and frequency filtering
+
+**Deliverables:**
+[✓] - Market data contains 3 different tickers (AAPL, MSFT, GOOGL), each with 3 different periods and frequencies
+[✓] - InfluxDB client is created under `clients/` and uses the variables provided in the `algo_trader.env` file
+[✓] - `historical-market-data` database contains the ticker data, and has infinite retention
+[✓] - Batch write config to influx writes the data in one batch
+[✓] - Queries from `historical-market-data` can include `ticker`, `frequency` and `period`
+
+### Phase 2 Implementation Details
+
+#### Infrastructure Components
+- **BaseInfluxDBClient** (`infrastructure/clients/influxdb_client.py`): Provides common InfluxDB functionality for all systems
+  - Connection management with environment variable configuration
+  - Single point write with tags and fields
+  - Batch write support for multiple points
+  - SQL query execution
+  - Connection lifecycle management
+
+#### System Components
+- **AlgoTraderInfluxDBClient** (`system/algo_trader/clients/influxdb_client.py`): Market data specific implementation
+  - `write_candle_data()`: Writes OHLCV data with ticker/period/frequency tags
+  - `query_candles()`: Flexible querying with optional filters
+  - `get_available_tickers()`: Lists all tickers in database
+  - All data written in single batch per ticker/period/frequency combination
+
+#### Data Organization
+- **Measurement**: `market_data` (single measurement for all tickers)
+- **Tags** (indexed, for filtering):
+  - `ticker`: Stock symbol (AAPL, MSFT, GOOGL)
+  - `period_type`: Type of period (month, year)
+  - `period`: Number of periods (1, 3)
+  - `frequency_type`: Type of frequency (daily, weekly)
+  - `frequency`: Frequency interval (1)
+- **Fields** (actual data):
+  - `open`, `high`, `low`, `close`: Float prices
+  - `volume`: Integer volume
+- **Timestamp**: DateTime from candle data
+
+#### Market Data Configuration
+Three tickers, each with three period/frequency combinations:
+1. 1 month, daily frequency
+2. 3 months, daily frequency  
+3. 1 year, weekly frequency
+
+#### Testing
+- **Unit Tests**: Mock all external dependencies (InfluxDB, environment)
+  - Test initialization, write operations, queries, error handling
+  - Run with: `bazel test --config=unit //system/algo_trader/clients:influxdb_client_test_unit`
+- **Integration Tests**: Test against real InfluxDB instance
+  - Run with: `bazel test --config=integration //system/algo_trader/clients:influxdb_client_test_integration`
+
+
+### Phase 2.1 - COMPLETED
+**Goal:** Fix authentication errors with persistent token storage and automatic OAuth2 re-authentication
+
+**Version:** v0.2.1
+
+**Problem:** 
+Token expiration was causing authentication failures, requiring manual re-authentication. Tokens stored only in Redis were lost on restart.
+
+**Solution:**
+Implemented persistent token storage with automatic OAuth2 re-authentication when tokens expire or are invalid.
+
+**OAuth2 Token Types (Schwab API):**
+- **Access Token**: Short-lived (~30 min), used for API calls, passed as Bearer token
+- **Refresh Token**: Long-lived (verified 13+ days), used to obtain new access tokens without re-authentication
+- **Note**: Schwab uses STATIC refresh tokens - the same token is returned on each refresh, not rotating tokens
+- When refresh token expires, full OAuth2 flow is required
+
+**Implementation:**
+- **Access Token Storage**: Redis with 30-minute TTL (ephemeral, short-lived)
+- **Refresh Token Storage**: Persistent JSON file at `infrastructure/clients/schwab/schwab_tokens.json`
+  - Survives system reboots
+  - File permissions: 600 (owner read/write only)
+  - Gitignored
+- **Automatic OAuth2 Re-authentication**: Triggers when tokens are missing or invalid
+- **Session Tracking**: Only prompts for auth once per session to avoid multiple prompts
+- **InfluxDB Server Management**: Auto-starts InfluxDB3 server if not running
+
+**Deliverables:**
+[✓] - OAuth2 triggered upon failed refresh or access token 
+[✓] - Refresh token stored persistently in `.tokens.json` (secure, not committed to git)
+[✓] - Access token stored in Redis with 30min TTL
+[✓] - Second execution runs without re-authentication (until refresh token expires ~7 days)
+[✓] - InfluxDB server auto-starts when client initializes
+[✓] - All unit and integration tests passing
+
+**Testing:**
+- Unit tests: `bazel test --config=unit //system/algo_trader/clients:schwab_client_test_unit`
+- Integration tests: `bazel test --config=integration //system/algo_trader/clients:schwab_client_test_integration`
+
+**Token Lifecycle:**
+1. First run: OAuth2 prompt → tokens saved (access in Redis, refresh in file)
+2. Subsequent runs: Uses refresh token from file to get new access token
+3. After ~7 days: Refresh token expires → OAuth2 prompt → new tokens saved
+4. System restart: Refresh token persists in file, access token expires → automatic refresh
+
+### Phase 2.2: Logging and Merge Conflicts - COMPLETED
+**Goal:** Adjust logging schema and resolve merge conflicts with `main`
+
+**Objectives:**
+- Adjust logging such that it resembles: `<timestamp> | <log level> | <class logger> | <information>`
+- Logging output should remain "vertically in line" with each other up until `<class logger>`
+- Logging color for `INFO` should only affect `<log level>`, not the entire string output
+- There are merge conflicts with `main` that need to be resolved. The feature branch should be favored in this case.
+
+**Deliverables:**
+[✓] - Logging output adjusted to use pipe separators with proper alignment
+[✓] - Merge conflicts resolved (no conflicts found with main)
+[✓] - All tests pass
+
+**Implementation Details:**
+- Updated `ColoredFormatter` in `infrastructure/logging/logger.py` to:
+  - Format output as: `YYYY-MM-DD HH:MM:SS | LOG_LEVEL | logger_name | message`
+  - Apply ANSI color codes only to log level (8 character padding for alignment)
+  - Keep timestamp, logger name, and message uncolored
+- Fixed unit tests in `system/algo_trader/clients/influxdb_client_test.py` to properly mock `_ensure_server_running()`
+- Fixed missing `requests` dependency in BUILD file for influxdb client tests
+- All unit tests passing: redis_client, schwab_client, influxdb_client
+
+
+## Phase 3: SEC Ticker List - COMPLETED
+**Goal:** Obtain a list of all active tickers in the US markets from the `sec.gov` website, and store that information in InfluxDB
+
+**Objectives:**
+- System activates
+- A request is made for all active tickers listed at `https://www.sec.gov/files/company_tickers.json`
+- The json data is parsed to obtain the ticker symbols
+- A list of these tickers is pushed to the `historical-market-data` database
+- These tickers should be usable as `tags` or something similar in order to filter market data within `historical-market-data`
+
+**Deliverables:**
+[✓] - A new directory called `/datasources/` is created
+[✓] - A new file for sec data is created, called `sec.py`
+[✓] - The file pulls ticker data from the url listed, and creates a list of active tickers
+[✓] - The list of active tickers is stored in InfluxDB
+[✓] - Current data in `historical-market-data` can use the symbols in that list to query data
+
+### Phase 3 Implementation Details
+
+#### SEC Data Source
+- **SECDataSource** (`system/algo_trader/datasources/sec.py`): Fetches and manages ticker data from SEC
+  - `fetch_tickers()`: Retrieves active tickers from SEC API with proper User-Agent headers
+  - `get_ticker_symbols()`: Returns list of ticker symbols only, with caching
+  - `store_tickers_in_influxdb()`: Stores ticker metadata in InfluxDB for filtering
+  - `get_ticker_count()`: Returns number of cached tickers
+  - **SEC Compliance**: SEC requires User-Agent header with contact information
+    - Set `SEC_USER_AGENT` environment variable to "YourName your@email.com"
+    - Example: `export SEC_USER_AGENT="AlgoTrader contact@example.com"`
+    - Without proper User-Agent, SEC API returns 403 Forbidden error
+
+#### Data Organization
+- **Measurement**: `ticker_metadata` (separate from market_data)
+- **Tags** (indexed, for filtering):
+  - `ticker`: Stock symbol (AAPL, MSFT, etc.)
+- **Fields**:
+  - `cik`: SEC CIK number as string
+  - `title`: Company name/title
+- **Timestamp**: Current UTC time when tickers are stored
+
+#### Filtering Capability
+Ticker metadata can be used to:
+- Verify ticker existence before fetching market data
+- Query company information (CIK, name) for any ticker
+- Cross-reference market_data with SEC's official ticker list
+- Filter queries using ticker tags in both measurements
+
+#### Testing
+- **Unit Tests**: Mock SEC API responses and InfluxDB operations
+  - Test initialization, fetching, parsing, storage, error handling
+  - Run with: `bazel test --config=unit //system/algo_trader/datasources:sec_test_unit`
+- **Integration Tests**: Test against real SEC API and InfluxDB
+  - Fetch real ticker data, verify storage, test filtering
+  - Run with: `bazel test --config=integration //system/algo_trader/datasources:sec_test_integration`
+
+#### Main Entry Point Updates
+- `main.py` now demonstrates Phase 3 flow:
+  1. Fetch ticker list from SEC (typically 10,000+ tickers)
+  2. Store ticker metadata in InfluxDB
+  3. Verify storage by querying sample tickers (AAPL, MSFT, GOOGL)
+  4. Fetch market data (Phase 2 functionality)
+  5. Demonstrate filtering by showing ticker metadata exists for market data tickers
+
+## Phase 4: Grafana Vizualization
+**Goal:** Visualize different tickers and timeframes in a candle panel of grafana
+
+**Objectives:**
+- System activates
+- 5 random tickers are pulled from the SEC ticker list
+- 3 known tickers are also pulled (APPL, MSFT, GOOG)
+- Each ticker has historical data pulled for the following timeframes
+  - 1d:5yr
+  - 1wk:10yr
+  - 1mo:20yr
+- Data is piped into InfluxDB
+- System complete
+- Grafana is setup with an InfluxDB datasource for `historical-market-data`
+- A dashboard is visible with candle data for tickers
+- The dashboard should allow the following variables for quick access to different views
+  - ticker
+  - period
+  - frequency
+
+**Deliverables:**
+[] - 8 total tickers, each with 3 different timeframes and pulled from the schwab api, using the sec ticker list to get the symbols to pull
+[] - historical data is stored in InfluxDB
+[] - A base grafana client is created in `/infrastructure` that can be used by other systems
+[] - A system specific version of `grafana` is made in `algo_trader` that uses the grafana client
+[] - Grafana is started in a docker container
+[] - The grafana container can be build using `bazel build`, and viewed in the web browser using `bazel run`
+[] - A grafana instance is available to view the historical data
+[] - A candle chart type is available in grafana to visualize the data
+[] - the grafana dashboard has variables for ticker, period, and frequency
+[] - the query in grafana can alter the view based on the variable selection
+
+### Phase 4 Grafana Implementation Notes
+
+**Dashboard UID Requirement:**
+Grafana dashboards MUST have a `uid` field to prevent duplicates. Without a UID, Grafana cannot identify existing dashboards and will create a new one on each provisioning cycle.
+
+**Dashboard Configuration Example:**
+```json
+{
+  "dashboard": {
+    "id": null,
+    "uid": "market-data-candles",  // REQUIRED: Unique identifier
+    "title": "Market Data - Candlestick Charts",
+    "tags": ["market-data", "candles", "ohlc"],
+    "timezone": "browser",
+    "panels": [...]
+  },
+  "overwrite": true  // REQUIRED: Allows updating existing dashboard
+}
+```
+
+**Candlestick Panel Configuration:**
+The candlestick visualization type requires specific configuration based on Grafana documentation:
+https://grafana.com/docs/grafana/latest/panels-visualizations/visualizations/candlestick/
+
+```json
+{
+  "id": 1,
+  "title": "OHLC Candlestick Chart",
+  "type": "candlestick",  // Must be "candlestick", not "barchart"
+  "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+  "targets": [
+    {
+      "datasource": "InfluxDB-MarketData",
+      "query": "from(bucket: \"historical-market-data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"market_data\")\n  |> filter(fn: (r) => r.ticker == \"${ticker}\")\n  |> filter(fn: (r) => r.period_type == \"${period_type}\")\n  |> filter(fn: (r) => r.period == \"${period}\")\n  |> filter(fn: (r) => r.frequency_type == \"${frequency_type}\")\n  |> filter(fn: (r) => r.frequency == \"${frequency}\")\n  |> filter(fn: (r) => r._field == \"open\" or r._field == \"high\" or r._field == \"low\" or r._field == \"close\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
+      "refId": "A"
+    }
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "unit": "currencyUSD",
+      "decimals": 2,
+      "custom": {
+        "candleStyle": "candles",
+        "colorStrategy": "open-close",
+        "mode": "candles"
+      }
+    }
+  },
+  "options": {
+    "candleStyle": "candles",
+    "colorStrategy": "open-close",
+    "colors": {
+      "up": "green",
+      "down": "red"
+    },
+    "legend": {
+      "displayMode": "list",
+      "placement": "bottom",
+      "showLegend": true
+    },
+    "tooltip": {
+      "mode": "single",
+      "sort": "none"
+    }
+  }
+}
+```
+
+**Key Points:**
+- Panel type must be `"candlestick"` (not barchart)
+- Flux query uses dot notation: `r.field` (not `r["field"]`)
+- Datasource can be referenced by name string
+- Dashboard UID prevents duplicates: `"uid": "market-data-candles"`
+- Overwrite flag enables updates: `"overwrite": true`
+- Variables use `${variable}` syntax in queries
+
+**Docker + Bazel Architecture:**
+- Infrastructure layer (`infrastructure/clients/grafana_client.py`): Reusable container management
+- System layer (`system/algo_trader/clients/grafana_client.py`): Loads JSON dashboards, integrated CLI
+- Data layer (`system/algo_trader/grafana/*.json`): Dashboard definitions as JSON files
+- Entry point: `bazel run //system/algo_trader/clients:grafana`
+
+### Phase 4.1 InfluxDB debugging
+**Goal:** Adjust influxdb3 implementation to utilize docker, similar to grafana, and make sure they are connected in the docker network
+
+**Objectives:**
+- Use the grafana implementation from phase 4 to build a docker compose for influxdb
+- build the container using `bazel build`, using the same principles from grafana
+- Expose the influxdb3 database on localhost:8181
+- Ensure the datasource is reachable by the grafana container
+
+**Deliverables:**
+[] - Influx container created with `bazel run //system/algo_trader/influxdb:main`
+[] - data can be viewed at localhost:8181
+[] - datasource works with Grafana without error
+[] - Common functionality is available in the influxdb client in `/infrastructure`
+
+### Phase 4.2 InfluxDB Refactor - COMPLETED
+**Goal:** Adjust influxdb architecture to match Grafana
+
+**Objectives**
+- Add a py_binary for influxdb for the algo_trader (similar to the one for grafana under clients)
+- Add docker functionality for influx within `infrastructure` client
+- Start the container with `bazel run //system/algo_trader/clients:influxdb`
+
+**Deliverables:**
+[✓] - py_binary target added for influxdb in system/algo_trader/clients/BUILD
+[✓] - CLI interface added to AlgoTraderInfluxDBClient with start/stop/restart/status/logs commands
+[✓] - Docker functionality exists in infrastructure BaseInfluxDBClient (start_via_compose, stop_via_compose, etc.)
+[✓] - Container management works via `bazel run //system/algo_trader/clients:influxdb`
+[✓] - Container naming standardized to <system>-<service> pattern (algotrader-influxdb, algotrader-grafana)
+[✓] - Docker Compose project name configurable via COMPOSE_PROJECT_NAME (defaults to algo_trader)
+[✓] - Grafana datasource configured for InfluxDB 3.0 (SQL via FlightSQL with insecure gRPC)
+[✓] - Database algo-trader-database created in InfluxDB
+[✓] - All infrastructure/system tests passing
+
+### Phase 4.3 Ticker Data visualization - COMPLETED
+**Goal:** run algo_trader:main and see the data in grafana
+
+**Objectives:**
+- System activates
+- tickers currently in @main.py are used
+- ticker candle data is pushed to the influxdb `algo-trader-database` that now lives in a docker container
+- ticker data is available in the candlestick chart in grafana
+
+**Deliverables:**
+[✓] - main.py runs successfully with dockerized InfluxDB and Grafana (containers assumed running)
+[✓] - 8 tickers (3 known: AAPL, MSFT, GOOGL + 5 random from SEC list)
+[✓] - Each ticker has 3 timeframes: 1d:5yr, 1wk:10yr, 1mo:20yr
+[✓] - Candle data written to dockerized InfluxDB database `algo-trader-database`
+[✓] - Grafana datasource configured for InfluxDB 3.0 (SQL via FlightSQL)
+[✓] - Grafana dashboard provisions successfully with candlestick chart
+[✓] - Dashboard variables (ticker, period_type, period, frequency_type, frequency) enable data filtering
+[✓] - All unit and integration tests passing
+
+**Implementation Notes:**
+- InfluxDB and Grafana clients use `auto_start=False` by default in main.py
+- Containers are managed separately via `bazel run //system/algo_trader/clients:influxdb` and `bazel run //system/algo_trader/clients:grafana`
+- InfluxDB 3.0 uses SQL queries (not Flux) via FlightSQL with insecure gRPC
+- Grafana datasource configuration includes `allowInsecureGrpc: true` and `secureGrpc: false`
+- Dashboard UID `market-data-candles` prevents duplicate dashboard creation
+- Dashboard includes OHLC candlestick chart and volume timeseries chart
+
+**Testing:**
+- Unit tests: `bazel test --config=unit //system/algo_trader/clients:influxdb_client_test_unit //system/algo_trader/clients:grafana_client_test_unit`
+- Integration tests: `bazel test --config=integration //system/algo_trader/clients:influxdb_client_test_integration //system/algo_trader/clients:grafana_client_test_integration`
+
+**Manual Verification Steps:**
+1. Ensure containers are running:
+   - `bazel run //system/algo_trader/clients:influxdb start`
+   - `bazel run //system/algo_trader/clients:grafana start`
+2. Run main entry point: `bazel run //system/algo_trader:main`
+3. Verify data in Grafana: http://localhost:3000/d/market-data-candles
+4. Test dashboard variables to filter by ticker, period, and frequency
+
+### Phase 4.3.1 - Token File Path Bug Fix - COMPLETED
+**Goal:** Fix recurring OAuth2 authentication prompts when refresh token should still be valid
+
+**Problem:**
+Users were being forced to re-authenticate via OAuth2 every time they ran the system, even though valid refresh tokens existed. The system was looking for tokens in the WRONG LOCATION:
+- **Code was looking at:** `/system/algo_trader/.tokens.json` (did not exist)
+- **Tokens actually at:** `/infrastructure/clients/schwab/schwab_tokens.json` (contained valid tokens)
+
+**Root Cause:**
+- `system/algo_trader/clients/schwab_client.py`: Hardcoded incorrect default path in `__init__()` method
+- System couldn't find existing valid tokens, triggering OAuth2 flow unnecessarily
+
+**Solution:**
+Corrected the default `token_file_path` parameter in `AlgoTraderSchwabClient.__init__()` to point to the actual token file location at `/infrastructure/clients/schwab/schwab_tokens.json`
+
+**Additional Changes:**
+Updated `_refresh_token()` method to store refresh tokens returned by Schwab API (defensive coding, though Schwab appears to use static refresh tokens that don't change on each refresh)
+
+**Impact:**
+- OAuth2 authentication only required when tokens actually expire
+- System now correctly reads existing valid tokens from persistent storage
+- Refresh tokens remain valid significantly longer than initially expected (13+ days verified)
+
+**Discovery:**
+Through enhanced logging, determined that **Schwab uses STATIC refresh tokens** - they return the same refresh token on each access token refresh, not rolling/rotating tokens. This differs from some OAuth2 implementations.
+
+**Files Modified:**
+- `system/algo_trader/clients/schwab_client.py`: Fixed default token file path
+- `infrastructure/clients/schwab_client.py`: Updated docstring for clarity
+- `system/algo_trader/clients/schwab_client_test.py`: Added test for token update behavior
+- `system/algo_trader/clients/grafana_client_test.py`: Fixed integration tests for InfluxDB 3.0 compatibility
+- `system/algo_trader/clients/BUILD`: Added dashboard data dependency to integration tests
+
+**Testing:**
+- Unit tests: `bazel test --config=unit //system/algo_trader/clients:schwab_client_test_unit`
+- Integration tests: `bazel test --config=integration //system/algo_trader/clients:schwab_client_test_integration`
+- Manual verification: Confirmed 13-day-old tokens still valid and refresh successfully
