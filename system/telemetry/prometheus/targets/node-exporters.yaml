@@ -1,0 +1,10 @@
+- targets:
+    # If you run node_exporter via the provided docker-compose `node-exporter` service
+    # on the SAME machine as Prometheus, use the Compose service DNS name:
+    - 'node-exporter:9100'
+  labels:
+    # Friendly node name shown in Grafana (also becomes the Prometheus `instance` label).
+    hostname: 'CEREBRO'
+    site: 'local'
+    role: 'node'
+
