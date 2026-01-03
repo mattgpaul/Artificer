@@ -1,25 +1,35 @@
 load("@pip//:requirements.bzl", "requirement")
 
-py_binary(
-    name = "main",
-    srcs = ["main.py"],
-    deps = [
-        "//system/algo_trader/clients:redis_client",
-        "//system/algo_trader/clients:schwab_client",
-        "//system/algo_trader/clients:influxdb_client",
-        "//system/algo_trader/clients:grafana_client",
-        "//system/algo_trader/datasources:sec",
-        "//infrastructure/logging:logger",
+# Config library for algo_trader system
+py_library(
+    name = "config",
+    srcs = ["config.py"],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader:__subpackages__",
     ],
-    visibility = ["//visibility:public"],
+    deps = [
+        "//infrastructure:config",
+        requirement("pydantic"),
+        requirement("pydantic-settings"),
+    ],
 )
 
-# Shell script for Grafana management (deprecated - use docker-compose instead)
-# Kept for backward compatibility during migration
-sh_binary(
-    name = "grafana_shell",
-    srcs = ["run_grafana.sh"],
-    data = ["//system/algo_trader/grafana:dashboard_json"],
-    visibility = ["//visibility:public"],
+# Project aggregation target - collects all algo_trader components
+py_library(
+    name = "library",
+    tags = [
+        "algo_trader",
+        "system",
+    ],
+    visibility = [
+        "//system:__pkg__",  # Available to system package
+    ],
+    deps = [
+        ":config",
+        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/schwab:schwab_services",
+        "//system/algo_trader/service/market_data:market_data_lib",
+        "//system/algo_trader/utils:schema",
+    ],
 )
-

@@ -1,0 +1,479 @@
+# Algo Trader Configuration Guide
+
+## Overview
+
+The algo_trader system uses a flexible configuration management layer that supports both **standalone** (local development) and **microservice** (Docker/Kubernetes) deployments. This guide explains how to configure the system for different use cases.
+
+## Configuration Architecture
+
+### Configuration Classes
+
+The system uses a layered configuration approach:
+
+**Infrastructure Layer** (`infrastructure/config.py`):
+- `RedisConfig` - Redis connection settings
+- `InfluxDBConfig` - InfluxDB connection settings
+
+**System Layer** (`system/algo_trader/config.py`):
+- `SchwabConfig` - Schwab API credentials
+- `AlgoTraderConfig` - Complete system configuration that composes all sub-configs
+
+### Key Features
+
+- **Automatic Environment Variable Loading**: Configs automatically read from environment variables
+- **Backward Compatible**: All existing code works without changes
+- **Type-Safe**: Pydantic validation ensures correct configuration values
+- **Opt-In**: Configuration is optional - defaults to environment variables if not provided
+
+## Use Cases
+
+### 1. Standalone Development (Current)
+
+**Description**: Running services locally with environment variables from `.env` file.
+
+**Setup**:
+```bash
+# Export environment variables (or source from your .env file)
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+# ... other environment variables ...
+
+# Run services - automatically reads from environment
+bazel run //system/algo_trader/service:market_data -- live run
+bazel run //system/algo_trader/service:market_data -- historical run
+```
+
+**Configuration Files**:
+- Create a `.env` file with all required environment variables
+
+**Environment Variables**:
+```bash
+# Redis
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_DB=0
+
+# InfluxDB
+export INFLUXDB3_AUTH_TOKEN=your-token-here
+export INFLUXDB3_HTTP_BIND_ADDR=localhost:8181
+export INFLUXDB_DATABASE=algo-trader-database
+
+# Schwab API
+export SCHWAB_APP_NAME=your-app-name
+export SCHWAB_API_KEY=your-api-key
+export SCHWAB_SECRET=your-secret
+export SCHWAB_REFRESH_TOKEN=your-refresh-token
+```
+
+**Pros**:
+- Simple - just source the `.env` file
+- Works with existing workflow
+- No code changes needed
+
+**Cons**:
+- Hard to programmatically change values
+- Less flexible for testing
+
+### 2. Programmatic Configuration (Advanced)
+
+**Description**: Create configuration objects in Python code instead of environment variables.
+
+**Example**:
+```python
+from system.algo_trader.config import AlgoTraderConfig
+from infrastructure.config import RedisConfig, InfluxDBConfig
+from system.algo_trader.service import LiveMarketService
+
+# Create explicit configuration
+config = AlgoTraderConfig(
+    redis=RedisConfig(
+        host="custom-redis-server",
+        port=6379,
+        db=0,
+        max_connections=20,
+        socket_timeout=60
+    ),
+    influxdb=InfluxDBConfig(
+        host="custom-influxdb-server",
+        port=8086,
+        token="custom-token",
+        database="custom-database"
+    ),
+    schwab=SchwabConfig(
+        app_name="custom-app",
+        api_key="custom-key",
+        secret="custom-secret",
+        refresh_token="custom-refresh-token"
+    ),
+    log_level="DEBUG"
+)
+
+# Pass config to service
+service = LiveMarketService(config=config)
+service.run()
+```
+
+**When to Use**:
+- Unit testing with mock configurations
+- Running multiple instances with different configs
+- Dynamic configuration changes
+- Development environments with custom settings
+
+**Pros**:
+- Full programmatic control
+- Easy to test with different configs
+- Supports multiple service instances
+
+**Cons**:
+- More verbose than environment variables
+- Requires code changes
+
+### 3. Docker Compose (Future Microservice)
+
+**Description**: Running services in Docker containers with service discovery.
+
+**Setup** (`docker-compose.yml`):
+```yaml
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - algo-trader
+
+  influxdb:
+    image: influxdb:2.7
+    ports:
+      - "8086:8086"
+    networks:
+      - algo-trader
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password
+      - DOCKER_INFLUXDB_INIT_ORG=artificer
+      - DOCKER_INFLUXDB_INIT_BUCKET=algo-trader
+
+  live-market-service:
+    build: .
+    networks:
+      - algo-trader
+    depends_on:
+      - redis
+      - influxdb
+    environment:
+      # Redis - use Docker service name
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      
+      # InfluxDB - use Docker service name
+      - INFLUXDB_HOST=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB3_AUTH_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_DATABASE=algo-trader-database
+      
+      # Schwab API (from environment)
+      - SCHWAB_APP_NAME=${SCHWAB_APP_NAME}
+      - SCHWAB_API_KEY=${SCHWAB_API_KEY}
+      - SCHWAB_SECRET=${SCHWAB_SECRET}
+      - SCHWAB_REFRESH_TOKEN=${SCHWAB_REFRESH_TOKEN}
+      
+      # Logging
+      - LOG_LEVEL=INFO
+
+networks:
+  algo-trader:
+    driver: bridge
+```
+
+**How It Works**:
+- Services use Docker service names (e.g., `redis`, `influxdb`) instead of `localhost`
+- Environment variables are passed through Docker Compose
+- Same configuration system reads from environment variables
+
+**Pros**:
+- Isolated containers
+- Easy service discovery
+- Production-like environment
+
+**Cons**:
+- Requires Docker setup
+- More complex than standalone
+
+### 4. Kubernetes (Future Production)
+
+**Description**: Running services in Kubernetes cluster with ConfigMaps and Secrets.
+
+**Setup** (`k8s/configmap.yaml`):
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: algo-trader-config
+data:
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  INFLUXDB_HOST: "influxdb-service"
+  INFLUXDB_PORT: "8086"
+  INFLUXDB_DATABASE: "algo-trader-database"
+  LOG_LEVEL: "INFO"
+```
+
+**Setup** (`k8s/secrets.yaml`):
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: algo-trader-secrets
+type: Opaque
+stringData:
+  INFLUXDB3_AUTH_TOKEN: "your-token-here"
+  SCHWAB_APP_NAME: "your-app-name"
+  SCHWAB_API_KEY: "your-api-key"
+  SCHWAB_SECRET: "your-secret"
+  SCHWAB_REFRESH_TOKEN: "your-refresh-token"
+```
+
+**Setup** (`k8s/deployment.yaml`):
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-market-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: live-market-service
+  template:
+    metadata:
+      labels:
+        app: live-market-service
+    spec:
+      containers:
+      - name: live-market-service
+        image: algo-trader:latest
+        envFrom:
+        - configMapRef:
+            name: algo-trader-config
+        - secretRef:
+            name: algo-trader-secrets
+```
+
+**How It Works**:
+- ConfigMaps store non-sensitive configuration
+- Secrets store sensitive data (tokens, API keys)
+- Environment variables injected at pod startup
+- Same configuration system reads from environment variables
+
+**Pros**:
+- Production-ready scalability
+- Secure secret management
+- Easy to update without code changes
+
+**Cons**:
+- Complex setup
+- Requires Kubernetes cluster
+
+## Configuration Priority
+
+The system uses the following priority order:
+
+1. **Explicit Config Object** - When passed to constructor
+2. **Environment Variables** - Read automatically by Pydantic BaseSettings
+3. **Default Values** - Defined in Field(default=...)
+
+### Example Priority
+
+```python
+# 1. Explicit config (highest priority)
+config = RedisConfig(host="explicit-host", port=6379)
+client = BaseRedisClient(config=config)  # Uses explicit-host
+
+# 2. Environment variable (middle priority)
+# REDIS_HOST=custom-host in environment
+client = BaseRedisClient()  # Uses custom-host
+
+# 3. Default value (lowest priority)
+# No REDIS_HOST in environment
+client = BaseRedisClient()  # Uses localhost (default)
+```
+
+## Common Configuration Tasks
+
+### Changing Redis Host
+
+**Standalone**:
+```bash
+# Set environment variable
+export REDIS_HOST=custom-redis-server
+
+# Or set inline
+REDIS_HOST=custom-redis-server bazel run //system/algo_trader/service:market_data -- live run
+```
+
+**Programmatic**:
+```python
+from infrastructure.config import RedisConfig
+config = RedisConfig(host="custom-redis-server")
+service = LiveMarketService(config=AlgoTraderConfig(redis=config))
+```
+
+### Changing InfluxDB Connection
+
+**Standalone**:
+```bash
+# Set environment variables
+export INFLUXDB_HOST=custom-influxdb-server
+export INFLUXDB_PORT=8086
+```
+
+**Programmatic**:
+```python
+from infrastructure.config import InfluxDBConfig
+config = InfluxDBConfig(host="custom-influxdb-server", port=8086)
+service = HistoricalMarketService(config=AlgoTraderConfig(influxdb=config))
+```
+
+### Running with Custom Log Level
+
+**Standalone**:
+```bash
+bazel run //system/algo_trader/service:market_data -- --log-level DEBUG live run
+```
+
+**Programmatic**:
+```python
+config = AlgoTraderConfig(log_level="DEBUG")
+service = LiveMarketService(config=config)
+```
+
+### Testing with Mock Services
+
+**Unit Test Example**:
+```python
+import pytest
+from system.algo_trader.config import AlgoTraderConfig
+from infrastructure.config import RedisConfig, InfluxDBConfig
+from system.algo_trader.service import LiveMarketService
+
+def test_service_with_custom_config():
+    """Test service with custom configuration."""
+    # Use test Redis server
+    config = AlgoTraderConfig(
+        redis=RedisConfig(host="test-redis", port=6379),
+        log_level="DEBUG"
+    )
+    
+    service = LiveMarketService(config=config)
+    # Run tests...
+```
+
+## Configuration Validation
+
+All configurations are validated by Pydantic:
+
+**Valid Types**:
+- `host`: string
+- `port`: integer
+- `db`: integer
+- `max_connections`: integer
+- `socket_timeout`: integer
+- `token`: string
+- `database`: string
+- `log_level`: string (must be valid log level)
+
+**Invalid Configuration Example**:
+```python
+# This will raise a Pydantic validation error
+config = RedisConfig(port="not-a-number")  # ❌ TypeError
+```
+
+## Troubleshooting
+
+### Configuration Not Applied
+
+**Problem**: Changes to configuration not taking effect.
+
+**Solution**:
+1. Check environment variables are set: `echo $REDIS_HOST`
+2. Verify service is using config: Check logs for connection attempts
+3. Ensure Bazel rebuild: `bazel clean && bazel run //...`
+
+### Service Can't Connect to Redis/InfluxDB
+
+**Problem**: Service fails to connect with "Connection refused".
+
+**Solution**:
+1. Check service is running: `redis-cli ping` or `curl http://localhost:8181/health`
+2. Verify host/port: Check configuration values
+3. Check firewall/network: Ensure ports are accessible
+
+### Environment Variables Not Read
+
+**Problem**: Configuration uses defaults instead of environment variables.
+
+**Solution**:
+1. Check variable names: Must match exactly (e.g., `REDIS_HOST`, not `REDIS_HOSTNAME`)
+2. Verify prefix: Redis uses `REDIS_`, InfluxDB uses `INFLUXDB*`
+3. Source environment file: `source system/algo_trader/algo_trader.env`
+
+## Best Practices
+
+1. **Use Environment Variables for Development**: Simplest workflow
+2. **Use Explicit Config for Testing**: Easy to mock and isolate
+3. **Use ConfigMaps for Production**: Kubernetes-native approach
+4. **Never Hardcode Secrets**: Always use environment variables or secrets management
+5. **Validate Config Early**: Check configuration at startup
+6. **Document Custom Configs**: Add comments explaining non-standard values
+
+## Reference
+
+### Complete Configuration Example
+
+```python
+from system.algo_trader.config import AlgoTraderConfig
+from infrastructure.config import RedisConfig, InfluxDBConfig
+from system.algo_trader.config import SchwabConfig
+
+# Complete system configuration
+config = AlgoTraderConfig(
+    redis=RedisConfig(
+        host="redis-cluster.example.com",
+        port=6379,
+        db=0,
+        max_connections=20,
+        socket_timeout=60
+    ),
+    influxdb=InfluxDBConfig(
+        host="influxdb-cluster.example.com",
+        port=8086,
+        token="your-token-here",
+        database="production-database"
+    ),
+    schwab=SchwabConfig(
+        app_name="production-app",
+        api_key="your-api-key",
+        secret="your-secret",
+        refresh_token="your-refresh-token"
+    ),
+    log_level="INFO"
+)
+
+# Use with any service
+from system.algo_trader.service import LiveMarketService, HistoricalMarketService
+
+live_service = LiveMarketService(config=config)
+historical_service = HistoricalMarketService(config=config)
+```
+
+## Additional Resources
+
+- [Microservice Architecture Guide](./microservice-readiness.mdc)
+- [Configuration Layer Plan](./config-layer-plan.md)
+- [Pydantic Settings Documentation](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+- [12-Factor App](https://12factor.net/config)
+

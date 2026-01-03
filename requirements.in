@@ -4,18 +4,24 @@ scipy>=1.13.0
 numpy>=1.26.4
 matplotlib>=3.7.0
 pydantic>=2.11.7
+pydantic-settings>=2.0.0
 
 ### Testing ###
 pytest>=7.0.0
 pytest-mock>=3.10.0
 pytest-cov>=4.0.0
+pytest-timeout>=2.1.0  # Required for thread test timeouts
 pytest-asyncio>=0.21.0  # Optional, for future async testing
 pytest-bazel  # Official Bazel + pytest integration
 
 ### Environment ###
-python-dotenv>=1.0.0
+pyyaml>=6.0.0
 
 ### Client ###
 requests>=2.31.0
 redis>=4.3.4
-influxdb3-python>=0.3.0
+influxdb3-python>=0.15.0
+pymysql>=1.1.0
+
+### Utilities ###
+tqdm>=4.66.0

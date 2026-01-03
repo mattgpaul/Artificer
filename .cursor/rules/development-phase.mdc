@@ -1,0 +1,322 @@
+---
+alwaysApply: false
+---
+
+# Development Phase Standards
+
+## Purpose
+
+This document specifies practices to be applied during rapid development phases to reduce token usage and accelerate implementation. These rules prioritize code functionality over documentation and testing, with the understanding that these will be added in subsequent phases.
+
+**Note**: These rules are intended for active development phases. Once development is complete, follow the standard workflow rules for adding tests, documentation, and proper structure.
+
+## Mandatory Development Phase Practices
+
+### 1. No Test Creation
+
+**Rule**: Do NOT create or modify test files during development phase.
+
+**Rationale**: Tests consume significant tokens and can be added after core functionality is implemented.
+
+**Exceptions**: None during active development phase.
+
+### 2. No Docstring Creation
+
+**Rule**: Do NOT add docstrings to functions, classes, or modules during development phase.
+
+**Rationale**: Docstrings add token overhead. Focus on implementing functionality first.
+
+**What to Include**:
+- Minimal inline comments only when code behavior is non-obvious
+- Type hints (these are required and don't count as docstrings)
+- Function signatures with clear parameter names
+
+**What to Exclude**:
+- Module-level docstrings (`"""Module description"""`)
+- Class docstrings (`"""Class description"""`)
+- Function/method docstrings (`"""Function description"""`)
+- Existing docstrings should be preserved but not expanded
+
+### 3. No Markdown File Creation
+
+**Rule**: Do NOT create or modify `.md` files (README, documentation, etc.) during development phase.
+
+**Rationale**: Documentation files consume tokens and can be written after implementation is complete.
+
+**Exceptions**: None during active development phase.
+
+### 4. No Test Execution
+
+**Rule**: Do NOT run test commands during development phase. The user will handle all command execution unless specifically requested.
+
+**Rationale**: Test execution is time-consuming and not necessary until implementation is complete. Command execution should be left to the user to control timing and context.
+
+**Agent Behavior**:
+- Do NOT execute `bazel test` commands
+- Do NOT execute `bazel build` or `bazel run` commands unless the user explicitly requests it
+- Do NOT execute any commands automatically
+- Provide command examples for the user to run themselves
+
+**Commands User May Run** (for reference, not for agent execution):
+- `bazel build //path/to:target` - Verify compilation
+- `bazel run //path/to:binary_target` - Execute binaries and verify behavior
+
+**Exception**: Only execute commands if the user explicitly requests it (e.g., "run this build command" or "test this now").
+
+### 5. File Size Limits
+
+**Rule**: Implementation files MUST be limited to 300 lines of code or less.
+
+**Line Counting Rules**:
+- **Count**: Actual code lines (function definitions, class definitions, statements, expressions)
+- **Do NOT Count**: 
+  - Existing docstrings (preserve but don't count)
+  - Comments (both `#` and `"""` style)
+  - Blank lines
+  - Type hints (part of function signatures, don't count separately)
+  - Import statements (count as 1 line regardless of length)
+
+**Example**:
+```python
+# This comment doesn't count
+from typing import Optional  # Counts as 1 line
+
+def example_function(param: str) -> Optional[int]:  # Counts as 1 line
+    """Existing docstring - doesn't count"""  # Doesn't count
+    # Inline comment - doesn't count
+    result = param.upper()  # Counts as 1 line
+    return result if result else None  # Counts as 1 line
+# Total: 4 lines of code
+```
+
+### 6. File Organization Patterns
+
+**Rule**: When approaching or exceeding 300 lines, split functionality into separate files or directories.
+
+**Strategies**:
+
+#### Strategy 1: Split by Responsibility
+```
+# Instead of one large file:
+service/handler.py  # 350 lines ❌
+
+# Split into:
+service/handler.py        # 200 lines ✅
+service/validator.py      # 150 lines ✅
+service/processor.py      # 100 lines ✅
+```
+
+#### Strategy 2: Split by Domain
+```
+# Instead of one large file:
+market/data.py  # 400 lines ❌
+
+# Split into:
+market/quote.py      # 150 lines ✅
+market/order.py        # 120 lines ✅
+market/execution.py    # 130 lines ✅
+```
+
+#### Strategy 3: Extract Utilities
+```
+# Instead of one large file:
+strategy/executor.py  # 350 lines ❌
+
+# Split into:
+strategy/executor.py      # 200 lines ✅
+strategy/utils.py         # 150 lines ✅
+```
+
+#### Strategy 4: Separate Interfaces from Implementation
+```
+# Instead of one large file:
+client/api.py  # 400 lines ❌
+
+# Split into:
+client/interface.py    # 100 lines ✅ (abstract base classes)
+client/implementation.py  # 200 lines ✅ (concrete classes)
+client/helpers.py      # 100 lines ✅ (utility functions)
+```
+
+**Decision Process**:
+1. When a file approaches 250 lines, evaluate if splitting would improve organization
+2. Split by logical boundaries (classes, major functions, domains)
+3. Ensure split files have clear, single responsibilities
+4. Maintain import relationships that make sense
+
+### 7. No Python __init__.py Files
+
+**Rule**: Do NOT create or modify `__init__.py` files during development phase.
+
+**Rationale**: `__init__.py` files are **unnecessary when using Bazel as the build system**. Bazel handles Python package structure and imports through BUILD files and explicit dependency declarations. The build system manages the Python path and module resolution, making `__init__.py` files redundant for package organization.
+
+**Why Bazel Doesn't Need __init__.py**:
+- Bazel uses BUILD files to define package boundaries and dependencies
+- Python imports are resolved through explicit `deps` declarations in BUILD files
+- The build system manages the Python path automatically
+- Module visibility is controlled through Bazel's `visibility` attribute, not `__init__.py` exports
+
+**What This Means**:
+- Do not create new `__init__.py` files
+- Do not modify existing `__init__.py` files
+- Python packages work correctly without `__init__.py` when using Bazel
+- Use explicit imports (e.g., `from package.module import Class`) which work regardless of `__init__.py`
+- Package structure is defined by BUILD files, not `__init__.py` files
+
+**Note**: If existing `__init__.py` files are present (from before Bazel migration or legacy code), preserve them but do not expand them. They are not required for Bazel to function correctly.
+
+### 8. Bazel Target Organization
+
+**Rule**: Utilize Bazel library and binary targets effectively. Consolidate libraries as much as possible.
+
+#### Library Targets
+
+**Consolidation Strategy**:
+- Group related functionality into single library targets
+- Prefer fewer, larger library targets over many small ones
+- Only split libraries when they serve distinct purposes or have different dependency sets
+
+**Example - Good Consolidation**:
+```python
+# BUILD file
+py_library(
+    name = "market_handler_lib",
+    srcs = [
+        "account_handler.py",
+        "market_handler.py",
+        "schwab_client.py",
+        "timescale_enum.py",
+    ],
+    deps = [
+        "//infrastructure/logging:logger",
+        requirement("requests"),
+    ],
+    visibility = ["//visibility:public"],
+)
+```
+
+**Example - Avoid Over-Splitting**:
+```python
+# DON'T do this - too many small libraries
+py_library(name = "account_handler_lib", srcs = ["account_handler.py"], ...)
+py_library(name = "market_handler_lib", srcs = ["market_handler.py"], ...)
+py_library(name = "schwab_client_lib", srcs = ["schwab_client.py"], ...)
+```
+
+#### Binary Targets
+
+**Rule**: Create binary targets for executables that users need to run.
+
+**Pattern**:
+```python
+py_binary(
+    name = "main",
+    srcs = ["main.py"],
+    deps = [
+        ":market_handler_lib",
+        "//infrastructure/logging:logger",
+    ],
+)
+```
+
+**Best Practices**:
+- One binary per entry point (main script)
+- Binaries depend on consolidated libraries
+- Keep binary targets simple - logic should be in libraries
+
+#### Target Naming
+
+Follow existing conventions:
+- Libraries: `{component}_lib` (e.g., `market_handler_lib`)
+- Binaries: `{component}` or descriptive name (e.g., `main`, `populate_data`)
+
+### 9. Ask Clarifying Questions Liberally
+
+**Rule**: When requirements are unclear, ambiguous, or could be interpreted multiple ways, ask clarifying questions before implementing.
+
+**When to Ask**:
+- **Ambiguous requirements**: User request could mean multiple things
+- **Architectural decisions**: Where should new code live? How should it integrate?
+- **Interface design**: What should function signatures look like? What parameters are needed?
+- **Error handling**: How should errors be handled? What should happen on failure?
+- **Data structures**: What format should data be in? What fields are required?
+- **Dependencies**: What external libraries or internal modules should be used?
+- **File organization**: Where should new files be created? How should they be structured?
+
+**How to Ask**:
+- Be specific about what's unclear
+- Offer 2-3 concrete options when possible
+- Explain the trade-offs of different approaches
+- Reference existing patterns in the codebase when relevant
+
+**Example Questions**:
+- "Should this new feature be added to `market_handler.py` or should I create a new file? The current file is at 280 lines."
+- "How should errors from the API be handled - should we log and continue, or raise exceptions?"
+- "Should this functionality be a method on the existing `MarketHandler` class or a separate utility function?"
+- "What should the return type be - a dictionary, a Pydantic model, or a simple value?"
+
+## Development Phase Workflow
+
+### Typical Development Session
+
+1. **Understand Requirements**: Ask clarifying questions if needed
+2. **Plan File Structure**: Determine where code should live, split if needed to stay under 300 lines
+3. **Implement Core Functionality**: Write code without docstrings, tests, or documentation
+4. **Create/Update BUILD Files**: Set up Bazel targets (libraries and binaries)
+5. **User Verifies**: User runs `bazel build` and `bazel run` to verify functionality (agent does not execute)
+6. **Iterate**: Make changes based on user feedback, continue asking questions as needed
+
+### Commands for User Reference
+
+**Note**: These commands are provided for the user to run. The agent should NOT execute them unless explicitly requested by the user.
+
+**Build** (user runs):
+```bash
+bazel build //path/to:target
+```
+
+**Run** (user runs):
+```bash
+bazel run //path/to:binary_target
+```
+
+**Format** (user runs if needed):
+```bash
+bazel run //tools:ruff -- format .
+```
+
+### Commands Agent Should Avoid
+
+- `bazel test //...` - No test execution
+- `bazel build` - Do not execute unless user explicitly requests
+- `bazel run` - Do not execute unless user explicitly requests
+- Creating test files
+- Creating documentation files
+- Running linters (unless specifically requested by user)
+
+## Post-Development Phase
+
+Once development is complete, transition to standard workflow:
+
+1. **Add Tests**: Follow testing standards from `testing.mdc`
+2. **Add Docstrings**: Follow Google style guide from `bazel-monorepo-python.mdc`
+3. **Add Documentation**: Create README files and update existing docs
+4. **Refactor if Needed**: Split or consolidate files based on maintainability (not just line count)
+5. **User Runs Test Suite**: User verifies everything works (agent does not execute tests unless requested)
+
+**Note**: `__init__.py` files are not required with Bazel. Package structure and imports are managed through BUILD files. Only add `__init__.py` if you have a specific use case (e.g., package-level initialization code that must run at import time), but this is rarely needed with Bazel.
+
+## Summary
+
+**During Development Phase**:
+- ✅ Write functional code (max 300 lines per file)
+- ✅ Use Bazel libraries and binaries
+- ✅ Ask clarifying questions
+- ✅ Provide command examples for user to run
+- ❌ No tests
+- ❌ No docstrings
+- ❌ No markdown files
+- ❌ No command execution (user handles unless explicitly requested)
+- ❌ No __init__.py files
+
+**Goal**: Rapid implementation with minimal token usage, deferring documentation and testing to later phases.
