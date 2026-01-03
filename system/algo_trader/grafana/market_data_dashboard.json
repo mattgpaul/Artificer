@@ -1,0 +1,184 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "market-data-candles",
+    "title": "Market Data - Candlestick Charts",
+    "tags": ["market-data", "candles", "ohlc"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "OHLC Candlestick Chart",
+        "type": "candlestick",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "datasource": "InfluxDB-MarketData",
+            "query": "SELECT time, open, high, low, close FROM market_data WHERE ticker='${ticker}' AND period_type='${period_type}' AND period='${period}' AND frequency_type='${frequency_type}' AND frequency='${frequency}' AND time >= $__fromTime AND time <= $__toTime ORDER BY time",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2,
+            "custom": {
+              "candleStyle": "candles",
+              "colorStrategy": "open-close",
+              "mode": "candles"
+            }
+          }
+        },
+        "options": {
+          "candleStyle": "candles",
+          "colorStrategy": "open-close",
+          "colors": {
+            "up": "green",
+            "down": "red"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Volume Chart",
+        "type": "timeseries",
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "datasource": "InfluxDB-MarketData",
+            "query": "SELECT time, volume FROM market_data WHERE ticker='${ticker}' AND period_type='${period_type}' AND period='${period}' AND frequency_type='${frequency_type}' AND frequency='${frequency}' AND time >= $__fromTime AND time <= $__toTime ORDER BY time",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "barAlignment": 0,
+              "lineWidth": 1,
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "spanNulls": false,
+              "insertNulls": false,
+              "showPoints": "never",
+              "pointSize": 5,
+              "stacking": {
+                "mode": "none",
+                "group": "A"
+              },
+              "axisPlacement": "auto",
+              "axisLabel": "",
+              "axisColorMode": "text",
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "ticker",
+          "type": "query",
+          "query": "SELECT DISTINCT ticker FROM market_data ORDER BY ticker",
+          "datasource": "InfluxDB-MarketData",
+          "refresh": 1,
+          "includeAll": false,
+          "multi": false,
+          "allValue": null,
+          "current": {
+            "text": "AAPL",
+            "value": "AAPL"
+          }
+        },
+        {
+          "name": "period_type",
+          "type": "custom",
+          "query": "year,month,day",
+          "current": {
+            "text": "year",
+            "value": "year"
+          },
+          "options": [
+            {"text": "year", "value": "year", "selected": true},
+            {"text": "month", "value": "month", "selected": false},
+            {"text": "day", "value": "day", "selected": false}
+          ]
+        },
+        {
+          "name": "period",
+          "type": "custom",
+          "query": "1,3,5,10,20",
+          "current": {
+            "text": "5",
+            "value": "5"
+          },
+          "options": [
+            {"text": "1", "value": "1", "selected": false},
+            {"text": "3", "value": "3", "selected": false},
+            {"text": "5", "value": "5", "selected": true},
+            {"text": "10", "value": "10", "selected": false},
+            {"text": "20", "value": "20", "selected": false}
+          ]
+        },
+        {
+          "name": "frequency_type",
+          "type": "custom",
+          "query": "daily,weekly,monthly",
+          "current": {
+            "text": "daily",
+            "value": "daily"
+          },
+          "options": [
+            {"text": "daily", "value": "daily", "selected": true},
+            {"text": "weekly", "value": "weekly", "selected": false},
+            {"text": "monthly", "value": "monthly", "selected": false}
+          ]
+        },
+        {
+          "name": "frequency",
+          "type": "custom",
+          "query": "1",
+          "current": {
+            "text": "1",
+            "value": "1"
+          },
+          "options": [
+            {"text": "1", "value": "1", "selected": true}
+          ]
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1y",
+      "to": "now"
+    },
+    "timepicker": {},
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 0,
+    "links": []
+  },
+  "overwrite": true
+}
