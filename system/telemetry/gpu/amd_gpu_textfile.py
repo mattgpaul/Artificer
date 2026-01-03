@@ -18,24 +18,21 @@ from __future__ import annotations
 import argparse
 import os
 import re
-import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
 
 AMD_VENDOR_HEX = "0x1002"
 
 
-def _read_text(path: Path) -> Optional[str]:
+def _read_text(path: Path) -> str | None:
     try:
         return path.read_text(encoding="utf-8").strip()
     except OSError:
         return None
 
 
-def _read_int(path: Path) -> Optional[int]:
+def _read_int(path: Path) -> int | None:
     text = _read_text(path)
     if text is None:
         return None
@@ -45,7 +42,7 @@ def _read_int(path: Path) -> Optional[int]:
         return None
 
 
-def _read_float(path: Path) -> Optional[float]:
+def _read_float(path: Path) -> float | None:
     text = _read_text(path)
     if text is None:
         return None
@@ -55,7 +52,7 @@ def _read_float(path: Path) -> Optional[float]:
         return None
 
 
-def _find_hwmon_dir(device_dir: Path) -> Optional[Path]:
+def _find_hwmon_dir(device_dir: Path) -> Path | None:
     hwmon_root = device_dir / "hwmon"
     if not hwmon_root.exists():
         return None
@@ -66,7 +63,7 @@ def _find_hwmon_dir(device_dir: Path) -> Optional[Path]:
     return None
 
 
-def _parse_pp_dpm_current_khz(path: Path) -> Optional[int]:
+def _parse_pp_dpm_current_khz(path: Path) -> int | None:
     """Parse pp_dpm_sclk/pp_dpm_mclk and return current frequency in kHz."""
     text = _read_text(path)
     if not text:
@@ -94,16 +91,18 @@ def _parse_pp_dpm_current_khz(path: Path) -> Optional[int]:
 
 @dataclass(frozen=True)
 class GpuMetrics:
+    """Snapshot of AMDGPU metrics for a single DRM card."""
+
     gpu: str
-    temperature_c: Optional[float]
-    power_w: Optional[float]
-    clock_hz: Optional[float]
-    vram_used_bytes: Optional[float]
-    vram_total_bytes: Optional[float]
-    utilization_percent: Optional[float]
+    temperature_c: float | None
+    power_w: float | None
+    clock_hz: float | None
+    vram_used_bytes: float | None
+    vram_total_bytes: float | None
+    utilization_percent: float | None
 
 
-def _collect_for_card(card_dir: Path) -> Optional[GpuMetrics]:
+def _collect_for_card(card_dir: Path) -> GpuMetrics | None:
     # card_dir: /sys/class/drm/cardX
     device_dir = card_dir / "device"
     vendor = _read_text(device_dir / "vendor")
@@ -152,6 +151,7 @@ def _collect_for_card(card_dir: Path) -> Optional[GpuMetrics]:
 
 
 def collect() -> list[GpuMetrics]:
+    """Collect AMDGPU metrics from sysfs for all detected DRM cards."""
     drm_dir = Path("/sys/class/drm")
     if not drm_dir.exists():
         return []
@@ -169,6 +169,7 @@ def collect() -> list[GpuMetrics]:
 
 
 def render(metrics: list[GpuMetrics]) -> str:
+    """Render Prometheus textfile collector output for provided GPU metrics."""
     # NOTE: The node_exporter textfile collector is strict about exposition
     # format. In particular, repeating HELP/TYPE blocks for the same metric name
     # can trigger a scrape error. We therefore emit HELP/TYPE once per metric,
@@ -216,7 +217,9 @@ def render(metrics: list[GpuMetrics]) -> str:
         if gpu.vram_total_bytes is not None:
             samples["node_textfile_gpu_memory_total_bytes"].append((gpu.gpu, gpu.vram_total_bytes))
         if gpu.utilization_percent is not None:
-            samples["node_textfile_gpu_utilization_percent"].append((gpu.gpu, gpu.utilization_percent))
+            samples["node_textfile_gpu_utilization_percent"].append(
+                (gpu.gpu, gpu.utilization_percent)
+            )
 
     lines: list[str] = []
     any_samples = any(len(v) > 0 for v in samples.values())
@@ -236,6 +239,7 @@ def render(metrics: list[GpuMetrics]) -> str:
 
 
 def write_atomically(output_path: Path, content: str) -> None:
+    """Write the textfile content to disk atomically (write temp, then replace)."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
     tmp_path.write_text(content, encoding="utf-8")
@@ -243,6 +247,7 @@ def write_atomically(output_path: Path, content: str) -> None:
 
 
 def main() -> int:
+    """CLI entrypoint: continuously write AMD GPU metrics to a textfile directory."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--output-dir",
@@ -275,5 +280,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

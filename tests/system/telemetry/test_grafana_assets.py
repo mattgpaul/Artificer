@@ -7,7 +7,6 @@ and dashboard JSON files are valid.
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 
 
@@ -162,4 +161,3 @@ class TestGrafanaDashboardJSON:
         titles = {p.get("title") for p in dashboard.get("panels", [])}
         assert "Top CPU processes (requires processes profile)" in titles
         assert "Top memory processes (requires processes profile)" in titles
-

@@ -4,11 +4,9 @@ Tests validate that prometheus.yml parses correctly and contains required
 scrape jobs and file_sd_configs.
 """
 
-import os
-import yaml
 from pathlib import Path
 
-import pytest
+import yaml
 
 
 def get_repo_root():
@@ -63,14 +61,18 @@ class TestPrometheusConfig:
         """Test that node-exporter scrape job exists."""
         config = load_prometheus_config()
         scrape_configs = config["scrape_configs"]
-        node_exporter_jobs = [job for job in scrape_configs if job.get("job_name") == "node-exporter"]
+        node_exporter_jobs = [
+            job for job in scrape_configs if job.get("job_name") == "node-exporter"
+        ]
         assert len(node_exporter_jobs) > 0, "node-exporter scrape job not found"
 
     def test_node_exporter_uses_file_sd(self):
         """Test that node-exporter job uses file-based service discovery."""
         config = load_prometheus_config()
         scrape_configs = config["scrape_configs"]
-        node_exporter_job = next((job for job in scrape_configs if job.get("job_name") == "node-exporter"), None)
+        node_exporter_job = next(
+            (job for job in scrape_configs if job.get("job_name") == "node-exporter"), None
+        )
         assert node_exporter_job is not None
         assert "file_sd_configs" in node_exporter_job
         assert isinstance(node_exporter_job["file_sd_configs"], list)
@@ -80,7 +82,9 @@ class TestPrometheusConfig:
         """Test that file_sd_configs specifies target files."""
         config = load_prometheus_config()
         scrape_configs = config["scrape_configs"]
-        node_exporter_job = next((job for job in scrape_configs if job.get("job_name") == "node-exporter"), None)
+        node_exporter_job = next(
+            (job for job in scrape_configs if job.get("job_name") == "node-exporter"), None
+        )
         assert node_exporter_job is not None
         file_sd_configs = node_exporter_job["file_sd_configs"]
         assert len(file_sd_configs) > 0
@@ -100,7 +104,9 @@ class TestPrometheusConfig:
         """Test that prometheus job uses static_configs."""
         config = load_prometheus_config()
         scrape_configs = config["scrape_configs"]
-        prometheus_job = next((job for job in scrape_configs if job.get("job_name") == "prometheus"), None)
+        prometheus_job = next(
+            (job for job in scrape_configs if job.get("job_name") == "prometheus"), None
+        )
         assert prometheus_job is not None
         assert "static_configs" in prometheus_job
         assert isinstance(prometheus_job["static_configs"], list)
@@ -142,4 +148,3 @@ class TestPrometheusTargetFiles:
             for target_addr in target["targets"]:
                 assert isinstance(target_addr, str)
                 assert ":" in target_addr, f"Target {target_addr} should be in host:port format"
-

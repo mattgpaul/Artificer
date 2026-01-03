@@ -37,4 +37,3 @@ pytest_test(
     tags = ["unit"],
     test_lib = ":test_grafana_assets_lib",
 )
-
