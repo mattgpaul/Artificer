@@ -1,0 +1,61 @@
+queues:
+  - name: ohlcv_queue
+    table: ohlcv
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
+  - name: fundamentals_queue
+    table: fundamentals
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
+  - name: trading_journal_queue
+    table: trading_journal
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
+  - name: backtest_trades_queue
+    table: backtest_trades
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
+  - name: backtest_metrics_queue
+    table: backtest_metrics
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2
+  - name: backtest_studies_queue
+    table: backtest_studies
+    namespace: queue
+    flush_interval: 5000
+    jitter_interval: 1000
+    retry_interval: 10000
+    max_retries: 3
+    max_retry_delay: 30000
+    exponential_base: 2
+    poll_interval: 2

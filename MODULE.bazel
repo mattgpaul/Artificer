@@ -1,11 +1,13 @@
 module(
-    name="artificer",
-    version="0.1.0",
+    name = "artificer",
+    version = "0.1.0",
 )
 
-bazel_dep(name="rules_cc", version="0.1.1")
-bazel_dep(name="rules_python", version="0.40.0")
-bazel_dep(name="googletest", version="1.15.2")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_python", version = "0.40.0")
+bazel_dep(name = "googletest", version = "1.15.2")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_oci", version = "2.2.6")
 
 # Python toolchain
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
@@ -15,7 +17,107 @@ use_repo(python, "python_3_11")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
+    python_version = "3.11",  # Must match the toolchain version
     requirements_lock = "//:requirements.txt",
-    python_version = "3.11", # Must match the toolchain version
 )
 use_repo(pip, "pip")
+
+# Ruff for linting and formatting
+# Download binaries directly from GitHub releases for hermetic builds
+RUFF_VERSION = "0.14.1"
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_file(
+    name = "ruff-osx-tar",
+    downloaded_file_path = "ruff.tar.gz",
+    urls = ["https://github.com/astral-sh/ruff/releases/download/{0}/ruff-aarch64-apple-darwin.tar.gz".format(RUFF_VERSION)],
+)
+
+http_archive(
+    name = "ruff-linux",
+    build_file_content = 'exports_files(["ruff"])',
+    strip_prefix = "ruff-x86_64-unknown-linux-gnu",
+    urls = ["https://github.com/astral-sh/ruff/releases/download/{0}/ruff-x86_64-unknown-linux-gnu.tar.gz".format(RUFF_VERSION)],
+)
+
+# Buildifier for Bazel file formatting and linting
+BUILDIFIER_VERSION = "8.2.1"
+
+http_file(
+    name = "buildifier-linux",
+    urls = ["https://github.com/bazelbuild/buildtools/releases/download/v{0}/buildifier-linux-amd64".format(BUILDIFIER_VERSION)],
+)
+
+http_file(
+    name = "buildifier-osx",
+    urls = ["https://github.com/bazelbuild/buildtools/releases/download/v{0}/buildifier-darwin-arm64".format(BUILDIFIER_VERSION)],
+)
+
+### OCI Images ###
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+oci.pull(
+    name = "influxdb3",
+    digest = "sha256:6fa417245fe0474ed239579885a7dd6b56ba532d33f047dbca7bf66debcc1466",
+    image = "docker.io/library/influxdb:3-core",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "influxdb3", "influxdb3_linux_amd64")
+
+oci.pull(
+    name = "redis",
+    digest = "sha256:a377481f6820efffb07a879de1703a0f6086e188b9aa89f5801563631166090b",
+    image = "docker.io/library/redis:8.0-bookworm",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "redis", "redis_linux_amd64")
+
+oci.pull(
+    name = "grafana",
+    digest = "sha256:35c41e0fd0295f5d0ee5db7e780cf33506abfaf47686196f825364889dee878b",
+    image = "docker.io/grafana/grafana:latest",
+    platforms = ["linux/amd64", "linux/arm64"],
+)
+use_repo(oci, "grafana", "grafana_linux_amd64", "grafana_linux_arm64")
+
+oci.pull(
+    name = "python",
+    digest = "sha256:e4676722fba839e2e5cdb844a52262b43e90e56dbd55b7ad953ee3615ad7534f",
+    image = "docker.io/library/python:3.11-slim",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "python", "python_linux_amd64")
+
+oci.pull(
+    name = "sqlite",
+    digest = "sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1",
+    image = "docker.io/library/alpine:3.19",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "sqlite", "sqlite_linux_amd64")
+
+oci.pull(
+    name = "mysql",
+    digest = "sha256:52cc603981fda056aa44422b192a0c01e1dd0331465330157abb8795484c99a5",
+    image = "docker.io/library/mysql:8.0",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "mysql", "mysql_linux_amd64")
+
+oci.pull(
+    name = "prometheus",
+    digest = "sha256:13f40c0279df792517b456ae6427dd6344685e9b1478fb9de8e4dc418727668f",
+    image = "docker.io/prom/prometheus:v2.48.0",
+    platforms = ["linux/amd64", "linux/arm64"],
+)
+use_repo(oci, "prometheus", "prometheus_linux_amd64", "prometheus_linux_arm64")
+
+oci.pull(
+    name = "node_exporter",
+    digest = "sha256:52a6f10ff10238979c365c06dbed8ad5cd1645c41780dc08ff813adacfb2341e",
+    image = "docker.io/prom/node-exporter:v1.7.0",
+    platforms = ["linux/amd64", "linux/arm64"],
+)
+use_repo(oci, "node_exporter", "node_exporter_linux_amd64", "node_exporter_linux_arm64")

@@ -198,9 +198,11 @@ cython_debug/
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
-.cursorignore
 .cursorindexingignore
-.cursor/rules
+.cursor/plans/
+.cursor/worktrees.json
+# Note: .cursor/rules contains project standards and should be tracked
+# Note: .cursorignore is a configuration file and should be tracked (like .gitignore)
 
 # Marimo
 marimo/_static/
@@ -212,4 +214,9 @@ bazel*
 
 # Environment files
 *.env
-*schwab_tokens.json
+*tokens*
+
+# Git worktrees (if created inside repo)
+# Worktrees are separate checkouts that share the same .git directory
+# They should be ignored to prevent accidental commits of nested workspaces
+worktrees/
