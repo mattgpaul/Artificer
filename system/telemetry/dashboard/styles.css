@@ -1,0 +1,344 @@
+/* Conky-inspired NASA console styling */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+    --bg-color: #000000;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --text-red: #E02F44;
+    --text-green: #00ff00;
+    --text-yellow: #ffff00;
+    --text-blue: #0000ff;
+    --border-color: #333333;
+    --card-bg: #0a0a0a;
+    --separator-color: #444444;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', monospace;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 26px;
+    line-height: 1.45;
+    overflow-x: hidden;
+    min-height: 100vh;
+    font-weight: 600;
+}
+
+#app {
+    max-width: 515px;
+    margin: 0 auto;
+    padding: 8px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Header Card */
+.header-card {
+    text-align: center;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+
+.cerebro-title {
+    font-size: 58px;
+    font-weight: 900;
+    color: var(--text-red);
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+    line-height: 1.05;
+}
+
+.time-display {
+    margin-top: 6px;
+}
+
+.time-large {
+    font-size: 40px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    font-weight: 700;
+}
+
+.date-medium {
+    font-size: 22px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.card:hover {
+    border-color: var(--text-red);
+}
+
+.section-title {
+    font-size: 30px;
+    color: var(--text-red);
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--separator-color);
+    padding-bottom: 4px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+/* Status Card */
+.status-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-label {
+    color: var(--text-secondary);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.status-value {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.status-value.go {
+    color: var(--text-green);
+}
+
+.status-value.warning {
+    color: var(--text-red);
+}
+
+/* Info Grid */
+.info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-label {
+    color: var(--text-secondary);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-size: 20px;
+    text-align: right;
+    font-weight: 700;
+}
+
+/* Progress Bars */
+.progress-bar-container {
+    width: 100%;
+    height: 12px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    margin: 5px 0;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--text-blue);
+    transition: width 0.3s;
+    width: 0%;
+}
+
+/* Processes */
+.processes-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--separator-color);
+    margin-bottom: 6px;
+}
+
+.process-col-header {
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.processes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.process-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 10px;
+    font-size: 18px;
+}
+
+.process-name {
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.process-mem {
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.process-cpu {
+    color: var(--text-primary);
+    text-align: right;
+}
+
+/* Detail Pages */
+.detail-page {
+    padding: 10px;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--separator-color);
+}
+
+.back-button {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 15px;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.back-button:hover {
+    border-color: var(--text-red);
+}
+
+.detail-header h2 {
+    font-size: 32px;
+    color: var(--text-red);
+    font-weight: 700;
+}
+
+.detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-section {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.detail-section h3 {
+    font-size: 20px;
+    color: var(--text-red);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--separator-color);
+    padding-bottom: 5px;
+}
+
+.detail-graph {
+    width: 100%;
+    height: 200px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    margin-top: 10px;
+}
+
+.detail-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.detail-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-stat-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.detail-stat-value {
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* Loading state */
+.loading {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Error state */
+.error {
+    color: var(--text-red);
+}
+
+/* Responsive adjustments for portrait */
+@media (max-width: 515px) {
+    #app {
+        padding: 5px;
+    }
+    
+    .cerebro-title {
+        font-size: 44px;
+    }
+    
+    .time-large {
+        font-size: 28px;
+    }
+    
+    .section-title {
+        font-size: 26px;
+    }
+}
+

@@ -111,6 +111,16 @@ oci_load(
     repo_tags = ["artificer-influx-publisher:latest"],
 )
 
+# Tarball for release distribution
+genrule(
+    name = "publisher_tarball",
+    srcs = [],
+    outs = ["artificer-influx-publisher.tar"],
+    cmd = "$(location :publisher_image) && docker save artificer-influx-publisher:latest -o $@",
+    tags = ["release"],
+    tools = [":publisher_image"],
+)
+
 # buildifier: disable=native-sh-binary
 sh_binary(
     name = "exec",

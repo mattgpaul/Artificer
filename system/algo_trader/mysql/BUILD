@@ -108,3 +108,13 @@ oci_load(
     image = ":mysql_daemon_image_lib",
     repo_tags = ["artificer-mysql-daemon:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "mysql_daemon_tarball",
+    srcs = [],
+    outs = ["artificer-mysql-daemon.tar"],
+    cmd = "$(location :mysql_daemon_image) && docker save artificer-mysql-daemon:latest -o $@",
+    tags = ["release"],
+    tools = [":mysql_daemon_image"],
+)

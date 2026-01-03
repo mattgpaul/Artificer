@@ -1,8 +1,8 @@
 #!/bin/bash
-# Setup Git hooks for integration testing
+# Setup Git hooks for code quality checks (format + lint only)
 # Run this after cloning the repository
 # 
-# This script configures pre-push hooks that run integration tests
+# This script configures a pre-push hook that runs format + lint,
 # and guides users to GitHub's native PR creation workflow.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,10 +11,11 @@ HOOKS_DIR="$REPO_ROOT/.git/hooks"
 
 echo "Setting up Git hooks for Artificer..."
 
-# Create pre-push hook for code quality checks and integration tests
+# Create pre-push hook for code quality checks (format + lint)
 cat > "$HOOKS_DIR/pre-push" << 'EOF'
 #!/bin/bash
-# Pre-push hook to run code quality checks before pushing
+# Pre-push hook to run code quality checks before pushing.
+# Note: Tests are handled by CI; this hook intentionally does not run tests.
 
 echo "🔍 Running code quality checks before push..."
 
@@ -34,32 +35,6 @@ if ! bazel run //:lint; then
 fi
 
 echo "✅ Code quality checks passed!"
-echo ""
-
-# Run integration tests
-echo "🧪 Running integration tests..."
-# Use Bazel tags to select test targets, and pytest marks to filter test functions
-# Bazel tags filter which test targets to run (BUILD file tags)
-# Pytest marks filter which test functions to run within those targets (@pytest.mark.integration)
-if ! bazel test --test_tag_filters="integration" --test_arg="-m" --test_arg="integration" //...; then
-    echo "❌ Integration tests failed. Push aborted."
-    echo "   Fix failing tests before pushing."
-    exit 1
-fi
-
-echo "✅ All integration tests passed!"
-echo ""
-
-# Run e2e tests
-echo "🧪 Running end-to-end (e2e) tests..."
-# Use Bazel tags to select test targets, and pytest marks to filter test functions
-if ! bazel test --test_tag_filters="e2e" --test_arg="-m" --test_arg="e2e" //...; then
-    echo "❌ E2E tests failed. Push aborted."
-    echo "   Fix failing tests before pushing."
-    exit 1
-fi
-
-echo "✅ All e2e tests passed!"
 echo ""
 
 # Check if any changes were made and amend commit if necessary
@@ -82,8 +57,6 @@ echo ""
 echo "Features enabled:"
 echo "  📝 Code formatting with ruff"
 echo "  🔍 Code linting with ruff"
-echo "  🧪 Integration tests (tagged with 'integration' in BUILD files)"
-echo "  🧪 E2E tests (tagged with 'e2e' in BUILD files)"
 echo "  💡 GitHub's native 'Create Pull Request' button after push"
 echo ""
 echo "To bypass the hook (not recommended), use: git push --no-verify"

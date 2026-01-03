@@ -10,3 +10,13 @@ oci_load(
     image = ":node_exporter_image_lib",
     repo_tags = ["artificer-node-exporter:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "node_exporter_tarball",
+    srcs = [],
+    outs = ["artificer-node-exporter.tar"],
+    cmd = "$(location :node_exporter_image) && docker save artificer-node-exporter:latest -o $@",
+    tags = ["release"],
+    tools = [":node_exporter_image"],
+)

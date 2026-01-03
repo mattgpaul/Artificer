@@ -10,3 +10,13 @@ oci_load(
     image = ":grafana_image_lib",
     repo_tags = ["artificer-grafana:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "grafana_tarball",
+    srcs = [],
+    outs = ["artificer-grafana.tar"],
+    cmd = "$(location :grafana_image) && docker save artificer-grafana:latest -o $@",
+    tags = ["release"],
+    tools = [":grafana_image"],
+)
