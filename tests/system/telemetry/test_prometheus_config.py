@@ -133,8 +133,7 @@ class TestPrometheusTargetFiles:
             assert "labels" in target
             assert isinstance(target["labels"], dict)
             # Check for common labels
-            assert "instance" in target["labels"]
-            assert "host" in target["labels"]
+            assert "hostname" in target["labels"]
 
     def test_node_exporters_yaml_target_format(self):
         """Test that targets are in correct format (host:port)."""

@@ -90,6 +90,28 @@ services:
     profiles:
       - amd
 
+  top-process-metrics:
+    image: python:3.11-slim
+    container_name: telemetry-top-process-metrics
+    restart: unless-stopped
+    # Writes top-N CPU/memory processes into node_exporter textfile collector volume.
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python /opt/top_processes_textfile.py --output-dir /var/lib/node_exporter/textfile_collector --proc-root /host/proc --interval-seconds 5
+    networks:
+      - telemetry-net
+    volumes:
+      # Read host procfs for per-process stats
+      - /proc:/host/proc:ro
+      # Write into node_exporter textfile collector volume (must be RW here)
+      - node-exporter-textfile:/var/lib/node_exporter/textfile_collector:rw
+      # Mount the script from the repo
+      - ../processes/top_processes_textfile.py:/opt/top_processes_textfile.py:ro
+    profiles:
+      - processes
+
 volumes:
   prometheus-data:
   grafana-data:

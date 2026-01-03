@@ -128,7 +128,9 @@ class TestGrafanaDashboardJSON:
         for panel in panels:
             assert "id" in panel
             assert "type" in panel
-            assert "targets" in panel
+            # Not all panel types have targets (e.g., row/text panels).
+            if panel["type"] not in {"row", "text"}:
+                assert "targets" in panel
 
     def test_dashboard_panels_have_datasource(self):
         """Test that dashboard panels reference the Prometheus datasource."""
@@ -141,4 +143,23 @@ class TestGrafanaDashboardJSON:
                     if isinstance(datasource, dict) and "uid" in datasource:
                         # Should reference prometheus-telemetry datasource
                         assert datasource["uid"] == "prometheus-telemetry"
+
+    def test_telemetry_overview_has_conky_like_sections(self):
+        """Test that the dashboard includes Conky-inspired section rows."""
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
+        row_titles = {p.get("title") for p in dashboard.get("panels", []) if p.get("type") == "row"}
+        assert "STATUS" in row_titles
+        assert "SYSTEM" in row_titles
+        assert "CPU" in row_titles
+        assert "GPU" in row_titles
+        assert "MEMORY + DISK" in row_titles
+        assert "NETWORK" in row_titles
+        assert "PROCESSES (optional)" in row_titles
+
+    def test_telemetry_overview_has_process_panels(self):
+        """Test that the dashboard includes the top-process tables."""
+        dashboard = load_grafana_dashboard("telemetry-overview.json")
+        titles = {p.get("title") for p in dashboard.get("panels", [])}
+        assert "Top CPU processes (requires processes profile)" in titles
+        assert "Top memory processes (requires processes profile)" in titles
 

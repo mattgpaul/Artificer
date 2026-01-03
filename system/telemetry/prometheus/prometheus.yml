@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: 5s
+  evaluation_interval: 5s
   external_labels:
     cluster: 'telemetry'
     replica: '0'
@@ -10,12 +10,18 @@ scrape_configs:
     file_sd_configs:
       - files:
           - '/etc/prometheus/targets/node-exporters.yaml'
-        refresh_interval: 30s
+        refresh_interval: 5s
     relabel_configs:
-      - source_labels: [__address__]
-        target_label: instance
-      - source_labels: [host]
+      # Prefer an explicit `hostname` label from the target file.
+      # If it is not provided, derive `hostname` from the scrape address (strip port).
+      - source_labels: [hostname, __address__]
+        regex: '(.+);.*'
         target_label: hostname
+        replacement: '$1'
+      - source_labels: [hostname, __address__]
+        regex: ';(.+):\d+'
+        target_label: hostname
+        replacement: '$1'
 
   - job_name: 'prometheus'
     static_configs:
