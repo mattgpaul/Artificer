@@ -1,6 +1,8 @@
 # system/BUILD - System-level build configuration
 
 # System library aggregation
+load("@rules_python//python:defs.bzl", "py_library")
+
 py_library(
     name = "library",
     tags = ["system"],

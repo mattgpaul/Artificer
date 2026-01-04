@@ -1,5 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
@@ -18,7 +18,7 @@ py_library(
     deps = [
         "//infrastructure:client",
         "//infrastructure/logging:logger",
-        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/infra/redis:redis_services",
         "//system/algo_trader/schwab/auth",
         requirement("requests"),
     ],
