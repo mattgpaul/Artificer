@@ -54,4 +54,5 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":influxdb3_image"],
+    visibility = ["//visibility:public"],
 )

@@ -45,4 +45,5 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":mysql_image"],
+    visibility = ["//visibility:public"],
 )

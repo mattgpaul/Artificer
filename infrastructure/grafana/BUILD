@@ -20,4 +20,5 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":grafana_image"],
+    visibility = ["//visibility:public"],
 )

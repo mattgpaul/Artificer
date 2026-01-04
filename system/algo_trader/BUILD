@@ -58,7 +58,7 @@ genrule(
     cmd = """cat > $@ <<'EOF'
 {
   "system": "algo_trader",
-  "version": "${VERSION}",
+  "version": "$${VERSION}",
   "images": [
     {"name": "artificer-redis", "tarball": "artificer-redis.tar"},
     {"name": "artificer-influxdb", "tarball": "artificer-influxdb.tar"},
@@ -85,9 +85,10 @@ EOF""",
 # Bundle all deploy files
 pkg_tar(
     name = "release_bundle_files",
-    srcs = glob(["grafana/provisioning/**/*"]) + [
+    srcs = [
         "docker-compose.yaml",
-        "influx/publisher_config.yaml",
+        "//system/algo_trader/grafana:provisioning",
+        "//system/algo_trader/influx:publisher_config.yaml",
     ],
     package_dir = "algo_trader",
     strip_prefix = "system/algo_trader",

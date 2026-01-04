@@ -20,4 +20,5 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":node_exporter_image"],
+    visibility = ["//visibility:public"],
 )

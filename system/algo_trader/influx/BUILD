@@ -3,6 +3,12 @@ load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
+# Allow parent package (`//system/algo_trader`) to include this config in release bundles.
+exports_files(
+    ["publisher_config.yaml"],
+    visibility = ["//system/algo_trader:__pkg__"],
+)
+
 py_library(
     name = "influx_services",
     srcs = [
