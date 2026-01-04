@@ -114,7 +114,8 @@ def main():
     }
 
     print(json.dumps(output, indent=2))
-    return 0 if impacted else 1
+    # Important: "no impacted systems" is not an error; it should just be a no-op release.
+    return 0
 
 
 if __name__ == "__main__":

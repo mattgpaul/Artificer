@@ -117,6 +117,7 @@ genrule(
     srcs = [],
     outs = ["artificer-influx-publisher.tar"],
     cmd = "$(location :publisher_image) && docker save artificer-influx-publisher:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":publisher_image"],
 )

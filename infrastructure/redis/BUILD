@@ -39,6 +39,7 @@ genrule(
     srcs = [],
     outs = ["artificer-redis.tar"],
     cmd = "$(location :redis_image) && docker save artificer-redis:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":redis_image"],
 )

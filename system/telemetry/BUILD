@@ -103,9 +103,12 @@ pkg_tar(
     deps = [":release_bundle_files"],
 )
 
-# Meta release target
-alias(
+# Meta release target: build both image tarballs and deploy bundle
+filegroup(
     name = "release",
-    actual = ":release_bundle",
+    srcs = [
+        ":release_bundle",
+        ":release_images",
+    ],
     visibility = ["//visibility:public"],
 )

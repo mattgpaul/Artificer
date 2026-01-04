@@ -2,9 +2,9 @@ name: Code Quality
 
 on:
   pull_request:
-    branches: [main, algo_trader]
+    branches: [main]
   push:
-    branches: [main, algo_trader]
+    branches: [main]
 
 # Optimize Bazel caching and performance
 env:
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       # Cache Bazel artifacts for massive speedup
       - name: Cache Bazel
@@ -88,6 +90,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       # Restore Bazel cache - can reuse from lint job
       - name: Cache Bazel
@@ -135,8 +139,52 @@ jobs:
       
       - name: Run all tests
         run: |
-          echo "🧪 Running test suite..."
-          bazel test //... --test_output=errors
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_name }}" = "main" ]; then
+            echo "🧪 Push to main: running full test suite..."
+            bazel test //... --test_output=errors
+            exit 0
+          fi
+
+          echo "🧪 PR to main: running system-scoped tests (impacted systems only)..."
+
+          # Compute changed files for PR
+          git fetch --no-tags origin "${{ github.base_ref }}" --depth=1 || true
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD || true)
+          echo "$CHANGED_FILES" > /tmp/changed_files.txt
+
+          # Discover systems dynamically from repo
+          mapfile -t ALL_SYSTEMS < <(find system -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort)
+          IMPACTED_SYSTEMS=()
+
+          if grep -q '^infrastructure/' /tmp/changed_files.txt; then
+            # Shared infra change: treat as impacting all systems
+            IMPACTED_SYSTEMS=("${ALL_SYSTEMS[@]}")
+          else
+            for SYS in "${ALL_SYSTEMS[@]}"; do
+              if grep -q "^system/${SYS}/" /tmp/changed_files.txt; then
+                IMPACTED_SYSTEMS+=("$SYS")
+              fi
+            done
+          fi
+
+          if [ "${#IMPACTED_SYSTEMS[@]}" -eq 0 ]; then
+            echo "No system/ or infrastructure/ changes detected; skipping system tests."
+            exit 0
+          fi
+
+          echo "Impacted systems: ${IMPACTED_SYSTEMS[*]}"
+
+          # Run tests for impacted systems only (if the tests package exists)
+          for SYS in "${IMPACTED_SYSTEMS[@]}"; do
+            if [ -d "tests/system/${SYS}" ]; then
+              echo "Running tests for system: ${SYS}"
+              bazel test "//tests/system/${SYS}/..." --test_output=errors
+            else
+              echo "No tests found under tests/system/${SYS}; skipping."
+            fi
+          done
       
       # Upload test results for visibility
       - name: Upload test results
@@ -152,7 +200,8 @@ jobs:
         if: always()
         run: |
           echo "📊 Test Statistics:"
-          bazel test //... --test_summary=detailed --test_output=errors || true
+          # Avoid re-running the entire test suite here; that defeats PR scoping.
+          # Just show Bazel/cache stats.
           echo ""
           echo "📊 Bazel Cache Statistics:"
           du -sh ~/.cache/bazel 2>/dev/null || echo "Cache not found"

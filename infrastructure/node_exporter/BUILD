@@ -17,6 +17,7 @@ genrule(
     srcs = [],
     outs = ["artificer-node-exporter.tar"],
     cmd = "$(location :node_exporter_image) && docker save artificer-node-exporter:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":node_exporter_image"],
 )

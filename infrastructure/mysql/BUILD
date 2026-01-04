@@ -42,6 +42,7 @@ genrule(
     srcs = [],
     outs = ["artificer-mysql.tar"],
     cmd = "$(location :mysql_image) && docker save artificer-mysql:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":mysql_image"],
 )
