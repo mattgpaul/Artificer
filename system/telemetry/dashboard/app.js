@@ -213,6 +213,51 @@ const app = {
         const memStatus = (memPercent !== '--' && memPercent > 90) ? 'warning' : 'go';
         document.getElementById('status-memory').textContent = memStatus === 'warning' ? 'WARNING' : 'GO';
         document.getElementById('status-memory').className = `status-value ${memStatus}`;
+
+        // Network status (disconnected => warning)
+        // Prefer an explicit link status metric; fall back to "primary IPv4 present".
+        let connected = false;
+        let hasSignal = false;
+
+        if (!this.primaryNetworkDevice) {
+            await this.detectPrimaryNetworkDevice();
+        }
+
+        if (this.primaryNetworkDevice) {
+            const netUpQ = `node_network_up{hostname="${this.currentHostname}",device="${this.primaryNetworkDevice}"}`;
+            const netUpR = await this.queryPrometheus(netUpQ);
+            const netUp = this.getValue(netUpR, null);
+            if (netUp !== null) {
+                hasSignal = true;
+                connected = netUp === 1;
+            } else {
+                const carrierQ = `node_network_carrier{hostname="${this.currentHostname}",device="${this.primaryNetworkDevice}"}`;
+                const carrierR = await this.queryPrometheus(carrierQ);
+                const carrier = this.getValue(carrierR, null);
+                if (carrier !== null) {
+                    hasSignal = true;
+                    connected = carrier === 1;
+                }
+            }
+        }
+
+        if (!hasSignal) {
+            const ipQ = `node_textfile_primary_ipv4{hostname="${this.currentHostname}"}`;
+            const ipR = await this.queryPrometheus(ipQ);
+            if (ipR.length > 0 && ipR[0].metric?.address) {
+                hasSignal = true;
+                connected = ipR[0].metric.address !== '0.0.0.0';
+            }
+        }
+
+        // If we have no signal at all, treat it as disconnected (warning) to be safe.
+        const networkStatus = connected ? 'go' : 'warning';
+        const networkText = connected ? 'GO' : 'WARNING';
+        const networkEl = document.getElementById('status-network');
+        if (networkEl) {
+            networkEl.textContent = networkText;
+            networkEl.className = `status-value ${networkStatus}`;
+        }
     },
 
     async updateSystemCard() {
