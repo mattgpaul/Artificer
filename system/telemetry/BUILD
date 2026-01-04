@@ -24,4 +24,3 @@ filegroup(
     srcs = ["ops/docker-compose.yaml"],
     visibility = ["//visibility:public"],
 )
-
