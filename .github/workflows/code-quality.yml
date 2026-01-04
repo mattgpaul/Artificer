@@ -178,12 +178,17 @@ jobs:
 
           # Run tests for impacted systems only (if the tests package exists)
           for SYS in "${IMPACTED_SYSTEMS[@]}"; do
-            if [ -d "tests/system/${SYS}" ]; then
-              echo "Running tests for system: ${SYS}"
-              bazel test "//tests/system/${SYS}/..." --test_output=errors
-            else
-              echo "No tests found under tests/system/${SYS}; skipping."
+            echo "Running tests for system: ${SYS}"
+
+            QUERY="kind(\".*_test\", //system/${SYS}/...) union kind(\".*_test\", //tests/system/${SYS}/...)"
+            mapfile -t SYSTEM_TEST_TARGETS < <(bazel query "${QUERY}" 2>/dev/null || true)
+
+            if [ "${#SYSTEM_TEST_TARGETS[@]}" -eq 0 ]; then
+              echo "No Bazel test targets found for system '${SYS}'; skipping."
+              continue
             fi
+
+            bazel test "${SYSTEM_TEST_TARGETS[@]}" --test_output=errors
           done
       
       # Upload test results for visibility
