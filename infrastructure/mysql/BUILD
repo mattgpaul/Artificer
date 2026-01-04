@@ -35,3 +35,15 @@ oci_load(
     image = ":mysql_image_lib",
     repo_tags = ["artificer-mysql:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "mysql_tarball",
+    srcs = [],
+    outs = ["artificer-mysql.tar"],
+    cmd = "$(location :mysql_image) && docker save artificer-mysql:latest -o $@",
+    local = 1,
+    tags = ["release"],
+    tools = [":mysql_image"],
+    visibility = ["//visibility:public"],
+)

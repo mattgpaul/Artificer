@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Code Quality"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  release:
+    name: Release Systems
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history + tags for version computation
+          ref: ${{ github.event.workflow_run.head_sha }}
+      
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@v0.8.1
+        with:
+          bazelisk-version: latest
+      
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Start Docker daemon
+        run: |
+          sudo systemctl start docker || true
+          sudo chmod 666 /var/run/docker.sock || true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Detect impacted systems and compute versions
+        id: detect
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/release.py > /tmp/release_info.json
+          cat /tmp/release_info.json
+          
+          IMPACTED=$(jq -c '.impacted' /tmp/release_info.json)
+          VERSIONS=$(jq -c '.versions' /tmp/release_info.json)
+          COUNT=$(jq -r '.impacted | length' /tmp/release_info.json)
+          
+          echo "impacted=$IMPACTED" >> $GITHUB_OUTPUT
+          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          
+          # Also output per-system for easier access
+          jq -r '.systems | to_entries[] | "\(.key)=\(.value)"' /tmp/release_info.json >> $GITHUB_OUTPUT || true
+      
+      - name: Build and release impacted systems
+        if: steps.detect.outputs.count > 0
+        run: |
+          set -euo pipefail
+
+          SYSTEMS=$(echo '${{ steps.detect.outputs.impacted }}' | jq -r '.[]')
+          VERSIONS=$(echo '${{ steps.detect.outputs.versions }}' | jq -r '.[]')
+          
+          # Convert to arrays
+          readarray -t SYSTEM_ARRAY <<< "$SYSTEMS"
+          readarray -t VERSION_ARRAY <<< "$VERSIONS"
+          
+          for i in "${!SYSTEM_ARRAY[@]}"; do
+            SYSTEM="${SYSTEM_ARRAY[$i]}"
+            VERSION="${VERSION_ARRAY[$i]}"
+            TAG="${SYSTEM}/v${VERSION}"
+            
+            echo "Building release for $SYSTEM version $VERSION"
+            
+            # Build meta release target (bundle + image tarballs)
+            echo "Building Bazel release target..."
+            bazel build "//system/${SYSTEM}:release"
+            
+            # Locate outputs via Bazel (no hard-coded paths)
+            echo "Locating artifacts..."
+            mapfile -t IMAGE_TARBALLS < <(bazel cquery "//system/${SYSTEM}:release_images" --output=files 2>/dev/null || true)
+            BUNDLE_TARBALL=$(bazel cquery "//system/${SYSTEM}:release_bundle" --output=files 2>/dev/null | head -n1 || true)
+            
+            # Create git tag
+            echo "Creating tag $TAG..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $SYSTEM v$VERSION"
+            git push origin "$TAG"
+            
+            # Create GitHub Release
+            echo "Creating GitHub Release $TAG..."
+            gh release create "$TAG" \
+              --title "$SYSTEM v$VERSION" \
+              --notes "Automated release of $SYSTEM system" \
+              --target main
+            
+            # Upload image tarballs
+            echo "Uploading artifacts..."
+            for TARBALL in "${IMAGE_TARBALLS[@]}"; do
+              if [ -f "$TARBALL" ]; then
+                echo "Uploading $(basename "$TARBALL")..."
+                gh release upload "$TAG" "$TARBALL" --clobber
+              fi
+            done
+            
+            # Upload bundle if found
+            if [ -n "${BUNDLE_TARBALL:-}" ] && [ -f "$BUNDLE_TARBALL" ]; then
+              echo "Processing bundle: $BUNDLE_TARBALL"
+              TEMP_DIR=$(mktemp -d)
+              tar -xf "$BUNDLE_TARBALL" -C "$TEMP_DIR"
+              
+              # Inject version into manifest
+              find "$TEMP_DIR" -name "release_manifest.json.template" -exec sh -c 'sed "s/\${VERSION}/'"$VERSION"'/g" "$1" > "${1%.template}"' _ {} \;
+              
+              # Create final bundle
+              FINAL_BUNDLE="/tmp/${SYSTEM}-v${VERSION}-bundle.tar.gz"
+              cd "$TEMP_DIR"
+              tar -czf "$FINAL_BUNDLE" .
+              cd -
+              
+              if [ -f "$FINAL_BUNDLE" ]; then
+                gh release upload "$TAG" "$FINAL_BUNDLE" --clobber
+              fi
+              rm -rf "$TEMP_DIR"
+            fi
+            
+            echo "Release $TAG completed"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
