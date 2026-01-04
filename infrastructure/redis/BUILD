@@ -1,5 +1,6 @@
 load("@pip//:requirements.bzl", "requirement")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_python//python:defs.bzl", "py_library")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
