@@ -37,7 +37,7 @@ jobs:
             ${{ runner.os }}-bazel-
       
       - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.8.1
+        uses: bazel-contrib/setup-bazel@0.16.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
@@ -107,7 +107,7 @@ jobs:
             ${{ runner.os }}-bazel-
       
       - name: Setup Bazel
-        uses: bazel-contrib/setup-bazel@0.8.1
+        uses: bazel-contrib/setup-bazel@0.16.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
