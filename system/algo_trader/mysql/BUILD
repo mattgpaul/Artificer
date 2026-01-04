@@ -118,4 +118,5 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":mysql_daemon_image"],
+    visibility = ["//visibility:public"],
 )
