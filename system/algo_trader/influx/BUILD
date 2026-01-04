@@ -126,6 +126,7 @@ genrule(
     local = 1,
     tags = ["release"],
     tools = [":publisher_image"],
+    visibility = ["//visibility:public"],
 )
 
 # buildifier: disable=native-sh-binary
