@@ -13,7 +13,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/logging:logger",
-        "//system/algo_trader/redis:redis_services",
+        "//system/algo_trader/infra/redis:redis_services",
         requirement("requests"),
     ],
 )
