@@ -57,7 +57,7 @@ genrule(
     cmd = """cat > $@ <<'EOF'
 {
   "system": "telemetry",
-  "version": "${VERSION}",
+  "version": "$${VERSION}",
   "images": [
     {"name": "artificer-prometheus", "tarball": "artificer-prometheus.tar"},
     {"name": "artificer-grafana", "tarball": "artificer-grafana.tar"},
