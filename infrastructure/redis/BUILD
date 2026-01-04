@@ -32,3 +32,15 @@ oci_load(
     image = ":redis_image_lib",
     repo_tags = ["artificer-redis:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "redis_tarball",
+    srcs = [],
+    outs = ["artificer-redis.tar"],
+    cmd = "$(location :redis_image) && docker save artificer-redis:latest -o $@",
+    local = 1,
+    tags = ["release"],
+    tools = [":redis_image"],
+    visibility = ["//visibility:public"],
+)

@@ -10,3 +10,15 @@ oci_load(
     image = ":prometheus_image_lib",
     repo_tags = ["artificer-prometheus:latest"],
 )
+
+# Tarball for release distribution
+genrule(
+    name = "prometheus_tarball",
+    srcs = [],
+    outs = ["artificer-prometheus.tar"],
+    cmd = "$(location :prometheus_image) && docker save artificer-prometheus:latest -o $@",
+    local = 1,
+    tags = ["release"],
+    tools = [":prometheus_image"],
+    visibility = ["//visibility:public"],
+)
