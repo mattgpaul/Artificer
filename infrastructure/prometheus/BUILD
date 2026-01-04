@@ -10,4 +10,3 @@ oci_load(
     image = ":prometheus_image_lib",
     repo_tags = ["artificer-prometheus:latest"],
 )
-

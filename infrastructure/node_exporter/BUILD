@@ -10,4 +10,3 @@ oci_load(
     image = ":node_exporter_image_lib",
     repo_tags = ["artificer-node-exporter:latest"],
 )
-

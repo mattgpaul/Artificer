@@ -78,7 +78,10 @@ oci.pull(
     name = "grafana",
     digest = "sha256:35c41e0fd0295f5d0ee5db7e780cf33506abfaf47686196f825364889dee878b",
     image = "docker.io/grafana/grafana:latest",
-    platforms = ["linux/amd64", "linux/arm64"],
+    platforms = [
+        "linux/amd64",
+        "linux/arm64",
+    ],
 )
 use_repo(oci, "grafana", "grafana_linux_amd64", "grafana_linux_arm64")
 
@@ -110,7 +113,10 @@ oci.pull(
     name = "prometheus",
     digest = "sha256:13f40c0279df792517b456ae6427dd6344685e9b1478fb9de8e4dc418727668f",
     image = "docker.io/prom/prometheus:v2.48.0",
-    platforms = ["linux/amd64", "linux/arm64"],
+    platforms = [
+        "linux/amd64",
+        "linux/arm64",
+    ],
 )
 use_repo(oci, "prometheus", "prometheus_linux_amd64", "prometheus_linux_arm64")
 
@@ -118,6 +124,9 @@ oci.pull(
     name = "node_exporter",
     digest = "sha256:52a6f10ff10238979c365c06dbed8ad5cd1645c41780dc08ff813adacfb2341e",
     image = "docker.io/prom/node-exporter:v1.7.0",
-    platforms = ["linux/amd64", "linux/arm64"],
+    platforms = [
+        "linux/amd64",
+        "linux/arm64",
+    ],
 )
 use_repo(oci, "node_exporter", "node_exporter_linux_amd64", "node_exporter_linux_arm64")
