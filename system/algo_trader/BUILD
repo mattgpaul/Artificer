@@ -1,3 +1,5 @@
+load("@rules_python//python:defs.bzl", "py_library")
+
 # Project aggregation target - collects all algo_trader components (clean slate)
 py_library(
     name = "library",
