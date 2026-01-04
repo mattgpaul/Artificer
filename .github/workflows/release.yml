@@ -11,6 +11,11 @@ on:
         description: "Commit SHA to release (defaults to current main HEAD if empty)"
         required: false
         type: string
+      dry_run:
+        description: "If true, build artifacts but do NOT create tags/releases"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   release:
@@ -29,7 +34,8 @@ jobs:
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.16.0
         with:
-          bazelisk-version: latest
+          # setup-bazel does NOT accept "latest" here; pin to a real Bazelisk release tag.
+          bazelisk-version: v1.27.0
       
       - name: Set up Docker
         uses: docker/setup-buildx-action@v3
@@ -90,6 +96,11 @@ jobs:
             mapfile -t IMAGE_TARBALLS < <(bazel cquery "//system/${SYSTEM}:release_images" --output=files 2>/dev/null || true)
             BUNDLE_TARBALL=$(bazel cquery "//system/${SYSTEM}:release_bundle" --output=files 2>/dev/null | head -n1 || true)
             
+            DRY_RUN="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}"
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "DRY RUN enabled: skipping tag/release creation."
+            else
             # Create git tag
             echo "Creating tag $TAG..."
             git config user.name "github-actions[bot]"
@@ -103,13 +114,18 @@ jobs:
               --title "$SYSTEM v$VERSION" \
               --notes "Automated release of $SYSTEM system" \
               --target main
+            fi
             
             # Upload image tarballs
             echo "Uploading artifacts..."
             for TARBALL in "${IMAGE_TARBALLS[@]}"; do
               if [ -f "$TARBALL" ]; then
                 echo "Uploading $(basename "$TARBALL")..."
-                gh release upload "$TAG" "$TARBALL" --clobber
+                if [ "$DRY_RUN" = "true" ]; then
+                  cp "$TARBALL" "/tmp/$(basename "$TARBALL")"
+                else
+                  gh release upload "$TAG" "$TARBALL" --clobber
+                fi
               fi
             done
             
@@ -129,13 +145,32 @@ jobs:
               cd -
               
               if [ -f "$FINAL_BUNDLE" ]; then
-                gh release upload "$TAG" "$FINAL_BUNDLE" --clobber
+                if [ "$DRY_RUN" = "true" ]; then
+                  cp "$FINAL_BUNDLE" "/tmp/$(basename "$FINAL_BUNDLE")"
+                else
+                  gh release upload "$TAG" "$FINAL_BUNDLE" --clobber
+                fi
               fi
               rm -rf "$TEMP_DIR"
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "Uploading dry-run artifacts to workflow run..."
+              ls -la /tmp/*.tar /tmp/*.tar.gz 2>/dev/null || true
             fi
             
             echo "Release $TAG completed"
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload dry-run artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-release-artifacts
+          path: |
+            /tmp/*.tar
+            /tmp/*.tar.gz
+          if-no-files-found: warn
 
