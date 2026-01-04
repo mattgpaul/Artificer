@@ -9,7 +9,7 @@ py_library(
         "//system:__pkg__",  # Available to system package
     ],
     deps = [
-        "//system/algo_trader/schwab:schwab_services",
         "//system/algo_trader/infra/redis:redis_services",
+        "//system/algo_trader/schwab:schwab_services",
     ],
 )
