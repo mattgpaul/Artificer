@@ -27,7 +27,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.inputs.head_sha }}
       
       - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@v0.15.0
+        uses: bazel-contrib/setup-bazel@0.16.0
         with:
           bazelisk-version: latest
       
