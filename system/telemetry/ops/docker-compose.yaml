@@ -44,10 +44,28 @@ services:
     profiles:
       - central
 
+  telemetry-dashboard:
+    image: nginx:1.29.4-alpine
+    container_name: telemetry-dashboard
+    restart: unless-stopped
+    pull_policy: if_not_present
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - telemetry-net
+    volumes:
+      - ../dashboard:/usr/share/nginx/html:ro
+      - ../dashboard/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - prometheus
+    profiles:
+      - central
+
   node-exporter:
     image: artificer-node-exporter:latest
     container_name: telemetry-node-exporter
     restart: unless-stopped
+    pid: host
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
@@ -66,7 +84,30 @@ services:
       # If you only want local scraping, change back to "127.0.0.1:9100:9100".
       - "9100:9100"
     profiles:
+      - central
       - node
+
+  system-info-metrics:
+    image: python:3.11-slim
+    container_name: telemetry-system-info-metrics
+    restart: unless-stopped
+    # Needs host pid+net namespaces to resolve interface IPv4 via ioctl.
+    pid: host
+    network_mode: host
+    command:
+      - /bin/sh
+      - -c
+      - |
+        python /opt/system_info_textfile.py --output-dir /var/lib/node_exporter/textfile_collector --proc-root /host/proc --interval-seconds 10
+    environment:
+      - TELEMETRY_USER=${TELEMETRY_USER}
+    volumes:
+      - /proc:/host/proc:ro
+      - /etc/passwd:/host/etc/passwd:ro
+      - node-exporter-textfile:/var/lib/node_exporter/textfile_collector:rw
+      - ../system_info_textfile.py:/opt/system_info_textfile.py:ro
+    profiles:
+      - central
 
   amd-gpu-metrics:
     image: python:3.11-slim
@@ -87,6 +128,9 @@ services:
       - node-exporter-textfile:/var/lib/node_exporter/textfile_collector:rw
       # Mount the script from the repo
       - ../gpu/amd_gpu_textfile.py:/opt/amd_gpu_textfile.py:ro
+    environment:
+      # Optional override for a friendly GPU model name shown in the dashboard.
+      - TELEMETRY_GPU_NAME=${TELEMETRY_GPU_NAME}
     profiles:
       - amd
 

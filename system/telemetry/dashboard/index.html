@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <title>CEREBRO - Telemetry Dashboard</title>
+    <!-- Cache-bust to ensure updates apply immediately even with aggressive caching -->
+    <link rel="stylesheet" href="styles.css?v=6">
+</head>
+<body>
+    <div id="app">
+        <!-- Overview page (default) -->
+        <div id="overview" class="page active">
+            <div class="header-card card">
+                <h1 class="cerebro-title">CEREBRO</h1>
+                <div class="time-display">
+                    <div id="current-time" class="time-large"></div>
+                    <div id="current-date" class="date-medium"></div>
+                </div>
+            </div>
+
+            <div class="status-card card" data-section="status">
+                <h2 class="section-title">STATUS</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Operating System</span>
+                        <span id="status-os" class="status-value">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Processor</span>
+                        <span id="status-cpu" class="status-value">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Graphics</span>
+                        <span id="status-gpu" class="status-value">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Memory</span>
+                        <span id="status-memory" class="status-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="system-card card" data-section="system">
+                <h2 class="section-title">SYSTEM</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">OS:</span>
+                        <span id="system-os" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Kernel:</span>
+                        <span id="system-kernel" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span id="system-uptime" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">User:</span>
+                        <span id="system-user" class="info-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cpu-card card" data-section="cpu">
+                <h2 class="section-title">CPU</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Name:</span>
+                        <span id="cpu-name" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Temp:</span>
+                        <span id="cpu-temp" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Usage:</span>
+                        <span id="cpu-usage" class="info-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gpu-card card" data-section="gpu">
+                <h2 class="section-title">GPU</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Name:</span>
+                        <span id="gpu-name" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Temp:</span>
+                        <span id="gpu-temp" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Usage:</span>
+                        <span id="gpu-usage" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">VRAM Usage:</span>
+                        <span id="gpu-vram" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Clock Speed:</span>
+                        <span id="gpu-clock" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fan Speed:</span>
+                        <span id="gpu-fan" class="info-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="memory-card card" data-section="memory">
+                <h2 class="section-title">MEMORY</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">RAM Usage:</span>
+                        <span id="memory-ram" class="info-value">--</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="memory-ram-bar" class="progress-bar"></div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">SSD Usage:</span>
+                        <span id="memory-ssd" class="info-value">--</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="memory-ssd-bar" class="progress-bar"></div>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">SSD Read/Write:</span>
+                        <span id="memory-disk-io" class="info-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="network-card card" data-section="network">
+                <h2 class="section-title">NETWORK</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">IP Address:</span>
+                        <span id="network-ip" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Download:</span>
+                        <span id="network-down" class="info-value">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Upload:</span>
+                        <span id="network-up" class="info-value">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="processes-card card" data-section="processes">
+                <h2 class="section-title">PROCESSES</h2>
+                <div class="processes-header">
+                    <span class="process-col-header">Process Name</span>
+                    <span class="process-col-header">Memory</span>
+                    <span class="process-col-header">CPU</span>
+                </div>
+                <div id="processes-list" class="processes-list"></div>
+            </div>
+        </div>
+
+        <!-- Detail views (hidden by default) -->
+        <div id="detail-status" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>STATUS Details</h2>
+            </div>
+            <div id="detail-status-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-system" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>SYSTEM Details</h2>
+            </div>
+            <div id="detail-system-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-cpu" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>CPU Details</h2>
+            </div>
+            <div id="detail-cpu-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-gpu" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>GPU Details</h2>
+            </div>
+            <div id="detail-gpu-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-memory" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>MEMORY Details</h2>
+            </div>
+            <div id="detail-memory-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-network" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>NETWORK Details</h2>
+            </div>
+            <div id="detail-network-content" class="detail-content"></div>
+        </div>
+
+        <div id="detail-processes" class="page detail-page">
+            <div class="detail-header">
+                <button class="back-button" onclick="app.navigateToOverview()">← Back</button>
+                <h2>PROCESSES Details</h2>
+            </div>
+            <div id="detail-processes-content" class="detail-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js?v=6"></script>
+</body>
+</html>
+
