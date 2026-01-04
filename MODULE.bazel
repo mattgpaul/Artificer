@@ -131,3 +131,11 @@ oci.pull(
     ],
 )
 use_repo(oci, "node_exporter", "node_exporter_linux_amd64", "node_exporter_linux_arm64")
+
+oci.pull(
+    name = "debian_bookworm_slim",
+    digest = "sha256:d5d3f9c23164ea16f31852f95bd5959aad1c5e854332fe00f7b3a20fcc9f635c",
+    image = "docker.io/library/debian:bookworm-slim",
+    platforms = ["linux/arm64"],
+)
+use_repo(oci, "debian_bookworm_slim", "debian_bookworm_slim_linux_arm64")
