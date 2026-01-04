@@ -17,6 +17,7 @@ genrule(
     srcs = [],
     outs = ["artificer-grafana.tar"],
     cmd = "$(location :grafana_image) && docker save artificer-grafana:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":grafana_image"],
 )

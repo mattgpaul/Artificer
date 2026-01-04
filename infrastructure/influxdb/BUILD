@@ -51,6 +51,7 @@ genrule(
     srcs = [],
     outs = ["artificer-influxdb.tar"],
     cmd = "$(location :influxdb3_image) && docker save artificer-influxdb:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":influxdb3_image"],
 )

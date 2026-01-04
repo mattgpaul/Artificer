@@ -17,6 +17,7 @@ genrule(
     srcs = [],
     outs = ["artificer-prometheus.tar"],
     cmd = "$(location :prometheus_image) && docker save artificer-prometheus:latest -o $@",
+    local = 1,
     tags = ["release"],
     tools = [":prometheus_image"],
 )
