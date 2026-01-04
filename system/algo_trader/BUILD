@@ -15,15 +15,3 @@ py_library(
         "//system/algo_trader/schwab:schwab_services",
     ],
 )
-
-# CI system-scoped test runner may execute `bazel test //system/algo_trader:all`.
-# Provide an aggregate test target at the system package root so tests are found.
-test_suite(
-    name = "tests",
-    tests = [
-        "//system/algo_trader/schwab:test_account_handler",
-        "//system/algo_trader/schwab:test_market_handler",
-        "//system/algo_trader/schwab:test_schwab_client",
-        "//system/algo_trader/schwab:test_timescale_enum",
-    ],
-)
