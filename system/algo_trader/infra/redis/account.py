@@ -18,14 +18,18 @@ class AccountBroker(BaseRedisClient):
 
     # Access token operations
     def get_access_token(self) -> str | None:
+        """Return the cached Schwab access token, if present."""
         return self.get("schwab:access_token")
 
     def set_access_token(self, token: str) -> bool:
+        """Cache the Schwab access token with the standard TTL."""
         return self.set("schwab:access_token", token, ttl=ACCESS_TOKEN_TTL_SECONDS)
 
     # Refresh token operations
     def get_refresh_token(self) -> str | None:
+        """Return the cached Schwab refresh token, if present."""
         return self.get("schwab:refresh_token")
 
     def set_refresh_token(self, token: str) -> bool:
+        """Cache the Schwab refresh token with the standard TTL."""
         return self.set("schwab:refresh_token", token, ttl=REFRESH_TOKEN_TTL_SECONDS)
