@@ -18,16 +18,24 @@ from system.algo_trader.apps.backtest_app import BacktestApp
 from system.algo_trader.apps.forward_app import ForwardTestApp
 from system.algo_trader.cli.override_cli import apply_runtime_side_effects
 from system.algo_trader.domain.engine import Engine
-from system.algo_trader.domain.events import DecisionEvent, MarketEvent, OverrideEvent
-from system.algo_trader.domain.models import Bar, OrderIntent, Quote, Side
+from system.algo_trader.domain.events import MarketEvent, OverrideEvent
+from system.algo_trader.domain.models import OrderIntent, Quote, Side
 from system.algo_trader.domain.portfolio import SimplePortfolio
 from system.algo_trader.domain.strategies import SmaCrossoverStrategy
+from tests.system.algo_trader.conftest import (
+    FakeMarketData,
+    FakeRuntimeConfig,
+    FixedClock,
+    InMemoryJournal,
+)
+
 
 def test_sma_20_10_backtest_e2e_places_buy_then_sell(mk_bars, fixed_clock, in_memory_journal):
     sym = "AAPL"
     start = date(2024, 1, 1)
 
-    # Construct a series: flat then up then down (long enough) to trigger both cross-up and cross-down.
+    # Construct a series: flat then up then down (long enough) to trigger both
+    # cross-up and cross-down.
     prices = [100] * 30 + list(range(101, 161)) + list(range(160, 60, -1))
     bars = mk_bars(sym, start, prices)
 
@@ -57,8 +65,6 @@ def test_sma_20_10_forward_test_e2e_paper_trades_on_quotes(
         {sym: Quote(symbol=sym, ts=t0 + timedelta(seconds=i), price=Decimal(str(p)))}
         for i, p in enumerate(prices)
     ]
-
-    from tests.system.algo_trader.conftest import FakeMarketData  # local test helper
 
     market = FakeMarketData(quotes_by_call=quotes)
     redis_broker = fake_redis_broker
@@ -91,8 +97,6 @@ def test_sma_20_10_forward_test_e2e_paper_trades_on_quotes(
 
 
 def test_override_cli_set_poll_seconds_updates_runtime_config():
-    from tests.system.algo_trader.conftest import FakeRuntimeConfig  # local test helper
-
     runtime = FakeRuntimeConfig(watchlist=["AAPL"], poll_seconds=2.0)
     event = OverrideEvent(
         ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
@@ -113,7 +117,9 @@ class _BuyAndHoldStrategy:
         return [OrderIntent(symbol="AAPL", side=Side.BUY, qty=self.qty, reason="test_buy_and_hold")]
 
 
-def test_portfolio_max_drawdown_emits_flatten_and_pauses(t0, fake_redis_broker, fake_runtime_config):
+def test_portfolio_max_drawdown_emits_flatten_and_pauses(
+    t0, fake_redis_broker, fake_runtime_config
+):
     sym = "AAPL"
 
     quotes = [
@@ -121,8 +127,6 @@ def test_portfolio_max_drawdown_emits_flatten_and_pauses(t0, fake_redis_broker, 
         {sym: Quote(symbol=sym, ts=t0 + timedelta(seconds=1), price=Decimal("80"))},
         {sym: Quote(symbol=sym, ts=t0 + timedelta(seconds=2), price=Decimal("80"))},
     ]
-
-    from tests.system.algo_trader.conftest import FakeMarketData, InMemoryJournal, FixedClock
 
     market = FakeMarketData(quotes_by_call=quotes)
     redis_broker = fake_redis_broker
@@ -159,11 +163,11 @@ def test_portfolio_max_drawdown_emits_flatten_and_pauses(t0, fake_redis_broker, 
     assert engine.is_paused()
 
 
-def test_portfolio_resizes_buy_for_max_position_fraction(t0, fake_redis_broker, fake_runtime_config):
+def test_portfolio_resizes_buy_for_max_position_fraction(
+    t0, fake_redis_broker, fake_runtime_config
+):
     sym = "AAPL"
     quotes = [{sym: Quote(symbol=sym, ts=t0, price=Decimal("100"))}]
-
-    from tests.system.algo_trader.conftest import FakeMarketData, InMemoryJournal, FixedClock
 
     market = FakeMarketData(quotes_by_call=quotes)
     redis_broker = fake_redis_broker
@@ -200,4 +204,3 @@ def test_portfolio_resizes_buy_for_max_position_fraction(t0, fake_redis_broker, 
     assert any(r.get("reason") == "max_position_size" for r in resized)
     # 10k / $100 == 100 shares max
     assert all(i.qty <= Decimal("100") for i in d0.order_intents if i.side.value == "BUY")
-

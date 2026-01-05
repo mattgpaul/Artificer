@@ -17,8 +17,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-import pytest
-
 from system.algo_trader.domain.events import MarketEvent
 from system.algo_trader.domain.models import Fill, OrderIntent, Quote, Side
 from system.algo_trader.domain.portfolio import SimplePortfolio
@@ -268,4 +266,3 @@ class TestPortfolioRiskControls:
         decision = portfolio.manage(event, intents)
 
         assert decision.pause_until == future_time
-

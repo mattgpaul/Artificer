@@ -1,3 +1,9 @@
+"""TimescaleDB store for algo_trader.
+
+Provides persistent storage for bars, decisions, overrides, and fills using
+TimescaleDB hypertables for time-series data.
+"""
+
 from __future__ import annotations
 
 import json
@@ -41,16 +47,19 @@ class AlgoTraderStore:
         return f"algo_trader_{frag}"
 
     def _schema_q(self) -> str:
+        """Return quoted schema name for SQL safety."""
         # `schema` is sanitized, but we still quote it for correctness.
-        return f"\"{self.schema}\""
+        return f'"{self.schema}"'
 
     def migrate(self) -> None:
+        """Run database migrations to create tables and hypertables."""
         if self.schema != "public":
             self.db.execute(f"CREATE SCHEMA IF NOT EXISTS {self._schema_q()};")
         for stmt in MIGRATIONS:
             self.db.execute(stmt.format(schema=self.schema, schema_q=self._schema_q()))
 
     def create_run(self, run_id: str, mode: str, config: dict[str, Any]) -> None:
+        """Create a new run record in the database."""
         self.db.execute(
             f"""
             INSERT INTO {self._schema_q()}.run(run_id, mode, created_at, config_json)
@@ -61,6 +70,7 @@ class AlgoTraderStore:
         )
 
     def upsert_symbols(self, symbols: dict[str, dict[str, Any]]) -> None:
+        """Upsert symbol metadata to the database."""
         now = _utc_now()
         for sym, meta in symbols.items():
             self.db.execute(
@@ -75,10 +85,13 @@ class AlgoTraderStore:
             )
 
     def upsert_daily_bars(self, bars: Iterable[Bar]) -> None:
+        """Upsert daily bars to the database."""
         for b in bars:
             self.db.execute(
                 f"""
-                INSERT INTO {self._schema_q()}.ohlcv_daily(symbol, day, open, high, low, close, volume)
+                INSERT INTO {self._schema_q()}.ohlcv_daily(
+                    symbol, day, open, high, low, close, volume
+                )
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT(symbol, day) DO UPDATE SET
                   open = EXCLUDED.open,
@@ -91,6 +104,7 @@ class AlgoTraderStore:
             )
 
     def get_daily_bars(self, symbols: Sequence[str], start: date, end: date) -> list[Bar]:
+        """Retrieve daily bars for symbols within date range."""
         rows = self.db.fetchall(
             f"""
             SELECT symbol, day, open, high, low, close, volume
@@ -116,6 +130,7 @@ class AlgoTraderStore:
         return out
 
     def record_fill(self, fill: Fill, run_id: str | None = None) -> None:
+        """Record a fill to the trade_execution table."""
         self.db.execute(
             f"""
             INSERT INTO {self._schema_q()}.trade_execution(ts, run_id, symbol, side, qty, price)

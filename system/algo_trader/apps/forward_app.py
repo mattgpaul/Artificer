@@ -17,19 +17,27 @@ from system.algo_trader.ports.market_data import MarketDataPort
 class RuntimeConfigPort(Protocol):
     """Runtime config (watchlist + polling) fetched each cycle."""
 
-    def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]: ...
+    def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]:
+        """Get watchlist symbols for an engine."""
+        ...
 
-    def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float: ...
+    def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float:
+        """Get poll interval in seconds for an engine."""
+        ...
 
 
 class EngineRegistryPort(Protocol):
     """Engine registry heartbeats for discovery/status."""
 
-    def heartbeat(self, engine_id: str, status: dict, ttl_seconds: int = 15) -> None: ...
+    def heartbeat(self, engine_id: str, status: dict, ttl_seconds: int = 15) -> None:
+        """Send heartbeat for engine status."""
+        ...
 
 
 @dataclass(slots=True)
 class ForwardTestApp:
+    """Forward-test application for continuous live simulation."""
+
     engine: Engine
     market_data: MarketDataPort
     broker: BrokerPort
@@ -41,6 +49,7 @@ class ForwardTestApp:
     max_iterations: int | None = None
 
     def run_forever(self) -> None:
+        """Run continuous forward-test loop."""
         i = 0
         while True:
             poll_seconds = self.runtime_config.get_poll_seconds(self.engine_id, default=2.0)
@@ -50,7 +59,7 @@ class ForwardTestApp:
                 self.engine_registry.heartbeat(
                     engine_id=self.engine_id,
                     status={
-                            "paused": self.engine.is_paused(),
+                        "paused": self.engine.is_paused(),
                         "watchlist_size": len(symbols),
                         "poll_seconds": poll_seconds,
                     },

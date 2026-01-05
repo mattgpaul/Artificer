@@ -1,3 +1,8 @@
+"""Schwab market data adapter.
+
+Provides market data access via Schwab API, converting to domain models.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -26,6 +31,7 @@ class SchwabMarketDataAdapter(MarketDataPort):
     client: MarketHandler
 
     def get_daily_bars(self, symbols: Sequence[str], start: date, end: date) -> Sequence[Bar]:
+        """Retrieve daily bars for symbols within date range."""
         out: list[Bar] = []
         for sym in symbols:
             data = self.client.get_price_history(
@@ -55,6 +61,7 @@ class SchwabMarketDataAdapter(MarketDataPort):
         return out
 
     def get_quotes(self, symbols: Sequence[str]) -> dict[str, Quote]:
+        """Retrieve current quotes for symbols."""
         raw = self.client.get_quotes(list(symbols))
         out: dict[str, Quote] = {}
         for sym, q in raw.items():

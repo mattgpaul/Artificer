@@ -11,4 +11,3 @@ py_library(
         requirement("psycopg"),
     ],
 )
-

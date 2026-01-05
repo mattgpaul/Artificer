@@ -1,3 +1,9 @@
+"""Database queries for algo_trader analysis.
+
+Provides query methods for retrieving symbols, trade executions, and other
+data from TimescaleDB for analysis and reporting.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,13 +17,16 @@ from infrastructure.postgres.postgres import BasePostgresClient
 
 @dataclass(slots=True)
 class AlgoTraderQueries:
+    """Query interface for algo_trader TimescaleDB data."""
+
     db: BasePostgresClient
     schema: str = "public"
 
     def _schema_q(self) -> str:
-        return f"\"{self.schema}\""
+        return f'"{self.schema}"'
 
     def list_symbols(self, limit: int = 5000) -> list[str]:
+        """List symbols from the database."""
         rows = self.db.fetchall(
             f"SELECT symbol FROM {self._schema_q()}.symbols ORDER BY symbol ASC LIMIT %s",
             (limit,),
@@ -30,6 +39,7 @@ class AlgoTraderQueries:
         since: datetime | None = None,
         limit: int = 5000,
     ) -> pd.DataFrame:
+        """List trade executions with optional filtering."""
         where = []
         params: list[Any] = []
         if symbol:
@@ -48,6 +58,6 @@ class AlgoTraderQueries:
             ORDER BY ts ASC
             LIMIT %s
             """,
-            tuple(params + [limit]),
+            tuple([*params, limit]),
         )
         return pd.DataFrame(rows)

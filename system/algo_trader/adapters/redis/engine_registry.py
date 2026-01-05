@@ -1,6 +1,6 @@
 """Redis engine registry for algo_trader.
 
-This supports discovery for 2–10 concurrent engines sharing a single Redis instance.
+This supports discovery for 2-10 concurrent engines sharing a single Redis instance.
 """
 
 from __future__ import annotations
@@ -23,7 +23,9 @@ class AlgoTraderEngineRegistry(BaseRedisClient):
     def _get_namespace(self) -> str:
         return "algo_trader"
 
-    def register(self, engine_id: str, status: dict[str, Any] | None = None, ttl_seconds: int = 15) -> None:
+    def register(
+        self, engine_id: str, status: dict[str, Any] | None = None, ttl_seconds: int = 15
+    ) -> None:
         """Register `engine_id` as active and write a status heartbeat."""
         _ = self.sadd("engines", engine_id)
         self.heartbeat(engine_id=engine_id, status=status or {}, ttl_seconds=ttl_seconds)
@@ -43,4 +45,3 @@ class AlgoTraderEngineRegistry(BaseRedisClient):
         """Return the last heartbeat status for an engine, if present."""
         val = self.get_json(f"{engine_id}:status")
         return val if isinstance(val, dict) else None
-

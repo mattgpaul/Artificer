@@ -1,3 +1,9 @@
+"""TimescaleDB migration SQL statements.
+
+Contains SQL DDL statements for creating TimescaleDB hypertables and related
+tables for algo_trader data storage.
+"""
+
 from __future__ import annotations
 
 MIGRATIONS: list[str] = [

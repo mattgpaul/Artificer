@@ -1,3 +1,9 @@
+"""CLI for operator overrides in algo_trader.
+
+Allows operators to send commands to running engines for runtime configuration
+changes and control operations.
+"""
+
 from __future__ import annotations
 
 import shlex
@@ -38,10 +44,14 @@ def _parse(line: str) -> OverrideEvent | None:
 
 
 class _RuntimeConfigPort(Protocol):
-    def set_poll_seconds(self, engine_id: str, poll_seconds: float, ttl_seconds: int | None = None) -> None: ...
+    def set_poll_seconds(
+        self, engine_id: str, poll_seconds: float, ttl_seconds: int | None = None
+    ) -> None: ...
 
 
-def apply_runtime_side_effects(engine_id: str, event: OverrideEvent, runtime: _RuntimeConfigPort) -> None:
+def apply_runtime_side_effects(
+    engine_id: str, event: OverrideEvent, runtime: _RuntimeConfigPort
+) -> None:
     """Apply non-event side effects for specific overrides (KV updates)."""
     if event.command.lower().strip() == "set_poll_seconds":
         raw = event.args.get("poll_seconds", "")
@@ -74,6 +84,7 @@ def _select_engine_id(registry: AlgoTraderEngineRegistry) -> str:
 
 
 def main() -> None:
+    """Main CLI entry point for override commands."""
     registry = AlgoTraderEngineRegistry()
     engine_id = _select_engine_id(registry)
     broker = AlgoTraderRedisBroker(engine_id=engine_id)

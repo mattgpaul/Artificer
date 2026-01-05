@@ -16,8 +16,8 @@ py_library(
         "//system/algo_trader/apps",
         "//system/algo_trader/cli",
         "//system/algo_trader/domain",
-        "//system/algo_trader/ports",
         "//system/algo_trader/infra/redis:redis_services",
+        "//system/algo_trader/ports",
         "//system/algo_trader/schwab:schwab_services",
     ],
 )

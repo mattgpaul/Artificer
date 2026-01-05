@@ -12,4 +12,3 @@ py_library(
         "//system/algo_trader/ports",
     ],
 )
-

@@ -115,4 +115,3 @@ class TestEnginePauseLogic:
         )
         engine.on_market(event)
         assert engine.pause_until == longer_time
-

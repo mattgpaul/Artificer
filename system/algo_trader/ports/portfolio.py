@@ -1,3 +1,9 @@
+"""Portfolio port interface for position and risk management.
+
+Defines protocol for managing positions, applying risk controls, and handling
+fills and overrides.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -23,8 +29,18 @@ class PortfolioDecision:
 
 
 class PortfolioPort(Protocol):
-    def manage(self, event: MarketEvent, proposed_intents: Sequence[OrderIntent]) -> PortfolioDecision: ...
+    """Protocol for portfolio and risk management."""
 
-    def apply_fill(self, fill: Fill) -> None: ...
+    def manage(
+        self, event: MarketEvent, proposed_intents: Sequence[OrderIntent]
+    ) -> PortfolioDecision:
+        """Manage portfolio and apply risk controls to proposed intents."""
+        ...
 
-    def on_override(self, event: OverrideEvent) -> None: ...
+    def apply_fill(self, fill: Fill) -> None:
+        """Apply fill to portfolio."""
+        ...
+
+    def on_override(self, event: OverrideEvent) -> None:
+        """Process override event."""
+        ...

@@ -30,4 +30,3 @@ py_binary(
         ":analysis_lib",
     ],
 )
-

@@ -1,3 +1,9 @@
+"""Trading engine core logic.
+
+Orchestrates strategy, portfolio, and broker interactions to process market
+events and generate trading decisions.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,6 +19,8 @@ from system.algo_trader.ports.strategy import StrategyPort
 
 @dataclass(slots=True)
 class Engine:
+    """Trading engine orchestrating strategy, portfolio, and broker interactions."""
+
     clock: ClockPort
     strategy: StrategyPort
     portfolio: PortfolioPort
@@ -29,6 +37,7 @@ class Engine:
         return self.pause_until is not None and now < self.pause_until
 
     def on_market(self, event: MarketEvent) -> DecisionEvent | None:
+        """Process market event and generate trading decision."""
         ts = self.clock.now()
         effective_paused = self.is_paused(ts)
 
@@ -47,13 +56,19 @@ class Engine:
         )
 
         # If we're paused and there is nothing to do/audit, skip emitting a decision.
-        if effective_paused and not decision.order_intents and not decision.proposed_intents and not decision.audit:
+        if (
+            effective_paused
+            and not decision.order_intents
+            and not decision.proposed_intents
+            and not decision.audit
+        ):
             return None
 
         self.journal.record_decision(decision)
         return decision
 
     def on_override(self, event: OverrideEvent) -> None:
+        """Process operator override event."""
         self.journal.record_override(event)
 
         cmd = event.command.lower().strip()
@@ -69,6 +84,7 @@ class Engine:
         self.portfolio.on_override(event)
 
     def on_fills(self, fills: list[Fill], ts: datetime | None = None) -> None:
+        """Process fill events and update portfolio."""
         _ = ts
         for fill in fills:
             self.portfolio.apply_fill(fill)

@@ -1,3 +1,9 @@
+"""Trading strategies for algo_trader.
+
+Implements strategy logic including SMA crossover and other technical
+indicators.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -31,6 +37,7 @@ class SmaCrossoverStrategy(StrategyPort):
     prev_long: dict[str, Decimal | None] = field(default_factory=dict)
 
     def on_market(self, event: MarketEvent, portfolio: PortfolioPort) -> Sequence[OrderIntent]:
+        """Generate order intents based on SMA crossover signals."""
         if event.kind == "bar" and isinstance(event.payload, Bar):
             sym = event.payload.symbol
             price = event.payload.close

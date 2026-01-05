@@ -1,3 +1,9 @@
+"""Backtest application for algo_trader.
+
+Runs historical backtests by feeding bars to the engine in chronological order
+and executing trades immediately at bar close.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,11 +17,14 @@ from system.algo_trader.ports.broker import BrokerPort
 
 @dataclass(slots=True)
 class BacktestApp:
+    """Backtest application for running historical simulations."""
+
     engine: Engine
     broker: BrokerPort
     bars: list[Bar]
 
     def run(self) -> None:
+        """Run the backtest by processing bars in chronological order."""
         # Feed bars in chronological order; execute immediately at bar close.
         for bar in sorted(self.bars, key=lambda b: (b.day, b.symbol)):
             ts = datetime.combine(bar.day, time(16, 0), tzinfo=timezone.utc)

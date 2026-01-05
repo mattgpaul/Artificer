@@ -9,6 +9,8 @@ from system.algo_trader.domain.models import Fill, OrderIntent
 
 
 class BrokerPort(Protocol):
+    """Protocol for broker order placement and fill retrieval."""
+
     def place_orders(self, intents: Sequence[OrderIntent]) -> Sequence[str]:
         """Return broker-specific order IDs."""
 

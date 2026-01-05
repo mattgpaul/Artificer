@@ -51,7 +51,12 @@ def mock_journal() -> MagicMock:
 
 
 @pytest.fixture
-def engine(mock_clock: MagicMock, mock_strategy: MagicMock, mock_portfolio: MagicMock, mock_journal: MagicMock) -> Engine:
+def engine(
+    mock_clock: MagicMock,
+    mock_strategy: MagicMock,
+    mock_portfolio: MagicMock,
+    mock_journal: MagicMock,
+) -> Engine:
     """Provide an Engine instance wired with mocks."""
     return Engine(
         clock=mock_clock,
@@ -59,4 +64,3 @@ def engine(mock_clock: MagicMock, mock_strategy: MagicMock, mock_portfolio: Magi
         portfolio=mock_portfolio,
         journal=mock_journal,
     )
-
