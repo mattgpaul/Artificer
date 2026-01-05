@@ -22,6 +22,11 @@ requests>=2.31.0
 redis>=4.3.4
 influxdb3-python>=0.15.0
 pymysql>=1.1.0
+psycopg[binary]>=3.2.0
+
+### Dashboards ###
+dash>=2.18.0
+plotly>=5.24.0
 
 ### Utilities ###
 tqdm>=4.66.0

@@ -1234,7 +1234,7 @@
         "bzlTransitiveDigest": "QJFB+mMz+t0T5ZE+NVHTr0Wjox4gvFuVw9JFRbUw0kY=",
         "usagesDigest": "Zlp3/VjdEA5ko7WGHo+RXhYnulQGmE/nGMfQQKpgkcs=",
         "recordedFileInputs": {
-          "@@//requirements.txt": "20f786133941570302f11b5a2b0fac48788c1d0151f670e2420b84390127275f",
+          "@@//requirements.txt": "7de716dfcf230ad0ad8d30efb77e59bdfb67908499fc848b434fa16f0474ec26",
           "@@protobuf+//python/requirements.txt": "983be60d3cec4b319dcab6d48aeb3f5b2f7c3350f26b3a9e97486c37967c73c5",
           "@@rules_fuzzing+//fuzzing/requirements.txt": "ab04664be026b632a0d2a2446c4f65982b7654f5b6851d2f9d399a19b7242a5b",
           "@@rules_python+//tools/publish/requirements_darwin.txt": "2994136eab7e57b083c3de76faf46f70fad130bc8e7360a7fed2b288b69e79dc",
@@ -1256,6 +1256,15 @@
               "requirement": "annotated-types==0.7.0     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53     --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89"
             }
           },
+          "pip_311_blinker": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "blinker==1.9.0     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"
+            }
+          },
           "pip_311_certifi": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1272,6 +1281,15 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "charset-normalizer==3.4.3     --hash=sha256:00237675befef519d9af72169d8604a067d92755e84fe76492fef5441db05b91     --hash=sha256:02425242e96bcf29a49711b0ca9f37e451da7c70562bc10e8ed992a5a7a25cc0     --hash=sha256:027b776c26d38b7f15b26a5da1044f376455fb3766df8fc38563b4efbc515154     --hash=sha256:07a0eae9e2787b586e129fdcbe1af6997f8d0e5abaa0bc98c0e20e124d67e601     --hash=sha256:0cacf8f7297b0c4fcb74227692ca46b4a5852f8f4f24b3c766dd94a1075c4884     --hash=sha256:0e78314bdc32fa80696f72fa16dc61168fda4d6a0c014e0380f9d02f0e5d8a07     --hash=sha256:0f2be7e0cf7754b9a30eb01f4295cc3d4358a479843b31f328afd210e2c7598c     --hash=sha256:13faeacfe61784e2559e690fc53fa4c5ae97c6fcedb8eb6fb8d0a15b475d2c64     --hash=sha256:14c2a87c65b351109f6abfc424cab3927b3bdece6f706e4d12faaf3d52ee5efe     --hash=sha256:1606f4a55c0fd363d754049cdf400175ee96c992b1f8018b993941f221221c5f     --hash=sha256:16a8770207946ac75703458e2c743631c79c59c5890c80011d536248f8eaa432     --hash=sha256:18343b2d246dc6761a249ba1fb13f9ee9a2bcd95decc767319506056ea4ad4dc     --hash=sha256:18b97b8404387b96cdbd30ad660f6407799126d26a39ca65729162fd810a99aa     --hash=sha256:1bb60174149316da1c35fa5233681f7c0f9f514509b8e399ab70fea5f17e45c9     --hash=sha256:1e8ac75d72fa3775e0b7cb7e4629cec13b7514d928d15ef8ea06bca03ef01cae     --hash=sha256:1ef99f0456d3d46a50945c98de1774da86f8e992ab5c77865ea8b8195341fc19     --hash=sha256:2001a39612b241dae17b4687898843f254f8748b796a2e16f1051a17078d991d     --hash=sha256:23b6b24d74478dc833444cbd927c338349d6ae852ba53a0d02a2de1fce45b96e     --hash=sha256:252098c8c7a873e17dd696ed98bbe91dbacd571da4b87df3736768efa7a792e4     --hash=sha256:257f26fed7d7ff59921b78244f3cd93ed2af1800ff048c33f624c87475819dd7     --hash=sha256:2c322db9c8c89009a990ef07c3bcc9f011a3269bc06782f916cd3d9eed7c9312     --hash=sha256:30a96e1e1f865f78b030d65241c1ee850cdf422d869e9028e2fc1d5e4db73b92     --hash=sha256:30d006f98569de3459c2fc1f2acde170b7b2bd265dc1943e87e1a4efe1b67c31     --hash=sha256:31a9a6f775f9bcd865d88ee350f0ffb0e25936a7f930ca98995c05abf1faf21c     --hash=sha256:320e8e66157cc4e247d9ddca8e21f427efc7a04bbd0ac8a9faf56583fa543f9f     --hash=sha256:34a7f768e3f985abdb42841e20e17b330ad3aaf4bb7e7aeeb73db2e70f077b99     --hash=sha256:3653fad4fe3ed447a596ae8638b437f827234f01a8cd801842e43f3d0a6b281b     --hash=sha256:3cd35b7e8aedeb9e34c41385fda4f73ba609e561faedfae0a9e75e44ac558a15     --hash=sha256:3cfb2aad70f2c6debfbcb717f23b7eb55febc0bb23dcffc0f076009da10c6392     --hash=sha256:416175faf02e4b0810f1f38bcb54682878a4af94059a1cd63b8747244420801f     --hash=sha256:41d1fc408ff5fdfb910200ec0e74abc40387bccb3252f3f27c0676731df2b2c8     --hash=sha256:42e5088973e56e31e4fa58eb6bd709e42fc03799c11c42929592889a2e54c491     --hash=sha256:4ca4c094de7771a98d7fbd67d9e5dbf1eb73efa4f744a730437d8a3a5cf994f0     --hash=sha256:511729f456829ef86ac41ca78c63a5cb55240ed23b4b737faca0eb1abb1c41bc     --hash=sha256:53cd68b185d98dde4ad8990e56a58dea83a4162161b1ea9272e5c9182ce415e0     --hash=sha256:585f3b2a80fbd26b048a0be90c5aae8f06605d3c92615911c3a2b03a8a3b796f     --hash=sha256:5b413b0b1bfd94dbf4023ad6945889f374cd24e3f62de58d6bb102c4d9ae534a     --hash=sha256:5d8d01eac18c423815ed4f4a2ec3b439d654e55ee4ad610e153cf02faf67ea40     --hash=sha256:6aab0f181c486f973bc7262a97f5aca3ee7e1437011ef0c2ec04b5a11d16c927     --hash=sha256:6cf8fd4c04756b6b60146d98cd8a77d0cdae0e1ca20329da2ac85eed779b6849     --hash=sha256:6fb70de56f1859a3f71261cbe41005f56a7842cc348d3aeb26237560bfa5e0ce     --hash=sha256:6fce4b8500244f6fcb71465d4a4930d132ba9ab8e71a7859e6a5d59851068d14     --hash=sha256:70bfc5f2c318afece2f5838ea5e4c3febada0be750fcf4775641052bbba14d05     --hash=sha256:73dc19b562516fc9bcf6e5d6e596df0b4eb98d87e4f79f3ae71840e6ed21361c     --hash=sha256:74d77e25adda8581ffc1c720f1c81ca082921329452eba58b16233ab1842141c     --hash=sha256:78deba4d8f9590fe4dae384aeff04082510a709957e968753ff3c48399f6f92a     --hash=sha256:86df271bf921c2ee3818f0522e9a5b8092ca2ad8b065ece5d7d9d0e9f4849bcc     --hash=sha256:88ab34806dea0671532d3f82d82b85e8fc23d7b2dd12fa837978dad9bb392a34     --hash=sha256:8999f965f922ae054125286faf9f11bc6932184b93011d138925a1773830bbe9     --hash=sha256:8dcfc373f888e4fb39a7bc57e93e3b845e7f462dacc008d9749568b1c4ece096     --hash=sha256:939578d9d8fd4299220161fdd76e86c6a251987476f5243e8864a7844476ba14     --hash=sha256:96b2b3d1a83ad55310de8c7b4a2d04d9277d5591f40761274856635acc5fcb30     --hash=sha256:a2d08ac246bb48479170408d6c19f6385fa743e7157d716e144cad849b2dd94b     --hash=sha256:b256ee2e749283ef3ddcff51a675ff43798d92d746d1a6e4631bf8c707d22d0b     --hash=sha256:b5e3b2d152e74e100a9e9573837aba24aab611d39428ded46f4e4022ea7d1942     --hash=sha256:b89bc04de1d83006373429975f8ef9e7932534b8cc9ca582e4db7d20d91816db     --hash=sha256:bd28b817ea8c70215401f657edef3a8aa83c29d447fb0b622c35403780ba11d5     --hash=sha256:c60e092517a73c632ec38e290eba714e9627abe9d301c8c8a12ec32c314a2a4b     --hash=sha256:c6dbd0ccdda3a2ba7c2ecd9d77b37f3b5831687d8dc1b6ca5f56a4880cc7b7ce     --hash=sha256:c6e490913a46fa054e03699c70019ab869e990270597018cef1d8562132c2669     --hash=sha256:c6f162aabe9a91a309510d74eeb6507fab5fff92337a15acbe77753d88d9dcf0     --hash=sha256:c6fd51128a41297f5409deab284fecbe5305ebd7e5a1f959bee1c054622b7018     --hash=sha256:cc34f233c9e71701040d772aa7490318673aa7164a0efe3172b2981218c26d93     --hash=sha256:cc9370a2da1ac13f0153780040f465839e6cccb4a1e44810124b4e22483c93fe     --hash=sha256:ccf600859c183d70eb47e05a44cd80a4ce77394d1ac0f79dbd2dd90a69a3a049     --hash=sha256:ce571ab16d890d23b5c278547ba694193a45011ff86a9162a71307ed9f86759a     --hash=sha256:cf1ebb7d78e1ad8ec2a8c4732c7be2e736f6e5123a4146c5b89c9d1f585f8cef     --hash=sha256:d0e909868420b7049dafd3a31d45125b31143eec59235311fc4c57ea26a4acd2     --hash=sha256:d22dbedd33326a4a5190dd4fe9e9e693ef12160c77382d9e87919bce54f3d4ca     --hash=sha256:d716a916938e03231e86e43782ca7878fb602a125a91e7acb8b5112e2e96ac16     --hash=sha256:d79c198e27580c8e958906f803e63cddb77653731be08851c7df0b1a14a8fc0f     --hash=sha256:d95bfb53c211b57198bb91c46dd5a2d8018b3af446583aab40074bf7988401cb     --hash=sha256:e28e334d3ff134e88989d90ba04b47d84382a828c061d0d1027b1b12a62b39b1     --hash=sha256:ec557499516fc90fd374bf2e32349a2887a876fbf162c160e3c01b6849eaf557     --hash=sha256:fb6fecfd65564f208cbf0fba07f107fb661bcd1a7c389edbced3f7a493f70e37     --hash=sha256:fb731e5deb0c7ef82d698b0f4c5bb724633ee2a489401594c5c88b02e6cb15f7     --hash=sha256:fb7f67a1bfa6e40b438170ebdc8158b78dc465a5a67b6dde178a46987b244a72     --hash=sha256:fd10de089bcdcd1be95a2f73dbe6254798ec1bda9f450d5828c96f93e2536b9c     --hash=sha256:fdabf8315679312cfa71302f9bd509ded4f2f263fb5b765cf1433b39106c3cc9"
+            }
+          },
+          "pip_311_click": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "click==8.3.1     --hash=sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a     --hash=sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6"
             }
           },
           "pip_311_contourpy": {
@@ -1301,6 +1319,24 @@
               "requirement": "cycler==0.12.1     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c"
             }
           },
+          "pip_311_dash": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "dash==3.3.0     --hash=sha256:8f52415977f7490492dd8a3872279160be8ff253ca9f4d49a4e3ba747fa4bd91     --hash=sha256:eaaa7a671540b5e1db8066f4966d0277d21edc2c7acdaec2fd6d198366a8b0df"
+            }
+          },
+          "pip_311_flask": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "flask==3.1.2     --hash=sha256:bf656c15c80190ed628ad08cdfd3aaa35beb087855e2f494910aa3774cc4fd87     --hash=sha256:ca1d8112ec8a6158cc29ea4858963350011b5c846a414cdb7a954aa9e967d03c"
+            }
+          },
           "pip_311_fonttools": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1317,6 +1353,15 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "idna==3.10     --hash=sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9     --hash=sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3"
+            }
+          },
+          "pip_311_importlib_metadata": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "importlib-metadata==8.7.1     --hash=sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb     --hash=sha256:5a1f80bf1daa489495071efbb095d75a634cf28a8bc299581244063b53176151"
             }
           },
           "pip_311_influxdb3_python": {
@@ -1337,6 +1382,24 @@
               "requirement": "iniconfig==2.1.0     --hash=sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7     --hash=sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760"
             }
           },
+          "pip_311_itsdangerous": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "itsdangerous==2.2.0     --hash=sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef     --hash=sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"
+            }
+          },
+          "pip_311_jinja2": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "jinja2==3.1.6     --hash=sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d     --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"
+            }
+          },
           "pip_311_kiwisolver": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1346,6 +1409,15 @@
               "requirement": "kiwisolver==1.4.9     --hash=sha256:0749fd8f4218ad2e851e11cc4dc05c7cbc0cbc4267bdfdb31782e65aace4ee9c     --hash=sha256:0763515d4df10edf6d06a3c19734e2566368980d21ebec439f33f9eb936c07b7     --hash=sha256:0856e241c2d3df4efef7c04a1e46b1936b6120c9bcf36dd216e3acd84bc4fb21     --hash=sha256:0a590506f303f512dff6b7f75fd2fd18e16943efee932008fe7140e5fa91d80e     --hash=sha256:0ab74e19f6a2b027ea4f845a78827969af45ce790e6cb3e1ebab71bdf9f215ff     --hash=sha256:0ae37737256ba2de764ddc12aed4956460277f00c4996d51a197e72f62f5eec7     --hash=sha256:0e4e2bf29574a6a7b7f6cb5fa69293b9f96c928949ac4a53ba3f525dffb87f9c     --hash=sha256:15163165efc2f627eb9687ea5f3a28137217d217ac4024893d753f46bce9de26     --hash=sha256:17680d737d5335b552994a2008fab4c851bcd7de33094a82067ef3a576ff02fa     --hash=sha256:1a12cf6398e8a0a001a059747a1cbf24705e18fe413bc22de7b3d15c67cffe3f     --hash=sha256:1b11d6a633e4ed84fc0ddafd4ebfd8ea49b3f25082c04ad12b8315c11d504dc1     --hash=sha256:1fa333e8b2ce4d9660f2cda9c0e1b6bafcfb2457a9d259faa82289e73ec24891     --hash=sha256:2327a4a30d3ee07d2fbe2e7933e8a37c591663b96ce42a00bc67461a87d7df77     --hash=sha256:2405a7d98604b87f3fc28b1716783534b1b4b8510d8142adca34ee0bc3c87543     --hash=sha256:2489e4e5d7ef9a1c300a5e0196e43d9c739f066ef23270607d45aba368b91f2d     --hash=sha256:24c175051354f4a28c5d6a31c93906dc653e2bf234e8a4bbfb964892078898ce     --hash=sha256:2635d352d67458b66fd0667c14cb1d4145e9560d503219034a18a87e971ce4f3     --hash=sha256:2c1a4f57df73965f3f14df20b80ee29e6a7930a57d2d9e8491a25f676e197c60     --hash=sha256:2c93f00dcba2eea70af2be5f11a830a742fe6b579a1d4e00f47760ef13be247a     --hash=sha256:39a219e1c81ae3b103643d2aedb90f1ef22650deb266ff12a19e7773f3e5f089     --hash=sha256:3b3115b2581ea35bb6d1f24a4c90af37e5d9b49dcff267eeed14c3893c5b86ab     --hash=sha256:40092754720b174e6ccf9e845d0d8c7d8e12c3d71e7fc35f55f3813e96376f78     --hash=sha256:412f287c55a6f54b0650bd9b6dce5aceddb95864a1a90c87af16979d37c89771     --hash=sha256:464415881e4801295659462c49461a24fb107c140de781d55518c4b80cb6790f     --hash=sha256:497d05f29a1300d14e02e6441cf0f5ee81c1ff5a304b0d9fb77423974684e08b     --hash=sha256:4a2899935e724dd1074cb568ce7ac0dce28b2cd6ab539c8e001a8578eb106d14     --hash=sha256:4a48a2ce79d65d363597ef7b567ce3d14d68783d2b2263d98db3d9477805ba32     --hash=sha256:4d1d9e582ad4d63062d34077a9a1e9f3c34088a2ec5135b1f7190c07cf366527     --hash=sha256:52a15b0f35dad39862d376df10c5230155243a2c1a436e39eb55623ccbd68185     --hash=sha256:540c7c72324d864406a009d72f5d6856f49693db95d1fbb46cf86febef873634     --hash=sha256:5656aa670507437af0207645273ccdfee4f14bacd7f7c67a4306d0dcaeaf6eed     --hash=sha256:5a0f2724dfd4e3b3ac5a82436a8e6fd16baa7d507117e4279b660fe8ca38a3a1     --hash=sha256:60c439763a969a6af93b4881db0eed8fadf93ee98e18cbc35bc8da868d0c4f0c     --hash=sha256:61874cdb0a36016354853593cffc38e56fc9ca5aa97d2c05d3dcf6922cd55a11     --hash=sha256:67bb8b474b4181770f926f7b7d2f8c0248cbcb78b660fdd41a47054b28d2a752     --hash=sha256:720e05574713db64c356e86732c0f3c5252818d05f9df320f0ad8380641acea5     --hash=sha256:72d0eb9fba308b8311685c2268cf7d0a0639a6cd027d8128659f72bdd8a024b4     --hash=sha256:767c23ad1c58c9e827b649a9ab7809fd5fd9db266a9cf02b0e926ddc2c680d58     --hash=sha256:77937e5e2a38a7b48eef0585114fe7930346993a88060d0bf886086d2aa49ef5     --hash=sha256:7a08b491ec91b1d5053ac177afe5290adacf1f0f6307d771ccac5de30592d198     --hash=sha256:7b4da0d01ac866a57dd61ac258c5607b4cd677f63abaec7b148354d2b2cdd536     --hash=sha256:7cf974dd4e35fa315563ac99d6287a1024e4dc2077b8a7d7cd3d2fb65d283134     --hash=sha256:84fd60810829c27ae375114cd379da1fa65e6918e1da405f356a775d49a62bcf     --hash=sha256:858e4c22fb075920b96a291928cb7dea5644e94c0ee4fcd5af7e865655e4ccf2     --hash=sha256:85b5352f94e490c028926ea567fc569c52ec79ce131dadb968d3853e809518c2     --hash=sha256:85bd218b5ecfbee8c8a82e121802dcb519a86044c9c3b2e4aef02fa05c6da370     --hash=sha256:8a1f570ce4d62d718dce3f179ee78dac3b545ac16c0c04bb363b7607a949c0d1     --hash=sha256:8fdca1def57a2e88ef339de1737a1449d6dbf5fab184c54a1fca01d541317154     --hash=sha256:90f47e70293fc3688b71271100a1a5453aa9944a81d27ff779c108372cf5567b     --hash=sha256:92a2f997387a1b79a75e7803aa7ded2cfbe2823852ccf1ba3bcf613b62ae3197     --hash=sha256:9928fe1eb816d11ae170885a74d074f57af3a0d65777ca47e9aeb854a1fba386     --hash=sha256:9af39d6551f97d31a4deebeac6f45b156f9755ddc59c07b402c148f5dbb6482a     --hash=sha256:9cf554f21be770f5111a1690d42313e140355e687e05cf82cb23d0a721a64a48     --hash=sha256:a30fd6fdef1430fd9e1ba7b3398b5ee4e2887783917a687d86ba69985fb08748     --hash=sha256:a31d512c812daea6d8b3be3b2bfcbeb091dbb09177706569bcfc6240dcf8b41c     --hash=sha256:a5d0432ccf1c7ab14f9949eec60c5d1f924f17c037e9f8b33352fa05799359b8     --hash=sha256:a60ea74330b91bd22a29638940d115df9dc00af5035a9a2a6ad9399ffb4ceca5     --hash=sha256:ac5a486ac389dddcc5bef4f365b6ae3ffff2c433324fb38dd35e3fab7c957999     --hash=sha256:aedff62918805fb62d43a4aa2ecd4482c380dc76cd31bd7c8878588a61bd0369     --hash=sha256:b34e51affded8faee0dfdb705416153819d8ea9250bbbf7ea1b249bdeb5f1122     --hash=sha256:b4b4d74bda2b8ebf4da5bd42af11d02d04428b2c32846e4c2c93219df8a7987b     --hash=sha256:b67e6efbf68e077dd71d1a6b37e43e1a99d0bff1a3d51867d45ee8908b931098     --hash=sha256:b78efa4c6e804ecdf727e580dbb9cba85624d2e1c6b5cb059c66290063bd99a9     --hash=sha256:bb4ae2b57fc1d8cbd1cf7b1d9913803681ffa903e7488012be5b76dedf49297f     --hash=sha256:bdd1a81a1860476eb41ac4bc1e07b3f07259e6d55bbf739b79c8aaedcf512799     --hash=sha256:bdee92c56a71d2b24c33a7d4c2856bd6419d017e08caa7802d2963870e315028     --hash=sha256:be6a04e6c79819c9a8c2373317d19a96048e5a3f90bec587787e86a1153883c2     --hash=sha256:bfc08add558155345129c7803b3671cf195e6a56e7a12f3dde7c57d9b417f525     --hash=sha256:c3b22c26c6fd6811b0ae8363b95ca8ce4ea3c202d3d0975b2914310ceb1bcc4d     --hash=sha256:c9e7cdf45d594ee04d5be1b24dd9d49f3d1590959b2271fb30b5ca2b262c00fb     --hash=sha256:cb27e7b78d716c591e88e0a09a2139c6577865d7f2e152488c2cc6257f460872     --hash=sha256:cc9617b46837c6468197b5945e196ee9ca43057bb7d9d1ae688101e4e1dddf64     --hash=sha256:ccd09f20ccdbbd341b21a67ab50a119b64a403b09288c27481575105283c1586     --hash=sha256:ce6a3a4e106cf35c2d9c4fa17c05ce0b180db622736845d4315519397a77beaf     --hash=sha256:d0005b053977e7b43388ddec89fa567f43d4f6d5c2c0affe57de5ebf290dc552     --hash=sha256:d4188e73af84ca82468f09cadc5ac4db578109e52acb4518d8154698d3a87ca2     --hash=sha256:d4efec7bcf21671db6a3294ff301d2fc861c31faa3c8740d1a94689234d1b415     --hash=sha256:d75aa530ccfaa593da12834b86a0724f58bff12706659baa9227c2ccaa06264c     --hash=sha256:d84cd4061ae292d8ac367b2c3fa3aad11cb8625a95d135fe93f286f914f3f5a6     --hash=sha256:d8aacd3d4b33b772542b2e01beb50187536967b514b00003bdda7589722d2a64     --hash=sha256:d8fc5c867c22b828001b6a38d2eaeb88160bf5783c6cb4a5e440efc981ce286d     --hash=sha256:d976bbb382b202f71c67f77b0ac11244021cfa3f7dfd9e562eefcea2df711548     --hash=sha256:dba5ee5d3981160c28d5490f0d1b7ed730c22470ff7f6cc26cfcfaacb9896a07     --hash=sha256:dc1ae486f9abcef254b5618dfb4113dd49f94c68e3e027d03cf0143f3f772b61     --hash=sha256:dd0a578400839256df88c16abddf9ba14813ec5f21362e1fe65022e00c883d4d     --hash=sha256:deed0c7258ceb4c44ad5ec7d9918f9f14fd05b2be86378d86cf50e63d1e7b771     --hash=sha256:e09c2279a4d01f099f52d5c4b3d9e208e91edcbd1a175c9662a8b16e000fece9     --hash=sha256:e2ea9f7ab7fbf18fffb1b5434ce7c69a07582f7acc7717720f1d69f3e806f90c     --hash=sha256:e6b93f13371d341afee3be9f7c5964e3fe61d5fa30f6a30eb49856935dfe4fc3     --hash=sha256:eb14a5da6dc7642b0f3a18f13654847cd8b7a2550e2645a5bda677862b03ba16     --hash=sha256:ed0fecd28cc62c54b262e3736f8bb2512d8dcfdc2bcf08be5f47f96bf405b145     --hash=sha256:ede8c6d533bc6601a47ad4046080d36b8fc99f81e6f1c17b0ac3c2dc91ac7611     --hash=sha256:efb3a45b35622bb6c16dbfab491a8f5a391fe0e9d45ef32f4df85658232ca0e2     --hash=sha256:f117e1a089d9411663a3207ba874f31be9ac8eaa5b533787024dc07aeb74f464     --hash=sha256:f2ba92255faa7309d06fe44c3a4a97efe1c8d640c2a79a5ef728b685762a6fd2     --hash=sha256:f6008a4919fdbc0b0097089f67a1eb55d950ed7e90ce2cc3e640abadd2757a04     --hash=sha256:f68208a520c3d86ea51acf688a3e3002615a7f0238002cccc17affecc86a8a54     --hash=sha256:f68e4f3eeca8fb22cc3d731f9715a13b652795ef657a13df1ad0c7dc0e9731df     --hash=sha256:fb3b8132019ea572f4611d770991000d7f58127560c4889729248eb5852a102f     --hash=sha256:fb940820c63a9590d31d88b815e7a3aa5915cad3ce735ab45f0c730b39547de1     --hash=sha256:fc1795ac5cd0510207482c3d1d3ed781143383b8cfd36f5c645f3897ce066220"
             }
           },
+          "pip_311_markupsafe": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "markupsafe==3.0.3     --hash=sha256:0303439a41979d9e74d18ff5e2dd8c43ed6c6001fd40e5bf2e43f7bd9bbc523f     --hash=sha256:068f375c472b3e7acbe2d5318dea141359e6900156b5b2ba06a30b169086b91a     --hash=sha256:0bf2a864d67e76e5c9a34dc26ec616a66b9888e25e7b9460e1c76d3293bd9dbf     --hash=sha256:0db14f5dafddbb6d9208827849fad01f1a2609380add406671a26386cdf15a19     --hash=sha256:0eb9ff8191e8498cca014656ae6b8d61f39da5f95b488805da4bb029cccbfbaf     --hash=sha256:0f4b68347f8c5eab4a13419215bdfd7f8c9b19f2b25520968adfad23eb0ce60c     --hash=sha256:1085e7fbddd3be5f89cc898938f42c0b3c711fdcb37d75221de2666af647c175     --hash=sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219     --hash=sha256:12c63dfb4a98206f045aa9563db46507995f7ef6d83b2f68eda65c307c6829eb     --hash=sha256:133a43e73a802c5562be9bbcd03d090aa5a1fe899db609c29e8c8d815c5f6de6     --hash=sha256:1353ef0c1b138e1907ae78e2f6c63ff67501122006b0f9abad68fda5f4ffc6ab     --hash=sha256:15d939a21d546304880945ca1ecb8a039db6b4dc49b2c5a400387cdae6a62e26     --hash=sha256:177b5253b2834fe3678cb4a5f0059808258584c559193998be2601324fdeafb1     --hash=sha256:1872df69a4de6aead3491198eaf13810b565bdbeec3ae2dc8780f14458ec73ce     --hash=sha256:1b4b79e8ebf6b55351f0d91fe80f893b4743f104bff22e90697db1590e47a218     --hash=sha256:1b52b4fb9df4eb9ae465f8d0c228a00624de2334f216f178a995ccdcf82c4634     --hash=sha256:1ba88449deb3de88bd40044603fafffb7bc2b055d626a330323a9ed736661695     --hash=sha256:1cc7ea17a6824959616c525620e387f6dd30fec8cb44f649e31712db02123dad     --hash=sha256:218551f6df4868a8d527e3062d0fb968682fe92054e89978594c28e642c43a73     --hash=sha256:26a5784ded40c9e318cfc2bdb30fe164bdb8665ded9cd64d500a34fb42067b1c     --hash=sha256:2713baf880df847f2bece4230d4d094280f4e67b1e813eec43b4c0e144a34ffe     --hash=sha256:2a15a08b17dd94c53a1da0438822d70ebcd13f8c3a95abe3a9ef9f11a94830aa     --hash=sha256:2f981d352f04553a7171b8e44369f2af4055f888dfb147d55e42d29e29e74559     --hash=sha256:32001d6a8fc98c8cb5c947787c5d08b0a50663d139f1305bac5885d98d9b40fa     --hash=sha256:3524b778fe5cfb3452a09d31e7b5adefeea8c5be1d43c4f810ba09f2ceb29d37     --hash=sha256:3537e01efc9d4dccdf77221fb1cb3b8e1a38d5428920e0657ce299b20324d758     --hash=sha256:35add3b638a5d900e807944a078b51922212fb3dedb01633a8defc4b01a3c85f     --hash=sha256:38664109c14ffc9e7437e86b4dceb442b0096dfe3541d7864d9cbe1da4cf36c8     --hash=sha256:3a7e8ae81ae39e62a41ec302f972ba6ae23a5c5396c8e60113e9066ef893da0d     --hash=sha256:3b562dd9e9ea93f13d53989d23a7e775fdfd1066c33494ff43f5418bc8c58a5c     --hash=sha256:457a69a9577064c05a97c41f4e65148652db078a3a509039e64d3467b9e7ef97     --hash=sha256:4bd4cd07944443f5a265608cc6aab442e4f74dff8088b0dfc8238647b8f6ae9a     --hash=sha256:4e885a3d1efa2eadc93c894a21770e4bc67899e3543680313b09f139e149ab19     --hash=sha256:4faffd047e07c38848ce017e8725090413cd80cbc23d86e55c587bf979e579c9     --hash=sha256:509fa21c6deb7a7a273d629cf5ec029bc209d1a51178615ddf718f5918992ab9     --hash=sha256:5678211cb9333a6468fb8d8be0305520aa073f50d17f089b5b4b477ea6e67fdc     --hash=sha256:591ae9f2a647529ca990bc681daebdd52c8791ff06c2bfa05b65163e28102ef2     --hash=sha256:5a7d5dc5140555cf21a6fefbdbf8723f06fcd2f63ef108f2854de715e4422cb4     --hash=sha256:69c0b73548bc525c8cb9a251cddf1931d1db4d2258e9599c28c07ef3580ef354     --hash=sha256:6b5420a1d9450023228968e7e6a9ce57f65d148ab56d2313fcd589eee96a7a50     --hash=sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698     --hash=sha256:729586769a26dbceff69f7a7dbbf59ab6572b99d94576a5592625d5b411576b9     --hash=sha256:77f0643abe7495da77fb436f50f8dab76dbc6e5fd25d39589a0f1fe6548bfa2b     --hash=sha256:795e7751525cae078558e679d646ae45574b47ed6e7771863fcc079a6171a0fc     --hash=sha256:7be7b61bb172e1ed687f1754f8e7484f1c8019780f6f6b0786e76bb01c2ae115     --hash=sha256:7c3fb7d25180895632e5d3148dbdc29ea38ccb7fd210aa27acbd1201a1902c6e     --hash=sha256:7e68f88e5b8799aa49c85cd116c932a1ac15caaa3f5db09087854d218359e485     --hash=sha256:83891d0e9fb81a825d9a6d61e3f07550ca70a076484292a70fde82c4b807286f     --hash=sha256:8485f406a96febb5140bfeca44a73e3ce5116b2501ac54fe953e488fb1d03b12     --hash=sha256:8709b08f4a89aa7586de0aadc8da56180242ee0ada3999749b183aa23df95025     --hash=sha256:8f71bc33915be5186016f675cd83a1e08523649b0e33efdb898db577ef5bb009     --hash=sha256:915c04ba3851909ce68ccc2b8e2cd691618c4dc4c4232fb7982bca3f41fd8c3d     --hash=sha256:949b8d66bc381ee8b007cd945914c721d9aba8e27f71959d750a46f7c282b20b     --hash=sha256:94c6f0bb423f739146aec64595853541634bde58b2135f27f61c1ffd1cd4d16a     --hash=sha256:9a1abfdc021a164803f4d485104931fb8f8c1efd55bc6b748d2f5774e78b62c5     --hash=sha256:9b79b7a16f7fedff2495d684f2b59b0457c3b493778c9eed31111be64d58279f     --hash=sha256:a320721ab5a1aba0a233739394eb907f8c8da5c98c9181d1161e77a0c8e36f2d     --hash=sha256:a4afe79fb3de0b7097d81da19090f4df4f8d3a2b3adaa8764138aac2e44f3af1     --hash=sha256:ad2cf8aa28b8c020ab2fc8287b0f823d0a7d8630784c31e9ee5edea20f406287     --hash=sha256:b8512a91625c9b3da6f127803b166b629725e68af71f8184ae7e7d54686a56d6     --hash=sha256:bc51efed119bc9cfdf792cdeaa4d67e8f6fcccab66ed4bfdd6bde3e59bfcbb2f     --hash=sha256:bdc919ead48f234740ad807933cdf545180bfbe9342c2bb451556db2ed958581     --hash=sha256:bdd37121970bfd8be76c5fb069c7751683bdf373db1ed6c010162b2a130248ed     --hash=sha256:be8813b57049a7dc738189df53d69395eba14fb99345e0a5994914a3864c8a4b     --hash=sha256:c0c0b3ade1c0b13b936d7970b1d37a57acde9199dc2aecc4c336773e1d86049c     --hash=sha256:c47a551199eb8eb2121d4f0f15ae0f923d31350ab9280078d1e5f12b249e0026     --hash=sha256:c4ffb7ebf07cfe8931028e3e4c85f0357459a3f9f9490886198848f4fa002ec8     --hash=sha256:ccfcd093f13f0f0b7fdd0f198b90053bf7b2f02a3927a30e63f3ccc9df56b676     --hash=sha256:d2ee202e79d8ed691ceebae8e0486bd9a2cd4794cec4824e1c99b6f5009502f6     --hash=sha256:d53197da72cc091b024dd97249dfc7794d6a56530370992a5e1a08983ad9230e     --hash=sha256:d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d     --hash=sha256:d88b440e37a16e651bda4c7c2b930eb586fd15ca7406cb39e211fcff3bf3017d     --hash=sha256:de8a88e63464af587c950061a5e6a67d3632e36df62b986892331d4620a35c01     --hash=sha256:df2449253ef108a379b8b5d6b43f4b1a8e81a061d6537becd5582fba5f9196d7     --hash=sha256:e1c1493fb6e50ab01d20a22826e57520f1284df32f2d8601fdd90b6304601419     --hash=sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795     --hash=sha256:e2103a929dfa2fcaf9bb4e7c091983a49c9ac3b19c9061b6d5427dd7d14d81a1     --hash=sha256:e56b7d45a839a697b5eb268c82a71bd8c7f6c94d6fd50c3d577fa39a9f1409f5     --hash=sha256:e8afc3f2ccfa24215f8cb28dcf43f0113ac3c37c2f0f0806d8c70e4228c5cf4d     --hash=sha256:e8fc20152abba6b83724d7ff268c249fa196d8259ff481f3b1476383f8f24e42     --hash=sha256:eaa9599de571d72e2daf60164784109f19978b327a3910d3e9de8c97b5b70cfe     --hash=sha256:ec15a59cf5af7be74194f7ab02d0f59a62bdcf1a537677ce67a2537c9b87fcda     --hash=sha256:f190daf01f13c72eac4efd5c430a8de82489d9cff23c364c3ea822545032993e     --hash=sha256:f34c41761022dd093b4b6896d4810782ffbabe30f2d443ff5f083e0cbbb8c737     --hash=sha256:f3e98bb3798ead92273dc0e5fd0f31ade220f59a266ffd8a4f6065e0a3ce0523     --hash=sha256:f42d0984e947b8adf7dd6dde396e720934d12c506ce84eea8476409563607591     --hash=sha256:f71a396b3bf33ecaa1626c255855702aca4d3d9fea5e051b41ac59a9c1c41edc     --hash=sha256:f9e130248f4462aaa8e2552d547f36ddadbeaa573879158d721bbd33dfe4743a     --hash=sha256:fed51ac40f757d41b7c48425901843666a6677e3e8eb0abcff09e4ba6e664f50"
+            }
+          },
           "pip_311_matplotlib": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1353,6 +1425,24 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "matplotlib==3.10.5     --hash=sha256:00b6feadc28a08bd3c65b2894f56cf3c94fc8f7adcbc6ab4516ae1e8ed8f62e2     --hash=sha256:07442d2692c9bd1cceaa4afb4bbe5b57b98a7599de4dabfcca92d3eea70f9ebe     --hash=sha256:080c3676a56b8ee1c762bcf8fca3fe709daa1ee23e6ef06ad9f3fc17332f2d2a     --hash=sha256:160e125da27a749481eaddc0627962990f6029811dbeae23881833a011a0907f     --hash=sha256:1f5f3ec4c191253c5f2b7c07096a142c6a1c024d9f738247bfc8e3f9643fc975     --hash=sha256:1fc0d2a3241cdcb9daaca279204a3351ce9df3c0e7e621c7e04ec28aaacaca30     --hash=sha256:1ff10ea43288f0c8bab608a305dc6c918cc729d429c31dcbbecde3b9f4d5b569     --hash=sha256:21a95b9bf408178d372814de7baacd61c712a62cae560b5e6f35d791776f6516     --hash=sha256:27f52634315e96b1debbfdc5c416592edcd9c4221bc2f520fd39c33db5d9f202     --hash=sha256:2efaf97d72629e74252e0b5e3c46813e9eeaa94e011ecf8084a971a31a97f40b     --hash=sha256:33775bbeb75528555a15ac29396940128ef5613cf9a2d31fb1bfd18b3c0c0903     --hash=sha256:352ed6ccfb7998a00881692f38b4ca083c691d3e275b4145423704c34c909076     --hash=sha256:354204db3f7d5caaa10e5de74549ef6a05a4550fdd1c8f831ab9bca81efd39ed     --hash=sha256:3967424121d3a46705c9fa9bdb0931de3228f13f73d7bb03c999c88343a89d89     --hash=sha256:3b80eb8621331449fc519541a7461987f10afa4f9cfd91afcd2276ebe19bd56c     --hash=sha256:47a388908e469d6ca2a6015858fa924e0e8a2345a37125948d8e93a91c47933e     --hash=sha256:48fe6d47380b68a37ccfcc94f009530e84d41f71f5dae7eda7c4a5a84aa0a674     --hash=sha256:4b4984d5064a35b6f66d2c11d668565f4389b1119cc64db7a4c1725bc11adffc     --hash=sha256:4fa40a8f98428f789a9dcacd625f59b7bc4e3ef6c8c7c80187a7a709475cf592     --hash=sha256:525f6e28c485c769d1f07935b660c864de41c37fd716bfa64158ea646f7084bb     --hash=sha256:52c6573dfcb7726a9907b482cd5b92e6b5499b284ffacb04ffbfe06b3e568124     --hash=sha256:56da3b102cf6da2776fef3e71cd96fcf22103a13594a18ac9a9b31314e0be154     --hash=sha256:5d4773a6d1c106ca05cb5a5515d277a6bb96ed09e5c8fab6b7741b8fcaa62c8f     --hash=sha256:64c4535419d5617f7363dad171a5a59963308e0f3f813c4bed6c9e6e2c131512     --hash=sha256:6c49465bf689c4d59d174d0c7795fb42a21d4244d11d70e52b8011987367ac61     --hash=sha256:707f9c292c4cd4716f19ab8a1f93f26598222cd931e0cd98fbbb1c5994bf7667     --hash=sha256:77fab633e94b9da60512d4fa0213daeb76d5a7b05156840c4fd0399b4b818837     --hash=sha256:7e44cada61bec8833c106547786814dd4a266c1b2964fd25daa3804f1b8d4467     --hash=sha256:8a8da0453a7fd8e3da114234ba70c5ba9ef0e98f190309ddfde0f089accd46ea     --hash=sha256:8b6b49167d208358983ce26e43aa4196073b4702858670f2eb111f9a10652b4b     --hash=sha256:8dee65cb1424b7dc982fe87895b5613d4e691cc57117e8af840da0148ca6c1d7     --hash=sha256:903352681b59f3efbf4546985142a9686ea1d616bb054b09a537a06e4b892ccf     --hash=sha256:94986a242747a0605cb3ff1cb98691c736f28a59f8ffe5175acaeb7397c49a5a     --hash=sha256:95672a5d628b44207aab91ec20bf59c26da99de12b88f7e0b1fb0a84a86ff959     --hash=sha256:96ef8f5a3696f20f55597ffa91c28e2e73088df25c555f8d4754931515512715     --hash=sha256:97b9d6443419085950ee4a5b1ee08c363e5c43d7176e55513479e53669e88468     --hash=sha256:a17e57e33de901d221a07af32c08870ed4528db0b6059dce7d7e65c1122d4bea     --hash=sha256:a23193db2e9d64ece69cac0c8231849db7dd77ce59c7b89948cf9d0ce655a3ce     --hash=sha256:a277033048ab22d34f88a3c5243938cef776493f6201a8742ed5f8b553201343     --hash=sha256:a41bcb6e2c8e79dc99c5511ae6f7787d2fb52efd3d805fff06d5d4f667db16b2     --hash=sha256:a6b310f95e1102a8c7c817ef17b60ee5d1851b8c71b63d9286b66b177963039e     --hash=sha256:ac3d50760394d78a3c9be6b28318fe22b494c4fcf6407e8fd4794b538251899b     --hash=sha256:b072aac0c3ad563a2b3318124756cb6112157017f7431626600ecbe890df57a1     --hash=sha256:b5fa2e941f77eb579005fb804026f9d0a1082276118d01cc6051d0d9626eaa7f     --hash=sha256:ba6c3c9c067b83481d647af88b4e441d532acdb5ef22178a14935b0b881188f4     --hash=sha256:c04cba0f93d40e45b3c187c6c52c17f24535b27d545f757a2fffebc06c12b98b     --hash=sha256:c61333a8e5e6240e73769d5826b9a31d8b22df76c0778f8480baf1b4b01c9420     --hash=sha256:ceefe5d40807d29a66ae916c6a3915d60ef9f028ce1927b84e727be91d884369     --hash=sha256:d52fd5b684d541b5a51fb276b2b97b010c75bee9aa392f96b4a07aeb491e33c7     --hash=sha256:dc88af74e7ba27de6cbe6faee916024ea35d895ed3d61ef6f58c4ce97da7185a     --hash=sha256:dcfc39c452c6a9f9028d3e44d2d721484f665304857188124b505b2c95e1eecf     --hash=sha256:e4a6470a118a2e93022ecc7d3bd16b3114b2004ea2bf014fff875b3bc99b70c6     --hash=sha256:ee7a09ae2f4676276f5a65bd9f2bd91b4f9fbaedf49f40267ce3f9b448de501f     --hash=sha256:ee98a5c5344dc7f48dc261b6ba5d9900c008fc12beb3fa6ebda81273602cc389     --hash=sha256:f6adb644c9d040ffb0d3434e440490a66cf73dbfa118a6f79cd7568431f7a012"
+            }
+          },
+          "pip_311_narwhals": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "narwhals==2.14.0     --hash=sha256:98be155c3599db4d5c211e565c3190c398c87e7bf5b3cdb157dece67641946e0     --hash=sha256:b56796c9a00179bd757d15282c540024e1d5c910b19b8c9944d836566c030acf"
+            }
+          },
+          "pip_311_nest_asyncio": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "nest-asyncio==1.6.0     --hash=sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe     --hash=sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c"
             }
           },
           "pip_311_numpy": {
@@ -1391,6 +1481,15 @@
               "requirement": "pillow==11.3.0     --hash=sha256:023f6d2d11784a465f09fd09a34b150ea4672e85fb3d05931d89f373ab14abb2     --hash=sha256:02a723e6bf909e7cea0dac1b0e0310be9d7650cd66222a5f1c571455c0a45214     --hash=sha256:040a5b691b0713e1f6cbe222e0f4f74cd233421e105850ae3b3c0ceda520f42e     --hash=sha256:05f6ecbeff5005399bb48d198f098a9b4b6bdf27b8487c7f38ca16eeb070cd59     --hash=sha256:068d9c39a2d1b358eb9f245ce7ab1b5c3246c7c8c7d9ba58cfa5b43146c06e50     --hash=sha256:0743841cabd3dba6a83f38a92672cccbd69af56e3e91777b0ee7f4dba4385632     --hash=sha256:092c80c76635f5ecb10f3f83d76716165c96f5229addbd1ec2bdbbda7d496e06     --hash=sha256:0b275ff9b04df7b640c59ec5a3cb113eefd3795a8df80bac69646ef699c6981a     --hash=sha256:0bce5c4fd0921f99d2e858dc4d4d64193407e1b99478bc5cacecba2311abde51     --hash=sha256:1019b04af07fc0163e2810167918cb5add8d74674b6267616021ab558dc98ced     --hash=sha256:106064daa23a745510dabce1d84f29137a37224831d88eb4ce94bb187b1d7e5f     --hash=sha256:118ca10c0d60b06d006be10a501fd6bbdfef559251ed31b794668ed569c87e12     --hash=sha256:13f87d581e71d9189ab21fe0efb5a23e9f28552d5be6979e84001d3b8505abe8     --hash=sha256:155658efb5e044669c08896c0c44231c5e9abcaadbc5cd3648df2f7c0b96b9a6     --hash=sha256:1904e1264881f682f02b7f8167935cce37bc97db457f8e7849dc3a6a52b99580     --hash=sha256:19d2ff547c75b8e3ff46f4d9ef969a06c30ab2d4263a9e287733aa8b2429ce8f     --hash=sha256:1a992e86b0dd7aeb1f053cd506508c0999d710a8f07b4c791c63843fc6a807ac     --hash=sha256:1b9c17fd4ace828b3003dfd1e30bff24863e0eb59b535e8f80194d9cc7ecf860     --hash=sha256:1c627742b539bba4309df89171356fcb3cc5a9178355b2727d1b74a6cf155fbd     --hash=sha256:1cd110edf822773368b396281a2293aeb91c90a2db00d78ea43e7e861631b722     --hash=sha256:1f85acb69adf2aaee8b7da124efebbdb959a104db34d3a2cb0f3793dbae422a8     --hash=sha256:23cff760a9049c502721bdb743a7cb3e03365fafcdfc2ef9784610714166e5a4     --hash=sha256:2465a69cf967b8b49ee1b96d76718cd98c4e925414ead59fdf75cf0fd07df673     --hash=sha256:2a3117c06b8fb646639dce83694f2f9eac405472713fcb1ae887469c0d4f6788     --hash=sha256:2aceea54f957dd4448264f9bf40875da0415c83eb85f55069d89c0ed436e3542     --hash=sha256:2d6fcc902a24ac74495df63faad1884282239265c6839a0a6416d33faedfae7e     --hash=sha256:30807c931ff7c095620fe04448e2c2fc673fcbb1ffe2a7da3fb39613489b1ddd     --hash=sha256:30b7c02f3899d10f13d7a48163c8969e4e653f8b43416d23d13d1bbfdc93b9f8     --hash=sha256:3828ee7586cd0b2091b6209e5ad53e20d0649bbe87164a459d0676e035e8f523     --hash=sha256:3cee80663f29e3843b68199b9d6f4f54bd1d4a6b59bdd91bceefc51238bcb967     --hash=sha256:3e184b2f26ff146363dd07bde8b711833d7b0202e27d13540bfe2e35a323a809     --hash=sha256:41342b64afeba938edb034d122b2dda5db2139b9a4af999729ba8818e0056477     --hash=sha256:41742638139424703b4d01665b807c6468e23e699e8e90cffefe291c5832b027     --hash=sha256:4445fa62e15936a028672fd48c4c11a66d641d2c05726c7ec1f8ba6a572036ae     --hash=sha256:45dfc51ac5975b938e9809451c51734124e73b04d0f0ac621649821a63852e7b     --hash=sha256:465b9e8844e3c3519a983d58b80be3f668e2a7a5db97f2784e7079fbc9f9822c     --hash=sha256:48d254f8a4c776de343051023eb61ffe818299eeac478da55227d96e241de53f     --hash=sha256:4c834a3921375c48ee6b9624061076bc0a32a60b5532b322cc0ea64e639dd50e     --hash=sha256:4c96f993ab8c98460cd0c001447bff6194403e8b1d7e149ade5f00594918128b     --hash=sha256:504b6f59505f08ae014f724b6207ff6222662aab5cc9542577fb084ed0676ac7     --hash=sha256:527b37216b6ac3a12d7838dc3bd75208ec57c1c6d11ef01902266a5a0c14fc27     --hash=sha256:5418b53c0d59b3824d05e029669efa023bbef0f3e92e75ec8428f3799487f361     --hash=sha256:59a03cdf019efbfeeed910bf79c7c93255c3d54bc45898ac2a4140071b02b4ae     --hash=sha256:5e05688ccef30ea69b9317a9ead994b93975104a677a36a8ed8106be9260aa6d     --hash=sha256:6359a3bc43f57d5b375d1ad54a0074318a0844d11b76abccf478c37c986d3cfc     --hash=sha256:643f189248837533073c405ec2f0bb250ba54598cf80e8c1e043381a60632f58     --hash=sha256:65dc69160114cdd0ca0f35cb434633c75e8e7fad4cf855177a05bf38678f73ad     --hash=sha256:67172f2944ebba3d4a7b54f2e95c786a3a50c21b88456329314caaa28cda70f6     --hash=sha256:676b2815362456b5b3216b4fd5bd89d362100dc6f4945154ff172e206a22c024     --hash=sha256:6a418691000f2a418c9135a7cf0d797c1bb7d9a485e61fe8e7722845b95ef978     --hash=sha256:6abdbfd3aea42be05702a8dd98832329c167ee84400a1d1f61ab11437f1717eb     --hash=sha256:6be31e3fc9a621e071bc17bb7de63b85cbe0bfae91bb0363c893cbe67247780d     --hash=sha256:7107195ddc914f656c7fc8e4a5e1c25f32e9236ea3ea860f257b0436011fddd0     --hash=sha256:71f511f6b3b91dd543282477be45a033e4845a40278fa8dcdbfdb07109bf18f9     --hash=sha256:7859a4cc7c9295f5838015d8cc0a9c215b77e43d07a25e460f35cf516df8626f     --hash=sha256:7966e38dcd0fa11ca390aed7c6f20454443581d758242023cf36fcb319b1a874     --hash=sha256:79ea0d14d3ebad43ec77ad5272e6ff9bba5b679ef73375ea760261207fa8e0aa     --hash=sha256:7aee118e30a4cf54fdd873bd3a29de51e29105ab11f9aad8c32123f58c8f8081     --hash=sha256:7b161756381f0918e05e7cb8a371fff367e807770f8fe92ecb20d905d0e1c149     --hash=sha256:7c8ec7a017ad1bd562f93dbd8505763e688d388cde6e4a010ae1486916e713e6     --hash=sha256:7d1aa4de119a0ecac0a34a9c8bde33f34022e2e8f99104e47a3ca392fd60e37d     --hash=sha256:7db51d222548ccfd274e4572fdbf3e810a5e66b00608862f947b163e613b67dd     --hash=sha256:819931d25e57b513242859ce1876c58c59dc31587847bf74cfe06b2e0cb22d2f     --hash=sha256:83e1b0161c9d148125083a35c1c5a89db5b7054834fd4387499e06552035236c     --hash=sha256:857844335c95bea93fb39e0fa2726b4d9d758850b34075a7e3ff4f4fa3aa3b31     --hash=sha256:8797edc41f3e8536ae4b10897ee2f637235c94f27404cac7297f7b607dd0716e     --hash=sha256:8924748b688aa210d79883357d102cd64690e56b923a186f35a82cbc10f997db     --hash=sha256:89bd777bc6624fe4115e9fac3352c79ed60f3bb18651420635f26e643e3dd1f6     --hash=sha256:8dc70ca24c110503e16918a658b869019126ecfe03109b754c402daff12b3d9f     --hash=sha256:91da1d88226663594e3f6b4b8c3c8d85bd504117d043740a8e0ec449087cc494     --hash=sha256:921bd305b10e82b4d1f5e802b6850677f965d8394203d182f078873851dada69     --hash=sha256:932c754c2d51ad2b2271fd01c3d121daaa35e27efae2a616f77bf164bc0b3e94     --hash=sha256:93efb0b4de7e340d99057415c749175e24c8864302369e05914682ba642e5d77     --hash=sha256:97afb3a00b65cc0804d1c7abddbf090a81eaac02768af58cbdcaaa0a931e0b6d     --hash=sha256:97f07ed9f56a3b9b5f49d3661dc9607484e85c67e27f3e8be2c7d28ca032fec7     --hash=sha256:98a9afa7b9007c67ed84c57c9e0ad86a6000da96eaa638e4f8abe5b65ff83f0a     --hash=sha256:9ab6ae226de48019caa8074894544af5b53a117ccb9d3b3dcb2871464c829438     --hash=sha256:9c412fddd1b77a75aa904615ebaa6001f169b26fd467b4be93aded278266b288     --hash=sha256:a1bc6ba083b145187f648b667e05a2534ecc4b9f2784c2cbe3089e44868f2b9b     --hash=sha256:a418486160228f64dd9e9efcd132679b7a02a5f22c982c78b6fc7dab3fefb635     --hash=sha256:a4d336baed65d50d37b88ca5b60c0fa9d81e3a87d4a7930d3880d1624d5b31f3     --hash=sha256:a6444696fce635783440b7f7a9fc24b3ad10a9ea3f0ab66c5905be1c19ccf17d     --hash=sha256:a7bc6e6fd0395bc052f16b1a8670859964dbd7003bd0af2ff08342eb6e442cfe     --hash=sha256:b4b8f3efc8d530a1544e5962bd6b403d5f7fe8b9e08227c6b255f98ad82b4ba0     --hash=sha256:b5f56c3f344f2ccaf0dd875d3e180f631dc60a51b314295a3e681fe8cf851fbe     --hash=sha256:be5463ac478b623b9dd3937afd7fb7ab3d79dd290a28e2b6df292dc75063eb8a     --hash=sha256:c37d8ba9411d6003bba9e518db0db0c58a680ab9fe5179f040b0463644bc9805     --hash=sha256:c84d689db21a1c397d001aa08241044aa2069e7587b398c8cc63020390b1c1b8     --hash=sha256:c96d333dcf42d01f47b37e0979b6bd73ec91eae18614864622d9b87bbd5bbf36     --hash=sha256:cadc9e0ea0a2431124cde7e1697106471fc4c1da01530e679b2391c37d3fbb3a     --hash=sha256:cc3e831b563b3114baac7ec2ee86819eb03caa1a2cef0b481a5675b59c4fe23b     --hash=sha256:cd8ff254faf15591e724dc7c4ddb6bf4793efcbe13802a4ae3e863cd300b493e     --hash=sha256:d000f46e2917c705e9fb93a3606ee4a819d1e3aa7a9b442f6444f07e77cf5e25     --hash=sha256:d9da3df5f9ea2a89b81bb6087177fb1f4d1c7146d583a3fe5c672c0d94e55e12     --hash=sha256:e5c5858ad8ec655450a7c7df532e9842cf8df7cc349df7225c60d5d348c8aada     --hash=sha256:e67d793d180c9df62f1f40aee3accca4829d3794c95098887edc18af4b8b780c     --hash=sha256:ea944117a7974ae78059fcc1800e5d3295172bb97035c0c1d9345fca1419da71     --hash=sha256:eb76541cba2f958032d79d143b98a3a6b3ea87f0959bbe256c0b5e416599fd5d     --hash=sha256:ec1ee50470b0d050984394423d96325b744d55c701a439d2bd66089bff963d3c     --hash=sha256:ee92f2fd10f4adc4b43d07ec5e779932b4eb3dbfbc34790ada5a6669bc095aa6     --hash=sha256:f0f5d8f4a08090c6d6d578351a2b91acf519a54986c055af27e7a93feae6d3f1     --hash=sha256:f1f182ebd2303acf8c380a54f615ec883322593320a9b00438eb842c1f37ae50     --hash=sha256:f8a5827f84d973d8636e9dc5764af4f0cf2318d26744b3d902931701b0d46653     --hash=sha256:f944255db153ebb2b19c51fe85dd99ef0ce494123f21b9db4877ffdfc5590c7c     --hash=sha256:fdae223722da47b024b867c1ea0be64e0df702c5e0a60e27daad39bf960dd1e4     --hash=sha256:fe27fb049cdcca11f11a7bfda64043c37b30e6b91f10cb5bab275806c32f6ab3"
             }
           },
+          "pip_311_plotly": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "plotly==6.5.0     --hash=sha256:5ac851e100367735250206788a2b1325412aa4a4917a4fe3e6f0bc5aa6f3d90a     --hash=sha256:d5d38224883fd38c1409bef7d6a8dc32b74348d39313f3c52ca998b8e447f5c8"
+            }
+          },
           "pip_311_pluggy": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1398,6 +1497,24 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "pluggy==1.6.0     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"
+            }
+          },
+          "pip_311_psycopg": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "psycopg[binary]==3.3.2     --hash=sha256:3e94bc5f4690247d734599af56e51bae8e0db8e4311ea413f801fef82b14a99b     --hash=sha256:707a67975ee214d200511177a6a80e56e654754c9afca06a7194ea6bbfde9ca7"
+            }
+          },
+          "pip_311_psycopg_binary": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "psycopg-binary==3.3.2     --hash=sha256:03b7cd73fb8c45d272a34ae7249713e32492891492681e3cf11dff9531cf37e9     --hash=sha256:04bb2de4ba69d6f8395b446ede795e8884c040ec71d01dd07ac2b2d18d4153d1     --hash=sha256:0611f4822674f3269e507a307236efb62ae5a828fcfc923ac85fe22ca19fd7c8     --hash=sha256:0768c5f32934bb52a5df098317eca9bdcf411de627c5dca2ee57662b64b54b41     --hash=sha256:07a5f030e0902ec3e27d0506ceb01238c0aecbc73ecd7fa0ee55f86134600b5b     --hash=sha256:083c2e182be433f290dc2c516fd72b9b47054fcd305cce791e0a50d9e93e06f2     --hash=sha256:09b3014013f05cd89828640d3a1db5f829cc24ad8fa81b6e42b2c04685a0c9d4     --hash=sha256:0ae60e910531cfcc364a8f615a7941cac89efeb3f0fffe0c4824a6d11461eef7     --hash=sha256:136c43f185244893a527540307167f5d3ef4e08786508afe45d6f146228f5aa9     --hash=sha256:1586e220be05547c77afc326741dd41cc7fba38a81f9931f616ae98865439678     --hash=sha256:1e09d0d93d35c134704a2cb2b15f81ffc8174fd602f3e08f7b1a3d8896156cf0     --hash=sha256:1ea41c0229f3f5a3844ad0857a83a9f869aa7b840448fa0c200e6bcf85d33d19     --hash=sha256:23d2594af848c1fd3d874a9364bef50730124e72df7bb145a20cb45e728c50ed     --hash=sha256:3789d452a9d17a841c7f4f97bbcba51a21f957ea35641a4c98507520e6b6a068     --hash=sha256:3ff7489df5e06c12d1829544eaec64970fe27fe300f7cf04c8495fe682064688     --hash=sha256:43b130e3b6edcb5ee856c7167ccb8561b473308c870ed83978ae478613764f1c     --hash=sha256:44e89938d36acc4495735af70a886d206a5bfdc80258f95b69b52f68b2968d9e     --hash=sha256:458696a5fa5dad5b6fb5d5862c22454434ce4fe1cf66ca6c0de5f904cbc1ae3e     --hash=sha256:50ff10ab8c0abdb5a5451b9315538865b50ba64c907742a1385fdf5f5772b73e     --hash=sha256:522b79c7db547767ca923e441c19b97a2157f2f494272a119c854bba4804e186     --hash=sha256:59d0163c4617a2c577cb34afbed93d7a45b8c8364e54b2bd2020ff25d5f5f860     --hash=sha256:5a327327f1188b3fbecac41bf1973a60b86b2eb237db10dc945bd3dc97ec39e4     --hash=sha256:649c1d33bedda431e0c1df646985fbbeb9274afa964e1aef4be053c0f23a2924     --hash=sha256:716a586f99bbe4f710dc58b40069fcb33c7627e95cc6fc936f73c9235e07f9cf     --hash=sha256:742ce48cde825b8e52fb1a658253d6d1ff66d152081cbc76aa45e2986534858d     --hash=sha256:74bc306c4b4df35b09bc8cecf806b271e1c5d708f7900145e4e54a2e5dedfed0     --hash=sha256:7c1feba5a8c617922321aef945865334e468337b8fc5c73074f5e63143013b5a     --hash=sha256:7c43a773dd1a481dbb2fe64576aa303d80f328cce0eae5e3e4894947c41d1da7     --hash=sha256:8309ee4569dced5e81df5aa2dcd48c7340c8dee603a66430f042dfbd2878edca     --hash=sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121     --hash=sha256:8ea05b499278790a8fa0ff9854ab0de2542aca02d661ddff94e830df971ff640     --hash=sha256:90ed9da805e52985b0202aed4f352842c907c6b4fc6c7c109c6e646c32e2f43b     --hash=sha256:94503b79f7da0b65c80d0dbb2f81dd78b300319ec2435d5e6dcf9622160bc2fa     --hash=sha256:9742580ecc8e1ac45164e98d32ca6df90da509c2d3ff26be245d94c430f92db4     --hash=sha256:9ca24062cd9b2270e4d77576042e9cc2b1d543f09da5aba1f1a3d016cea28390     --hash=sha256:a9387ab615f929e71ef0f4a8a51e986fa06236ccfa9f3ec98a88f60fbf230634     --hash=sha256:ac230e3643d1c436a2dfb59ca84357dfc6862c9f372fc5dbd96bafecae581f9f     --hash=sha256:c3a9ccdfee4ae59cf9bf1822777e763bc097ed208f4901e21537fca1070e1391     --hash=sha256:c5774272f754605059521ff037a86e680342e3847498b0aa86b0f3560c70963c     --hash=sha256:c6464150e25b68ae3cb04c4e57496ea11ebfaae4d98126aea2f4702dd43e3c12     --hash=sha256:c749770da0947bc972e512f35366dd4950c0e34afad89e60b9787a37e97cb443     --hash=sha256:cabb2a554d9a0a6bf84037d86ca91782f087dfff2a61298d0b00c19c0bc43f6d     --hash=sha256:d391b70c9cc23f6e1142729772a011f364199d2c5ddc0d596f5f43316fbf982d     --hash=sha256:d45acedcaa58619355f18e0f42af542fcad3fd84ace4b8355d3a5dea23318578     --hash=sha256:d79b0093f0fbf7a962d6a46ae292dc056c65d16a8ee9361f3cfbafd4c197ab14     --hash=sha256:d88f32ff8c47cb7f4e7e7a9d1747dcee6f3baa19ed9afa9e5694fd2fb32b61ed     --hash=sha256:d8c899a540f6c7585cee53cddc929dd4d2db90fd828e37f5d4017b63acbc1a5d     --hash=sha256:de9173f8cc0efd88ac2a89b3b6c287a9a0011cdc2f53b2a12c28d6fd55f9f81c     --hash=sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc     --hash=sha256:e22bf6b54df994aff37ab52695d635f1ef73155e781eee1f5fa75bc08b58c8da     --hash=sha256:e750afe74e6c17b2c7046d2c3e3173b5a3f6080084671c8aa327215323df155b     --hash=sha256:ea4fe6b4ead3bbbe27244ea224fcd1f53cb119afc38b71a2f3ce570149a03e30     --hash=sha256:f26f113013c4dcfbfe9ced57b5bad2035dda1a7349f64bf726021968f9bccad3     --hash=sha256:f3f601f32244a677c7b029ec39412db2772ad04a28bc2cbb4b1f0931ed0ffad7     --hash=sha256:fc5a189e89cbfff174588665bb18d28d2d0428366cc9dae5864afcaa2e57380b"
             }
           },
           "pip_311_pyarrow": {
@@ -1580,6 +1697,15 @@
               "requirement": "requests==2.32.5     --hash=sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6     --hash=sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf"
             }
           },
+          "pip_311_retrying": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "retrying==1.4.2     --hash=sha256:bbc004aeb542a74f3569aeddf42a2516efefcdaff90df0eb38fbfbf19f179f59     --hash=sha256:d102e75d53d8d30b88562d45361d6c6c934da06fab31bd81c0420acb97a8ba39"
+            }
+          },
           "pip_311_scipy": {
             "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
             "attributes": {
@@ -1587,6 +1713,15 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "scipy==1.16.1     --hash=sha256:0851f6a1e537fe9399f35986897e395a1aa61c574b178c0d456be5b1a0f5ca1f     --hash=sha256:0a55ffe0ba0f59666e90951971a884d1ff6f4ec3275a48f472cfb64175570f77     --hash=sha256:15240c3aac087a522b4eaedb09f0ad061753c5eebf1ea430859e5bf8640d5919     --hash=sha256:18aca1646a29ee9a0625a1be5637fa798d4d81fdf426481f06d69af828f16958     --hash=sha256:21a611ced9275cb861bacadbada0b8c0623bc00b05b09eb97f23b370fc2ae56d     --hash=sha256:226652fca853008119c03a8ce71ffe1b3f6d2844cc1686e8f9806edafae68596     --hash=sha256:2ef500e72f9623a6735769e4b93e9dcb158d40752cdbb077f305487e3e2d1f45     --hash=sha256:30cc4bb81c41831ecfd6dc450baf48ffd80ef5aed0f5cf3ea775740e80f16ecc     --hash=sha256:367d567ee9fc1e9e2047d31f39d9d6a7a04e0710c86e701e053f237d14a9b4f6     --hash=sha256:3d0b80fb26d3e13a794c71d4b837e2a589d839fd574a6bbb4ee1288c213ad4a3     --hash=sha256:3ddfb1e8d0b540cb4ee9c53fc3dea3186f97711248fb94b4142a1b27178d8b4b     --hash=sha256:3ea0733a2ff73fd6fdc5fecca54ee9b459f4d74f00b99aced7d9a3adb43fb1cc     --hash=sha256:44c76f9e8b6e8e488a586190ab38016e4ed2f8a038af7cd3defa903c0a2238b3     --hash=sha256:4cf5785e44e19dcd32a0e4807555e1e9a9b8d475c6afff3d21c3c543a6aa84f4     --hash=sha256:4dc0e7be79e95d8ba3435d193e0d8ce372f47f774cffd882f88ea4e1e1ddc731     --hash=sha256:5451606823a5e73dfa621a89948096c6528e2896e40b39248295d3a0138d594f     --hash=sha256:57d75524cb1c5a374958a2eae3d84e1929bb971204cc9d52213fb8589183fc19     --hash=sha256:5aa2687b9935da3ed89c5dbed5234576589dd28d0bf7cd237501ccfbdf1ad608     --hash=sha256:5e1a106f8c023d57a2a903e771228bf5c5b27b5d692088f457acacd3b54511e4     --hash=sha256:65f81a25805f3659b48126b5053d9e823d3215e4a63730b5e1671852a1705921     --hash=sha256:6c62eea7f607f122069b9bad3f99489ddca1a5173bef8a0c75555d7488b6f725     --hash=sha256:6e5c2f74e5df33479b5cd4e97a9104c511518fbd979aa9b8f6aec18b2e9ecae7     --hash=sha256:709559a1db68a9abc3b2c8672c4badf1614f3b440b3ab326d86a5c0491eafae3     --hash=sha256:744d977daa4becb9fc59135e75c069f8d301a87d64f88f1e602a9ecf51e77b27     --hash=sha256:796a5a9ad36fa3a782375db8f4241ab02a091308eb079746bc0f874c9b998318     --hash=sha256:81929ed0fa7a5713fcdd8b2e6f73697d3b4c4816d090dd34ff937c20fa90e8ab     --hash=sha256:81b433bbeaf35728dad619afc002db9b189e45eebe2cd676effe1fb93fef2b9c     --hash=sha256:8503517c44c18d1030d666cb70aaac1cc8913608816e06742498833b128488b7     --hash=sha256:85764fb15a2ad994e708258bb4ed8290d1305c62a4e1ef07c414356a24fcfbf8     --hash=sha256:886cc81fdb4c6903a3bb0464047c25a6d1016fef77bb97949817d0c0d79f9e04     --hash=sha256:89728678c5ca5abd610aee148c199ac1afb16e19844401ca97d43dc548a354eb     --hash=sha256:8dfbb25dffc4c3dd9371d8ab456ca81beeaf6f9e1c2119f179392f0dc1ab7695     --hash=sha256:978d8311674b05a8f7ff2ea6c6bce5d8b45a0cb09d4c5793e0318f448613ea65     --hash=sha256:adccd93a2fa937a27aae826d33e3bfa5edf9aa672376a4852d23a7cd67a2e5b7     --hash=sha256:bcc12db731858abda693cecdb3bdc9e6d4bd200213f49d224fe22df82687bdd6     --hash=sha256:c033fa32bab91dc98ca59d0cf23bb876454e2bb02cbe592d5023138778f70030     --hash=sha256:c0c804d60492a0aad7f5b2bb1862f4548b990049e27e828391ff2bf6f7199998     --hash=sha256:c24fa02f7ed23ae514460a22c57eca8f530dbfa50b1cfdbf4f37c05b5309cc39     --hash=sha256:ca66d980469cb623b1759bdd6e9fd97d4e33a9fad5b33771ced24d0cb24df67e     --hash=sha256:cb18899127278058bcc09e7b9966d41a5a43740b5bb8dcba401bd983f82e885b     --hash=sha256:cc1d2f2fd48ba1e0620554fe5bc44d3e8f5d4185c8c109c7fbdf5af2792cfad2     --hash=sha256:d85495cef541729a70cdddbbf3e6b903421bc1af3e8e3a9a72a06751f33b7c39     --hash=sha256:d8da7c3dd67bcd93f15618938f43ed0995982eb38973023d46d4646c4283ad65     --hash=sha256:dc54f76ac18073bcecffb98d93f03ed6b81a92ef91b5d3b135dcc81d55a724c7     --hash=sha256:e756d688cb03fd07de0fffad475649b03cb89bee696c98ce508b17c11a03f95c     --hash=sha256:e7cc1ffcc230f568549fc56670bcf3df1884c30bd652c5da8138199c8c76dae0     --hash=sha256:e8fd15fc5085ab4cca74cb91fe0a4263b1f32e4420761ddae531ad60934c2119     --hash=sha256:f006e323874ffd0b0b816d8c6a8e7f9a73d55ab3b8c3f72b752b226d0e3ac83d     --hash=sha256:f0ebb7204f063fad87fc0a0e4ff4a2ff40b2a226e4ba1b7e34bf4b79bf97cd86     --hash=sha256:f1b9e5962656f2734c2b285a8745358ecb4e4efbadd00208c80a389227ec61ff     --hash=sha256:f23634f9e5adb51b2a77766dac217063e764337fbc816aa8ad9aaebcd4397fd3     --hash=sha256:f7b8013c6c066609577d910d1a2a077021727af07b6fab0ee22c2f901f22352a     --hash=sha256:f8a5d6cd147acecc2603fbd382fed6c46f474cccfcf69ea32582e033fb54dcfe     --hash=sha256:f965bbf3235b01c776115ab18f092a95aa74c271a52577bcb0563e85738fd618     --hash=sha256:fedc2cbd1baed37474b1924c331b97bdff611d762c196fac1a9b71e67b813b1b"
+            }
+          },
+          "pip_311_setuptools": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "setuptools==80.9.0     --hash=sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922     --hash=sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c"
             }
           },
           "pip_311_six": {
@@ -1641,6 +1776,24 @@
               "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
               "repo": "pip_311",
               "requirement": "urllib3==2.5.0     --hash=sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760     --hash=sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"
+            }
+          },
+          "pip_311_werkzeug": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "werkzeug==3.1.4     --hash=sha256:2ad50fb9ed09cc3af22c54698351027ace879a0b60a3b5edf5730b2f7d876905     --hash=sha256:cd3cd98b1b92dc3b7b3995038826c68097dcb16f9baa63abe35f20eafeb9fe5e"
+            }
+          },
+          "pip_311_zipp": {
+            "repoRuleId": "@@rules_python+//python/private/pypi:whl_library.bzl%whl_library",
+            "attributes": {
+              "dep_template": "@pip//{name}:{target}",
+              "python_interpreter_target": "@@rules_python++python+python_3_11_host//:python",
+              "repo": "pip_311",
+              "requirement": "zipp==3.23.0     --hash=sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e     --hash=sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166"
             }
           },
           "pip_deps_310_numpy": {
@@ -4138,22 +4291,35 @@
               "extra_hub_aliases": {},
               "whl_map": {
                 "annotated_types": "{\"pip_311_annotated_types\":[{\"version\":\"3.11\"}]}",
+                "blinker": "{\"pip_311_blinker\":[{\"version\":\"3.11\"}]}",
                 "certifi": "{\"pip_311_certifi\":[{\"version\":\"3.11\"}]}",
                 "charset_normalizer": "{\"pip_311_charset_normalizer\":[{\"version\":\"3.11\"}]}",
+                "click": "{\"pip_311_click\":[{\"version\":\"3.11\"}]}",
                 "contourpy": "{\"pip_311_contourpy\":[{\"version\":\"3.11\"}]}",
                 "coverage": "{\"pip_311_coverage\":[{\"version\":\"3.11\"}]}",
                 "cycler": "{\"pip_311_cycler\":[{\"version\":\"3.11\"}]}",
+                "dash": "{\"pip_311_dash\":[{\"version\":\"3.11\"}]}",
+                "flask": "{\"pip_311_flask\":[{\"version\":\"3.11\"}]}",
                 "fonttools": "{\"pip_311_fonttools\":[{\"version\":\"3.11\"}]}",
                 "idna": "{\"pip_311_idna\":[{\"version\":\"3.11\"}]}",
+                "importlib_metadata": "{\"pip_311_importlib_metadata\":[{\"version\":\"3.11\"}]}",
                 "influxdb3_python": "{\"pip_311_influxdb3_python\":[{\"version\":\"3.11\"}]}",
                 "iniconfig": "{\"pip_311_iniconfig\":[{\"version\":\"3.11\"}]}",
+                "itsdangerous": "{\"pip_311_itsdangerous\":[{\"version\":\"3.11\"}]}",
+                "jinja2": "{\"pip_311_jinja2\":[{\"version\":\"3.11\"}]}",
                 "kiwisolver": "{\"pip_311_kiwisolver\":[{\"version\":\"3.11\"}]}",
+                "markupsafe": "{\"pip_311_markupsafe\":[{\"version\":\"3.11\"}]}",
                 "matplotlib": "{\"pip_311_matplotlib\":[{\"version\":\"3.11\"}]}",
+                "narwhals": "{\"pip_311_narwhals\":[{\"version\":\"3.11\"}]}",
+                "nest_asyncio": "{\"pip_311_nest_asyncio\":[{\"version\":\"3.11\"}]}",
                 "numpy": "{\"pip_311_numpy\":[{\"version\":\"3.11\"}]}",
                 "packaging": "{\"pip_311_packaging\":[{\"version\":\"3.11\"}]}",
                 "pandas": "{\"pip_311_pandas\":[{\"version\":\"3.11\"}]}",
                 "pillow": "{\"pip_311_pillow\":[{\"version\":\"3.11\"}]}",
+                "plotly": "{\"pip_311_plotly\":[{\"version\":\"3.11\"}]}",
                 "pluggy": "{\"pip_311_pluggy\":[{\"version\":\"3.11\"}]}",
+                "psycopg": "{\"pip_311_psycopg\":[{\"version\":\"3.11\"}]}",
+                "psycopg_binary": "{\"pip_311_psycopg_binary\":[{\"version\":\"3.11\"}]}",
                 "pyarrow": "{\"pip_311_pyarrow\":[{\"version\":\"3.11\"}]}",
                 "pydantic": "{\"pip_311_pydantic\":[{\"version\":\"3.11\"}]}",
                 "pydantic_core": "{\"pip_311_pydantic_core\":[{\"version\":\"3.11\"}]}",
@@ -4174,32 +4340,49 @@
                 "reactivex": "{\"pip_311_reactivex\":[{\"version\":\"3.11\"}]}",
                 "redis": "{\"pip_311_redis\":[{\"version\":\"3.11\"}]}",
                 "requests": "{\"pip_311_requests\":[{\"version\":\"3.11\"}]}",
+                "retrying": "{\"pip_311_retrying\":[{\"version\":\"3.11\"}]}",
                 "scipy": "{\"pip_311_scipy\":[{\"version\":\"3.11\"}]}",
+                "setuptools": "{\"pip_311_setuptools\":[{\"version\":\"3.11\"}]}",
                 "six": "{\"pip_311_six\":[{\"version\":\"3.11\"}]}",
                 "tqdm": "{\"pip_311_tqdm\":[{\"version\":\"3.11\"}]}",
                 "typing_extensions": "{\"pip_311_typing_extensions\":[{\"version\":\"3.11\"}]}",
                 "typing_inspection": "{\"pip_311_typing_inspection\":[{\"version\":\"3.11\"}]}",
                 "tzdata": "{\"pip_311_tzdata\":[{\"version\":\"3.11\"}]}",
-                "urllib3": "{\"pip_311_urllib3\":[{\"version\":\"3.11\"}]}"
+                "urllib3": "{\"pip_311_urllib3\":[{\"version\":\"3.11\"}]}",
+                "werkzeug": "{\"pip_311_werkzeug\":[{\"version\":\"3.11\"}]}",
+                "zipp": "{\"pip_311_zipp\":[{\"version\":\"3.11\"}]}"
               },
               "packages": [
                 "annotated_types",
+                "blinker",
                 "certifi",
                 "charset_normalizer",
+                "click",
                 "contourpy",
                 "coverage",
                 "cycler",
+                "dash",
+                "flask",
                 "fonttools",
                 "idna",
+                "importlib_metadata",
                 "influxdb3_python",
                 "iniconfig",
+                "itsdangerous",
+                "jinja2",
                 "kiwisolver",
+                "markupsafe",
                 "matplotlib",
+                "narwhals",
+                "nest_asyncio",
                 "numpy",
                 "packaging",
                 "pandas",
                 "pillow",
+                "plotly",
                 "pluggy",
+                "psycopg",
+                "psycopg_binary",
                 "pyarrow",
                 "pydantic",
                 "pydantic_core",
@@ -4220,13 +4403,17 @@
                 "reactivex",
                 "redis",
                 "requests",
+                "retrying",
                 "scipy",
+                "setuptools",
                 "six",
                 "tqdm",
                 "typing_extensions",
                 "typing_inspection",
                 "tzdata",
-                "urllib3"
+                "urllib3",
+                "werkzeug",
+                "zipp"
               ],
               "groups": {}
             }
