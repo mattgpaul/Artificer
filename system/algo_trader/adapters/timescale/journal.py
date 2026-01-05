@@ -41,4 +41,3 @@ class TimescaleJournal(JournalPort):
 
     def record_fill(self, fill: Fill) -> None:  # optional extension consumed by Engine
         self.store.record_fill(fill, run_id=self.run_id)
-

@@ -1,6 +1,9 @@
+"""Broker port for order placement and fill retrieval."""
+
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from system.algo_trader.domain.models import Fill, OrderIntent
 
@@ -11,4 +14,3 @@ class BrokerPort(Protocol):
 
     def poll_fills(self) -> Sequence[Fill]:
         """Return any new fills since last poll."""
-

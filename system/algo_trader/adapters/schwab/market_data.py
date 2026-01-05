@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Sequence
 
 from system.algo_trader.domain.models import Bar, Quote
 from system.algo_trader.ports.market_data import MarketDataPort
@@ -69,4 +69,3 @@ class SchwabMarketDataAdapter(MarketDataPort):
                 volume=None if q.get("volume") is None else int(q.get("volume")),
             )
         return out
-

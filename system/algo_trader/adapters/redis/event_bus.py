@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import os
 import socket
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Sequence
 
 from infrastructure.redis.redis import BaseRedisClient
 from system.algo_trader.domain.events import DecisionEvent, MarketEvent, OverrideEvent
@@ -130,11 +130,12 @@ class AlgoTraderRedisBroker(BaseRedisClient, DataBrokerPort):
                 except Exception:
                     args = {}
 
-                events.append(OverrideEvent(ts=datetime.fromisoformat(ts), command=command, args=args))
+                events.append(
+                    OverrideEvent(ts=datetime.fromisoformat(ts), command=command, args=args)
+                )
                 # Ack immediately; overrides are operator-driven and should not replay indefinitely.
                 try:
                     self.client.xack(stream_key, self.consumer_group, msg_id)
                 except Exception:
                     pass
         return events
-

@@ -1,9 +1,11 @@
+"""Paper broker adapter for backtests/forward-tests."""
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Sequence
 
 from system.algo_trader.domain.models import Fill, OrderIntent, Side
 from system.algo_trader.ports.broker import BrokerPort
@@ -23,10 +25,12 @@ class PaperBroker(BrokerPort):
     _order_seq: int = 0
 
     def set_price(self, symbol: str, price: Decimal, ts: datetime) -> None:
+        """Set the latest execution price for a symbol."""
         self.prices[symbol] = price
         self.ts = ts
 
     def place_orders(self, intents: Sequence[OrderIntent]) -> Sequence[str]:
+        """Place orders and queue immediate fills at the latest known price."""
         ids: list[str] = []
         for intent in intents:
             self._order_seq += 1
@@ -51,7 +55,7 @@ class PaperBroker(BrokerPort):
         return ids
 
     def poll_fills(self) -> Sequence[Fill]:
+        """Return and clear any queued fills."""
         fills = list(self._fills)
         self._fills.clear()
         return fills
-

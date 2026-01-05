@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
+from system.algo_trader.adapters.paper.broker import PaperBroker
 from system.algo_trader.apps.backtest_app import BacktestApp
 from system.algo_trader.apps.forward_app import ForwardTestApp
 from system.algo_trader.domain.engine import Engine
@@ -11,7 +12,6 @@ from system.algo_trader.domain.events import DecisionEvent, OverrideEvent
 from system.algo_trader.domain.models import Bar, Quote
 from system.algo_trader.domain.portfolio import SimplePortfolio
 from system.algo_trader.domain.strategies import SmaCrossoverStrategy
-from system.algo_trader.adapters.paper.broker import PaperBroker
 
 
 @dataclass(slots=True)
@@ -148,4 +148,3 @@ def test_sma_20_10_forward_test_e2e_paper_trades_on_quotes():
     intents = [i for d in journal.decisions for i in d.order_intents]
     assert any(i.side.value == "BUY" for i in intents)
     assert any(i.side.value == "SELL" for i in intents)
-

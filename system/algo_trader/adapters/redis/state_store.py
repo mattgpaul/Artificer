@@ -25,4 +25,3 @@ class AlgoTraderStateStore(BaseRedisClient):
 
     def set_engine_status(self, status: dict[str, Any], ttl_seconds: int = 10) -> bool:
         return self.set_json("engine_status", status, ttl=ttl_seconds)
-

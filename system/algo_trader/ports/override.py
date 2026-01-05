@@ -7,4 +7,3 @@ from system.algo_trader.domain.events import OverrideEvent
 
 class OverridePort(Protocol):
     def next_override(self) -> OverrideEvent | None: ...
-

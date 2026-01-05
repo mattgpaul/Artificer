@@ -46,4 +46,3 @@ class ForwardTestApp:
             i += 1
             if self.max_iterations is not None and i >= self.max_iterations:
                 return
-

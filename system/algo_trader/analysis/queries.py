@@ -47,4 +47,3 @@ class AlgoTraderQueries:
             tuple(params + [limit]),
         )
         return pd.DataFrame(rows)
-

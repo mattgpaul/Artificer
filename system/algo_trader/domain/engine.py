@@ -53,4 +53,3 @@ class Engine:
             if hasattr(self.journal, "record_fill"):
                 # Optional extension point; Timescale adapter will implement this.
                 self.journal.record_fill(fill)  # type: ignore[attr-defined]
-

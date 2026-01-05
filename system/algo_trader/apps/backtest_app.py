@@ -7,6 +7,8 @@ from system.algo_trader.domain.engine import Engine
 from system.algo_trader.domain.events import MarketEvent
 from system.algo_trader.domain.models import Bar
 from system.algo_trader.ports.broker import BrokerPort
+
+
 @dataclass(slots=True)
 class BacktestApp:
     engine: Engine
@@ -26,4 +28,3 @@ class BacktestApp:
                 fills = list(self.broker.poll_fills())
                 if fills:
                     self.engine.on_fills(fills, ts=ts)
-

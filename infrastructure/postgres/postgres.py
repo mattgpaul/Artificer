@@ -1,3 +1,5 @@
+"""Postgres client utilities for Artificer infrastructure."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,6 +15,7 @@ class BasePostgresClient(Client):
     """Base Postgres client for database operations (Timescale compatible)."""
 
     def __init__(self, config=None) -> None:
+        """Create a Postgres client from `PostgresConfig` or the provided config."""
         super().__init__()
         self.logger = get_logger(self.__class__.__name__)
 
@@ -35,13 +38,17 @@ class BasePostgresClient(Client):
         if self._conn is None:
             conn_str = (
                 f"host={self.host} port={self.port} user={self.user} "
-                f"password={self.password} dbname={self.database} connect_timeout={self.connect_timeout}"
+                f"password={self.password} dbname={self.database} "
+                f"connect_timeout={self.connect_timeout}"
             )
             self._conn = psycopg.connect(conn_str, row_factory=dict_row, autocommit=self.autocommit)
-            self.logger.info(f"Postgres connection created: {self.host}:{self.port}/{self.database}")
+            self.logger.info(
+                f"Postgres connection created: {self.host}:{self.port}/{self.database}"
+            )
         return self._conn
 
     def ping(self) -> bool:
+        """Return True if the database connection is usable."""
         try:
             conn = self._get_connection()
             with conn.cursor() as cur:
@@ -53,12 +60,14 @@ class BasePostgresClient(Client):
             return False
 
     def execute(self, query: str, params: tuple[Any, ...] | None = None) -> int:
+        """Execute a statement and return `cursor.rowcount`."""
         conn = self._get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
             return cur.rowcount
 
     def fetchone(self, query: str, params: tuple[Any, ...] | None = None) -> dict[str, Any] | None:
+        """Fetch a single row as a dict, or None if empty."""
         conn = self._get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
@@ -66,6 +75,7 @@ class BasePostgresClient(Client):
             return dict(row) if row else None
 
     def fetchall(self, query: str, params: tuple[Any, ...] | None = None) -> list[dict[str, Any]]:
+        """Fetch all rows as a list of dicts."""
         conn = self._get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
@@ -73,26 +83,29 @@ class BasePostgresClient(Client):
             return [dict(r) for r in rows]
 
     def begin(self) -> None:
+        """Start an explicit transaction (disables autocommit for the connection)."""
         conn = self._get_connection()
         conn.autocommit = False
 
     def commit(self) -> None:
+        """Commit the current transaction and restore autocommit."""
         if self._conn is None:
             return
         self._conn.commit()
         self._conn.autocommit = self.autocommit
 
     def rollback(self) -> None:
+        """Rollback the current transaction and restore autocommit."""
         if self._conn is None:
             return
         self._conn.rollback()
         self._conn.autocommit = self.autocommit
 
     def close(self) -> None:
+        """Close the underlying connection, if any."""
         if self._conn is None:
             return
         try:
             self._conn.close()
         finally:
             self._conn = None
-

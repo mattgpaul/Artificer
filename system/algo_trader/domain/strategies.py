@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Sequence
 
 from system.algo_trader.domain.events import MarketEvent
 from system.algo_trader.domain.models import Bar, OrderIntent, Side
@@ -34,9 +34,13 @@ class SmaCrossoverStrategy(StrategyPort):
         if event.kind == "bar" and isinstance(event.payload, Bar):
             sym = event.payload.symbol
             price = event.payload.close
-        elif event.kind == "quote" and hasattr(event.payload, "symbol") and hasattr(event.payload, "price"):
-            sym = getattr(event.payload, "symbol")
-            price = getattr(event.payload, "price")
+        elif (
+            event.kind == "quote"
+            and hasattr(event.payload, "symbol")
+            and hasattr(event.payload, "price")
+        ):
+            sym = event.payload.symbol
+            price = event.payload.price
         else:
             return []
 
@@ -79,4 +83,3 @@ class SmaCrossoverStrategy(StrategyPort):
             )
 
         return intents
-

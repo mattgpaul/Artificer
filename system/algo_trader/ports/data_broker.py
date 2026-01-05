@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from system.algo_trader.domain.events import DecisionEvent, MarketEvent, OverrideEvent
 
@@ -13,4 +14,3 @@ class DataBrokerPort(Protocol):
     def publish_override(self, event: OverrideEvent) -> None: ...
 
     def poll_overrides(self, max_items: int = 10) -> Sequence[OverrideEvent]: ...
-

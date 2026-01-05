@@ -77,7 +77,9 @@ def build_app() -> Dash:
         table = html.Table(
             [
                 html.Thead(
-                    html.Tr([html.Th(c) for c in ["ts", "symbol", "side", "qty", "price", "run_id"]])
+                    html.Tr(
+                        [html.Th(c) for c in ["ts", "symbol", "side", "qty", "price", "run_id"]]
+                    )
                 ),
                 html.Tbody(
                     [
@@ -109,4 +111,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
