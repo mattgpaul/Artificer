@@ -85,10 +85,13 @@ class TestEquityTracker:
         dd = tracker.refresh()
         assert dd == Decimal("0")
 
-    @pytest.mark.parametrize("cash,price,qty,expected_cash", [
-        (Decimal("100000"), Decimal("100"), Decimal("10"), Decimal("99000")),
-        (Decimal("50000"), Decimal("50"), Decimal("5"), Decimal("49750")),
-    ])
+    @pytest.mark.parametrize(
+        "cash,price,qty,expected_cash",
+        [
+            (Decimal("100000"), Decimal("100"), Decimal("10"), Decimal("99000")),
+            (Decimal("50000"), Decimal("50"), Decimal("5"), Decimal("49750")),
+        ],
+    )
     def test_apply_fill_buy_reduces_cash(self, cash, price, qty, expected_cash):
         """Test BUY fill reduces cash by qty * price."""
         tracker = EquityTracker(cash=cash)
@@ -179,4 +182,3 @@ class TestEquityTracker:
         tracker.apply_fill(fill)
         assert "AAPL" not in tracker.positions_by_symbol
         assert "AAPL" not in tracker.avg_cost_by_symbol
-

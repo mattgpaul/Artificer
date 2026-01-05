@@ -42,8 +42,7 @@ class EquityTracker:
         """Recompute equity/peak and return current drawdown fraction."""
         eq = self.equity()
         self.last_equity = eq
-        if eq > self.peak_equity:
-            self.peak_equity = eq
+        self.peak_equity = max(self.peak_equity, eq)
         if self.peak_equity <= 0:
             return Decimal("0")
         return (self.peak_equity - eq) / self.peak_equity
@@ -76,4 +75,3 @@ class EquityTracker:
         else:
             self.positions_by_symbol[fill.symbol] = new_qty
         return realized
-

@@ -74,25 +74,33 @@ class FakeRedisBroker:
     """Redis broker adapter stub (no overrides)."""
 
     def poll_overrides(self, max_items: int = 10):
+        """Poll for override events (stub implementation)."""
         _ = max_items
         return []
 
     def publish_market(self, events):
+        """Publish market events (stub implementation)."""
         _ = events
 
     def publish_decision(self, event):
+        """Publish decision event (stub implementation)."""
         _ = event
 
     def publish_override(self, event):
+        """Publish override event (stub implementation)."""
         _ = event
 
 
 class RuntimeConfigPort(Protocol):
     """Subset of runtime config used by ForwardTestApp."""
 
-    def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]: ...
+    def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]:
+        """Get watchlist symbols."""
+        ...
 
-    def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float: ...
+    def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float:
+        """Get poll interval."""
+        ...
 
 
 @dataclass(slots=True)
@@ -105,11 +113,13 @@ class FakeRuntimeConfig(RuntimeConfigPort):
     poll_calls: int = 0
 
     def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]:
+        """Get watchlist symbols with call tracking."""
         _ = engine_id
         self.watchlist_calls += 1
         return list(self.watchlist)[:limit]
 
     def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float:
+        """Get poll interval with call tracking."""
         _ = (engine_id, default)
         self.poll_calls += 1
         return float(self.poll_seconds)
@@ -117,6 +127,7 @@ class FakeRuntimeConfig(RuntimeConfigPort):
     def set_poll_seconds(
         self, engine_id: str, poll_seconds: float, ttl_seconds: int | None = None
     ) -> None:
+        """Set poll interval."""
         _ = (engine_id, ttl_seconds)
         self.poll_seconds = float(poll_seconds)
 
@@ -174,4 +185,3 @@ def mk_bars():
         return out
 
     return _mk
-

@@ -1,3 +1,9 @@
+"""Dash web application for algo_trader analysis.
+
+Provides interactive dashboard for viewing engine status, trade executions,
+and performance metrics.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -17,6 +23,7 @@ def _utc_now() -> datetime:
 
 
 def build_app() -> Dash:
+    """Build and configure the Dash application."""
     db = BasePostgresClient()
     registry = AlgoTraderEngineRegistry()
     engine_ids = registry.list_engines()
@@ -135,6 +142,7 @@ def build_app() -> Dash:
 
 
 def main() -> None:
+    """Main entry point for Dash application."""
     app = build_app()
     app.run_server(debug=True, host="0.0.0.0", port=8050)
 

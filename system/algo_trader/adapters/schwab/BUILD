@@ -13,4 +13,3 @@ py_library(
         "//system/algo_trader/schwab:schwab_services",
     ],
 )
-

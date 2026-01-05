@@ -14,10 +14,14 @@ from system.algo_trader.ports.journal import JournalPort
 
 @dataclass(slots=True)
 class TimescaleJournal(JournalPort):
+    """TimescaleDB journal implementation for recording events."""
+
     store: AlgoTraderStore
     run_id: str | None = None
 
     def record_decision(self, event: DecisionEvent) -> None:
+        """Record decision event to TimescaleDB."""
+
         def _intent(i) -> dict[str, str]:
             out = {
                 "symbol": i.symbol,
@@ -45,6 +49,7 @@ class TimescaleJournal(JournalPort):
         )
 
     def record_override(self, event: OverrideEvent) -> None:
+        """Record override event to TimescaleDB."""
         self.store.db.execute(
             f"""
             INSERT INTO {self.store._schema_q()}.override_event(ts, run_id, command, args)
@@ -53,5 +58,6 @@ class TimescaleJournal(JournalPort):
             (event.ts, self.run_id, event.command, json.dumps(event.args)),
         )
 
-    def record_fill(self, fill: Fill) -> None:  # optional extension consumed by Engine
+    def record_fill(self, fill: Fill) -> None:
+        """Record fill event to TimescaleDB."""
         self.store.record_fill(fill, run_id=self.run_id)

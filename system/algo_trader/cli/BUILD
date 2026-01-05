@@ -12,8 +12,8 @@ py_library(
         "//tests:__subpackages__",
     ],
     deps = [
-        "//system/algo_trader/apps",
         "//system/algo_trader/adapters/redis:redis_adapters",
+        "//system/algo_trader/apps",
         "//system/algo_trader/domain",
     ],
 )

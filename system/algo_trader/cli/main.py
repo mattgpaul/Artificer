@@ -1,3 +1,9 @@
+"""Main CLI entry point for algo_trader.
+
+Supports backtest, forwardtest, and live execution modes based on environment
+configuration.
+"""
+
 from __future__ import annotations
 
 import os
@@ -24,7 +30,10 @@ from system.algo_trader.schwab.market_handler import MarketHandler
 
 @dataclass(slots=True)
 class RealClock:
+    """Real-time clock implementation."""
+
     def now(self) -> datetime:
+        """Get current UTC datetime."""
         return datetime.now(tz=timezone.utc)
 
 
@@ -40,6 +49,7 @@ def _normalize_mode(raw: str) -> str:
 
 
 def main() -> None:
+    """Main CLI entry point for algo_trader."""
     mode = _normalize_mode(os.getenv("EXECUTION_ENVIRONMENT", "backtest"))
     if mode not in {"backtest", "forwardtest", "live"}:
         raise ValueError("EXECUTION_ENVIRONMENT must be one of: backtest, forwardtest, live")
