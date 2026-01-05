@@ -171,6 +171,28 @@ class MySQLConfig(BaseSettings):
     )
 
 
+class PostgresConfig(BaseSettings):
+    """Postgres connection configuration with environment variable support.
+
+    Reads from POSTGRES_* environment variables automatically.
+
+    Intended for local Dockerized Postgres/TimescaleDB.
+    """
+
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    user: str = Field(default="postgres")
+    password: str = Field(default="postgres")
+    database: str = Field(default="algo_trader")
+    connect_timeout: int = Field(default=10)
+    autocommit: bool = Field(default=True)
+
+    model_config = SettingsConfigDict(
+        env_prefix="POSTGRES_",
+        env_file=None,
+    )
+
+
 class ProcessConfig(BaseSettings):
     """Process manager configuration with environment variable support.
 

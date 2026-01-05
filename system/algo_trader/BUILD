@@ -1,5 +1,6 @@
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_library")
+load("//:pytest_test.bzl", "pytest_test")
 
 # Project aggregation target - collects all algo_trader components (clean slate)
 py_library(
@@ -12,17 +13,24 @@ py_library(
         "//system:__pkg__",  # Available to system package
     ],
     deps = [
+        "//system/algo_trader/apps",
+        "//system/algo_trader/cli",
+        "//system/algo_trader/domain",
+        "//system/algo_trader/ports",
         "//system/algo_trader/infra/redis:redis_services",
         "//system/algo_trader/schwab:schwab_services",
     ],
 )
 
-# Convenience target so CI can run `bazel test //system/algo_trader/...` without
-# requiring every system package to define its own explicit tests.
-test_suite(
-    name = "tests",
-    tests = [],
-    visibility = ["//visibility:public"],
+pytest_test(
+    name = "test_sma_e2e",
+    size = "small",
+    coverage_path = "system.algo_trader",
+    tags = [
+        "e2e",
+        "integration",
+    ],
+    test_lib = "//tests/system/algo_trader:test_sma_e2e_lib",
 )
 
 # Release images: all OCI image tarballs for this system.

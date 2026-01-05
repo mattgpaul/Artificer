@@ -1,0 +1,76 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: algo_trader
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+
+  algo_trader_engine:
+    build:
+      context: ../../..
+      dockerfile: system/algo_trader/ops/Dockerfile
+    depends_on:
+      - redis
+      - timescaledb
+    environment:
+      EXECUTION_ENVIRONMENT: forwardtest
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DATABASE: algo_trader
+    volumes:
+      - ../../..:/repo
+    command: ["bazelisk", "run", "//system/algo_trader/cli:algo_trader"]
+
+  algo_trader_override_cli:
+    build:
+      context: ../../..
+      dockerfile: system/algo_trader/ops/Dockerfile
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ../../..:/repo
+    command: ["bazelisk", "run", "//system/algo_trader/cli:override_cli"]
+    stdin_open: true
+    tty: true
+
+  algo_trader_dash:
+    build:
+      context: ../../..
+      dockerfile: system/algo_trader/ops/Dockerfile
+    depends_on:
+      - redis
+      - timescaledb
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DATABASE: algo_trader
+    ports:
+      - "8050:8050"
+    volumes:
+      - ../../..:/repo
+    command: ["bazelisk", "run", "//system/algo_trader/analysis:dash"]
+
+volumes:
+  timescale_data:
+
