@@ -1,3 +1,5 @@
+"""TimescaleDB journal adapter for algo_trader events."""
+
 from __future__ import annotations
 
 import json
@@ -16,11 +18,23 @@ class TimescaleJournal(JournalPort):
     run_id: str | None = None
 
     def record_decision(self, event: DecisionEvent) -> None:
+        def _intent(i) -> dict[str, str]:
+            out = {
+                "symbol": i.symbol,
+                "side": i.side.value,
+                "qty": str(i.qty),
+                "reason": i.reason,
+            }
+            if i.reference_price is not None:
+                out["reference_price"] = str(i.reference_price)
+            return out
+
         payload: dict[str, Any] = {
-            "order_intents": [
-                {"symbol": i.symbol, "side": i.side.value, "qty": str(i.qty), "reason": i.reason}
-                for i in event.order_intents
-            ]
+            # Backwards-compatible field (final intents).
+            "order_intents": [_intent(i) for i in event.order_intents],
+            "proposed_intents": [_intent(i) for i in event.proposed_intents],
+            "final_intents": [_intent(i) for i in event.order_intents],
+            "audit": event.audit,
         }
         self.store.db.execute(
             f"""

@@ -50,7 +50,7 @@ class ForwardTestApp:
                 self.engine_registry.heartbeat(
                     engine_id=self.engine_id,
                     status={
-                        "paused": self.engine.paused,
+                            "paused": self.engine.is_paused(),
                         "watchlist_size": len(symbols),
                         "poll_seconds": poll_seconds,
                     },

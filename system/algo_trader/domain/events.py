@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from system.algo_trader.domain.models import Bar, Fill, OrderIntent, Quote
 
@@ -17,6 +17,8 @@ class MarketEvent:
 class DecisionEvent:
     ts: datetime
     order_intents: tuple[OrderIntent, ...]
+    proposed_intents: tuple[OrderIntent, ...] = ()
+    audit: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)

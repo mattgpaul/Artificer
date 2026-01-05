@@ -19,16 +19,37 @@ class Engine:
     journal: JournalPort
 
     paused: bool = False
+    pause_until: datetime | None = None
+
+    def is_paused(self, ts: datetime | None = None) -> bool:
+        """Return whether trading is currently paused (manual or cooldown)."""
+        now = ts or self.clock.now()
+        if self.paused:
+            return True
+        return self.pause_until is not None and now < self.pause_until
 
     def on_market(self, event: MarketEvent) -> DecisionEvent | None:
-        if self.paused:
+        ts = self.clock.now()
+        effective_paused = self.is_paused(ts)
+
+        proposed = [] if effective_paused else self.strategy.on_market(event, self.portfolio)
+        managed = self.portfolio.manage(event, proposed)
+
+        if managed.pause_until is not None:
+            if self.pause_until is None or managed.pause_until > self.pause_until:
+                self.pause_until = managed.pause_until
+
+        decision = DecisionEvent(
+            ts=ts,
+            order_intents=managed.final_intents,
+            proposed_intents=managed.proposed_intents,
+            audit=managed.audit,
+        )
+
+        # If we're paused and there is nothing to do/audit, skip emitting a decision.
+        if effective_paused and not decision.order_intents and not decision.proposed_intents and not decision.audit:
             return None
 
-        intents = self.strategy.on_market(event, self.portfolio)
-        intents = self.portfolio.validate(intents)
-
-        ts = self.clock.now()
-        decision = DecisionEvent(ts=ts, order_intents=tuple(intents))
         self.journal.record_decision(decision)
         return decision
 
@@ -41,6 +62,7 @@ class Engine:
             return
         if cmd == "resume":
             self.paused = False
+            self.pause_until = None
             return
 
         # Portfolio-scoped overrides
