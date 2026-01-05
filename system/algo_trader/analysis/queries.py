@@ -12,10 +12,14 @@ from infrastructure.postgres.postgres import BasePostgresClient
 @dataclass(slots=True)
 class AlgoTraderQueries:
     db: BasePostgresClient
+    schema: str = "public"
+
+    def _schema_q(self) -> str:
+        return f"\"{self.schema}\""
 
     def list_symbols(self, limit: int = 5000) -> list[str]:
         rows = self.db.fetchall(
-            "SELECT symbol FROM symbols ORDER BY symbol ASC LIMIT %s",
+            f"SELECT symbol FROM {self._schema_q()}.symbols ORDER BY symbol ASC LIMIT %s",
             (limit,),
         )
         return [r["symbol"] for r in rows]
@@ -39,7 +43,7 @@ class AlgoTraderQueries:
         rows = self.db.fetchall(
             f"""
             SELECT ts, symbol, side, qty, price, run_id
-            FROM trade_execution
+            FROM {self._schema_q()}.trade_execution
             {where_sql}
             ORDER BY ts ASC
             LIMIT %s

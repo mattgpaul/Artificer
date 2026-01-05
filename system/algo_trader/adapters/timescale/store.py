@@ -16,20 +16,44 @@ def _utc_now() -> datetime:
     return datetime.now(tz=timezone.utc)
 
 
+def _sanitize_schema_fragment(value: str) -> str:
+    out = []
+    for ch in value.strip().lower():
+        if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch == "_":
+            out.append(ch)
+        else:
+            out.append("_")
+    s = "".join(out).strip("_")
+    return s or "default"
+
+
 @dataclass(slots=True)
 class AlgoTraderStore:
     """Primary durable store (Postgres+TimescaleDB)."""
 
     db: BasePostgresClient
+    schema: str = "public"
+
+    @staticmethod
+    def schema_for_engine(engine_id: str) -> str:
+        """Return the schema name for a given engine_id."""
+        frag = _sanitize_schema_fragment(engine_id)
+        return f"algo_trader_{frag}"
+
+    def _schema_q(self) -> str:
+        # `schema` is sanitized, but we still quote it for correctness.
+        return f"\"{self.schema}\""
 
     def migrate(self) -> None:
+        if self.schema != "public":
+            self.db.execute(f"CREATE SCHEMA IF NOT EXISTS {self._schema_q()};")
         for stmt in MIGRATIONS:
-            self.db.execute(stmt)
+            self.db.execute(stmt.format(schema=self.schema, schema_q=self._schema_q()))
 
     def create_run(self, run_id: str, mode: str, config: dict[str, Any]) -> None:
         self.db.execute(
-            """
-            INSERT INTO run(run_id, mode, created_at, config_json)
+            f"""
+            INSERT INTO {self._schema_q()}.run(run_id, mode, created_at, config_json)
             VALUES (%s, %s, %s, %s::jsonb)
             ON CONFLICT(run_id) DO NOTHING
             """,
@@ -40,8 +64,8 @@ class AlgoTraderStore:
         now = _utc_now()
         for sym, meta in symbols.items():
             self.db.execute(
-                """
-                INSERT INTO symbols(symbol, meta, updated_at)
+                f"""
+                INSERT INTO {self._schema_q()}.symbols(symbol, meta, updated_at)
                 VALUES (%s, %s::jsonb, %s)
                 ON CONFLICT(symbol) DO UPDATE SET
                   meta = EXCLUDED.meta,
@@ -53,8 +77,8 @@ class AlgoTraderStore:
     def upsert_daily_bars(self, bars: Iterable[Bar]) -> None:
         for b in bars:
             self.db.execute(
-                """
-                INSERT INTO ohlcv_daily(symbol, day, open, high, low, close, volume)
+                f"""
+                INSERT INTO {self._schema_q()}.ohlcv_daily(symbol, day, open, high, low, close, volume)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT(symbol, day) DO UPDATE SET
                   open = EXCLUDED.open,
@@ -68,9 +92,9 @@ class AlgoTraderStore:
 
     def get_daily_bars(self, symbols: Sequence[str], start: date, end: date) -> list[Bar]:
         rows = self.db.fetchall(
-            """
+            f"""
             SELECT symbol, day, open, high, low, close, volume
-            FROM ohlcv_daily
+            FROM {self._schema_q()}.ohlcv_daily
             WHERE symbol = ANY(%s) AND day >= %s AND day <= %s
             ORDER BY day ASC
             """,
@@ -93,8 +117,8 @@ class AlgoTraderStore:
 
     def record_fill(self, fill: Fill, run_id: str | None = None) -> None:
         self.db.execute(
-            """
-            INSERT INTO trade_execution(ts, run_id, symbol, side, qty, price)
+            f"""
+            INSERT INTO {self._schema_q()}.trade_execution(ts, run_id, symbol, side, qty, price)
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (fill.ts, run_id, fill.symbol, fill.side.value, fill.qty, fill.price),

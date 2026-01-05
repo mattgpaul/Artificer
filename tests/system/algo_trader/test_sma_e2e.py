@@ -7,6 +7,7 @@ from decimal import Decimal
 from system.algo_trader.adapters.paper.broker import PaperBroker
 from system.algo_trader.apps.backtest_app import BacktestApp
 from system.algo_trader.apps.forward_app import ForwardTestApp
+from system.algo_trader.cli.override_cli import apply_runtime_side_effects
 from system.algo_trader.domain.engine import Engine
 from system.algo_trader.domain.events import DecisionEvent, OverrideEvent
 from system.algo_trader.domain.models import Bar, Quote
@@ -69,6 +70,28 @@ class FakeRedisBroker:
 
     def publish_override(self, event):
         _ = event
+
+
+@dataclass(slots=True)
+class FakeRuntimeConfig:
+    watchlist: list[str]
+    poll_seconds: float = 0.0
+    watchlist_calls: int = 0
+    poll_calls: int = 0
+
+    def get_watchlist(self, engine_id: str, limit: int = 200) -> list[str]:
+        _ = engine_id
+        self.watchlist_calls += 1
+        return list(self.watchlist)[:limit]
+
+    def get_poll_seconds(self, engine_id: str, default: float = 2.0) -> float:
+        _ = (engine_id, default)
+        self.poll_calls += 1
+        return float(self.poll_seconds)
+
+    def set_poll_seconds(self, engine_id: str, poll_seconds: float, ttl_seconds: int | None = None) -> None:
+        _ = (engine_id, ttl_seconds)
+        self.poll_seconds = float(poll_seconds)
 
 
 def _mk_bars(symbol: str, start_day: date, prices: list[int]) -> list[Bar]:
@@ -134,13 +157,14 @@ def test_sma_20_10_forward_test_e2e_paper_trades_on_quotes():
     strategy = SmaCrossoverStrategy(window_a=20, window_b=10)
     engine = Engine(clock=clock, strategy=strategy, portfolio=portfolio, journal=journal)
 
+    runtime = FakeRuntimeConfig(watchlist=[sym], poll_seconds=0.0)
     app = ForwardTestApp(
         engine=engine,
         market_data=market,
         broker=broker,
         redis_broker=redis_broker,
-        poll_seconds=0.0,
-        symbols=[sym],
+        runtime_config=runtime,
+        engine_id="test",
         max_iterations=len(quotes),
     )
     app.run_forever()
@@ -148,3 +172,16 @@ def test_sma_20_10_forward_test_e2e_paper_trades_on_quotes():
     intents = [i for d in journal.decisions for i in d.order_intents]
     assert any(i.side.value == "BUY" for i in intents)
     assert any(i.side.value == "SELL" for i in intents)
+    assert runtime.watchlist_calls >= len(quotes)
+    assert runtime.poll_calls >= len(quotes)
+
+
+def test_override_cli_set_poll_seconds_updates_runtime_config():
+    runtime = FakeRuntimeConfig(watchlist=["AAPL"], poll_seconds=2.0)
+    event = OverrideEvent(
+        ts=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        command="set_poll_seconds",
+        args={"poll_seconds": "1.5"},
+    )
+    apply_runtime_side_effects("test", event, runtime)
+    assert runtime.poll_seconds == 1.5

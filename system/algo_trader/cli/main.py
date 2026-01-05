@@ -7,7 +7,9 @@ from datetime import date, datetime, timezone
 
 from infrastructure.postgres.postgres import BasePostgresClient
 from system.algo_trader.adapters.paper.broker import PaperBroker
+from system.algo_trader.adapters.redis.engine_registry import AlgoTraderEngineRegistry
 from system.algo_trader.adapters.redis.event_bus import AlgoTraderRedisBroker
+from system.algo_trader.adapters.redis.runtime_config import AlgoTraderRuntimeConfigStore
 from system.algo_trader.adapters.schwab.market_data import SchwabMarketDataAdapter
 from system.algo_trader.adapters.timescale.journal import TimescaleJournal
 from system.algo_trader.adapters.timescale.store import AlgoTraderStore
@@ -26,52 +28,56 @@ class RealClock:
         return datetime.now(tz=timezone.utc)
 
 
-def _env_csv(name: str, default: str = "") -> list[str]:
-    raw = os.getenv(name, default)
-    items = [x.strip() for x in raw.split(",") if x.strip()]
-    return items
-
-
-def _env_date(name: str, default: str) -> date:
-    raw = os.getenv(name, default)
-    return date.fromisoformat(raw)
-
-
-def _env_sma_windows(default: str = "20/10") -> tuple[int, int]:
-    raw = os.getenv("ARTIFICER_ALGO_TRADER_SMA", default).strip()
-    if "/" in raw:
-        a, b = raw.split("/", 1)
-        return int(a), int(b)
-    parts = raw.split(",")
-    if len(parts) == 2:
-        return int(parts[0]), int(parts[1])
-    raise ValueError("ARTIFICER_ALGO_TRADER_SMA must be like '20/10' or '20,10'")
+def _normalize_mode(raw: str) -> str:
+    v = raw.strip().lower()
+    if v == "forward":
+        return "forwardtest"
+    if v == "forward_test":
+        return "forwardtest"
+    if v == "forward-test":
+        return "forwardtest"
+    return v
 
 
 def main() -> None:
-    mode = os.getenv("ARTIFICER_ALGO_TRADER_MODE", "backtest").strip().lower()
-    if mode not in {"backtest", "forward"}:
-        raise ValueError("ARTIFICER_ALGO_TRADER_MODE must be one of: backtest, forward")
+    mode = _normalize_mode(os.getenv("EXECUTION_ENVIRONMENT", "backtest"))
+    if mode not in {"backtest", "forwardtest", "live"}:
+        raise ValueError("EXECUTION_ENVIRONMENT must be one of: backtest, forwardtest, live")
+    if mode == "live":
+        raise NotImplementedError("live mode is not implemented yet")
 
-    symbols = _env_csv("ARTIFICER_ALGO_TRADER_SYMBOLS", "AAPL")
-    if not symbols:
-        raise ValueError("ARTIFICER_ALGO_TRADER_SYMBOLS must be a non-empty CSV (e.g., AAPL,MSFT)")
+    # Engine identity (used for per-engine Redis keys and Timescale schema).
+    engine_id = uuid.uuid4().hex[:12]
 
-    a, b = _env_sma_windows("20/10")
-    strategy = SmaCrossoverStrategy(window_a=a, window_b=b)
+    runtime = AlgoTraderRuntimeConfigStore()
+    registry = AlgoTraderEngineRegistry()
+    registry.register(engine_id, status={"mode": mode, "state": "starting"}, ttl_seconds=15)
+
+    # Defaults so the engine can boot even before an operator sets config.
+    if not runtime.get_watchlist(engine_id, limit=1):
+        runtime.set_watchlist(engine_id, ["AAPL"])
+    if runtime.get(f"{engine_id}:poll_seconds") is None:
+        runtime.set_poll_seconds(engine_id, 2.0)
+
+    symbols = runtime.get_watchlist(engine_id, limit=200)
+
+    # Strategy params are app logic (not Redis config for now).
+    strategy = SmaCrossoverStrategy(window_a=20, window_b=10)
     portfolio = SimplePortfolio(max_symbols=200)
 
     db = BasePostgresClient()
-    store = AlgoTraderStore(db=db)
+    schema = AlgoTraderStore.schema_for_engine(engine_id)
+    store = AlgoTraderStore(db=db, schema=schema)
     store.migrate()
 
-    run_id = os.getenv("ARTIFICER_ALGO_TRADER_RUN_ID", "").strip() or str(uuid.uuid4())
+    run_id = str(uuid.uuid4())
     store.create_run(
         run_id=run_id,
         mode=mode,
         config={
+            "engine_id": engine_id,
             "symbols": symbols,
-            "sma": f"{a}/{b}",
+            "sma": "20/10",
         },
     )
 
@@ -79,8 +85,8 @@ def main() -> None:
     engine = Engine(clock=RealClock(), strategy=strategy, portfolio=portfolio, journal=journal)
 
     if mode == "backtest":
-        start = _env_date("ARTIFICER_ALGO_TRADER_START", "2020-01-01")
-        end = _env_date("ARTIFICER_ALGO_TRADER_END", date.today().isoformat())
+        start = date.fromisoformat("2020-01-01")
+        end = date.today()
 
         bars = store.get_daily_bars(symbols=symbols, start=start, end=end)
         if not bars:
@@ -93,7 +99,7 @@ def main() -> None:
         app.run()
         return
 
-    redis_broker = AlgoTraderRedisBroker()
+    redis_broker = AlgoTraderRedisBroker(engine_id=engine_id)
 
     # Record a synthetic "resume" so the run has a start marker in the journal.
     engine.on_override(OverrideEvent(ts=datetime.now(tz=timezone.utc), command="resume", args={}))
@@ -103,8 +109,9 @@ def main() -> None:
         market_data=SchwabMarketDataAdapter(client=MarketHandler()),
         broker=PaperBroker(),
         redis_broker=redis_broker,
-        poll_seconds=float(os.getenv("ARTIFICER_ALGO_TRADER_POLL_SECONDS", "2.0")),
-        symbols=symbols,
+        runtime_config=runtime,
+        engine_id=engine_id,
+        engine_registry=registry,
         max_iterations=None,
     )
     app.run_forever()

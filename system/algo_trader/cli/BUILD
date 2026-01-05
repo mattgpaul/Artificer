@@ -9,6 +9,7 @@ py_library(
     visibility = [
         "//system/algo_trader:__pkg__",
         "//system/algo_trader:__subpackages__",
+        "//tests:__subpackages__",
     ],
     deps = [
         "//system/algo_trader/apps",

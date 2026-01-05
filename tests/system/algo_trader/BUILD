@@ -11,6 +11,7 @@ py_library(
     deps = [
         requirement("pytest"),
         "//system/algo_trader/apps",
+        "//system/algo_trader/cli",
         "//system/algo_trader/domain",
         "//system/algo_trader/adapters/paper:paper_adapters",
     ],

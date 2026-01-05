@@ -5,7 +5,7 @@ MIGRATIONS: list[str] = [
     CREATE EXTENSION IF NOT EXISTS timescaledb;
     """,
     """
-    CREATE TABLE IF NOT EXISTS run (
+    CREATE TABLE IF NOT EXISTS {schema_q}.run (
       run_id TEXT PRIMARY KEY,
       mode TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL,
@@ -13,14 +13,14 @@ MIGRATIONS: list[str] = [
     );
     """,
     """
-    CREATE TABLE IF NOT EXISTS symbols (
+    CREATE TABLE IF NOT EXISTS {schema_q}.symbols (
       symbol TEXT PRIMARY KEY,
       meta JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL
     );
     """,
     """
-    CREATE TABLE IF NOT EXISTS ohlcv_daily (
+    CREATE TABLE IF NOT EXISTS {schema_q}.ohlcv_daily (
       symbol TEXT NOT NULL,
       day DATE NOT NULL,
       open NUMERIC NOT NULL,
@@ -32,20 +32,20 @@ MIGRATIONS: list[str] = [
     );
     """,
     """
-    SELECT create_hypertable('ohlcv_daily', by_range('day'), if_not_exists => TRUE);
+    SELECT create_hypertable('{schema}.ohlcv_daily', by_range('day'), if_not_exists => TRUE);
     """,
     """
-    CREATE TABLE IF NOT EXISTS decision_event (
+    CREATE TABLE IF NOT EXISTS {schema_q}.decision_event (
       ts TIMESTAMPTZ NOT NULL,
       run_id TEXT NULL,
       payload JSONB NOT NULL
     );
     """,
     """
-    SELECT create_hypertable('decision_event', by_range('ts'), if_not_exists => TRUE);
+    SELECT create_hypertable('{schema}.decision_event', by_range('ts'), if_not_exists => TRUE);
     """,
     """
-    CREATE TABLE IF NOT EXISTS override_event (
+    CREATE TABLE IF NOT EXISTS {schema_q}.override_event (
       ts TIMESTAMPTZ NOT NULL,
       run_id TEXT NULL,
       command TEXT NOT NULL,
@@ -53,10 +53,10 @@ MIGRATIONS: list[str] = [
     );
     """,
     """
-    SELECT create_hypertable('override_event', by_range('ts'), if_not_exists => TRUE);
+    SELECT create_hypertable('{schema}.override_event', by_range('ts'), if_not_exists => TRUE);
     """,
     """
-    CREATE TABLE IF NOT EXISTS trade_execution (
+    CREATE TABLE IF NOT EXISTS {schema_q}.trade_execution (
       ts TIMESTAMPTZ NOT NULL,
       run_id TEXT NULL,
       symbol TEXT NOT NULL,
@@ -66,6 +66,6 @@ MIGRATIONS: list[str] = [
     );
     """,
     """
-    SELECT create_hypertable('trade_execution', by_range('ts'), if_not_exists => TRUE);
+    SELECT create_hypertable('{schema}.trade_execution', by_range('ts'), if_not_exists => TRUE);
     """,
 ]
