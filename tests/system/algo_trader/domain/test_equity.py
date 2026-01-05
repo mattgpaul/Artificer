@@ -75,7 +75,8 @@ class TestEquityTracker:
         dd = tracker.refresh()
         assert tracker.last_equity == Decimal("110000")
         assert tracker.peak_equity == Decimal("120000")  # Unchanged
-        assert dd == Decimal("0.0833333333333333333333333333")  # (120k - 110k) / 120k
+        expected = (Decimal("120000") - Decimal("110000")) / Decimal("120000")
+        assert dd == expected  # (120k - 110k) / 120k
 
     def test_refresh_handles_zero_peak_equity(self):
         """Test refresh returns 0 drawdown when peak equity is zero."""
@@ -178,3 +179,4 @@ class TestEquityTracker:
         tracker.apply_fill(fill)
         assert "AAPL" not in tracker.positions_by_symbol
         assert "AAPL" not in tracker.avg_cost_by_symbol
+
