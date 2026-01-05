@@ -38,6 +38,7 @@ class OrderIntent:
     side: Side
     qty: Decimal
     reason: str
+    reference_price: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)

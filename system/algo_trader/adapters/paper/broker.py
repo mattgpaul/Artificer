@@ -21,6 +21,7 @@ class PaperBroker(BrokerPort):
 
     prices: dict[str, Decimal] = field(default_factory=dict)
     ts: datetime | None = None
+    slippage_bps: Decimal = Decimal("0")
     _fills: list[Fill] = field(default_factory=list)
     _order_seq: int = 0
 
@@ -42,6 +43,13 @@ class PaperBroker(BrokerPort):
                 # No price -> cannot fill.
                 continue
             ts = self.ts or datetime.utcnow()
+
+            slip = self.slippage_bps / Decimal("10000")
+            if slip != 0:
+                if intent.side == Side.BUY:
+                    price = price * (Decimal("1") + slip)
+                else:
+                    price = price * (Decimal("1") - slip)
 
             self._fills.append(
                 Fill(
