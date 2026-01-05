@@ -3,7 +3,9 @@ load("@rules_python//python:defs.bzl", "py_library")
 py_library(
     name = "redis_adapters",
     srcs = [
+        "engine_registry.py",
         "event_bus.py",
+        "runtime_config.py",
         "state_store.py",
     ],
     visibility = [

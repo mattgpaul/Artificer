@@ -23,8 +23,8 @@ class TimescaleJournal(JournalPort):
             ]
         }
         self.store.db.execute(
-            """
-            INSERT INTO decision_event(ts, run_id, payload)
+            f"""
+            INSERT INTO {self.store._schema_q()}.decision_event(ts, run_id, payload)
             VALUES (%s, %s, %s::jsonb)
             """,
             (event.ts, self.run_id, json.dumps(payload)),
@@ -32,8 +32,8 @@ class TimescaleJournal(JournalPort):
 
     def record_override(self, event: OverrideEvent) -> None:
         self.store.db.execute(
-            """
-            INSERT INTO override_event(ts, run_id, command, args)
+            f"""
+            INSERT INTO {self.store._schema_q()}.override_event(ts, run_id, command, args)
             VALUES (%s, %s, %s, %s::jsonb)
             """,
             (event.ts, self.run_id, event.command, json.dumps(event.args)),

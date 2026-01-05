@@ -1,3 +1,5 @@
+"""Redis Streams event bus adapter for algo_trader."""
+
 from __future__ import annotations
 
 import json
@@ -49,21 +51,27 @@ class AlgoTraderRedisBroker(BaseRedisClient, DataBrokerPort):
     """Redis Streams event bus for algo_trader.
 
     Streams:
-    - `events:market` (optional fanout / auditing)
-    - `events:decision`
-    - `events:override` (CLI writes; engine consumes)
+    - `{engine_id}:events:market` (optional fanout / auditing)
+    - `{engine_id}:events:decision`
+    - `{engine_id}:events:override` (CLI writes; engine consumes)
     """
 
+    engine_id: str = "default"
     consumer_group: str = "algo_trader"
     consumer_name: str = ""
 
     def __post_init__(self) -> None:
+        if self.engine_id:
+            self.consumer_group = f"algo_trader:{self.engine_id}"
         if not self.consumer_name:
             self.consumer_name = f"{socket.gethostname()}:{os.getpid()}"
-        self._ensure_group("events:override", self.consumer_group)
+        self._ensure_group(self._stream("events:override"), self.consumer_group)
 
     def _get_namespace(self) -> str:
         return "algo_trader"
+
+    def _stream(self, name: str) -> str:
+        return f"{self.engine_id}:{name}"
 
     def _xadd(self, stream: str, fields: dict[str, str], maxlen: int | None = 10_000) -> str:
         key = self._build_key(stream)
@@ -81,7 +89,7 @@ class AlgoTraderRedisBroker(BaseRedisClient, DataBrokerPort):
         for e in events:
             payload = _serialize_market(e)
             payload["emitted_at"] = _utc_now().isoformat()
-            self._xadd("events:market", payload)
+            self._xadd(self._stream("events:market"), payload)
 
     def publish_decision(self, event: DecisionEvent) -> None:
         fields = {
@@ -98,7 +106,7 @@ class AlgoTraderRedisBroker(BaseRedisClient, DataBrokerPort):
                 ]
             ),
         }
-        self._xadd("events:decision", fields)
+        self._xadd(self._stream("events:decision"), fields)
 
     def publish_override(self, event: OverrideEvent) -> None:
         fields = {
@@ -106,11 +114,11 @@ class AlgoTraderRedisBroker(BaseRedisClient, DataBrokerPort):
             "command": event.command,
             "args": json.dumps(event.args),
         }
-        self._xadd("events:override", fields)
+        self._xadd(self._stream("events:override"), fields)
 
     def poll_overrides(self, max_items: int = 10) -> Sequence[OverrideEvent]:
         # Consume overrides via consumer group (durable-ish, at-least-once).
-        stream_key = self._build_key("events:override")
+        stream_key = self._build_key(self._stream("events:override"))
         resp = self.client.xreadgroup(
             groupname=self.consumer_group,
             consumername=self.consumer_name,

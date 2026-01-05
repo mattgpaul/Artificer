@@ -25,10 +25,22 @@ class SimplePortfolio(PortfolioPort):
         return self.positions_by_symbol.get(symbol, Decimal("0"))
 
     def validate(self, intents: Sequence[OrderIntent]) -> Sequence[OrderIntent]:
+        """Filter/adjust intents based on portfolio rules.
+
+        Currently:
+        - Drop intents for disabled symbols
+        - Prevent opening new symbols beyond `max_symbols`
+        """
         valid: list[OrderIntent] = []
+        open_symbols = set(self.positions_by_symbol.keys())
         for intent in intents:
             if intent.symbol in self.disabled_symbols:
                 continue
+            if intent.side == Side.BUY:
+                # If we're not already holding it, this intent would open a new symbol.
+                if intent.symbol not in open_symbols and len(open_symbols) >= self.max_symbols:
+                    continue
+                open_symbols.add(intent.symbol)
             valid.append(intent)
         return valid
 

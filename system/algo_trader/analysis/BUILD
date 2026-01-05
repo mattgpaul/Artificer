@@ -13,6 +13,7 @@ py_library(
     ],
     deps = [
         "//infrastructure/postgres",
+        "//system/algo_trader/adapters/redis:redis_adapters",
         "//system/algo_trader/adapters/timescale:timescale_adapters",
         requirement("dash"),
         requirement("pandas"),
