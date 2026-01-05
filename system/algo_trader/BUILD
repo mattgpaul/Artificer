@@ -59,9 +59,7 @@ EOF""",
 
 pkg_tar(
     name = "release_bundle_files",
-    srcs = [
-        "algo_trader.env",
-    ],
+    srcs = [],
     package_dir = "algo_trader",
     strip_prefix = "system/algo_trader",
     visibility = ["//visibility:private"],
