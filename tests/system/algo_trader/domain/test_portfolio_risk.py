@@ -90,7 +90,8 @@ class TestPortfolioRiskControls:
             max_position_fraction=Decimal("1.0"),  # No position limit
             max_gross_exposure_fraction=Decimal("0.50"),  # 50% max exposure
         )
-        portfolio.equity.cash = Decimal("100000")
+        # Existing position implies cash was spent; keep total equity at $100k.
+        portfolio.equity.cash = Decimal("60000")
         portfolio.equity.positions_by_symbol["NVDA"] = Decimal("100")
         portfolio.equity.update_price("NVDA", Decimal("400"))  # $40k exposure
         portfolio.equity.update_price("AAPL", Decimal("100"))
@@ -116,7 +117,8 @@ class TestPortfolioRiskControls:
             max_drawdown=Decimal("1.0"),
             max_gross_exposure_fraction=Decimal("0.50"),
         )
-        portfolio.equity.cash = Decimal("100000")
+        # Existing position implies cash was spent; keep total equity at $100k.
+        portfolio.equity.cash = Decimal("50000")
         portfolio.equity.positions_by_symbol["NVDA"] = Decimal("125")
         portfolio.equity.update_price("NVDA", Decimal("400"))  # $50k exposure (at limit)
         portfolio.equity.update_price("AAPL", Decimal("100"))
@@ -266,3 +268,4 @@ class TestPortfolioRiskControls:
         decision = portfolio.manage(event, intents)
 
         assert decision.pause_until == future_time
+

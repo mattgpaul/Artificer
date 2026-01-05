@@ -136,7 +136,8 @@ def test_portfolio_max_drawdown_emits_flatten_and_pauses(t0, fake_redis_broker, 
         max_gross_exposure_fraction=Decimal("1.0"),
         cooldown_after_drawdown_seconds=60,
     )
-    strategy = _BuyAndHoldStrategy(qty=Decimal("1000"))
+    strategy = _BuyAndHoldStrategy()
+    strategy.qty = Decimal("1000")
     engine = Engine(clock=clock, strategy=strategy, portfolio=portfolio, journal=journal)
 
     runtime = fake_runtime_config
@@ -175,7 +176,8 @@ def test_portfolio_resizes_buy_for_max_position_fraction(t0, fake_redis_broker, 
         max_position_fraction=Decimal("0.10"),  # $10k max
         max_gross_exposure_fraction=Decimal("1.0"),
     )
-    strategy = _BuyAndHoldStrategy(qty=Decimal("1000"))  # $100k notional at $100
+    strategy = _BuyAndHoldStrategy()  # $100k notional at $100
+    strategy.qty = Decimal("1000")
     engine = Engine(clock=clock, strategy=strategy, portfolio=portfolio, journal=journal)
 
     runtime = fake_runtime_config
@@ -198,3 +200,4 @@ def test_portfolio_resizes_buy_for_max_position_fraction(t0, fake_redis_broker, 
     assert any(r.get("reason") == "max_position_size" for r in resized)
     # 10k / $100 == 100 shares max
     assert all(i.qty <= Decimal("100") for i in d0.order_intents if i.side.value == "BUY")
+

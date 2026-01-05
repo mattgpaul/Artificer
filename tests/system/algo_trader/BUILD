@@ -4,7 +4,10 @@ load("@rules_python//python:defs.bzl", "py_library")
 py_library(
     name = "test_sma_e2e_lib",
     testonly = True,
-    srcs = ["test_sma_e2e.py"],
+    srcs = [
+        "conftest.py",
+        "test_sma_e2e.py",
+    ],
     visibility = [
         "//system/algo_trader:__pkg__",
     ],
