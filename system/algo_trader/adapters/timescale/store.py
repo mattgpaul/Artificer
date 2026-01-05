@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from infrastructure.postgres.postgres import BasePostgresClient
 from system.algo_trader.adapters.timescale.migrations import MIGRATIONS
@@ -98,4 +99,3 @@ class AlgoTraderStore:
             """,
             (fill.ts, run_id, fill.symbol, fill.side.value, fill.qty, fill.price),
         )
-

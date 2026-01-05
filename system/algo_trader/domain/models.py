@@ -47,4 +47,3 @@ class Fill:
     qty: Decimal
     price: Decimal
     ts: datetime
-

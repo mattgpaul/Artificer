@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Sequence
 
 from system.algo_trader.domain.events import OverrideEvent
 from system.algo_trader.domain.models import Fill, OrderIntent, Side
@@ -57,4 +57,3 @@ class SimplePortfolio(PortfolioPort):
         if cmd == "flatten":
             # Portfolio-level flatten is handled by app/broker wiring (issue SELL intents).
             return
-

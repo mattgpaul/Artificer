@@ -29,4 +29,3 @@ class OverrideEvent:
     ts: datetime
     command: str
     args: dict[str, str]
-

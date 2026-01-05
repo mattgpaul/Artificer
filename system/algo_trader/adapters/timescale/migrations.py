@@ -69,4 +69,3 @@ MIGRATIONS: list[str] = [
     SELECT create_hypertable('trade_execution', by_range('ts'), if_not_exists => TRUE);
     """,
 ]
-
