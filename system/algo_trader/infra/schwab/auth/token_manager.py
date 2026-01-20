@@ -12,7 +12,7 @@ import requests
 
 from infrastructure.logging.logger import get_logger
 from system.algo_trader.infra.redis.account import AccountBroker
-from system.algo_trader.schwab.auth.oauth2 import OAuth2Handler
+from system.algo_trader.infra.schwab.auth.oauth2 import OAuth2Handler
 
 
 class TokenManager:

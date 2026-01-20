@@ -10,8 +10,8 @@ from datetime import datetime
 from typing import Any
 
 from infrastructure.logging.logger import get_logger
-from system.algo_trader.schwab.schwab_client import SchwabClient
-from system.algo_trader.schwab.timescale_enum import FrequencyType, PeriodType
+from system.algo_trader.infra.schwab.schwab_client import SchwabClient
+from system.algo_trader.infra.schwab.timescale_enum import FrequencyType, PeriodType
 
 
 class MarketHandler(SchwabClient):

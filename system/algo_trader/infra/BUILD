@@ -8,5 +8,6 @@ py_library(
     ],
     deps = [
         "//system/algo_trader/infra/redis:redis_services",
+        "//system/algo_trader/infra/schwab:schwab_services",
     ],
 )

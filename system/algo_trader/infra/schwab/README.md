@@ -55,7 +55,7 @@ export SCHWAB_REFRESH_TOKEN=your_refresh_token
 
 4. **Run Authentication**: The first API call will trigger OAuth2 flow:
    ```python
-   from system.algo_trader.schwab.market_handler import MarketHandler
+   from system.algo_trader.infra.schwab.market_handler import MarketHandler
    
    handler = MarketHandler()
    quotes = handler.get_quotes(['AAPL'])  # This will trigger OAuth2 if needed
@@ -83,8 +83,8 @@ When OAuth2 is required, the system will:
 ### Market Data
 
 ```python
-from system.algo_trader.schwab.market_handler import MarketHandler
-from system.algo_trader.schwab.timescale_enum import PeriodType, FrequencyType
+from system.algo_trader.infra.schwab.market_handler import MarketHandler
+from system.algo_trader.infra.schwab.timescale_enum import PeriodType, FrequencyType
 
 # Initialize handler
 handler = MarketHandler()
@@ -111,7 +111,7 @@ print(f"Market open: {market_hours.get('isOpen', False)}")
 ### Account Operations
 
 ```python
-from system.algo_trader.schwab.account_handler import AccountHandler
+from system.algo_trader.infra.schwab.account_handler import AccountHandler
 
 # Initialize handler
 account_handler = AccountHandler()
@@ -163,13 +163,13 @@ Run the test suite:
 
 ```bash
 # Run all Schwab tests
-bazel test //system/algo_trader/schwab:test_schwab_client
-bazel test //system/algo_trader/schwab:test_market_handler
-bazel test //system/algo_trader/schwab:test_account_handler
-bazel test //system/algo_trader/schwab:test_timescale_enum
+bazel test //system/algo_trader/infra/schwab:test_schwab_client
+bazel test //system/algo_trader/infra/schwab:test_market_handler
+bazel test //system/algo_trader/infra/schwab:test_account_handler
+bazel test //system/algo_trader/infra/schwab:test_timescale_enum
 
 # Run with coverage
-bazel test //system/algo_trader/schwab:test_schwab_client --test_output=all
+bazel test //system/algo_trader/infra/schwab:test_schwab_client --test_output=all
 ```
 
 ## Troubleshooting
@@ -206,7 +206,7 @@ Enable debug logging to see detailed token flow:
 
 ```python
 import logging
-logging.getLogger('system.algo_trader.schwab').setLevel(logging.DEBUG)
+logging.getLogger('system.algo_trader.infra.schwab').setLevel(logging.DEBUG)
 ```
 
 ## Architecture

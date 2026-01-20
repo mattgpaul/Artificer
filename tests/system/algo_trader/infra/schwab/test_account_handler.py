@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from system.algo_trader.schwab.account_handler import AccountHandler
+from system.algo_trader.infra.schwab.account_handler import AccountHandler
 
 
 class TestAccountHandlerInitialization:
@@ -31,8 +31,10 @@ class TestAccountHandlerInitialization:
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies."""
         with (
-            patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
-            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.infra.schwab.account_handler.get_logger") as mock_logger,
+            patch(
+                "system.algo_trader.infra.schwab.schwab_client.AccountBroker"
+            ) as mock_broker_class,
         ):
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
@@ -77,8 +79,10 @@ class TestAccountHandlerAccountMethods:
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies."""
         with (
-            patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
-            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.infra.schwab.account_handler.get_logger") as mock_logger,
+            patch(
+                "system.algo_trader.infra.schwab.schwab_client.AccountBroker"
+            ) as mock_broker_class,
         ):
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
@@ -185,8 +189,10 @@ class TestAccountHandlerPositionMethods:
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies."""
         with (
-            patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
-            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.infra.schwab.account_handler.get_logger") as mock_logger,
+            patch(
+                "system.algo_trader.infra.schwab.schwab_client.AccountBroker"
+            ) as mock_broker_class,
         ):
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
@@ -273,8 +279,10 @@ class TestAccountHandlerOrderMethods:
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies."""
         with (
-            patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
-            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.infra.schwab.account_handler.get_logger") as mock_logger,
+            patch(
+                "system.algo_trader.infra.schwab.schwab_client.AccountBroker"
+            ) as mock_broker_class,
         ):
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
@@ -429,8 +437,10 @@ class TestAccountHandlerIntegration:
     def mock_dependencies(self, mock_env_vars):
         """Fixture to mock all external dependencies."""
         with (
-            patch("system.algo_trader.schwab.account_handler.get_logger") as mock_logger,
-            patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class,
+            patch("system.algo_trader.infra.schwab.account_handler.get_logger") as mock_logger,
+            patch(
+                "system.algo_trader.infra.schwab.schwab_client.AccountBroker"
+            ) as mock_broker_class,
         ):
             mock_logger_instance = MagicMock()
             mock_logger.return_value = mock_logger_instance
