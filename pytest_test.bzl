@@ -20,7 +20,7 @@ def pytest_test(name, test_lib = None, coverage_path = None, **kwargs):
         name: Name of the test target.
         test_lib: Optional label of the py_library containing test code. If omitted,
             this macro will create a private py_library from the provided srcs/deps.
-        coverage_path: Optional path for coverage reporting (e.g., "system.algo_trader.schwab").
+        coverage_path: Optional path for coverage reporting (e.g., "system.algo_trader.infra.schwab").
         **kwargs: Additional arguments passed to py_test (e.g., deps, data, env, args).
     """
     user_deps = kwargs.pop("deps", [])

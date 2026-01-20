@@ -1,5 +1,5 @@
 load("@pip//:requirements.bzl", "requirement")
-load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("@rules_python//python:defs.bzl", "py_binary")
 load("//:pytest_test.bzl", "pytest_test")
 
 py_library(
@@ -19,7 +19,7 @@ py_library(
         "//infrastructure:client",
         "//infrastructure/logging:logger",
         "//system/algo_trader/infra/redis:redis_services",
-        "//system/algo_trader/schwab/auth",
+        "//system/algo_trader/infra/schwab/auth",
         requirement("requests"),
     ],
 )
@@ -37,34 +37,34 @@ py_binary(
 pytest_test(
     name = "test_schwab_client",
     size = "small",
-    coverage_path = "system.algo_trader.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/schwab:test_schwab_client_lib",
+    test_lib = "//tests/system/algo_trader/infra/schwab:test_schwab_client_lib",
 )
 
 # Test for MarketHandler - Market data operations
 pytest_test(
     name = "test_market_handler",
     size = "small",
-    coverage_path = "system.algo_trader.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/schwab:test_market_handler_lib",
+    test_lib = "//tests/system/algo_trader/infra/schwab:test_market_handler_lib",
 )
 
 # Test for AccountHandler - Account API operations
 pytest_test(
     name = "test_account_handler",
     size = "small",
-    coverage_path = "system.algo_trader.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/schwab:test_account_handler_lib",
+    test_lib = "//tests/system/algo_trader/infra/schwab:test_account_handler_lib",
 )
 
 # Test for Timescale Enums - Period and Frequency validation
 pytest_test(
     name = "test_timescale_enum",
     size = "small",
-    coverage_path = "system.algo_trader.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
-    test_lib = "//tests/system/algo_trader/schwab:test_timescale_enum_lib",
+    test_lib = "//tests/system/algo_trader/infra/schwab:test_timescale_enum_lib",
 )

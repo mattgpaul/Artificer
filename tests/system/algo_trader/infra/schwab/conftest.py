@@ -27,7 +27,7 @@ def mock_env_vars():
 @pytest.fixture(autouse=True)
 def mock_logger():
     """Auto-mock logger to prevent logging calls."""
-    with patch("system.algo_trader.schwab.schwab_client.get_logger") as mock_logger_func:
+    with patch("system.algo_trader.infra.schwab.schwab_client.get_logger") as mock_logger_func:
         mock_logger_instance = MagicMock()
         mock_logger_func.return_value = mock_logger_instance
         yield mock_logger_instance
@@ -36,7 +36,7 @@ def mock_logger():
 @pytest.fixture
 def mock_account_broker():
     """Fixture to mock AccountBroker."""
-    with patch("system.algo_trader.schwab.schwab_client.AccountBroker") as mock_broker_class:
+    with patch("system.algo_trader.infra.schwab.schwab_client.AccountBroker") as mock_broker_class:
         mock_broker = MagicMock()
         mock_broker_class.return_value = mock_broker
         yield mock_broker
@@ -45,42 +45,42 @@ def mock_account_broker():
 @pytest.fixture
 def mock_token_manager_requests():
     """Fixture to mock requests module in token_manager."""
-    with patch("system.algo_trader.schwab.auth.token_manager.requests") as mock_requests:
+    with patch("system.algo_trader.infra.schwab.auth.token_manager.requests") as mock_requests:
         yield mock_requests
 
 
 @pytest.fixture
 def mock_oauth2_requests():
     """Fixture to mock requests module in oauth2."""
-    with patch("system.algo_trader.schwab.auth.oauth2.requests") as mock_requests:
+    with patch("system.algo_trader.infra.schwab.auth.oauth2.requests") as mock_requests:
         yield mock_requests
 
 
 @pytest.fixture
 def mock_oauth2_input():
     """Fixture to mock input() in oauth2 module."""
-    with patch("system.algo_trader.schwab.auth.oauth2.input") as mock_input:
+    with patch("system.algo_trader.infra.schwab.auth.oauth2.input") as mock_input:
         yield mock_input
 
 
 @pytest.fixture
 def mock_oauth2_print():
     """Fixture to mock print() in oauth2 module."""
-    with patch("system.algo_trader.schwab.auth.oauth2.print") as mock_print:
+    with patch("system.algo_trader.infra.schwab.auth.oauth2.print") as mock_print:
         yield mock_print
 
 
 @pytest.fixture
 def mock_schwab_client_requests():
     """Fixture to mock requests module in schwab_client (for make_authenticated_request)."""
-    with patch("system.algo_trader.schwab.schwab_client.requests") as mock_requests:
+    with patch("system.algo_trader.infra.schwab.schwab_client.requests") as mock_requests:
         yield mock_requests
 
 
 @pytest.fixture
 def mock_token_manager_time():
     """Fixture to mock time.sleep in token_manager."""
-    with patch("system.algo_trader.schwab.auth.token_manager.time.sleep") as mock_sleep:
+    with patch("system.algo_trader.infra.schwab.auth.token_manager.time.sleep") as mock_sleep:
         yield mock_sleep
 
 

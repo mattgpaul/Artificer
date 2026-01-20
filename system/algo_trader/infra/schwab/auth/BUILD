@@ -8,8 +8,8 @@ py_library(
         "token_manager.py",
     ],
     visibility = [
-        "//system/algo_trader/schwab:__pkg__",
-        "//tests/system/algo_trader/schwab:__pkg__",
+        "//system/algo_trader/infra/schwab:__pkg__",
+        "//tests/system/algo_trader/infra/schwab:__pkg__",
     ],
     deps = [
         "//infrastructure/logging:logger",

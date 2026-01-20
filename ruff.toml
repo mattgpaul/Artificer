@@ -80,7 +80,7 @@ exclude = [
     "PLR0915",  # Too many statements (queue processing logic)
 ]
 # New refactored schwab auth files - keep PLR0913 for OAuth2 configuration
-"system/algo_trader/schwab/auth/**/*.py" = [
+"system/algo_trader/infra/schwab/auth/**/*.py" = [
     "PLR0913",  # Too many arguments (OAuth2 configuration)
 ]
 # New refactored strategy core files - keep PLR0913 for strategy configuration
@@ -103,7 +103,7 @@ exclude = [
 "system/algo_trader/strategy/base.py" = ["PLR0913"]  # __init__ with many config params
 "system/algo_trader/strategy/sma_crossover.py" = ["PLR0913"]  # __init__ with many config params
 # Market handler API methods legitimately need many parameters
-"system/algo_trader/schwab/market_handler.py" = ["PLR0913"]  # API methods with many params
+"system/algo_trader/infra/schwab/market_handler.py" = ["PLR0913"]  # API methods with many params
 # Publisher queue processing is complex but necessary
 "system/algo_trader/influx/publisher.py" = [
     "PLR0915",  # Too many statements (queue processing logic)
