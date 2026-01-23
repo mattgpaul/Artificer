@@ -1,6 +1,5 @@
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_library")
-load("//:pytest_test.bzl", "pytest_test")
 
 # Project aggregation target - collects all algo_trader components (clean slate)
 py_library(
