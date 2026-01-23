@@ -1,18 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict
-import pandas as pd
 
-@dataclass
-class HistoricalData:
-    period: str
-    frequency: str
-    start: datetime
-    end: datetime
-    data: Dict[str,pd.DataFrame]
+from domain.models import HistoricalOHLCV
 
-class HistoricalDataPort(ABC):
+
+class HistoricalPort(ABC):
     @abstractmethod
-    def get_data(self) -> HistoricalData:
+    def get_data(self) -> HistoricalOHLCV:
         ...
