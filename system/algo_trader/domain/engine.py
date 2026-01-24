@@ -1,16 +1,20 @@
 import uuid
 from datetime import datetime, timezone
+import time
 
 # Models
 from domain.models import (
     MarketOrder,
     Orders,
     Positions,
+    PortfolioManager,
+    Signals,
 )
 
 # States
 from domain.states import (
     EngineState,
+    ControllerCommand,
     OrderDuration,
     OrderInstruction,
     OrderTaxLotMethod,
@@ -53,6 +57,15 @@ class Engine:
         self.journal_port = journal_port
         self.controller_port = controller_port
         self._state = EngineState.SETUP
+
+    @staticmethod
+    def _signal_filter(signals: Signals, order_instruction: OrderInstruction) -> Signals:
+        filtered_signals = []
+        for signal in signals.instructions:
+            if signal.instruction != order_instruction:
+                continue
+            filtered_signals.append(signal)
+        return filtered_signals
 
     def _flatten(self, positions: Positions) -> Orders:
         orders = []
@@ -107,6 +120,23 @@ class Engine:
             orders=orders,
         )
 
+    def _filter_signals(self, signals: Signals, portfolio_state: PortfolioManager) -> Signals:
+        filtered_signals = []
+        if portfolio_state.trading_state == TradingState.BULLISH:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_OPEN))
+        elif portfolio_state.trading_state == TradingState.BEARISH:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.SELL_TO_OPEN))
+        elif portfolio_state.trading_state == TradingState.CLOSE_LONG:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.SELL_TO_CLOSE))
+        elif portfolio_state.trading_state == TradingState.CLOSE_SHORT:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_CLOSE))
+        elif portfolio_state.trading_state == TradingState.NEUTRAL:
+            filtered_signals = signals.instructions.copy()
+        return Signals(
+            timestamp=signals.timestamp,
+            instructions=filtered_signals,
+        )
+
     def _tick(self):
         # Get portfolio state
         portfolio_state = self.portfolio_manager_port.get_state()
@@ -143,7 +173,8 @@ class Engine:
             historical_data,
         )
 
-        # Filter orders based on the portfolio manager's trading state
+        # Filter signals based on the portfolio manager's trading state
+        signals = self._filter_signals(signals, portfolio_manager_state)
 
         orders = self.order_port.send_orders(
             signals,
@@ -158,11 +189,70 @@ class Engine:
             orders,
         )
 
-    def run(self):
-        while self._state == EngineState.RUNNING:
-            try:
-                self._tick()
-            except Exception as e:
-                self._state = EngineState.ERROR
-                self.journal_port.report_error(e)
+    def run(self) -> None:
+        self._state = EngineState.SETUP
+        self.controller_port.publish_status(self._state)
+
+        # Wait for START
+        while True:
+            cmd = self.controller_port.wait_for_command(timeout_s=None)
+            if cmd == ControllerCommand.START:
+                self._state = EngineState.RUNNING
+                self.controller_port.publish_status(self._state)
                 break
+            if cmd in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                self._state = EngineState.STOPPED
+                self.controller_port.publish_status(self._state)
+                return
+            # ignore PAUSE/RESUME/NONE in SETUP
+
+        # Main loop
+        while self._state not in (EngineState.STOPPED, EngineState.ERROR):
+            if self._state == EngineState.RUNNING:
+                # Push commands are handled quickly; timeout drives periodic ticks.
+                cmd = self.controller_port.wait_for_command(timeout_s=tick_interval_s)
+
+                if cmd == ControllerCommand.PAUSE:
+                    self._state = EngineState.PAUSED
+                    self.controller_port.publish_status(self._state)
+                    continue
+                if cmd in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                    self._state = EngineState.STOPPED
+                    self.controller_port.publish_status(self._state)
+                    break
+                if cmd == ControllerCommand.RESUME:
+                    # Already running; ignore.
+                    continue
+
+                # No command arrived before timeout => do a tick
+                if cmd is None:
+                    try:
+                        self._tick()
+                    except Exception as e:
+                        self._state = EngineState.ERROR
+                        self.controller_port.publish_status(self._state)
+                        self.journal_port.report_error(e)
+                        break
+
+            elif self._state == EngineState.PAUSED:
+                # While paused, do NOT tick. Just wait for resume/stop.
+                cmd = self.controller_port.wait_for_command(timeout_s=None)
+
+                if cmd == ControllerCommand.RESUME:
+                    self._state = EngineState.RUNNING
+                    self.controller_port.publish_status(self._state)
+                    continue
+                if cmd in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                    self._state = EngineState.STOPPED
+                    self.controller_port.publish_status(self._state)
+                    break
+                # ignore START/PAUSE/NONE while paused
+
+            else:
+                # Any unexpected state => stop safely.
+                self._state = EngineState.STOPPED
+                self.controller_port.publish_status(self._state)
+                break
+
+        # Optional: small delay to let logs flush / avoid busy loop in edge cases
+        time.sleep(0.01)

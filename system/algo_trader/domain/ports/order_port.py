@@ -5,20 +5,12 @@ from domain.models import (
     Orders,
     Positions,
     Quote,
-    Signals,
 )
 
 
 class OrderPort(ABC):
     @abstractmethod
-    def send_orders(
-        self,
-        signals: Signals,
-        quote_data: Quote,
-        account_data: Account,
-        position_data: Positions,
-        open_orders: Orders,
-    ) -> Orders: ...
+    def send_orders(self, orders: Orders) -> Orders: ...
 
     @abstractmethod
     def get_open_orders(self) -> Orders: ...
@@ -30,4 +22,4 @@ class OrderPort(ABC):
     def cancel_all_orders(self) -> bool: ...
 
     @abstractmethod
-    def get_order_status(self, order_id: str) -> OrderStatus: ...
+    def get_all_orders(self) -> Orders: ...
