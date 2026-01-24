@@ -1,40 +1,33 @@
 import uuid
 from datetime import datetime, timezone
 
-# States
-from domain.states import (
-    TradingState,
-    EngineState,
-    ControllerCommand,
-    MarketStatus,
-    OrderInstruction,
-    OrderType,
-    OrderDuration,
-    OrderTaxLotMethod,
-)
-
 # Models
 from domain.models import (
-    Positions,
-    Orders,
-    Signals,
-    Quote,
-    Account,
-    HistoricalOHLCV,
-    MarketHours,
     MarketOrder,
+    Orders,
+    Positions,
 )
+
+# States
+from domain.states import (
+    EngineState,
+    OrderDuration,
+    OrderInstruction,
+    OrderTaxLotMethod,
+    OrderType,
+    TradingState,
+)
+from ports.account_port import AccountPort
+from ports.clock_port import ClockPort
+from ports.controller_port import ControllerPort
 
 # Ports
 from ports.historical_port import HistoricalPort
-from ports.quote_port import QuotePort
-from ports.account_port import AccountPort
-from ports.order_port import OrderPort
-from ports.strategy_port import StrategyPort
-from ports.portfolio_manager_port import PortfolioManagerPort
-from ports.clock_port import ClockPort
 from ports.journal_port import JournalPort
-from ports.controller_port import ControllerPort
+from ports.order_port import OrderPort
+from ports.portfolio_manager_port import PortfolioManagerPort
+from ports.quote_port import QuotePort
+from ports.strategy_port import StrategyPort
 
 
 class Engine:
@@ -71,7 +64,7 @@ class Engine:
             timestamp=datetime.now(timezone.utc),
             orders=orders,
         )
-    
+
     def _close_long(self, positions: Positions) -> Orders:
         orders = []
         for position in positions.positions:
@@ -92,7 +85,7 @@ class Engine:
             timestamp=datetime.now(timezone.utc),
             orders=orders,
         )
-    
+
     def _close_short(self, positions: Positions) -> Orders:
         orders = []
         for position in positions.positions:
@@ -152,7 +145,6 @@ class Engine:
 
         # Filter orders based on the portfolio manager's trading state
 
-
         orders = self.order_port.send_orders(
             signals,
             quote_data,
@@ -174,7 +166,3 @@ class Engine:
                 self._state = EngineState.ERROR
                 self.journal_port.report_error(e)
                 break
-
-
-
-        

@@ -1,17 +1,26 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List
 from uuid import UUID
 
 import pandas as pd
+from domain.states import (
+    ControllerCommand,
+    EngineState,
+    MarketStatus,
+    OrderDuration,
+    OrderInstruction,
+    OrderTaxLotMethod,
+    OrderType,
+    TradingState,
+)
 
-from domain.states import TradingState, EngineState, ControllerCommand, MarketStatus, OrderInstruction, OrderType, OrderDuration, OrderTaxLotMethod
 
 @dataclass
 class Controller:
     timestamp: datetime
     command: ControllerCommand
     status: EngineState
+
 
 @dataclass
 class PortfolioManager:
@@ -20,12 +29,14 @@ class PortfolioManager:
     max_exposure_pct: float
     max_position_pct: float
 
+
 @dataclass
 class MarketHours:
     timestamp: datetime
     status: MarketStatus
     start: datetime
     end: datetime
+
 
 @dataclass
 class Account:
@@ -51,7 +62,7 @@ class Position:
 @dataclass
 class Positions:
     timestamp: datetime
-    positions: List[Position]
+    positions: list[Position]
 
 
 @dataclass
@@ -60,21 +71,21 @@ class HistoricalOHLCV:
     frequency: str
     start: datetime
     end: datetime
-    data: Dict[str, pd.DataFrame]
+    data: dict[str, pd.DataFrame]
 
 
 @dataclass
 class Quote:
     timestamp: datetime
     asset_class: str
-    bid: Dict[str, float]
-    ask: Dict[str, float]
-    bid_size: Dict[str, float]
-    ask_size: Dict[str, float]
-    last: Dict[str, float]
-    volume: Dict[str, float]
-    change: Dict[str, float]
-    change_pct: Dict[str, float]
+    bid: dict[str, float]
+    ask: dict[str, float]
+    bid_size: dict[str, float]
+    ask_size: dict[str, float]
+    last: dict[str, float]
+    volume: dict[str, float]
+    change: dict[str, float]
+    change_pct: dict[str, float]
 
 
 @dataclass
@@ -87,7 +98,7 @@ class Signal:
 @dataclass
 class Signals:
     timestamp: datetime
-    instructions: List[Signal]
+    instructions: list[Signal]
 
 
 @dataclass
@@ -145,5 +156,4 @@ class StopLimitOrder:
 @dataclass
 class Orders:
     timestamp: datetime
-    orders: List[LimitOrder | MarketOrder | StopOrder | StopLimitOrder]
-
+    orders: list[LimitOrder | MarketOrder | StopOrder | StopLimitOrder]

@@ -2,15 +2,12 @@ from abc import ABC, abstractmethod
 
 from domain.models import (
     Account,
-    LimitOrder,
-    MarketOrder,
     Orders,
     Positions,
     Quote,
     Signals,
-    StopLimitOrder,
-    StopOrder,
 )
+
 
 class OrderPort(ABC):
     @abstractmethod
@@ -21,21 +18,16 @@ class OrderPort(ABC):
         account_data: Account,
         position_data: Positions,
         open_orders: Orders,
-    ) -> Orders:
-        ...
+    ) -> Orders: ...
 
     @abstractmethod
-    def get_open_orders(self) -> Orders:
-        ...
+    def get_open_orders(self) -> Orders: ...
 
     @abstractmethod
-    def cancel_order(self, order_id: str) -> bool:
-        ...
+    def cancel_order(self, order_id: str) -> bool: ...
 
     @abstractmethod
-    def cancel_all_orders(self) -> bool:
-        ...
+    def cancel_all_orders(self) -> bool: ...
 
     @abstractmethod
-    def get_order_status(self, order_id: str) -> OrderStatus:
-        ...
+    def get_order_status(self, order_id: str) -> OrderStatus: ...

@@ -5,5 +5,4 @@ from domain.models import HistoricalOHLCV
 
 class HistoricalPort(ABC):
     @abstractmethod
-    def get_data(self) -> HistoricalOHLCV:
-        ...
+    def get_data(self) -> HistoricalOHLCV: ...
