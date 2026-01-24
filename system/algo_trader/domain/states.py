@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class EngineState(Enum):
     SETUP = "SETUP"
     RUNNING = "RUNNING"
@@ -8,6 +9,7 @@ class EngineState(Enum):
     ERROR = "ERROR"
     TEARDOWN = "TEARDOWN"
 
+
 class ControllerCommand(Enum):
     NONE = "NONE"
     START = "START"
@@ -15,6 +17,7 @@ class ControllerCommand(Enum):
     PAUSE = "PAUSE"
     RESUME = "RESUME"
     EMERGENCY_STOP = "EMERGENCY_STOP"
+
 
 class TradingState(Enum):
     DISABLED = "DISABLED"
@@ -26,6 +29,7 @@ class TradingState(Enum):
     CLOSE_LONG = "CLOSE_LONG"
     CLOSE_SHORT = "CLOSE_SHORT"
 
+
 class MarketStatus(Enum):
     OPEN = "OPEN"
     CLOSED = "CLOSED"
@@ -33,11 +37,13 @@ class MarketStatus(Enum):
     POST_CLOSE = "POST_MARKET"
     HALTED = "HALTED"
 
+
 class OrderInstruction(Enum):
     BUY_TO_OPEN = "BUY_TO_OPEN"
     SELL_TO_OPEN = "SELL_TO_OPEN"
     BUY_TO_CLOSE = "BUY_TO_CLOSE"
     SELL_TO_CLOSE = "SELL_TO_CLOSE"
+
 
 class OrderStatus(Enum):
     WORKING = "WORKING"
@@ -70,4 +76,3 @@ class OrderType(Enum):
     STOP_LIMIT = "STOP_LIMIT"
     TRAILING_STOP = "TRAILING_STOP"
     TRAILING_STOP_LIMIT = "TRAILING_STOP_LIMIT"
-
