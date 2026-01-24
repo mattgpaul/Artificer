@@ -5,8 +5,27 @@ from uuid import UUID
 
 import pandas as pd
 
-from domain.states import OrderInstruction, OrderType, OrderDuration, OrderTaxLotMethod
+from domain.states import TradingState, EngineState, ControllerCommand, MarketStatus, OrderInstruction, OrderType, OrderDuration, OrderTaxLotMethod
 
+@dataclass
+class Controller:
+    timestamp: datetime
+    command: ControllerCommand
+    status: EngineState
+
+@dataclass
+class PortfolioManager:
+    timestamp: datetime
+    trading_state: TradingState
+    max_exposure_pct: float
+    max_position_pct: float
+
+@dataclass
+class MarketHours:
+    timestamp: datetime
+    status: MarketStatus
+    start: datetime
+    end: datetime
 
 @dataclass
 class Account:

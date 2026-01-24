@@ -8,7 +8,7 @@ class EngineState(Enum):
     ERROR = "ERROR"
     TEARDOWN = "TEARDOWN"
 
-class ManagerCommand(Enum):
+class ControllerCommand(Enum):
     NONE = "NONE"
     START = "START"
     STOP = "STOP"
@@ -26,13 +26,18 @@ class TradingState(Enum):
     CLOSE_LONG = "CLOSE_LONG"
     CLOSE_SHORT = "CLOSE_SHORT"
 
+class MarketStatus(Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+    PRE_OPEN = "PRE_MARKET"
+    POST_CLOSE = "POST_MARKET"
+    HALTED = "HALTED"
 
 class OrderInstruction(Enum):
     BUY_TO_OPEN = "BUY_TO_OPEN"
     SELL_TO_OPEN = "SELL_TO_OPEN"
     BUY_TO_CLOSE = "BUY_TO_CLOSE"
     SELL_TO_CLOSE = "SELL_TO_CLOSE"
-
 
 class OrderStatus(Enum):
     WORKING = "WORKING"
