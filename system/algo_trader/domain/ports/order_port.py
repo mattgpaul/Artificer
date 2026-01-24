@@ -27,3 +27,15 @@ class OrderPort(ABC):
     @abstractmethod
     def get_open_orders(self) -> Orders:
         ...
+
+    @abstractmethod
+    def cancel_order(self, order_id: str) -> bool:
+        ...
+
+    @abstractmethod
+    def cancel_all_orders(self) -> bool:
+        ...
+
+    @abstractmethod
+    def get_order_status(self, order_id: str) -> OrderStatus:
+        ...
