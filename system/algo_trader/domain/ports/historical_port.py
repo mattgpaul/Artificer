@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from domain.models import HistoricalOHLCV
+from algo_trader.domain.models import HistoricalOHLCV
 
 
 class HistoricalPort(ABC):

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import time
 
 # Models
-from domain.models import (
+from algo_trader.domain.models import (
     MarketOrder,
     Orders,
     Positions,
@@ -14,7 +14,7 @@ from domain.models import (
 )
 
 # States
-from domain.states import (
+from algo_trader.domain.states import (
     EngineState,
     ControllerCommand,
     OrderDuration,
@@ -24,17 +24,17 @@ from domain.states import (
     TradingState,
     EventType,
 )
-from ports.account_port import AccountPort
-from ports.controller_port import ControllerPort
+from algo_trader.domain.ports.account_port import AccountPort
+from algo_trader.domain.ports.controller_port import ControllerPort
 
 # Ports
-from ports.historical_port import HistoricalPort
-from ports.journal_port import JournalPort
-from ports.order_port import OrderPort
-from ports.portfolio_manager_port import PortfolioManagerPort
-from ports.quote_port import QuotePort
-from ports.strategy_port import StrategyPort
-from ports.event_port import EventPort
+from algo_trader.domain.ports.historical_port import HistoricalPort
+from algo_trader.domain.ports.journal_port import JournalPort
+from algo_trader.domain.ports.order_port import OrderPort
+from algo_trader.domain.ports.portfolio_manager_port import PortfolioManagerPort
+from algo_trader.domain.ports.quote_port import QuotePort
+from algo_trader.domain.ports.strategy_port import StrategyPort
+from algo_trader.domain.ports.event_port import EventPort
 
 
 class Engine:

@@ -1,21 +1,36 @@
 load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
+# Shared fixtures library for e2e tests
 py_library(
-    name = "test_sma_e2e_lib",
+    name = "conftest_lib",
     testonly = True,
-    srcs = [
-        "conftest.py",
-        "test_sma_e2e.py",
+    srcs = ["conftest.py"],
+    imports = ["../../../system"],
+    visibility = [
+        "//system/algo_trader:__pkg__",
+        "//tests/system/algo_trader:__subpackages__",
     ],
+    deps = [
+        requirement("pytest"),
+        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain:domain_models",
+        "//system/algo_trader/domain:domain_ports",
+    ],
+)
+
+# E2E test library
+py_library(
+    name = "test_engine_e2e_lib",
+    testonly = True,
+    srcs = ["test_engine_e2e.py"],
+    imports = ["../../../system"],
     visibility = [
         "//system/algo_trader:__pkg__",
     ],
     deps = [
-        requirement("pytest"),
-        "//system/algo_trader/adapters/paper:paper_adapters",
-        "//system/algo_trader/apps",
-        "//system/algo_trader/cli",
-        "//system/algo_trader/domain",
+        ":conftest_lib",
+        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain:domain_models",
     ],
 )

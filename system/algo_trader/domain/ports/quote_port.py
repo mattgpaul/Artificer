@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from domain.models import Quote
+from algo_trader.domain.models import Quote
 
 
 class QuotePort(ABC):

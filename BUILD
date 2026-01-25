@@ -1,6 +1,7 @@
 load("@pip//:requirements.bzl", "requirement")  # @unused
 load("@rules_python//python:defs.bzl", "py_binary")  # @unused
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
+load("@rules_python//python:defs.bzl", "py_library")
 
 compile_pip_requirements(
     name = "reqs",
@@ -15,6 +16,17 @@ exports_files([
     "ruff.toml",
     "mypy.ini",
 ])
+
+# Add the monorepo's `system/` directory to PYTHONPATH for any targets that need
+# to import deployable systems as top-level packages (e.g. `algo_trader.*`).
+#
+# This avoids per-package relative `imports = ["../../.."]` hacks.
+py_library(
+    name = "system_pythonpath",
+    srcs = [],
+    imports = ["system"],
+    visibility = ["//visibility:public"],
+)
 
 # Development tools
 genrule(
