@@ -1,13 +1,27 @@
+"""Portfolio manager port interface.
+
+Defines the interface for portfolio state management and signal processing.
+"""
+
 from abc import ABC, abstractmethod
 
-from system.algo_trader.domain.models import PortfolioManager, Orders, Quote, Account, Positions
+from system.algo_trader.domain.models import Account, Orders, PortfolioManager, Positions, Quote
+
 
 class PortfolioManagerPort(ABC):
-    @abstractmethod
-    def get_state(self) -> PortfolioManager: ...
+    """Abstract port for portfolio management and signal handling."""
 
     @abstractmethod
-    def handle_signals(
+    def get_state(self) -> PortfolioManager:
+        """Retrieve current portfolio manager state.
+
+        Returns:
+            PortfolioManager object containing current trading state and limits.
+        """
+        ...
+
+    @abstractmethod
+    def handle_signals(  # noqa: PLR0913
         self,
         signals: Orders,
         quote_data: Quote,
@@ -15,4 +29,18 @@ class PortfolioManagerPort(ABC):
         position_data: Positions,
         open_orders: Orders,
         portfolio_state: PortfolioManager,
-    ) -> Orders: ...
+    ) -> Orders:
+        """Process trading signals and generate orders.
+
+        Args:
+            signals: Filtered trading signals to process.
+            quote_data: Current market quotes.
+            account_data: Current account information.
+            position_data: Current portfolio positions.
+            open_orders: Currently open orders.
+            portfolio_state: Current portfolio manager state.
+
+        Returns:
+            Orders collection containing generated orders.
+        """
+        ...

@@ -14,8 +14,8 @@ py_library(
     # repo-root helper that adds `system/` to PYTHONPATH.
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/domain:__pkg__",
         "//tests/system/algo_trader:__pkg__",
+        "//tests/system/algo_trader/domain:__pkg__",
     ],
     deps = [requirement("pandas")],
 )
@@ -24,13 +24,13 @@ py_library(
 # Use alias for convenience
 py_library(
     name = "domain_ports",
-    deps = [
-        "//system/algo_trader/domain/ports:ports",
-    ],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/domain:__pkg__",
         "//tests/system/algo_trader:__pkg__",
+        "//tests/system/algo_trader/domain:__pkg__",
+    ],
+    deps = [
+        "//system/algo_trader/domain/ports",
     ],
 )
 
@@ -42,8 +42,8 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/domain:__pkg__",
         "//tests/system/algo_trader:__pkg__",
+        "//tests/system/algo_trader/domain:__pkg__",
     ],
     deps = [
         ":domain_models",
@@ -54,18 +54,23 @@ py_library(
 # Unit tests
 pytest_test(
     name = "test_engine_unit",
-    test_lib = "//tests/system/algo_trader/domain:test_engine_unit_lib",
+    args = [
+        "-m",
+        "unit",
+    ],
     coverage_path = "system.algo_trader.domain",
     tags = ["unit"],
-    args = ["-m", "unit"],
+    test_lib = "//tests/system/algo_trader/domain:test_engine_unit_lib",
 )
 
 # Integration tests
 pytest_test(
     name = "test_engine_integration",
-    test_lib = "//tests/system/algo_trader/domain:test_engine_integration_lib",
+    args = [
+        "-m",
+        "integration",
+    ],
     coverage_path = "system.algo_trader.domain",
     tags = ["integration"],
-    args = ["-m", "integration"],
+    test_lib = "//tests/system/algo_trader/domain:test_engine_integration_lib",
 )
-

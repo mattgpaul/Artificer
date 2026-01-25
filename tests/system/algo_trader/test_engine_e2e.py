@@ -86,7 +86,7 @@ class TestEngineE2EWorkflow:
         engine_with_fakes.strategy_port.signals = signals
         engine_with_fakes.portfolio_manager_port.state.trading_state = TradingState.NEUTRAL
 
-        # Create event sequence: START -> PAUSE -> TICK (should be ignored) -> RESUME -> TICK -> STOP
+        # Create event sequence: START -> PAUSE -> TICK (ignored) -> RESUME -> TICK -> STOP
         events = [
             Event(
                 timestamp=sample_market_order().timestamp,
@@ -177,6 +177,7 @@ class TestEngineE2EWorkflow:
     @pytest.mark.timeout(10)
     def test_error_handling(self, engine_with_fakes, sample_market_order):
         """Test error handling transitions engine to ERROR state."""
+
         # Setup strategy to raise an exception
         def failing_get_signals(*args, **kwargs):
             raise ValueError("Test error")
@@ -219,4 +220,3 @@ class TestEngineE2EWorkflow:
         error_entry = engine_with_fakes.journal_port.errors[0]
         assert isinstance(error_entry.error, ValueError)
         assert error_entry.engine_state == EngineState.ERROR
-

@@ -6,7 +6,7 @@ verifying port interactions and journaling.
 
 import pytest
 
-from system.algo_trader.domain.models import Orders
+from system.algo_trader.domain.models import Orders, Positions
 from system.algo_trader.domain.states import (
     OrderInstruction,
     TradingState,
@@ -69,8 +69,6 @@ class TestEngineTickWorkflow:
     @pytest.mark.integration
     def test_tick_flatten_workflow(self, engine_with_fakes, sample_position):
         """Test flatten workflow: positions -> close orders -> send orders."""
-        from system.algo_trader.domain.models import Positions
-
         # Setup positions
         positions = Positions(
             timestamp=sample_position().timestamp,
@@ -137,7 +135,8 @@ class TestEngineTickWorkflow:
 
         # Verify portfolio manager received filtered signals
         assert len(engine_with_fakes.portfolio_manager_port.handle_signals_calls) == 1
-        filtered_signals, _, _, _, _, _ = engine_with_fakes.portfolio_manager_port.handle_signals_calls[0]
+        filtered_signals, _, _, _, _, _ = (
+            engine_with_fakes.portfolio_manager_port.handle_signals_calls[0]
+        )
         assert len(filtered_signals.orders) == 1
         assert filtered_signals.orders[0].order_instruction == OrderInstruction.BUY_TO_OPEN
-

@@ -7,9 +7,9 @@ py_library(
     srcs = ["test_engine_unit.py"],
     visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
-        "//tests/system/algo_trader:conftest_lib",
-        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain",
         "//system/algo_trader/domain:domain_models",
+        "//tests/system/algo_trader:conftest_lib",
     ],
 )
 
@@ -20,9 +20,8 @@ py_library(
     srcs = ["test_engine_integration.py"],
     visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
-        "//tests/system/algo_trader:conftest_lib",
-        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain",
         "//system/algo_trader/domain:domain_models",
+        "//tests/system/algo_trader:conftest_lib",
     ],
 )
-

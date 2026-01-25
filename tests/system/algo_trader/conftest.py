@@ -5,11 +5,12 @@ to reduce code duplication across test files.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from uuid import uuid4
 
 import pandas as pd
 import pytest
 
+from system.algo_trader.domain.engine import Engine
 from system.algo_trader.domain.models import (
     Account,
     Event,
@@ -19,9 +20,9 @@ from system.algo_trader.domain.models import (
     JournalOutput,
     MarketOrder,
     Orders,
+    PortfolioManager,
     Position,
     Positions,
-    PortfolioManager,
     Quote,
 )
 from system.algo_trader.domain.ports.account_port import AccountPort
@@ -36,13 +37,11 @@ from system.algo_trader.domain.ports.strategy_port import StrategyPort
 from system.algo_trader.domain.states import (
     ControllerCommand,
     EngineState,
-    EventType,
     OrderDuration,
     OrderInstruction,
     OrderTaxLotMethod,
     OrderType,
     TradingState,
-    TickReason,
 )
 
 
@@ -50,7 +49,8 @@ from system.algo_trader.domain.states import (
 class FakeHistoricalPort(HistoricalPort):
     """Simple fake historical data port."""
 
-    def __init__(self, data: Optional[HistoricalOHLCV] = None):
+    def __init__(self, data: HistoricalOHLCV | None = None):
+        """Initialize fake historical port with optional data."""
         self.data = data or HistoricalOHLCV(
             period="1Y",
             frequency="1D",
@@ -60,13 +60,15 @@ class FakeHistoricalPort(HistoricalPort):
         )
 
     def get_data(self) -> HistoricalOHLCV:
+        """Return fake historical data."""
         return self.data
 
 
 class FakeQuotePort(QuotePort):
     """Simple fake quote port."""
 
-    def __init__(self, quote: Optional[Quote] = None):
+    def __init__(self, quote: Quote | None = None):
+        """Initialize fake quote port with optional quote data."""
         self.quote = quote or Quote(
             timestamp=datetime.now(timezone.utc),
             asset_class="EQUITY",
@@ -81,6 +83,7 @@ class FakeQuotePort(QuotePort):
         )
 
     def get_quotes(self) -> Quote:
+        """Return fake quote data."""
         return self.quote
 
 
@@ -89,9 +92,10 @@ class FakeAccountPort(AccountPort):
 
     def __init__(
         self,
-        account: Optional[Account] = None,
-        positions: Optional[Positions] = None,
+        account: Account | None = None,
+        positions: Positions | None = None,
     ):
+        """Initialize fake account port with optional account and positions."""
         self.account = account or Account(
             timestamp=datetime.now(timezone.utc),
             cash=100000.0,
@@ -106,9 +110,11 @@ class FakeAccountPort(AccountPort):
         )
 
     def get_account(self) -> Account:
+        """Return fake account data."""
         return self.account
 
     def get_positions(self) -> Positions:
+        """Return fake positions data."""
         return self.positions
 
 
@@ -116,30 +122,37 @@ class FakeOrderPort(OrderPort):
     """Simple fake order port."""
 
     def __init__(self):
+        """Initialize fake order port with empty order lists."""
         self.sent_orders: list[Orders] = []
         self.open_orders = Orders(timestamp=datetime.now(timezone.utc), orders=[])
 
     def send_orders(self, orders: Orders) -> Orders:
+        """Record and return orders."""
         self.sent_orders.append(orders)
         return orders
 
     def get_open_orders(self) -> Orders:
+        """Return fake open orders."""
         return self.open_orders
 
     def cancel_order(self, order_id: str) -> bool:
+        """Return True (fake cancellation)."""
         return True
 
     def cancel_all_orders(self) -> bool:
+        """Return True (fake cancellation)."""
         return True
 
     def get_all_orders(self) -> Orders:
+        """Return empty orders collection."""
         return Orders(timestamp=datetime.now(timezone.utc), orders=[])
 
 
 class FakeStrategyPort(StrategyPort):
     """Simple fake strategy port."""
 
-    def __init__(self, signals: Optional[Orders] = None):
+    def __init__(self, signals: Orders | None = None):
+        """Initialize fake strategy port with optional signals."""
         self.signals = signals or Orders(
             timestamp=datetime.now(timezone.utc),
             orders=[],
@@ -151,13 +164,15 @@ class FakeStrategyPort(StrategyPort):
         quote_data: Quote,
         position_data: Positions,
     ) -> Orders:
+        """Return fake signals (ignores inputs)."""
         return self.signals
 
 
 class FakePortfolioManagerPort(PortfolioManagerPort):
     """Simple fake portfolio manager port."""
 
-    def __init__(self, state: Optional[PortfolioManager] = None):
+    def __init__(self, state: PortfolioManager | None = None):
+        """Initialize fake portfolio manager port with optional state."""
         self.state = state or PortfolioManager(
             timestamp=datetime.now(timezone.utc),
             trading_state=TradingState.NEUTRAL,
@@ -167,6 +182,7 @@ class FakePortfolioManagerPort(PortfolioManagerPort):
         self.handle_signals_calls: list[tuple] = []
 
     def get_state(self) -> PortfolioManager:
+        """Get current portfolio manager state."""
         return self.state
 
     def handle_signals(
@@ -178,6 +194,7 @@ class FakePortfolioManagerPort(PortfolioManagerPort):
         open_orders: Orders,
         portfolio_state: PortfolioManager,
     ) -> Orders:
+        """Handle signals and return orders (passthrough for testing)."""
         self.handle_signals_calls.append(
             (signals, quote_data, account_data, position_data, open_orders, portfolio_state)
         )
@@ -189,17 +206,21 @@ class FakeJournalPort(JournalPort):
     """Simple fake journal port."""
 
     def __init__(self):
+        """Initialize fake journal port with empty lists."""
         self.inputs: list[JournalInput] = []
         self.outputs: list[JournalOutput] = []
         self.errors: list[JournalError] = []
 
     def report_input(self, input: JournalInput) -> None:
+        """Record journal input."""
         self.inputs.append(input)
 
     def report_output(self, output: JournalOutput) -> None:
+        """Record journal output."""
         self.outputs.append(output)
 
     def report_error(self, error: JournalError) -> None:
+        """Record journal error."""
         self.errors.append(error)
 
 
@@ -207,23 +228,28 @@ class FakeControllerPort(ControllerPort):
     """Simple fake controller port."""
 
     def __init__(self):
+        """Initialize fake controller port with empty status list."""
         self.published_statuses: list[EngineState] = []
 
-    def wait_for_command(self, timeout_s: Optional[float]) -> Optional[ControllerCommand]:
+    def wait_for_command(self, timeout_s: float | None) -> ControllerCommand | None:
+        """Return None (no commands for testing)."""
         return None
 
     def publish_status(self, status: EngineState) -> None:
+        """Record published status."""
         self.published_statuses.append(status)
 
 
 class FakeEventPort(EventPort):
     """Simple fake event port that returns scripted events."""
 
-    def __init__(self, events: Optional[list[Event]] = None):
+    def __init__(self, events: list[Event] | None = None):
+        """Initialize fake event port with optional event list."""
         self.events = events or []
         self.index = 0
 
-    def wait_for_event(self, timeout_s: Optional[float]) -> Optional[Event]:
+    def wait_for_event(self, timeout_s: float | None) -> Event | None:
+        """Return next event from scripted list."""
         if self.index >= len(self.events):
             return None
         event = self.events[self.index]
@@ -299,8 +325,6 @@ def engine_with_fakes(
     fake_event_port,
 ):
     """Provide an Engine instance with all fake ports."""
-    from system.algo_trader.domain.engine import Engine
-
     return Engine(
         historical_port=fake_historical_port,
         quote_port=fake_quote_port,
@@ -318,7 +342,6 @@ def engine_with_fakes(
 @pytest.fixture
 def sample_market_order():
     """Factory for creating sample market orders."""
-    from uuid import uuid4
 
     def _create(
         symbol: str = "AAPL",
