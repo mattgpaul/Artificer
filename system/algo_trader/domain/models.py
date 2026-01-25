@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
+from tkinter import EventType
 from uuid import UUID
+from typing import Optional
 
 import pandas as pd
 from domain.states import (
@@ -12,6 +14,8 @@ from domain.states import (
     OrderTaxLotMethod,
     OrderType,
     TradingState,
+    EventType,
+    TickReason,
 )
 
 
@@ -20,6 +24,14 @@ class Controller:
     timestamp: datetime
     command: ControllerCommand
     status: EngineState
+
+
+@dataclass
+class Event:
+    timestamp: datetime
+    type: EventType
+    command: Optional[ControllerCommand] = None
+    reason: Optional[TickReason] = None
 
 
 @dataclass
@@ -86,19 +98,6 @@ class Quote:
     volume: dict[str, float]
     change: dict[str, float]
     change_pct: dict[str, float]
-
-
-@dataclass
-class Signal:
-    timestamp: datetime
-    symbol: str
-    instruction: OrderInstruction
-
-
-@dataclass
-class Signals:
-    timestamp: datetime
-    instructions: list[Signal]
 
 
 @dataclass
