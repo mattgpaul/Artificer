@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from tkinter import EventType
 from uuid import UUID
 from typing import Optional
 
@@ -156,3 +155,28 @@ class StopLimitOrder:
 class Orders:
     timestamp: datetime
     orders: list[LimitOrder | MarketOrder | StopOrder | StopLimitOrder]
+
+
+@dataclass
+class JournalInput:
+    timestamp: datetime
+    historical_data: HistoricalOHLCV
+    quote_data: Quote
+    account_data: Account
+    position_data: Positions
+    open_orders: Orders
+    portfolio_manager_state: PortfolioManager
+
+
+@dataclass
+class JournalOutput:
+    timestamp: datetime
+    signals: Orders
+    orders: Orders
+
+
+@dataclass
+class JournalError:
+    timestamp: datetime
+    error: Exception
+    engine_state: EngineState
