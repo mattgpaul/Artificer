@@ -6,7 +6,7 @@ and edge cases. All external dependencies are mocked via conftest.py.
 
 import pytest
 
-from system.algo_trader.domain.models import Orders
+from system.algo_trader.domain.models import Orders, PortfolioManager, Positions
 from system.algo_trader.domain.states import (
     OrderInstruction,
     TradingState,
@@ -35,9 +35,6 @@ class TestEngineSignalFiltering:
         expected_instructions,
     ):
         """Test signal filtering based on trading state."""
-        from system.algo_trader.domain.models import PortfolioManager
-        from system.algo_trader.domain.states import TradingState
-
         # Create signals with all instruction types
         signals = Orders(
             timestamp=sample_market_order().timestamp,
@@ -76,8 +73,6 @@ class TestEngineFlattenOrders:
     @pytest.mark.unit
     def test_flatten_long_position(self, engine_with_fakes, sample_position):
         """Test flatten generates SELL_TO_CLOSE for long positions."""
-        from system.algo_trader.domain.models import Positions
-
         positions = Positions(
             timestamp=sample_position().timestamp,
             positions=[sample_position(symbol="AAPL", quantity=10)],
@@ -93,8 +88,6 @@ class TestEngineFlattenOrders:
     @pytest.mark.unit
     def test_flatten_short_position(self, engine_with_fakes, sample_position):
         """Test flatten generates BUY_TO_CLOSE with positive quantity for short positions."""
-        from system.algo_trader.domain.models import Positions
-
         positions = Positions(
             timestamp=sample_position().timestamp,
             positions=[sample_position(symbol="AAPL", quantity=-5)],
@@ -110,8 +103,6 @@ class TestEngineFlattenOrders:
     @pytest.mark.unit
     def test_flatten_mixed_positions(self, engine_with_fakes, sample_position):
         """Test flatten handles both long and short positions."""
-        from system.algo_trader.domain.models import Positions
-
         positions = Positions(
             timestamp=sample_position().timestamp,
             positions=[
@@ -137,8 +128,6 @@ class TestEngineFlattenOrders:
     @pytest.mark.unit
     def test_flatten_empty_positions(self, engine_with_fakes, sample_position):
         """Test flatten handles empty positions gracefully."""
-        from system.algo_trader.domain.models import Positions
-
         positions = Positions(
             timestamp=sample_position().timestamp,
             positions=[],
@@ -147,4 +136,3 @@ class TestEngineFlattenOrders:
         flatten_orders = engine_with_fakes._flatten(positions)
 
         assert len(flatten_orders.orders) == 0
-

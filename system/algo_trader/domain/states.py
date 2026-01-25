@@ -1,7 +1,15 @@
+"""Domain state enumerations.
+
+This module defines all state enumerations used throughout the trading system,
+including engine states, trading states, order types, and event types.
+"""
+
 from enum import Enum
 
 
 class EngineState(Enum):
+    """Engine lifecycle states."""
+
     SETUP = "SETUP"
     RUNNING = "RUNNING"
     PAUSED = "PAUSED"
@@ -11,6 +19,8 @@ class EngineState(Enum):
 
 
 class ControllerCommand(Enum):
+    """Controller commands for engine control."""
+
     NONE = "NONE"
     START = "START"
     STOP = "STOP"
@@ -18,11 +28,17 @@ class ControllerCommand(Enum):
     RESUME = "RESUME"
     EMERGENCY_STOP = "EMERGENCY_STOP"
 
+
 class EventType(Enum):
+    """Types of events processed by the engine."""
+
     TICK = "TICK"
     COMMAND = "COMMAND"
 
+
 class TickReason(Enum):
+    """Reasons for tick execution."""
+
     MANUAL = "MANUAL"
     SCHEDULED = "SCHEDULED"
     MARKET_EVENT = "MARKET_EVENT"
@@ -36,7 +52,10 @@ class TickReason(Enum):
     JOURNAL_EVENT = "JOURNAL_EVENT"
     CONTROLLER_EVENT = "CONTROLLER_EVENT"
 
+
 class TradingState(Enum):
+    """Portfolio trading state indicators."""
+
     DISABLED = "DISABLED"
     FLATTEN = "FLATTEN"
     BULLISH = "BULLISH"
@@ -48,6 +67,8 @@ class TradingState(Enum):
 
 
 class MarketStatus(Enum):
+    """Market session status."""
+
     OPEN = "OPEN"
     CLOSED = "CLOSED"
     PRE_MARKET = "PRE_MARKET"
@@ -56,6 +77,8 @@ class MarketStatus(Enum):
 
 
 class OrderInstruction(Enum):
+    """Order instruction types."""
+
     BUY_TO_OPEN = "BUY_TO_OPEN"
     SELL_TO_OPEN = "SELL_TO_OPEN"
     BUY_TO_CLOSE = "BUY_TO_CLOSE"
@@ -63,6 +86,8 @@ class OrderInstruction(Enum):
 
 
 class OrderStatus(Enum):
+    """Order execution status."""
+
     WORKING = "WORKING"
     FILLED = "FILLED"
     PARTIALLY_FILLED = "PARTIALLY_FILLED"
@@ -72,6 +97,8 @@ class OrderStatus(Enum):
 
 
 class OrderDuration(Enum):
+    """Order duration/time in force."""
+
     DAY = "DAY"
     GTC = "GTC"
     IOC = "IOC"
@@ -79,6 +106,8 @@ class OrderDuration(Enum):
 
 
 class OrderTaxLotMethod(Enum):
+    """Tax lot selection methods."""
+
     FIFO = "FIFO"
     LIFO = "LIFO"
     HIFO = "HIFO"
@@ -87,6 +116,8 @@ class OrderTaxLotMethod(Enum):
 
 
 class OrderType(Enum):
+    """Order type classifications."""
+
     LIMIT = "LIMIT"
     MARKET = "MARKET"
     STOP = "STOP"

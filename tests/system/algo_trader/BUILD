@@ -12,7 +12,7 @@ py_library(
     ],
     deps = [
         requirement("pytest"),
-        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain",
         "//system/algo_trader/domain:domain_models",
         "//system/algo_trader/domain:domain_ports",
     ],
@@ -28,7 +28,7 @@ py_library(
     ],
     deps = [
         ":conftest_lib",
-        "//system/algo_trader/domain:domain",
+        "//system/algo_trader/domain",
         "//system/algo_trader/domain:domain_models",
     ],
 )

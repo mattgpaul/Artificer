@@ -1,7 +1,6 @@
 load("@pip//:requirements.bzl", "requirement")  # @unused
-load("@rules_python//python:defs.bzl", "py_binary")  # @unused
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")  # @unused
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-load("@rules_python//python:defs.bzl", "py_library")
 
 compile_pip_requirements(
     name = "reqs",

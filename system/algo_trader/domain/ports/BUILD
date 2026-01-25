@@ -16,11 +16,10 @@ py_library(
     ],
     visibility = [
         "//system/algo_trader:__subpackages__",
-        "//tests/system/algo_trader/domain:__pkg__",
         "//tests/system/algo_trader:__pkg__",
+        "//tests/system/algo_trader/domain:__pkg__",
     ],
     deps = [
         "//system/algo_trader/domain:domain_models",
     ],
 )
-

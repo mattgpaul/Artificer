@@ -1,31 +1,27 @@
+"""Trading engine domain logic.
+
+This module implements the core Engine class that orchestrates trading operations
+through a port-based architecture. The engine coordinates data fetching, signal
+generation, order management, and journaling through dependency injection.
+"""
+
+import time
 import uuid
 from datetime import datetime, timezone
-import time
 
 # Models
 from system.algo_trader.domain.models import (
-    MarketOrder,
-    Orders,
-    Positions,
-    PortfolioManager,
     JournalError,
     JournalInput,
     JournalOutput,
-)
-
-# States
-from system.algo_trader.domain.states import (
-    EngineState,
-    ControllerCommand,
-    OrderDuration,
-    OrderInstruction,
-    OrderTaxLotMethod,
-    OrderType,
-    TradingState,
-    EventType,
+    MarketOrder,
+    Orders,
+    PortfolioManager,
+    Positions,
 )
 from system.algo_trader.domain.ports.account_port import AccountPort
 from system.algo_trader.domain.ports.controller_port import ControllerPort
+from system.algo_trader.domain.ports.event_port import EventPort
 
 # Ports
 from system.algo_trader.domain.ports.historical_port import HistoricalPort
@@ -34,11 +30,40 @@ from system.algo_trader.domain.ports.order_port import OrderPort
 from system.algo_trader.domain.ports.portfolio_manager_port import PortfolioManagerPort
 from system.algo_trader.domain.ports.quote_port import QuotePort
 from system.algo_trader.domain.ports.strategy_port import StrategyPort
-from system.algo_trader.domain.ports.event_port import EventPort
+
+# States
+from system.algo_trader.domain.states import (
+    ControllerCommand,
+    EngineState,
+    EventType,
+    OrderDuration,
+    OrderInstruction,
+    OrderTaxLotMethod,
+    OrderType,
+    TradingState,
+)
 
 
 class Engine:
-    def __init__(
+    """Trading engine that orchestrates trading operations.
+
+    The Engine coordinates all trading activities through dependency-injected ports.
+    It handles event-driven control flow, signal processing, order generation,
+    and state management.
+
+    Args:
+        historical_port: Port for retrieving historical market data.
+        quote_port: Port for retrieving current market quotes.
+        account_port: Port for retrieving account information and positions.
+        order_port: Port for sending and managing orders.
+        strategy_port: Port for generating trading signals.
+        portfolio_manager_port: Port for portfolio state and signal handling.
+        journal_port: Port for logging trading activities.
+        controller_port: Port for publishing engine status.
+        event_port: Port for receiving control events and ticks.
+    """
+
+    def __init__(  # noqa: PLR0913
         self,
         historical_port: HistoricalPort,
         quote_port: QuotePort,
@@ -50,6 +75,19 @@ class Engine:
         controller_port: ControllerPort,
         event_port: EventPort,
     ):
+        """Initialize engine with dependency-injected ports.
+
+        Args:
+            historical_port: Port for retrieving historical market data.
+            quote_port: Port for retrieving current market quotes.
+            account_port: Port for retrieving account information and positions.
+            order_port: Port for sending and managing orders.
+            strategy_port: Port for generating trading signals.
+            portfolio_manager_port: Port for portfolio state and signal handling.
+            journal_port: Port for logging trading activities.
+            controller_port: Port for publishing engine status.
+            event_port: Port for receiving control events and ticks.
+        """
         self.historical_port = historical_port
         self.quote_port = quote_port
         self.account_port = account_port
@@ -62,10 +100,29 @@ class Engine:
         self._state = EngineState.SETUP
 
     @staticmethod
-    def _signal_filter(signals: Orders, order_instruction: OrderInstruction):
+    def _signal_filter(signals: Orders, order_instruction: OrderInstruction) -> list[MarketOrder]:
+        """Filter signals by order instruction type.
+
+        Args:
+            signals: Orders collection to filter.
+            order_instruction: Instruction type to filter by.
+
+        Returns:
+            List of orders matching the instruction type.
+        """
         return [o for o in signals.orders if o.order_instruction == order_instruction]
 
     def _flatten(self, positions: Positions) -> Orders:
+        """Generate close orders for all open positions.
+
+        Creates market orders to close both long and short positions.
+
+        Args:
+            positions: Current positions to flatten.
+
+        Returns:
+            Orders collection containing close orders for all positions.
+        """
         orders = []
         close_long = self._close_long(positions)
         close_short = self._close_short(positions)
@@ -77,6 +134,14 @@ class Engine:
         )
 
     def _close_long(self, positions: Positions) -> Orders:
+        """Generate SELL_TO_CLOSE orders for long positions.
+
+        Args:
+            positions: Positions collection to process.
+
+        Returns:
+            Orders collection containing close orders for long positions.
+        """
         orders = []
         for position in positions.positions:
             if position.quantity > 0:
@@ -98,6 +163,14 @@ class Engine:
         )
 
     def _close_short(self, positions: Positions) -> Orders:
+        """Generate BUY_TO_CLOSE orders for short positions.
+
+        Args:
+            positions: Positions collection to process.
+
+        Returns:
+            Orders collection containing close orders for short positions.
+        """
         orders = []
         for position in positions.positions:
             if position.quantity < 0:
@@ -119,6 +192,18 @@ class Engine:
         )
 
     def _filter_signals(self, signals: Orders, portfolio_state: PortfolioManager) -> Orders:
+        """Filter signals based on portfolio trading state.
+
+        Applies trading state-specific filtering rules to determine which
+        signals should be processed.
+
+        Args:
+            signals: Raw signals from strategy.
+            portfolio_state: Current portfolio manager state.
+
+        Returns:
+            Filtered orders collection based on trading state.
+        """
         filtered_signals: list = []
         if portfolio_state.trading_state == TradingState.BULLISH:
             filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_OPEN))
@@ -135,7 +220,18 @@ class Engine:
             orders=filtered_signals,
         )
 
-    def _tick(self):
+    def _tick(self) -> None:
+        """Execute a single trading tick.
+
+        Performs one complete trading cycle:
+        1. Check trading state (disabled/flatten/normal)
+        2. Fetch market and account data
+        3. Get signals from strategy
+        4. Filter signals based on trading state
+        5. Process signals through portfolio manager
+        6. Send orders
+        7. Journal all activities
+        """
         # Get portfolio state
         portfolio_state = self.portfolio_manager_port.get_state()
 
@@ -208,7 +304,13 @@ class Engine:
             )
         )
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: PLR0912
+        """Run the engine's main event loop.
+
+        Processes events from the event port and executes trading ticks.
+        Handles state transitions, command processing, and error handling.
+        The engine will run until stopped or an error occurs.
+        """
         self._state = EngineState.SETUP
         self.controller_port.publish_status(self._state)
 
