@@ -14,7 +14,6 @@ py_library(
         "quote_port.py",
         "strategy_port.py",
     ],
-    imports = ["../.."],
     visibility = [
         "//system/algo_trader:__subpackages__",
         "//tests/system/algo_trader/domain:__pkg__",

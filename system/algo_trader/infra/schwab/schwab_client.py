@@ -17,9 +17,9 @@ import requests
 
 from infrastructure.client import Client
 from infrastructure.logging.logger import get_logger
-from algo_trader.infra.redis.account import AccountBroker
-from algo_trader.infra.schwab.auth.oauth2 import OAuth2Handler
-from algo_trader.infra.schwab.auth.token_manager import TokenManager
+from system.algo_trader.infra.redis.account import AccountBroker
+from system.algo_trader.infra.schwab.auth.oauth2 import OAuth2Handler
+from system.algo_trader.infra.schwab.auth.token_manager import TokenManager
 
 
 class SchwabClient(Client):

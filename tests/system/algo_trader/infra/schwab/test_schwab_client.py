@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from algo_trader.infra.schwab.schwab_client import SchwabClient
+from system.algo_trader.infra.schwab.schwab_client import SchwabClient
 
 
 class TestSchwabClientInitialization:

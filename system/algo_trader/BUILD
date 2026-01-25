@@ -70,7 +70,7 @@ filegroup(
 pytest_test(
     name = "test_engine_e2e",
     test_lib = "//tests/system/algo_trader:test_engine_e2e_lib",
-    coverage_path = "algo_trader.domain",
+    coverage_path = "system.algo_trader.domain",
     tags = ["e2e"],
     args = ["-m", "e2e"],
 )

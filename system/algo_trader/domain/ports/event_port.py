@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from algo_trader.domain.models import Event
+from system.algo_trader.domain.models import Event
 
 
 class EventPort(ABC):

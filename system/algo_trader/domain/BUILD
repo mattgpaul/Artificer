@@ -17,10 +17,7 @@ py_library(
         "//tests/system/algo_trader/domain:__pkg__",
         "//tests/system/algo_trader:__pkg__",
     ],
-    deps = [
-        "//:system_pythonpath",
-        requirement("pandas"),
-    ],
+    deps = [requirement("pandas")],
 )
 
 # Port interfaces (defined in ports subpackage)
@@ -49,7 +46,6 @@ py_library(
         "//tests/system/algo_trader:__pkg__",
     ],
     deps = [
-        "//:system_pythonpath",
         ":domain_models",
         ":domain_ports",
     ],
@@ -59,7 +55,7 @@ py_library(
 pytest_test(
     name = "test_engine_unit",
     test_lib = "//tests/system/algo_trader/domain:test_engine_unit_lib",
-    coverage_path = "algo_trader.domain",
+    coverage_path = "system.algo_trader.domain",
     tags = ["unit"],
     args = ["-m", "unit"],
 )
@@ -68,7 +64,7 @@ pytest_test(
 pytest_test(
     name = "test_engine_integration",
     test_lib = "//tests/system/algo_trader/domain:test_engine_integration_lib",
-    coverage_path = "algo_trader.domain",
+    coverage_path = "system.algo_trader.domain",
     tags = ["integration"],
     args = ["-m", "integration"],
 )

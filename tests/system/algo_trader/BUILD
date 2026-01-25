@@ -6,7 +6,6 @@ py_library(
     name = "conftest_lib",
     testonly = True,
     srcs = ["conftest.py"],
-    imports = ["../../../system"],
     visibility = [
         "//system/algo_trader:__pkg__",
         "//tests/system/algo_trader:__subpackages__",
@@ -24,7 +23,6 @@ py_library(
     name = "test_engine_e2e_lib",
     testonly = True,
     srcs = ["test_engine_e2e.py"],
-    imports = ["../../../system"],
     visibility = [
         "//system/algo_trader:__pkg__",
     ],

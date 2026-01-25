@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from algo_trader.domain.models import HistoricalOHLCV, Orders, Quote, Positions
+from system.algo_trader.domain.models import HistoricalOHLCV, Orders, Quote, Positions
 
 
 class StrategyPort(ABC):

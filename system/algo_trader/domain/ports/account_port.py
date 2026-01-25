@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from algo_trader.domain.models import Account, Positions
+from system.algo_trader.domain.models import Account, Positions
 
 
 class AccountPort(ABC):
