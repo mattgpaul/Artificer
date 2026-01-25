@@ -8,7 +8,9 @@ from domain.models import (
     Orders,
     Positions,
     PortfolioManager,
-    Event,
+    JournalError,
+    JournalInput,
+    JournalOutput,
 )
 
 # States
@@ -32,6 +34,7 @@ from ports.order_port import OrderPort
 from ports.portfolio_manager_port import PortfolioManagerPort
 from ports.quote_port import QuotePort
 from ports.strategy_port import StrategyPort
+from ports.event_port import EventPort
 
 
 class Engine:
@@ -45,6 +48,7 @@ class Engine:
         portfolio_manager_port: PortfolioManagerPort,
         journal_port: JournalPort,
         controller_port: ControllerPort,
+        event_port: EventPort,
     ):
         self.historical_port = historical_port
         self.quote_port = quote_port
@@ -54,16 +58,12 @@ class Engine:
         self.portfolio_manager_port = portfolio_manager_port
         self.journal_port = journal_port
         self.controller_port = controller_port
+        self.event_port = event_port
         self._state = EngineState.SETUP
 
     @staticmethod
-    def _signal_filter(signals: Orders, order_instruction: OrderInstruction) -> Orders:
-        filtered_signals = []
-        for signal in signals.instructions:
-            if signal.instruction != order_instruction:
-                continue
-            filtered_signals.append(signal)
-        return filtered_signals
+    def _signal_filter(signals: Orders, order_instruction: OrderInstruction):
+        return [o for o in signals.orders if o.order_instruction == order_instruction]
 
     def _flatten(self, positions: Positions) -> Orders:
         orders = []
@@ -106,7 +106,7 @@ class Engine:
                         id=uuid.uuid4(),
                         timestamp=datetime.now(timezone.utc),
                         symbol=position.symbol,
-                        quantity=position.quantity,
+                        quantity=abs(position.quantity),
                         order_type=OrderType.MARKET,
                         order_instruction=OrderInstruction.BUY_TO_CLOSE,
                         order_duration=OrderDuration.DAY,
@@ -119,7 +119,7 @@ class Engine:
         )
 
     def _filter_signals(self, signals: Orders, portfolio_state: PortfolioManager) -> Orders:
-        filtered_signals = []
+        filtered_signals: list = []
         if portfolio_state.trading_state == TradingState.BULLISH:
             filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_OPEN))
         elif portfolio_state.trading_state == TradingState.BEARISH:
@@ -129,10 +129,10 @@ class Engine:
         elif portfolio_state.trading_state == TradingState.CLOSE_SHORT:
             filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_CLOSE))
         elif portfolio_state.trading_state == TradingState.NEUTRAL:
-            filtered_signals = signals.instructions.copy()
+            filtered_signals = signals.orders.copy()
         return Orders(
             timestamp=signals.timestamp,
-            instructions=filtered_signals,
+            orders=filtered_signals,
         )
 
     def _tick(self):
@@ -147,9 +147,17 @@ class Engine:
         position_data = self.account_port.get_positions()
         if portfolio_state.trading_state == TradingState.FLATTEN:
             if len(position_data.positions) > 0:
-                self._flatten(position_data)
-            else:
-                portfolio_state.trading_state = TradingState.DISABLED
+                flatten_orders = self._flatten(position_data)
+                self.order_port.send_orders(flatten_orders)
+                self.journal_port.report_output(
+                    JournalOutput(
+                        timestamp=datetime.now(timezone.utc),
+                        signals=Orders(timestamp=datetime.now(timezone.utc), orders=[]),
+                        orders=flatten_orders,
+                    )
+                )
+                return
+            return
 
         # Get market and account data
         historical_data = self.historical_port.get_data()
@@ -158,12 +166,15 @@ class Engine:
         open_orders = self.order_port.get_open_orders()
         portfolio_manager_state = self.portfolio_manager_port.get_state()
         self.journal_port.report_input(
-            historical_data,
-            quote_data,
-            account_data,
-            position_data,
-            open_orders,
-            portfolio_manager_state,
+            JournalInput(
+                timestamp=datetime.now(timezone.utc),
+                historical_data=historical_data,
+                quote_data=quote_data,
+                account_data=account_data,
+                position_data=position_data,
+                open_orders=open_orders,
+                portfolio_manager_state=portfolio_manager_state,
+            )
         )
 
         # Get signals from the strategy
@@ -190,8 +201,11 @@ class Engine:
         self.order_port.send_orders(orders)
 
         self.journal_port.report_output(
-            signals,
-            orders,
+            JournalOutput(
+                timestamp=datetime.now(timezone.utc),
+                signals=signals,
+                orders=orders,
+            )
         )
 
     def run(self) -> None:
@@ -216,7 +230,7 @@ class Engine:
 
         # Main loop
         while self._state not in (EngineState.STOPPED, EngineState.ERROR):
-            ev = self.event_port.wait(timeout_s=None)
+            ev = self.event_port.wait_for_event(timeout_s=None)
             if ev is None:
                 continue
 
@@ -249,7 +263,13 @@ class Engine:
                 except Exception as e:
                     self._state = EngineState.ERROR
                     self.controller_port.publish_status(self._state)
-                    self.journal_port.report_error(e)
+                    self.journal_port.report_error(
+                        JournalError(
+                            timestamp=datetime.now(timezone.utc),
+                            error=e,
+                            engine_state=self._state,
+                        )
+                    )
                     break
 
         time.sleep(0.01)
