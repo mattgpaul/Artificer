@@ -1,52 +1,27 @@
-load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
+# Unit test library
 py_library(
-    name = "conftest_lib",
+    name = "test_engine_unit_lib",
     testonly = True,
-    srcs = ["conftest.py"],
-    visibility = [
-        "//system/algo_trader/domain:__pkg__",
-        "//tests/system/algo_trader/domain:__subpackages__",
-    ],
+    srcs = ["test_engine_unit.py"],
+    visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
-        requirement("pytest"),
         "//system/algo_trader/domain",
-        "//system/algo_trader/ports",
+        "//system/algo_trader/domain:domain_models",
+        "//tests/system/algo_trader:conftest_lib",
     ],
 )
 
+# Integration test library
 py_library(
-    name = "test_equity_lib",
+    name = "test_engine_integration_lib",
     testonly = True,
-    srcs = ["test_equity.py"],
+    srcs = ["test_engine_integration.py"],
     visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
-        requirement("pytest"),
         "//system/algo_trader/domain",
-    ],
-)
-
-py_library(
-    name = "test_portfolio_risk_lib",
-    testonly = True,
-    srcs = ["test_portfolio_risk.py"],
-    visibility = ["//system/algo_trader/domain:__pkg__"],
-    deps = [
-        requirement("pytest"),
-        ":conftest_lib",
-        "//system/algo_trader/domain",
-    ],
-)
-
-py_library(
-    name = "test_engine_pause_lib",
-    testonly = True,
-    srcs = ["test_engine_pause.py"],
-    visibility = ["//system/algo_trader/domain:__pkg__"],
-    deps = [
-        requirement("pytest"),
-        ":conftest_lib",
-        "//system/algo_trader/domain",
+        "//system/algo_trader/domain:domain_models",
+        "//tests/system/algo_trader:conftest_lib",
     ],
 )
