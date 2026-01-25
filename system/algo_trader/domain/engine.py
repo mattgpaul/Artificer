@@ -1,93 +1,377 @@
-"""Trading engine core logic.
+"""Trading engine domain logic.
 
-Orchestrates strategy, portfolio, and broker interactions to process market
-events and generate trading decisions.
+This module implements the core Engine class that orchestrates trading operations
+through a port-based architecture. The engine coordinates data fetching, signal
+generation, order management, and journaling through dependency injection.
 """
 
-from __future__ import annotations
+import time
+import uuid
+from datetime import datetime, timezone
 
-from dataclasses import dataclass
-from datetime import datetime
+# Models
+from system.algo_trader.domain.models import (
+    JournalError,
+    JournalInput,
+    JournalOutput,
+    MarketOrder,
+    Orders,
+    PortfolioManager,
+    Positions,
+)
+from system.algo_trader.domain.ports.account_port import AccountPort
+from system.algo_trader.domain.ports.controller_port import ControllerPort
+from system.algo_trader.domain.ports.event_port import EventPort
 
-from system.algo_trader.domain.events import DecisionEvent, MarketEvent, OverrideEvent
-from system.algo_trader.domain.models import Fill
-from system.algo_trader.ports.clock import ClockPort
-from system.algo_trader.ports.journal import JournalPort
-from system.algo_trader.ports.portfolio import PortfolioPort
-from system.algo_trader.ports.strategy import StrategyPort
+# Ports
+from system.algo_trader.domain.ports.historical_port import HistoricalPort
+from system.algo_trader.domain.ports.journal_port import JournalPort
+from system.algo_trader.domain.ports.order_port import OrderPort
+from system.algo_trader.domain.ports.portfolio_manager_port import PortfolioManagerPort
+from system.algo_trader.domain.ports.quote_port import QuotePort
+from system.algo_trader.domain.ports.strategy_port import StrategyPort
+
+# States
+from system.algo_trader.domain.states import (
+    ControllerCommand,
+    EngineState,
+    EventType,
+    OrderDuration,
+    OrderInstruction,
+    OrderTaxLotMethod,
+    OrderType,
+    TradingState,
+)
 
 
-@dataclass(slots=True)
 class Engine:
-    """Trading engine orchestrating strategy, portfolio, and broker interactions."""
+    """Trading engine that orchestrates trading operations.
 
-    clock: ClockPort
-    strategy: StrategyPort
-    portfolio: PortfolioPort
-    journal: JournalPort
+    The Engine coordinates all trading activities through dependency-injected ports.
+    It handles event-driven control flow, signal processing, order generation,
+    and state management.
 
-    paused: bool = False
-    pause_until: datetime | None = None
+    Args:
+        historical_port: Port for retrieving historical market data.
+        quote_port: Port for retrieving current market quotes.
+        account_port: Port for retrieving account information and positions.
+        order_port: Port for sending and managing orders.
+        strategy_port: Port for generating trading signals.
+        portfolio_manager_port: Port for portfolio state and signal handling.
+        journal_port: Port for logging trading activities.
+        controller_port: Port for publishing engine status.
+        event_port: Port for receiving control events and ticks.
+    """
 
-    def is_paused(self, ts: datetime | None = None) -> bool:
-        """Return whether trading is currently paused (manual or cooldown)."""
-        now = ts or self.clock.now()
-        if self.paused:
-            return True
-        return self.pause_until is not None and now < self.pause_until
+    def __init__(  # noqa: PLR0913
+        self,
+        historical_port: HistoricalPort,
+        quote_port: QuotePort,
+        account_port: AccountPort,
+        order_port: OrderPort,
+        strategy_port: StrategyPort,
+        portfolio_manager_port: PortfolioManagerPort,
+        journal_port: JournalPort,
+        controller_port: ControllerPort,
+        event_port: EventPort,
+    ):
+        """Initialize engine with dependency-injected ports.
 
-    def on_market(self, event: MarketEvent) -> DecisionEvent | None:
-        """Process market event and generate trading decision."""
-        ts = self.clock.now()
-        effective_paused = self.is_paused(ts)
+        Args:
+            historical_port: Port for retrieving historical market data.
+            quote_port: Port for retrieving current market quotes.
+            account_port: Port for retrieving account information and positions.
+            order_port: Port for sending and managing orders.
+            strategy_port: Port for generating trading signals.
+            portfolio_manager_port: Port for portfolio state and signal handling.
+            journal_port: Port for logging trading activities.
+            controller_port: Port for publishing engine status.
+            event_port: Port for receiving control events and ticks.
+        """
+        self.historical_port = historical_port
+        self.quote_port = quote_port
+        self.account_port = account_port
+        self.order_port = order_port
+        self.strategy_port = strategy_port
+        self.portfolio_manager_port = portfolio_manager_port
+        self.journal_port = journal_port
+        self.controller_port = controller_port
+        self.event_port = event_port
+        self._state = EngineState.SETUP
 
-        proposed = [] if effective_paused else self.strategy.on_market(event, self.portfolio)
-        managed = self.portfolio.manage(event, proposed)
+    @staticmethod
+    def _signal_filter(signals: Orders, order_instruction: OrderInstruction) -> list[MarketOrder]:
+        """Filter signals by order instruction type.
 
-        if managed.pause_until is not None:
-            if self.pause_until is None or managed.pause_until > self.pause_until:
-                self.pause_until = managed.pause_until
+        Args:
+            signals: Orders collection to filter.
+            order_instruction: Instruction type to filter by.
 
-        decision = DecisionEvent(
-            ts=ts,
-            order_intents=managed.final_intents,
-            proposed_intents=managed.proposed_intents,
-            audit=managed.audit,
+        Returns:
+            List of orders matching the instruction type.
+        """
+        return [o for o in signals.orders if o.order_instruction == order_instruction]
+
+    def _flatten(self, positions: Positions) -> Orders:
+        """Generate close orders for all open positions.
+
+        Creates market orders to close both long and short positions.
+
+        Args:
+            positions: Current positions to flatten.
+
+        Returns:
+            Orders collection containing close orders for all positions.
+        """
+        orders = []
+        close_long = self._close_long(positions)
+        close_short = self._close_short(positions)
+        orders.extend(close_long.orders)
+        orders.extend(close_short.orders)
+        return Orders(
+            timestamp=datetime.now(timezone.utc),
+            orders=orders,
         )
 
-        # If we're paused and there is nothing to do/audit, skip emitting a decision.
-        if (
-            effective_paused
-            and not decision.order_intents
-            and not decision.proposed_intents
-            and not decision.audit
-        ):
-            return None
+    def _close_long(self, positions: Positions) -> Orders:
+        """Generate SELL_TO_CLOSE orders for long positions.
 
-        self.journal.record_decision(decision)
-        return decision
+        Args:
+            positions: Positions collection to process.
 
-    def on_override(self, event: OverrideEvent) -> None:
-        """Process operator override event."""
-        self.journal.record_override(event)
+        Returns:
+            Orders collection containing close orders for long positions.
+        """
+        orders = []
+        for position in positions.positions:
+            if position.quantity > 0:
+                orders.append(
+                    MarketOrder(
+                        id=uuid.uuid4(),
+                        timestamp=datetime.now(timezone.utc),
+                        symbol=position.symbol,
+                        quantity=position.quantity,
+                        order_type=OrderType.MARKET,
+                        order_instruction=OrderInstruction.SELL_TO_CLOSE,
+                        order_duration=OrderDuration.DAY,
+                        order_tax_lot_method=OrderTaxLotMethod.FIFO,
+                    )
+                )
+        return Orders(
+            timestamp=datetime.now(timezone.utc),
+            orders=orders,
+        )
 
-        cmd = event.command.lower().strip()
-        if cmd == "pause":
-            self.paused = True
+    def _close_short(self, positions: Positions) -> Orders:
+        """Generate BUY_TO_CLOSE orders for short positions.
+
+        Args:
+            positions: Positions collection to process.
+
+        Returns:
+            Orders collection containing close orders for short positions.
+        """
+        orders = []
+        for position in positions.positions:
+            if position.quantity < 0:
+                orders.append(
+                    MarketOrder(
+                        id=uuid.uuid4(),
+                        timestamp=datetime.now(timezone.utc),
+                        symbol=position.symbol,
+                        quantity=abs(position.quantity),
+                        order_type=OrderType.MARKET,
+                        order_instruction=OrderInstruction.BUY_TO_CLOSE,
+                        order_duration=OrderDuration.DAY,
+                        order_tax_lot_method=OrderTaxLotMethod.FIFO,
+                    )
+                )
+        return Orders(
+            timestamp=datetime.now(timezone.utc),
+            orders=orders,
+        )
+
+    def _filter_signals(self, signals: Orders, portfolio_state: PortfolioManager) -> Orders:
+        """Filter signals based on portfolio trading state.
+
+        Applies trading state-specific filtering rules to determine which
+        signals should be processed.
+
+        Args:
+            signals: Raw signals from strategy.
+            portfolio_state: Current portfolio manager state.
+
+        Returns:
+            Filtered orders collection based on trading state.
+        """
+        filtered_signals: list = []
+        if portfolio_state.trading_state == TradingState.BULLISH:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_OPEN))
+        elif portfolio_state.trading_state == TradingState.BEARISH:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.SELL_TO_OPEN))
+        elif portfolio_state.trading_state == TradingState.CLOSE_LONG:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.SELL_TO_CLOSE))
+        elif portfolio_state.trading_state == TradingState.CLOSE_SHORT:
+            filtered_signals.extend(self._signal_filter(signals, OrderInstruction.BUY_TO_CLOSE))
+        elif portfolio_state.trading_state == TradingState.NEUTRAL:
+            filtered_signals = signals.orders.copy()
+        return Orders(
+            timestamp=signals.timestamp,
+            orders=filtered_signals,
+        )
+
+    def _tick(self) -> None:
+        """Execute a single trading tick.
+
+        Performs one complete trading cycle:
+        1. Check trading state (disabled/flatten/normal)
+        2. Fetch market and account data
+        3. Get signals from strategy
+        4. Filter signals based on trading state
+        5. Process signals through portfolio manager
+        6. Send orders
+        7. Journal all activities
+        """
+        # Get portfolio state
+        portfolio_state = self.portfolio_manager_port.get_state()
+
+        # Check if the portfolio manager says we can trade
+        if portfolio_state.trading_state == TradingState.DISABLED:
             return
-        if cmd == "resume":
-            self.paused = False
-            self.pause_until = None
+
+        # Get positions first in case we need to flatten
+        position_data = self.account_port.get_positions()
+        if portfolio_state.trading_state == TradingState.FLATTEN:
+            if len(position_data.positions) > 0:
+                flatten_orders = self._flatten(position_data)
+                self.order_port.send_orders(flatten_orders)
+                self.journal_port.report_output(
+                    JournalOutput(
+                        timestamp=datetime.now(timezone.utc),
+                        signals=Orders(timestamp=datetime.now(timezone.utc), orders=[]),
+                        orders=flatten_orders,
+                    )
+                )
+                return
             return
 
-        # Portfolio-scoped overrides
-        self.portfolio.on_override(event)
+        # Get market and account data
+        historical_data = self.historical_port.get_data()
+        quote_data = self.quote_port.get_quotes()
+        account_data = self.account_port.get_account()
+        open_orders = self.order_port.get_open_orders()
+        portfolio_manager_state = self.portfolio_manager_port.get_state()
+        self.journal_port.report_input(
+            JournalInput(
+                timestamp=datetime.now(timezone.utc),
+                historical_data=historical_data,
+                quote_data=quote_data,
+                account_data=account_data,
+                position_data=position_data,
+                open_orders=open_orders,
+                portfolio_manager_state=portfolio_manager_state,
+            )
+        )
 
-    def on_fills(self, fills: list[Fill], ts: datetime | None = None) -> None:
-        """Process fill events and update portfolio."""
-        _ = ts
-        for fill in fills:
-            self.portfolio.apply_fill(fill)
-            if hasattr(self.journal, "record_fill"):
-                # Optional extension point; Timescale adapter will implement this.
-                self.journal.record_fill(fill)  # type: ignore[attr-defined]
+        # Get signals from the strategy
+        signals = self.strategy_port.get_signals(
+            historical_data,
+            quote_data,
+            position_data,
+        )
+
+        # Filter signals based on the portfolio manager's trading state
+        signals = self._filter_signals(signals, portfolio_manager_state)
+
+        # Handle signals with the portfolio manager
+        orders = self.portfolio_manager_port.handle_signals(
+            signals,
+            quote_data,
+            account_data,
+            position_data,
+            open_orders,
+            portfolio_manager_state,
+        )
+
+        # Send orders to the order port
+        self.order_port.send_orders(orders)
+
+        self.journal_port.report_output(
+            JournalOutput(
+                timestamp=datetime.now(timezone.utc),
+                signals=signals,
+                orders=orders,
+            )
+        )
+
+    def run(self) -> None:  # noqa: PLR0912
+        """Run the engine's main event loop.
+
+        Processes events from the event port and executes trading ticks.
+        Handles state transitions, command processing, and error handling.
+        The engine will run until stopped or an error occurs.
+        """
+        self._state = EngineState.SETUP
+        self.controller_port.publish_status(self._state)
+
+        # Wait for START
+        while True:
+            ev = self.event_port.wait_for_event(timeout_s=None)
+            if ev is None:
+                continue
+            if ev.type != EventType.COMMAND:
+                continue
+            if ev.command == ControllerCommand.START:
+                self._state = EngineState.RUNNING
+                self.controller_port.publish_status(self._state)
+                break
+            if ev.command in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                self._state = EngineState.STOPPED
+                self.controller_port.publish_status(self._state)
+                return
+
+        # Main loop
+        while self._state not in (EngineState.STOPPED, EngineState.ERROR):
+            ev = self.event_port.wait_for_event(timeout_s=None)
+            if ev is None:
+                continue
+
+            # Commands ALWAYS take precedence
+            if ev.type == EventType.COMMAND:
+                if ev.command == ControllerCommand.PAUSE:
+                    self._state = EngineState.PAUSED
+                    self.controller_port.publish_status(self._state)
+                    continue
+
+                if ev.command == ControllerCommand.RESUME:
+                    self._state = EngineState.RUNNING
+                    self.controller_port.publish_status(self._state)
+                    continue
+
+                if ev.command in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                    self._state = EngineState.STOPPED
+                    self.controller_port.publish_status(self._state)
+                    break
+
+                continue  # ignore NONE/START while running
+
+            # Tick events only do work if RUNNING
+            if ev.type == EventType.TICK:
+                if self._state != EngineState.RUNNING:
+                    continue
+
+                try:
+                    self._tick()
+                except Exception as e:
+                    self._state = EngineState.ERROR
+                    self.controller_port.publish_status(self._state)
+                    self.journal_port.report_error(
+                        JournalError(
+                            timestamp=datetime.now(timezone.utc),
+                            error=e,
+                            engine_state=self._state,
+                        )
+                    )
+                    break
+
+        time.sleep(0.01)
