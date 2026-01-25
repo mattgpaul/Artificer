@@ -1,0 +1,75 @@
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
+load("//:pytest_test.bzl", "pytest_test")
+
+# Domain models and states
+py_library(
+    name = "domain_models",
+    srcs = [
+        "models.py",
+        "states.py",
+    ],
+    # In the monorepo, sources live under `system/algo_trader/...` but we want to
+    # import as `algo_trader.*` (matching deploy bundle layout). Depend on the
+    # repo-root helper that adds `system/` to PYTHONPATH.
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/domain:__pkg__",
+        "//tests/system/algo_trader:__pkg__",
+    ],
+    deps = [
+        "//:system_pythonpath",
+        requirement("pandas"),
+    ],
+)
+
+# Port interfaces (defined in ports subpackage)
+# Use alias for convenience
+py_library(
+    name = "domain_ports",
+    deps = [
+        "//system/algo_trader/domain/ports:ports",
+    ],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/domain:__pkg__",
+        "//tests/system/algo_trader:__pkg__",
+    ],
+)
+
+# Engine (main domain logic)
+py_library(
+    name = "domain",
+    srcs = [
+        "engine.py",
+    ],
+    visibility = [
+        "//system/algo_trader:__subpackages__",
+        "//tests/system/algo_trader/domain:__pkg__",
+        "//tests/system/algo_trader:__pkg__",
+    ],
+    deps = [
+        "//:system_pythonpath",
+        ":domain_models",
+        ":domain_ports",
+    ],
+)
+
+# Unit tests
+pytest_test(
+    name = "test_engine_unit",
+    test_lib = "//tests/system/algo_trader/domain:test_engine_unit_lib",
+    coverage_path = "algo_trader.domain",
+    tags = ["unit"],
+    args = ["-m", "unit"],
+)
+
+# Integration tests
+pytest_test(
+    name = "test_engine_integration",
+    test_lib = "//tests/system/algo_trader/domain:test_engine_integration_lib",
+    coverage_path = "algo_trader.domain",
+    tags = ["integration"],
+    args = ["-m", "integration"],
+)
+

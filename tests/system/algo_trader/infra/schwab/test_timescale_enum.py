@@ -6,7 +6,7 @@ for Schwab API price history requests.
 
 import pytest
 
-from system.algo_trader.infra.schwab.timescale_enum import FrequencyType, PeriodType
+from algo_trader.infra.schwab.timescale_enum import FrequencyType, PeriodType
 
 
 class TestFrequencyType:

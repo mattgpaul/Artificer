@@ -1,5 +1,6 @@
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_library")
+load("//:pytest_test.bzl", "pytest_test")
 
 # Project aggregation target - collects all algo_trader components (clean slate)
 py_library(
@@ -63,4 +64,13 @@ filegroup(
         ":release_images",
     ],
     visibility = ["//visibility:public"],
+)
+
+# E2E test target
+pytest_test(
+    name = "test_engine_e2e",
+    test_lib = "//tests/system/algo_trader:test_engine_e2e_lib",
+    coverage_path = "algo_trader.domain",
+    tags = ["e2e"],
+    args = ["-m", "e2e"],
 )

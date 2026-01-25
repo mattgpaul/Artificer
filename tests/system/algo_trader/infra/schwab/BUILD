@@ -6,6 +6,7 @@ py_library(
     name = "conftest_lib",
     testonly = True,
     srcs = ["conftest.py"],
+    imports = ["../../../../../system"],
     visibility = [
         "//system/algo_trader/infra/schwab:__pkg__",
         "//tests/system/algo_trader/infra/schwab:__subpackages__",
@@ -20,6 +21,7 @@ py_library(
     name = "test_schwab_client_lib",
     testonly = True,
     srcs = ["test_schwab_client.py"],
+    imports = ["../../../../../system"],
     visibility = ["//system/algo_trader/infra/schwab:__pkg__"],
     deps = [
         ":conftest_lib",
@@ -32,6 +34,7 @@ py_library(
     name = "test_market_handler_lib",
     testonly = True,
     srcs = ["test_market_handler.py"],
+    imports = ["../../../../../system"],
     visibility = ["//system/algo_trader/infra/schwab:__pkg__"],
     deps = [
         "//system/algo_trader/infra/schwab:schwab_services",
@@ -43,6 +46,7 @@ py_library(
     name = "test_account_handler_lib",
     testonly = True,
     srcs = ["test_account_handler.py"],
+    imports = ["../../../../../system"],
     visibility = ["//system/algo_trader/infra/schwab:__pkg__"],
     deps = [
         "//system/algo_trader/infra/schwab:schwab_services",
@@ -54,6 +58,7 @@ py_library(
     name = "test_timescale_enum_lib",
     testonly = True,
     srcs = ["test_timescale_enum.py"],
+    imports = ["../../../../../system"],
     visibility = ["//system/algo_trader/infra/schwab:__pkg__"],
     deps = [
         "//system/algo_trader/infra/schwab:schwab_services",

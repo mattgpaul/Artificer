@@ -4,7 +4,7 @@ This script provides a simple command-line interface to perform OAuth2
 authentication for the Schwab API using the SchwabClient.
 """
 
-from system.algo_trader.infra.schwab.schwab_client import SchwabClient
+from algo_trader.infra.schwab.schwab_client import SchwabClient
 
 
 def main() -> None:

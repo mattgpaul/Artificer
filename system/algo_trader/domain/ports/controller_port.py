@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from domain.states import ControllerCommand, EngineState
+from algo_trader.domain.states import ControllerCommand, EngineState
 
 
 class ControllerPort(ABC):
