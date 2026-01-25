@@ -10,7 +10,7 @@ from typing import Any
 import requests
 
 from infrastructure.logging.logger import get_logger
-from algo_trader.infra.redis.account import AccountBroker
+from system.algo_trader.infra.redis.account import AccountBroker
 
 
 class OAuth2Handler:

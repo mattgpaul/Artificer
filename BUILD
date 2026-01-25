@@ -17,17 +17,6 @@ exports_files([
     "mypy.ini",
 ])
 
-# Add the monorepo's `system/` directory to PYTHONPATH for any targets that need
-# to import deployable systems as top-level packages (e.g. `algo_trader.*`).
-#
-# This avoids per-package relative `imports = ["../../.."]` hacks.
-py_library(
-    name = "system_pythonpath",
-    srcs = [],
-    imports = ["system"],
-    visibility = ["//visibility:public"],
-)
-
 # Development tools
 genrule(
     name = "ruff-gen-osx",

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from algo_trader.domain.models import (
+from system.algo_trader.domain.models import (
     Account,
     Orders,
     Positions,

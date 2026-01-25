@@ -6,8 +6,8 @@ verifying port interactions and journaling.
 
 import pytest
 
-from algo_trader.domain.models import Orders
-from algo_trader.domain.states import (
+from system.algo_trader.domain.models import Orders
+from system.algo_trader.domain.states import (
     OrderInstruction,
     TradingState,
 )
@@ -69,7 +69,7 @@ class TestEngineTickWorkflow:
     @pytest.mark.integration
     def test_tick_flatten_workflow(self, engine_with_fakes, sample_position):
         """Test flatten workflow: positions -> close orders -> send orders."""
-        from algo_trader.domain.models import Positions
+        from system.algo_trader.domain.models import Positions
 
         # Setup positions
         positions = Positions(

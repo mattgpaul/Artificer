@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from algo_trader.domain.models import PortfolioManager, Orders, Quote, Account, Positions
+from system.algo_trader.domain.models import PortfolioManager, Orders, Quote, Account, Positions
 
 class PortfolioManagerPort(ABC):
     @abstractmethod

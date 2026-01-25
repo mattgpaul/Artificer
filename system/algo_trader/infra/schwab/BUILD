@@ -10,7 +10,6 @@ py_library(
         "schwab_client.py",
         "timescale_enum.py",
     ],
-    imports = ["../../.."],
     visibility = [
         "//system:__pkg__",  # Allow system package access
         "//system/algo_trader:__subpackages__",
@@ -38,7 +37,7 @@ py_binary(
 pytest_test(
     name = "test_schwab_client",
     size = "small",
-    coverage_path = "algo_trader.infra.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/infra/schwab:test_schwab_client_lib",
 )
@@ -47,7 +46,7 @@ pytest_test(
 pytest_test(
     name = "test_market_handler",
     size = "small",
-    coverage_path = "algo_trader.infra.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/infra/schwab:test_market_handler_lib",
 )
@@ -56,7 +55,7 @@ pytest_test(
 pytest_test(
     name = "test_account_handler",
     size = "small",
-    coverage_path = "algo_trader.infra.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/infra/schwab:test_account_handler_lib",
 )
@@ -65,7 +64,7 @@ pytest_test(
 pytest_test(
     name = "test_timescale_enum",
     size = "small",
-    coverage_path = "algo_trader.infra.schwab",
+    coverage_path = "system.algo_trader.infra.schwab",
     tags = ["unit"],
     test_lib = "//tests/system/algo_trader/infra/schwab:test_timescale_enum_lib",
 )

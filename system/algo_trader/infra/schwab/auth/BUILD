@@ -7,7 +7,6 @@ py_library(
         "oauth2.py",
         "token_manager.py",
     ],
-    imports = ["../../../.."],
     visibility = [
         "//system/algo_trader/infra/schwab:__pkg__",
         "//tests/system/algo_trader/infra/schwab:__pkg__",

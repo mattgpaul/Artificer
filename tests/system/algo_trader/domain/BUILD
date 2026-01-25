@@ -5,7 +5,6 @@ py_library(
     name = "test_engine_unit_lib",
     testonly = True,
     srcs = ["test_engine_unit.py"],
-    imports = ["../../../../system"],
     visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
         "//tests/system/algo_trader:conftest_lib",
@@ -19,7 +18,6 @@ py_library(
     name = "test_engine_integration_lib",
     testonly = True,
     srcs = ["test_engine_integration.py"],
-    imports = ["../../../../system"],
     visibility = ["//system/algo_trader/domain:__pkg__"],
     deps = [
         "//tests/system/algo_trader:conftest_lib",

@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 import pytest
 
-from algo_trader.domain.models import (
+from system.algo_trader.domain.models import (
     Account,
     Event,
     HistoricalOHLCV,
@@ -24,16 +24,16 @@ from algo_trader.domain.models import (
     PortfolioManager,
     Quote,
 )
-from algo_trader.domain.ports.account_port import AccountPort
-from algo_trader.domain.ports.controller_port import ControllerPort
-from algo_trader.domain.ports.event_port import EventPort
-from algo_trader.domain.ports.historical_port import HistoricalPort
-from algo_trader.domain.ports.journal_port import JournalPort
-from algo_trader.domain.ports.order_port import OrderPort
-from algo_trader.domain.ports.portfolio_manager_port import PortfolioManagerPort
-from algo_trader.domain.ports.quote_port import QuotePort
-from algo_trader.domain.ports.strategy_port import StrategyPort
-from algo_trader.domain.states import (
+from system.algo_trader.domain.ports.account_port import AccountPort
+from system.algo_trader.domain.ports.controller_port import ControllerPort
+from system.algo_trader.domain.ports.event_port import EventPort
+from system.algo_trader.domain.ports.historical_port import HistoricalPort
+from system.algo_trader.domain.ports.journal_port import JournalPort
+from system.algo_trader.domain.ports.order_port import OrderPort
+from system.algo_trader.domain.ports.portfolio_manager_port import PortfolioManagerPort
+from system.algo_trader.domain.ports.quote_port import QuotePort
+from system.algo_trader.domain.ports.strategy_port import StrategyPort
+from system.algo_trader.domain.states import (
     ControllerCommand,
     EngineState,
     EventType,
@@ -299,7 +299,7 @@ def engine_with_fakes(
     fake_event_port,
 ):
     """Provide an Engine instance with all fake ports."""
-    from algo_trader.domain.engine import Engine
+    from system.algo_trader.domain.engine import Engine
 
     return Engine(
         historical_port=fake_historical_port,

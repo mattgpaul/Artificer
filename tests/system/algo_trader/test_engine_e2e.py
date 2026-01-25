@@ -9,8 +9,8 @@ import time
 
 import pytest
 
-from algo_trader.domain.models import Event, Orders
-from algo_trader.domain.states import (
+from system.algo_trader.domain.models import Event, Orders
+from system.algo_trader.domain.states import (
     ControllerCommand,
     EngineState,
     EventType,
