@@ -57,6 +57,7 @@ class TokenManager:
         self.logger = logger or get_logger(self.__class__.__name__)
 
     def get_valid_access_token(self) -> str:
+        #TODO: This logic sucks, we need to improve it.
         """Get a valid access token, refreshing if necessary.
 
         Retrieves access token from Redis, or refreshes it if not available.
