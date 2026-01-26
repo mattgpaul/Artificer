@@ -48,6 +48,7 @@ py_library(
     deps = [
         ":domain_models",
         ":domain_ports",
+        "//infrastructure/logging:logger",
     ],
 )
 

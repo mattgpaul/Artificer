@@ -9,6 +9,8 @@ import time
 import uuid
 from datetime import datetime, timezone
 
+from infrastructure.logging.logger import get_logger
+
 # Models
 from system.algo_trader.domain.models import (
     JournalError,
@@ -88,6 +90,7 @@ class Engine:
             controller_port: Port for publishing engine status.
             event_port: Port for receiving control events and ticks.
         """
+        self.logger = get_logger(self.__class__.__name__)
         self.historical_port = historical_port
         self.quote_port = quote_port
         self.account_port = account_port
@@ -98,6 +101,7 @@ class Engine:
         self.controller_port = controller_port
         self.event_port = event_port
         self._state = EngineState.SETUP
+        self.logger.info(f"Engine state: {self._state}")
 
     @staticmethod
     def _signal_filter(signals: Orders, order_instruction: OrderInstruction) -> list[MarketOrder]:
@@ -237,6 +241,7 @@ class Engine:
 
         # Check if the portfolio manager says we can trade
         if portfolio_state.trading_state == TradingState.DISABLED:
+            self.logger.info(f"TradingState: {portfolio_state.trading_state} - skipping tick")
             return
 
         # Get positions first in case we need to flatten
@@ -304,7 +309,7 @@ class Engine:
             )
         )
 
-    def run(self) -> None:  # noqa: PLR0912
+    def run(self) -> None:  # noqa: PLR0912, PLR0915
         """Run the engine's main event loop.
 
         Processes events from the event port and executes trading ticks.
@@ -316,12 +321,14 @@ class Engine:
 
         # Wait for START
         while True:
+            self.logger.info("Waiting for event")
             ev = self.event_port.wait_for_event(timeout_s=None)
             if ev is None:
                 continue
             if ev.type != EventType.COMMAND:
                 continue
             if ev.command == ControllerCommand.START:
+                self.logger.info("ControllerCommand.START - setting engine state to RUNNING")
                 self._state = EngineState.RUNNING
                 self.controller_port.publish_status(self._state)
                 break
@@ -341,14 +348,19 @@ class Engine:
                 if ev.command == ControllerCommand.PAUSE:
                     self._state = EngineState.PAUSED
                     self.controller_port.publish_status(self._state)
+                    self.logger.info("ControllerCommand.PAUSE - setting engine state to PAUSED")
                     continue
 
                 if ev.command == ControllerCommand.RESUME:
+                    self.logger.info("ControllerCommand.RESUME - setting engine state to RUNNING")
                     self._state = EngineState.RUNNING
                     self.controller_port.publish_status(self._state)
                     continue
 
                 if ev.command in (ControllerCommand.STOP, ControllerCommand.EMERGENCY_STOP):
+                    self.logger.info(
+                        "ControllerCommand.STOP/EMERGENCY_STOP - setting engine state to STOPPED"
+                    )
                     self._state = EngineState.STOPPED
                     self.controller_port.publish_status(self._state)
                     break
@@ -361,8 +373,10 @@ class Engine:
                     continue
 
                 try:
+                    self.logger.info("Tick event received - executing tick")
                     self._tick()
                 except Exception as e:
+                    self.logger.error(f"Error in tick: {e}")
                     self._state = EngineState.ERROR
                     self.controller_port.publish_status(self._state)
                     self.journal_port.report_error(
