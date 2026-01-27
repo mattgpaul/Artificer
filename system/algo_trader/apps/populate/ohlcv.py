@@ -13,7 +13,7 @@ class Ticker:
     title: str
     cik: int
 
-
+MAX_THREADS = 4
 
 class OHLCVRunner:
     def __init__(self):
@@ -27,7 +27,7 @@ class OHLCVRunner:
         headers = {
             "User-Agent": email,
         }
-        self.logger.info(f"Getting SEC tickers from {url}")
+        self.logger.debug(f"Getting SEC tickers from {url}")
         try:
             response = requests.get(url, headers=headers)
             data = response.json()
@@ -60,8 +60,28 @@ class OHLCVRunner:
         data = self.market_handler.get_price_history(ticker)
         print(data)
 
+    def main(self) -> None:
+        # Get SEC tickers
+        self.logger.info("Getting SEC tickers")
+        tickers = self._get_sec_tickers()
+
+        # Filter bad tickers
+        self.logger.info("Filtering bad tickers")
+        bad_tickers = self._filter_bad_tickers(tickers)
+
+        # Get OHLCV data for each ticker
+        self.logger.info("Getting OHLCV data for each ticker")
+        for ticker in tickers:
+            self.get_ticker_ohlcv(ticker)
+
+            # Log bad tickers. need response code from market handler
+            self.logger.info(f"Bad ticker: {ticker}")
+
+        # Buffer data for ingestion
+        self.logger.info("Buffering data for ingestion")
+        self._buffer_data()
+
 if __name__ == "__main__":
     runner = OHLCVRunner()
-    data = runner._get_sec_tickers()
-    print(data)
+    runner.get_ticker_ohlcv("ABCD")
 
