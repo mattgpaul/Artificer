@@ -83,5 +83,5 @@ class OHLCVRunner:
 
 if __name__ == "__main__":
     runner = OHLCVRunner()
-    runner.get_ticker_ohlcv("ABCD")
+    runner.main()
 

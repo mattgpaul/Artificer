@@ -721,3 +721,165 @@ class BaseRedisClient(Client):
         except Exception as e:
             self.logger.error(f"Error in pipeline execution: {e}")
             return False
+
+    def xadd(self, key: str, *values: str, ttl: int | None = None) -> bool:
+        """Add a value to a Redis stream with optional TTL.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            values: One or more values to add to the stream
+            ttl: Time to live in seconds (optional)
+
+        Returns:
+            True if value was added, False otherwise
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xadd(namespaced_key, *values, ex=ttl)
+            self.logger.debug(f"XADD {namespaced_key} {values} -> {result}")
+            return bool(result)
+        except Exception as e:
+            self.logger.error(f"Error adding value to stream '{key}': {e}")
+            return False
+
+    def xread(self, key: str, count: int = 1, block: int = 0) -> list:
+        """Read values from a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            count: Number of values to read (default: 1)
+            block: Block for XREAD in milliseconds (default: 0)
+
+        Returns:
+            List of values read from the stream
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xread(namespaced_key, count=count, block=block)
+            self.logger.debug(f"XREAD {namespaced_key} {count} values -> {result}")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error reading from stream '{key}': {e}")
+            return []
+
+    def xdel(self, key: str, *ids: str) -> int:
+        """Delete values from a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            ids: One or more IDs to delete from the stream
+
+        Returns:
+            Number of values deleted
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xdel(namespaced_key, *ids)
+            self.logger.debug(f"XDEL {namespaced_key} {ids} -> {result} deleted")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error deleting from stream '{key}': {e}")
+            return 0
+
+    def xgroup_create(self, key: str, group: str, consumer: str) -> bool:
+        """Create a consumer group for a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            group: The name of the consumer group
+            consumer: The name of the consumer
+
+        Returns:
+            True if group was created, False otherwise
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xgroup_create(namespaced_key, group, consumer)
+            self.logger.debug(f"XGROUP CREATE {namespaced_key} {group} {consumer} -> {result}")
+            return bool(result)
+        except Exception as e:
+            self.logger.error(f"Error creating consumer group '{key}': {e}")
+            return False
+
+    def xgroup_destroy(self, key: str, group: str) -> bool:
+        """Destroy a consumer group for a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            group: The name of the consumer group
+
+        Returns:
+            True if group was destroyed, False otherwise
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xgroup_destroy(namespaced_key, group)
+            self.logger.debug(f"XGROUP DESTROY {namespaced_key} {group} -> {result}")
+            return bool(result)
+        except Exception as e:
+            self.logger.error(f"Error destroying consumer group '{key}': {e}")
+            return False
+
+    def xreadgroup(self, key: str, group: str, consumer: str, count: int = 1, block: int = 0) -> list:
+        """Read values from a Redis stream using a consumer group.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            group: The name of the consumer group
+            consumer: The name of the consumer
+            count: Number of values to read (default: 1)
+            block: Block for XREAD in milliseconds (default: 0)
+
+        Returns:
+            List of values read from the stream
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xreadgroup(namespaced_key, group, consumer, count=count, block=block)
+            self.logger.debug(f"XREADGROUP {namespaced_key} {group} {consumer} {count} values -> {result}")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error reading from stream '{key}': {e}")
+            return []
+    
+    def xack(self, key: str, group: str, *ids: str) -> int:
+        """Ack one or more messages from a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            group: The name of the consumer group
+            ids: One or more IDs to ack from the stream
+
+        Returns:
+            Number of messages acked
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xack(namespaced_key, group, *ids)
+            self.logger.debug(f"XACK {namespaced_key} {group} {ids} -> {result} acked")
+            return result
+        except Exception as e:
+            self.logger.error(f"Error acking from stream '{key}': {e}")
+            return 0
+
+    def xclaim(self, key: str, group: str, consumer: str, *ids: str, ttl: int = 0) -> bool:
+        """Claim ownership of one or more messages from a Redis stream.
+
+        Arguments:
+            key: The stream key (will be namespaced automatically)
+            group: The name of the consumer group
+            consumer: The name of the consumer
+            ids: One or more IDs to claim from the stream
+            ttl: Time to live in seconds (optional)
+
+        Returns:
+            True if messages were claimed, False otherwise
+        """
+        try:
+            namespaced_key = self._build_key(key)
+            result = self.client.xclaim(namespaced_key, group, consumer, *ids, ttl=ttl)
+            self.logger.debug(f"XCLAIM {namespaced_key} {group} {consumer} {ids} -> {result} claimed")
+            return bool(result)
+        except Exception as e:
+            self.logger.error(f"Error claiming from stream '{key}': {e}")
+            return False
