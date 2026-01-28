@@ -3,7 +3,10 @@ load("@rules_python//python:defs.bzl", "py_library")
 py_library(
     name = "test_redis_lib",
     testonly = True,
-    srcs = ["test_redis.py"],
+    srcs = [
+        "conftest.py",
+        "test_redis.py",
+    ],
     visibility = ["//infrastructure/redis:__pkg__"],
     deps = [
         "//infrastructure:client",

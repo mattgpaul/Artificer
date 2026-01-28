@@ -1079,3 +1079,163 @@ class TestRedisClientIntegration:
         # Check TTL
         ttl = client.ttl("cache:data")
         assert ttl > 0
+
+
+class TestRedisClientStreamOperations:
+    """Test stream operations (xadd, xread, xgroup_create, xreadgroup, xack, xclaim)."""
+
+    def test_xadd_success_with_ttl(self, stream_client):
+        """Test successful xadd operation with TTL."""
+        stream_client["redis"]["client"].xadd.return_value = "1717000000000-0"
+
+        result = stream_client["client"].xadd(
+            "stream_key",
+            {"symbol": "AAPL", "price": "123.45"},
+            maxlen=1000,
+            ttl=300,
+        )
+
+        assert result == "1717000000000-0"
+        stream_client["redis"]["client"].xadd.assert_called_once_with(
+            "test_namespace:stream_key",
+            {"symbol": "AAPL", "price": "123.45"},
+            id="*",
+            maxlen=1000,
+            approximate=True,
+        )
+        stream_client["redis"]["client"].expire.assert_called_once_with(
+            "test_namespace:stream_key", 300
+        )
+
+    def test_xadd_exception(self, stream_client):
+        """Test xadd handles exceptions."""
+        stream_client["redis"]["client"].xadd.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xadd("stream_key", {"field": "value"})
+
+        assert result is None
+        stream_client["logger"].error.assert_called()
+
+    def test_xread_success(self, stream_client):
+        """Test successful xread operation."""
+        expected = [("test_namespace:stream_key", [("1-0", {"field": "value"})])]
+        stream_client["redis"]["client"].xread.return_value = expected
+
+        result = stream_client["client"].xread("stream_key", last_id="0-0", count=2, block=1000)
+
+        assert result == expected
+        stream_client["redis"]["client"].xread.assert_called_once_with(
+            {"test_namespace:stream_key": "0-0"}, count=2, block=1000
+        )
+
+    def test_xread_exception(self, stream_client):
+        """Test xread handles exceptions."""
+        stream_client["redis"]["client"].xread.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xread("stream_key")
+
+        assert result == []
+        stream_client["logger"].error.assert_called()
+
+    def test_xgroup_create_success(self, stream_client):
+        """Test successful consumer group creation."""
+        stream_client["redis"]["client"].xgroup_create.return_value = True
+
+        result = stream_client["client"].xgroup_create("stream_key", "group", start_id="0-0")
+
+        assert result is True
+        stream_client["redis"]["client"].xgroup_create.assert_called_once_with(
+            "test_namespace:stream_key", "group", id="0-0", mkstream=True
+        )
+
+    def test_xgroup_create_exception(self, stream_client):
+        """Test xgroup_create handles exceptions."""
+        stream_client["redis"]["client"].xgroup_create.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xgroup_create("stream_key", "group")
+
+        assert result is False
+        stream_client["logger"].error.assert_called()
+
+    def test_xreadgroup_success(self, stream_client):
+        """Test successful xreadgroup operation."""
+        expected = [("test_namespace:stream_key", [("1-0", {"field": "value"})])]
+        stream_client["redis"]["client"].xreadgroup.return_value = expected
+
+        result = stream_client["client"].xreadgroup(
+            "stream_key",
+            "group",
+            "consumer",
+            last_id=">",
+            count=10,
+            block=5000,
+        )
+
+        assert result == expected
+        stream_client["redis"]["client"].xreadgroup.assert_called_once_with(
+            "group",
+            "consumer",
+            {"test_namespace:stream_key": ">"},
+            count=10,
+            block=5000,
+            noack=False,
+        )
+
+    def test_xreadgroup_exception(self, stream_client):
+        """Test xreadgroup handles exceptions."""
+        stream_client["redis"]["client"].xreadgroup.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xreadgroup("stream_key", "group", "consumer")
+
+        assert result == []
+        stream_client["logger"].error.assert_called()
+
+    def test_xack_success(self, stream_client):
+        """Test successful xack operation."""
+        stream_client["redis"]["client"].xack.return_value = 2
+
+        result = stream_client["client"].xack("stream_key", "group", "1-0", "2-0")
+
+        assert result == 2
+        stream_client["redis"]["client"].xack.assert_called_once_with(
+            "test_namespace:stream_key", "group", "1-0", "2-0"
+        )
+
+    def test_xack_exception(self, stream_client):
+        """Test xack handles exceptions."""
+        stream_client["redis"]["client"].xack.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xack("stream_key", "group", "1-0")
+
+        assert result == 0
+        stream_client["logger"].error.assert_called()
+
+    def test_xclaim_success(self, stream_client):
+        """Test successful xclaim operation."""
+        expected = [("1-0", {"field": "value"})]
+        stream_client["redis"]["client"].xclaim.return_value = expected
+
+        result = stream_client["client"].xclaim(
+            "stream_key", "group", "consumer", "1-0", "2-0", min_idle_time=5000
+        )
+
+        assert result == expected
+        stream_client["redis"]["client"].xclaim.assert_called_once_with(
+            "test_namespace:stream_key",
+            "group",
+            "consumer",
+            5000,
+            ("1-0", "2-0"),
+            justid=False,
+        )
+
+    def test_xclaim_exception(self, stream_client):
+        """Test xclaim handles exceptions."""
+        stream_client["redis"]["client"].xclaim.side_effect = Exception("Redis error")
+
+        result = stream_client["client"].xclaim(
+            "stream_key", "group", "consumer", "1-0", min_idle_time=5000
+        )
+
+        assert result == []
+        stream_client["logger"].error.assert_called()
