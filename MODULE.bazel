@@ -3,13 +3,14 @@ module(
     version = "0.1.0",
 )
 
-bazel_dep(name = "rules_cc", version = "0.1.1")
-bazel_dep(name = "rules_python", version = "1.0.0")
-bazel_dep(name = "googletest", version = "1.15.2")
-bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_rust", version = "0.68.0")
+bazel_dep(name = "rules_cc", version = "0.2.14")  # Updated
+bazel_dep(name = "rules_python", version = "1.7.0")  # Updated
+bazel_dep(name = "googletest", version = "1.17.0")  # Updated
+bazel_dep(name = "platforms", version = "1.0.0")  # Updated
 bazel_dep(name = "rules_oci", version = "2.2.7")
 bazel_dep(name = "rules_pkg", version = "1.2.0")
-bazel_dep(name = "aspect_bazel_lib", version = "2.7.2")
+bazel_dep(name = "aspect_bazel_lib", version = "2.12.0")
 
 # Python toolchain
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
@@ -23,6 +24,24 @@ pip.parse(
     requirements_lock = "//:requirements.txt",
 )
 use_repo(pip, "pip")
+
+# Rust Toolchain
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+	edition = "2024",
+	versions = ["1.93.0"],
+)
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+# Crates universe
+crate = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+crate.from_cargo(
+	name = "crates",
+	cargo_lockfile = "//:Cargo.lock",
+	manifests = ["//:Cargo.toml"],
+)
+use_repo(crate, "crates")
 
 # Ruff for linting and formatting
 # Download binaries directly from GitHub releases for hermetic builds
