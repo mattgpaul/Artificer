@@ -12,13 +12,21 @@ build --cxxopt=-std=c++20
 
 # Optimization and debugging flags
 build --copt=-O2
-build --copt=-g
+build:dbg --copt=-g
+build:dbg --copt=-O0
+build:dbg --strip=never
 
 # Enhanced warnings for better code quality
 build --cxxopt=-Wall
 build --cxxopt=-Wextra
 build --cxxopt=-Wpedantic
 
+##### Rust Stuff #####
+build --@rules_rust//rust/settings:extra_rustc_flags=-Clink-arg=-fuse-ld=lld
+build:clippy --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build:clippy --output_groups=+clippy_checks
+
+# Debug flags for Rust
 # ==============================================================================
 # Performance and Caching Optimizations
 # ==============================================================================
