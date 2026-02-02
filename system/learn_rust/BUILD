@@ -1,7 +1,7 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 rust_binary(
-	name = "main",
-	srcs = ["main.rs"],
-	edition = "2024",
+    name = "main",
+    srcs = ["main.rs"],
+    edition = "2024",
 )
