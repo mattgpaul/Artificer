@@ -21,19 +21,4 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.config('pyright', {
-  cmd = { 'pyright-langserver', '--stdio' },
-  filetypes = { 'python' },
-  root_markers = { 'pyproject.toml', 'setup.py', '.git' },
-})
-
-vim.lsp.config('rust_analyzer', {
-  cmd = { 'rust-analyzer' },
-  filetypes = { 'rust' },
-  root_markers = { 'Cargo.toml', 'rust-project.json' },
-})
-
-vim.lsp.enable('pyright')
-vim.lsp.enable('rust_analyzer')
-
 return {}
