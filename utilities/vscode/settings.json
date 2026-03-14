@@ -1,0 +1,17 @@
+{
+    "workbench.colorTheme": "Matt's Green",
+    "telemetry.feedback.enabled": false,
+    "git.openRepositoryInParentFolders": "always",
+    "workbench.startupEditor": "none",
+    "explorer.confirmDelete": false,
+    "roo-cline.debug": false,
+    "roo-cline.allowedCommands": [
+        "git log",
+        "git diff",
+        "git show"
+    ],
+    "roo-cline.deniedCommands": [],
+    "files.simpleDialog.enable": true,
+    "terminal.integrated.automationProfile.linux": {},
+    "terminal.integrated.defaultProfile.linux": "tmux"
+}
