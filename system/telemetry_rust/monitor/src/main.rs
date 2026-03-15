@@ -1,5 +1,12 @@
 mod nodes;
 
+use nodes::cpu::CpuTelemetry;
+
 fn main() {
-    nodes::cpu::cpu_main();
+    let mut cpu = CpuTelemetry::new();
+
+    // Main loop
+    loop {
+        cpu.refresh();
+    }
 }
