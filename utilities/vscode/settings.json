@@ -13,5 +13,6 @@
     "roo-cline.deniedCommands": [],
     "files.simpleDialog.enable": true,
     "terminal.integrated.automationProfile.linux": {},
-    "terminal.integrated.defaultProfile.linux": "tmux"
+    "terminal.integrated.defaultProfile.linux": "tmux",
+    "continue.showInlineTip": false
 }
