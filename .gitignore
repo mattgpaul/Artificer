@@ -211,3 +211,6 @@ __marimo__/
 # Worktrees are separate checkouts that share the same .git directory
 # They should be ignored to prevent accidental commits of nested workspaces
 worktrees/
+
+# Roo plugin
+*.roomodes

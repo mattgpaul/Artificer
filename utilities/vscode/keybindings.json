@@ -192,5 +192,21 @@
         "key": "shift+tab",
         "command": "workbench.action.terminal.focusNext",
         "when": "panelVisible && terminalFocus"
+    },
+    {
+        "key": "alt+l",
+        "command": "continue.focusContinueInputWithoutClear"
+    },
+    {
+        "key": "ctrl+shift+l",
+        "command": "-continue.focusContinueInputWithoutClear"
+    },
+    {
+        "key": "alt+k",
+        "command": "continue.focusEdit"
+    },
+    {
+        "key": "ctrl+i",
+        "command": "-continue.focusEdit"
     }
 ]
