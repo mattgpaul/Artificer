@@ -194,19 +194,7 @@
         "when": "panelVisible && terminalFocus"
     },
     {
-        "key": "alt+l",
-        "command": "continue.focusContinueInputWithoutClear"
+        "key": "alt+n",
+        "command": "roo-cline.newTask",
     },
-    {
-        "key": "ctrl+shift+l",
-        "command": "-continue.focusContinueInputWithoutClear"
-    },
-    {
-        "key": "alt+k",
-        "command": "continue.focusEdit"
-    },
-    {
-        "key": "ctrl+i",
-        "command": "-continue.focusEdit"
-    }
 ]
