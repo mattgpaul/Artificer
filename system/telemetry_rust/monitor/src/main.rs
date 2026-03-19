@@ -1,12 +1,9 @@
-mod nodes;
-
-use nodes::cpu::CpuTelemetry;
+mod models;
+use models::cpu::CpuCoreTelemetry;
 
 fn main() {
-    let mut cpu = CpuTelemetry::new();
+    let mut cpu = CpuCoreTelemetry::new(0);
 
     // Main loop
-    loop {
-        cpu.refresh();
-    }
+    cpu.read_from_proc_stat();
 }
