@@ -6,4 +6,6 @@ fn main() {
 
     // Main loop
     cpu.read_from_proc_stat();
+    println!("{:?}", cpu)
 }
+
