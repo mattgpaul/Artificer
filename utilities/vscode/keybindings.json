@@ -137,15 +137,6 @@
         "command": "editor.action.next"
     },
     {
-        "key": "alt+l",
-        "command": "openchamber.addToContext"
-    },
-    {
-        "key": "alt+l",
-        "command": "roo-cline.addToContext",
-        "when": "editorHasSelection && editorTextFocus"
-    },
-    {
         "key": "ctrl+k ctrl+a",
         "command": "-roo-cline.addToContext",
         "when": "editorHasSelection && editorTextFocus"
@@ -196,5 +187,13 @@
     {
         "key": "alt+n",
         "command": "roo-cline.newTask",
+    },
+    {
+        "key": "alt+l",
+        "command": "continue.focusContinueInputWithoutClear"
+    },
+    {
+        "key": "ctrl+shift+l",
+        "command": "-continue.focusContinueInputWithoutClear"
     },
 ]
