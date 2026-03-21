@@ -1,4 +1,5 @@
 
-trait Clock {
-    fn get_core_clocks(&mut self) -> Self;
+pub trait Telemetry {
+    // refresh telemetry entries
+    fn refresh(&mut self);
 }

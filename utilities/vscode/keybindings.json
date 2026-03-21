@@ -56,7 +56,13 @@
     },
     {
         "key": "alt+i",
-        "command": "workbench.action.toggleAuxiliaryBar"
+        "command": "runCommands",
+        "args": {
+            "commands": [
+            //"workbench.action.toggleAuxiliaryBar",
+            "continue.focusContinueInput",
+            ]
+        } 
     },
     {
         "key": "ctrl+alt+b",
@@ -185,10 +191,6 @@
         "when": "panelVisible && terminalFocus"
     },
     {
-        "key": "alt+n",
-        "command": "roo-cline.newTask",
-    },
-    {
         "key": "alt+l",
         "command": "continue.focusContinueInputWithoutClear"
     },
@@ -196,4 +198,16 @@
         "key": "ctrl+shift+l",
         "command": "-continue.focusContinueInputWithoutClear"
     },
+    {
+        "key": "ctrl+i",
+        "command": "continue.focusContinueInput"
+    },
+    {
+        "key": "ctrl+l",
+        "command": "-continue.focusContinueInput"
+    },
+    {
+        "key": "alt+n",
+        "command": "continue.newSession",
+    }
 ]

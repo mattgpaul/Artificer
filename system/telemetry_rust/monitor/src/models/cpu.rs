@@ -1,7 +1,11 @@
+use num_cpus;
 use std::fs;
+use std::mem::swap;
+
+use crate::traits::telemetry::Telemetry;
 
 #[derive(Debug)]
-pub struct CpuCoreTelemetry {
+struct CpuCoreTelemetry {
     core_num: usize,
     user: u64,
     nice: u64,
@@ -16,7 +20,7 @@ pub struct CpuCoreTelemetry {
 }
 
 impl CpuCoreTelemetry {
-    pub fn new(core_num: usize) -> Self {
+    fn new(core_num: usize) -> Self {
         CpuCoreTelemetry { core_num, 
             user: 0, 
             nice: 0, 
@@ -32,7 +36,7 @@ impl CpuCoreTelemetry {
     }
     // Read from proc stat
     //TODO: compensate for windows (*blegh*)
-    pub fn read_from_proc_stat(&mut self) -> Result<(), std::io::Error>{
+    fn read_from_proc_stat(&mut self) -> Result<(), std::io::Error>{
         // read from file
         let contents = fs::read_to_string("/proc/stat")?;
         //process lines
@@ -54,5 +58,48 @@ impl CpuCoreTelemetry {
             }
         }
         Ok(())
+    }
+}
+
+impl Telemetry for CpuCoreTelemetry {
+    fn refresh(&mut self) {
+        let _ = self.read_from_proc_stat();
+    }
+}
+
+#[derive(Debug)]
+pub struct CpuMonitor {
+    // Vector of cores at t0
+    cores_t0: Vec<CpuCoreTelemetry>,
+    // vector of cores at t-1
+    cores_tm1: Vec<CpuCoreTelemetry>
+}
+
+impl CpuMonitor {
+    pub fn new() -> Self {
+        let num_cores = num_cpus::get();
+        let mut cores_t0 = Vec::with_capacity(num_cores);
+        let mut cores_tm1 = Vec::with_capacity(num_cores);
+
+        for i in 0..num_cores {
+            cores_t0.push(CpuCoreTelemetry::new(i));
+            cores_tm1.push(CpuCoreTelemetry::new(i));
+        }
+
+        CpuMonitor {
+            cores_t0,
+            cores_tm1,
+        }
+    }
+}
+
+impl Telemetry for CpuMonitor {
+    fn refresh(&mut self) {
+        // set t0 to tm1 values
+        swap(&mut self.cores_tm1, &mut self.cores_t0);
+        // get new core values
+        for core in self.cores_t0.iter_mut() {
+            core.refresh();
+        }
     }
 }
