@@ -1,11 +1,13 @@
 mod models;
-use models::cpu::CpuCoreTelemetry;
+mod traits;
+use models::cpu::CpuMonitor;
+use crate::traits::telemetry::Telemetry;
 
 fn main() {
-    let mut cpu = CpuCoreTelemetry::new(0);
+    let mut cpu = CpuMonitor::new();
 
     // Main loop
-    cpu.read_from_proc_stat();
+    cpu.refresh();
     println!("{:?}", cpu)
 }
 
