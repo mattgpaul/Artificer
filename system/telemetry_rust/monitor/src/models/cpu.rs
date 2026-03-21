@@ -68,15 +68,15 @@ impl Telemetry for CpuCoreTelemetry {
 }
 
 #[derive(Debug)]
-pub struct CpuMonitor {
+struct CpuCoreDelta {
     // Vector of cores at t0
     cores_t0: Vec<CpuCoreTelemetry>,
     // vector of cores at t-1
     cores_tm1: Vec<CpuCoreTelemetry>
 }
 
-impl CpuMonitor {
-    pub fn new() -> Self {
+impl CpuCoreDelta {
+    fn new() -> Self {
         let num_cores = num_cpus::get();
         let mut cores_t0 = Vec::with_capacity(num_cores);
         let mut cores_tm1 = Vec::with_capacity(num_cores);
@@ -86,14 +86,14 @@ impl CpuMonitor {
             cores_tm1.push(CpuCoreTelemetry::new(i));
         }
 
-        CpuMonitor {
+        CpuCoreDelta {
             cores_t0,
             cores_tm1,
         }
     }
 }
 
-impl Telemetry for CpuMonitor {
+impl Telemetry for CpuCoreDelta {
     fn refresh(&mut self) {
         // set t0 to tm1 values
         swap(&mut self.cores_tm1, &mut self.cores_t0);
@@ -101,5 +101,24 @@ impl Telemetry for CpuMonitor {
         for core in self.cores_t0.iter_mut() {
             core.refresh();
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Cpu {
+    core_usage_pct: Vec<u16>,
+}
+
+impl Cpu {
+    pub fn new() -> Self {
+        Cpu {
+            core_usage_pct: vec![0; num_cpus::get()],
+        }
+    }
+} 
+
+impl Telemetry for Cpu {
+    fn refresh(&mut self) {
+        
     }
 }
