@@ -1,12 +1,13 @@
-mod nodes;
-
-use nodes::cpu::CpuTelemetry;
+mod models;
+mod traits;
+use models::cpu::CpuMonitor;
+use crate::traits::telemetry::Telemetry;
 
 fn main() {
-    let mut cpu = CpuTelemetry::new();
+    let mut cpu = CpuMonitor::new();
 
     // Main loop
-    loop {
-        cpu.refresh();
-    }
+    cpu.refresh();
+    println!("{:?}", cpu)
 }
+
