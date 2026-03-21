@@ -56,7 +56,13 @@
     },
     {
         "key": "alt+i",
-        "command": "workbench.action.toggleAuxiliaryBar"
+        "command": "runCommands",
+        "args": {
+            "commands": [
+            //"workbench.action.toggleAuxiliaryBar",
+            "continue.focusContinueInput",
+            ]
+        } 
     },
     {
         "key": "ctrl+alt+b",
@@ -137,15 +143,6 @@
         "command": "editor.action.next"
     },
     {
-        "key": "alt+l",
-        "command": "openchamber.addToContext"
-    },
-    {
-        "key": "alt+l",
-        "command": "roo-cline.addToContext",
-        "when": "editorHasSelection && editorTextFocus"
-    },
-    {
         "key": "ctrl+k ctrl+a",
         "command": "-roo-cline.addToContext",
         "when": "editorHasSelection && editorTextFocus"
@@ -202,11 +199,15 @@
         "command": "-continue.focusContinueInputWithoutClear"
     },
     {
-        "key": "alt+k",
-        "command": "continue.focusEdit"
+        "key": "ctrl+i",
+        "command": "continue.focusContinueInput"
     },
     {
-        "key": "ctrl+i",
-        "command": "-continue.focusEdit"
+        "key": "ctrl+l",
+        "command": "-continue.focusContinueInput"
+    },
+    {
+        "key": "alt+n",
+        "command": "continue.newSession",
     }
 ]
