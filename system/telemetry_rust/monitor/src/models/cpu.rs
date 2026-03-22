@@ -59,6 +59,13 @@ impl CpuCoreTelemetry {
         }
         Ok(())
     }
+    // calculate total time
+    fn get_total_time(&self) -> u64 {
+        self.user + self.nice + self.system + self.idle + self.iowait + self.irq + self.softirq + self.steal + self.guest + self.guest_nice
+    }
+    fn get_idle_time(&self) -> u64 {
+        self.idle + self.iowait 
+    }
 }
 
 impl Telemetry for CpuCoreTelemetry {
@@ -91,6 +98,25 @@ impl CpuCoreDelta {
             cores_tm1,
         }
     }
+    fn calculate_core_usage(&self) -> Vec<u64> {
+        let mut usage = vec![0u64; self.cores_t0.len()];
+        for (i,v) in self.cores_t0.iter().enumerate() {
+            let current_total = self.cores_t0[i].get_total_time();
+            let current_idle = self.cores_t0[i].get_idle_time();
+            let previous_total = self.cores_tm1[i].get_total_time();
+            let previous_idle = self.cores_tm1[i].get_idle_time();
+            let delta_total = current_total - previous_total;
+            let delta_idle = current_idle - previous_idle;
+            
+            // Handle zero divisor case
+            if delta_total > 0 {
+                usage[i] = ((delta_total - delta_idle) / delta_total) * 100;
+            } else {
+                usage[i] = 0;
+            }
+        }
+        usage
+    }
 }
 
 impl Telemetry for CpuCoreDelta {
@@ -112,6 +138,7 @@ pub struct Cpu {
 impl Cpu {
     pub fn new() -> Self {
         Cpu {
+            // initialize a vector of zeros the length of num cpus
             core_usage_pct: vec![0; num_cpus::get()],
         }
     }
