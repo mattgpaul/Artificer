@@ -109,11 +109,13 @@ impl CpuCoreDelta {
             let delta_idle = current_idle - previous_idle;
             
             // Handle zero divisor case
-            if delta_total > 0 {
-                usage[i] = ((delta_total - delta_idle) / delta_total) * 100;
+            let usage_value = if delta_total > 0 {
+                let numerator = (delta_total - delta_idle) * 100;
+                (numerator + delta_total / 2) / delta_total
             } else {
-                usage[i] = 0;
-            }
+                0
+            };
+            usage[i] = usage_value;
         }
         usage
     }
