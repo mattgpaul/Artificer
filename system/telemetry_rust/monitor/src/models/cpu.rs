@@ -4,7 +4,7 @@ use std::mem::swap;
 
 use crate::traits::telemetry::Telemetry;
 
-#[derive(Debug)]
+// #[derive(Debug)]
 struct CpuCoreTelemetry {
     core_num: usize,
     user: u64,
@@ -59,6 +59,13 @@ impl CpuCoreTelemetry {
         }
         Ok(())
     }
+    // calculate total time
+    fn get_total_time(&self) -> u64 {
+        self.user + self.nice + self.system + self.idle + self.iowait + self.irq + self.softirq + self.steal + self.guest + self.guest_nice
+    }
+    fn get_idle_time(&self) -> u64 {
+        self.idle + self.iowait 
+    }
 }
 
 impl Telemetry for CpuCoreTelemetry {
@@ -67,16 +74,16 @@ impl Telemetry for CpuCoreTelemetry {
     }
 }
 
-#[derive(Debug)]
-pub struct CpuMonitor {
+// #[derive(Debug)]
+struct CpuCoreDelta {
     // Vector of cores at t0
     cores_t0: Vec<CpuCoreTelemetry>,
     // vector of cores at t-1
     cores_tm1: Vec<CpuCoreTelemetry>
 }
 
-impl CpuMonitor {
-    pub fn new() -> Self {
+impl CpuCoreDelta {
+    fn new() -> Self {
         let num_cores = num_cpus::get();
         let mut cores_t0 = Vec::with_capacity(num_cores);
         let mut cores_tm1 = Vec::with_capacity(num_cores);
@@ -86,14 +93,35 @@ impl CpuMonitor {
             cores_tm1.push(CpuCoreTelemetry::new(i));
         }
 
-        CpuMonitor {
+        CpuCoreDelta {
             cores_t0,
             cores_tm1,
         }
     }
+    fn calculate_core_usage(&self) -> Vec<u64> {
+        let mut usage = vec![0u64; self.cores_t0.len()];
+        for (i,_) in self.cores_t0.iter().enumerate() {
+            let current_total = self.cores_t0[i].get_total_time();
+            let current_idle = self.cores_t0[i].get_idle_time();
+            let previous_total = self.cores_tm1[i].get_total_time();
+            let previous_idle = self.cores_tm1[i].get_idle_time();
+            let delta_total = current_total - previous_total;
+            let delta_idle = current_idle - previous_idle;
+            
+            // Handle zero divisor case
+            let usage_value = if delta_total > 0 {
+                let numerator = (delta_total - delta_idle) * 100;
+                (numerator + delta_total / 2) / delta_total
+            } else {
+                0
+            };
+            usage[i] = usage_value;
+        }
+        usage
+    }
 }
 
-impl Telemetry for CpuMonitor {
+impl Telemetry for CpuCoreDelta {
     fn refresh(&mut self) {
         // set t0 to tm1 values
         swap(&mut self.cores_tm1, &mut self.cores_t0);
@@ -101,5 +129,31 @@ impl Telemetry for CpuMonitor {
         for core in self.cores_t0.iter_mut() {
             core.refresh();
         }
+    }
+}
+
+// #[derive(Debug)]
+pub struct Cpu {
+    core_usage_pct: Vec<u64>,
+    delta: CpuCoreDelta,
+}
+
+impl Cpu {
+    pub fn new() -> Self {
+        Cpu {
+            // initialize a vector of zeros the length of num cpus
+            core_usage_pct: vec![0; num_cpus::get()],
+            delta: CpuCoreDelta::new(),
+        }
+    }
+    pub fn get_core_usage(&self) -> &[u64] {
+        &self.core_usage_pct 
+    }
+} 
+
+impl Telemetry for Cpu {
+    fn refresh(&mut self) {
+       self.delta.refresh();
+       self.core_usage_pct = self.delta.calculate_core_usage(); 
     }
 }
