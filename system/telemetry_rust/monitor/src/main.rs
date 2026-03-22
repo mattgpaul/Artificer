@@ -1,16 +1,23 @@
+use std::thread;
+use std::time::Duration;
+
 mod models;
 mod traits;
 use models::cpu::Cpu;
 use crate::traits::telemetry::Telemetry;
 
+// ticks in ms
+const TICK: u64 = 1000;
 fn main() {
     let mut cpu = Cpu::new();
 
     // Main loop
-    cpu.refresh();
-    let foo = cpu.get_core_usage();
-    for i in (1..4) {
-        println!("{}",foo[1])
+    loop {
+        cpu.refresh();
+        let foo = cpu.get_core_usage();
+        println!("{}",foo[0]);
+        //sleep
+        thread::sleep(Duration::from_millis(TICK));
     }
 }
 
