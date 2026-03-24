@@ -35,13 +35,13 @@
     },
     {
         "key": "alt+b",
-        "command": "workbench.action.focusSideBar",
-        "when": "sideBarVisible && !sideBarFocus"
+        "command": "workbench.files.action.focusFilesExplorer",
+        "when": "sideBarVisible && !filesExplorerFocus"
     },
     {
         "key": "alt+b",
         "command": "workbench.action.closeSidebar",
-        "when": "sideBarVisible && sideBarFocus"
+        "when": "sideBarVisible && sideBarFocus && filesExplorerFocus"
     },
     {
         "key": "alt+b",
@@ -49,7 +49,8 @@
         "args": {
            "commands": [
             "workbench.action.toggleSidebarVisibility",
-            "workbench.action.focusSideBar"
+            "workbench.action.focusSideBar",
+            "workbench.files.action.focusFilesExplorer"
            ] 
         },
         "when": "!sideBarVisible"
@@ -243,5 +244,40 @@
     {
         "key": "shift+alt+[",
         "command": "workbench.action.focusPreviousGroup"
-    }
+    },
+    {
+        "key": "ctrl+shift+g",
+        "command": "-workbench.view.scm",
+        "when": "workbench.scm.active"
+    },
+    {
+        "key": "alt+g",
+        "command": "workbench.view.scm",
+        "when": "sideBarVisible && !workbench.scm.active"
+    },
+    {
+        "key": "alt+g",
+        "command": "workbench.action.closeSidebar",
+        "when": "sideBarVisible && sideBarFocus && workbench.scm.active"
+    },
+    {
+        "key": "alt+g",
+        "command": "runCommands",
+        "args": {
+           "commands": [
+            "workbench.action.toggleSidebarVisibility",
+            "workbench.action.focusSideBar",
+            "workbench.view.scm"
+           ] 
+        },
+        "when": "!sideBarVisible"
+    },
+    {
+        "key": "alt+k",
+        "command": "continue.focusEdit"
+    },
+    {
+        "key": "ctrl+i",
+        "command": "-continue.focusEdit"
+    },
 ]

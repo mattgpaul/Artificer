@@ -14,5 +14,6 @@
     "files.simpleDialog.enable": true,
     "terminal.integrated.automationProfile.linux": {},
     "terminal.integrated.defaultProfile.linux": "tmux",
-    "continue.showInlineTip": false
+    "continue.showInlineTip": false,
+    "window.menuBarVisibility": "compact"
 }
