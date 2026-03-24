@@ -14,8 +14,7 @@ fn main() {
     // Main loop
     loop {
         cpu.refresh();
-        let foo = cpu.get_core_usage();
-        println!("{}",foo[0]);
+        println!("{}", cpu.get_core_usage(1));
         //sleep
         thread::sleep(Duration::from_millis(TICK));
     }
