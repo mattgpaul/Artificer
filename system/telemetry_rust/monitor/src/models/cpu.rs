@@ -1,5 +1,5 @@
 use num_cpus;
-use std::fs;
+use std::{fs, path::PathBuf};
 use std::mem::swap;
 
 use crate::traits::telemetry::{Telemetry, Thermal};
@@ -24,6 +24,7 @@ struct CpuCoreTelemetry {
 
 #[derive(Debug)]
 pub struct Cpu {
+    hwmon_path: PathBuf,
     temp_deg_c: u64,
     cores: Vec<CpuCoreTelemetry>,
 }
@@ -111,8 +112,11 @@ impl Cpu {
         for i in 0..num_cores {
             cores.push(CpuCoreTelemetry::new(i));
         }
+        // get the cpu hwmon path
+        let hwmon_path = Self::get_hwmon_path();
+
         Cpu {
-            // initialize a vector of zeros the length of num cpus
+            hwmon_path,
             temp_deg_c: 0,
             cores,
         }
@@ -121,8 +125,42 @@ impl Cpu {
     pub fn get_core_usage(&self, core_num: usize) -> &u64 {
         &self.cores[core_num].usage
     }
-} 
+    // find hwmon for cpu
+// src/models/cpu.rs
+    fn get_hwmon_path() -> PathBuf {
+        let path = PathBuf::from("/sys/class/hwmon");
+        
+        // iterate through all hwmon directories
+        if let Ok(entries) = fs::read_dir(&path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let entry_path = entry.path();
+                    // Check if this is a directory
+                    if entry_path.is_dir() {
+                        // Try to read the name file in this directory
+                        let name_path = entry_path.join("name");
+                        if let Ok(name_content) = fs::read_to_string(&name_path) {
+                            // check if the name contains "k10temp"
+                            if name_content.trim().contains("k10temp") {
+                                println!("hwmon path: {:?}", entry_path);
+                                return entry_path;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Return default path if no k10temp device found
+        path
+    }
+}
 
+impl Thermal for Cpu {
+    fn get_temperature(&mut self) {
+
+    }
+}
 
 impl Telemetry for Cpu {
     fn refresh(&mut self) {
@@ -134,8 +172,3 @@ impl Telemetry for Cpu {
 }
 
 // thermal telemetry
-impl Thermal for Cpu {
-    fn get_temperature(&mut self) {
-        
-    }
-}
