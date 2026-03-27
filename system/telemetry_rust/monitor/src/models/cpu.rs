@@ -1,12 +1,11 @@
 use std::{fs, io::Read};
 use std::path::PathBuf;
-
 use num_cpus;
-
 use super::cpu_core::CpuCoreTelemetry;
 use crate::traits::telemetry::{Telemetry, Thermal};
 
 // Structure definitions
+#[derive(Debug)]
 pub struct Cpu {
     pub tctl_path: PathBuf,
     pub temp_deg_c: f64,
@@ -83,7 +82,14 @@ impl Cpu {
             self.temp_deg_c = temp.trim().parse::<f64>().expect("Failed to parse float") / 1000.0;
     }
     // get core usage
-    pub fn get_core_usage(&self, core_num: usize) -> &u64 {
-        &self.cores[core_num].usage
+}
+
+impl Telemetry for Cpu {
+    fn refresh(&mut self) {
+        // update the core telemetry 
+        for core in self.cores.iter_mut() {
+            core.refresh();
+        }
+        self.get_cpu_temp();
     }
 }
