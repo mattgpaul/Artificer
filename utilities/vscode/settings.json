@@ -17,7 +17,7 @@
     "continue.showInlineTip": false,
     "window.menuBarVisibility": "compact",
     "continue.enableNextEdit": false,
-    "continue.enableTabAutocomplete": true,
+    "continue.enableTabAutocomplete": false,
     "llama-vscode.chat_models_list": [
         {
             "name": "Qwen2.5-Coder-1.5B-Instruct-Q8_0-GGUF (<= 8GB VRAM)",

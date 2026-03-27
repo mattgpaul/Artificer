@@ -3,6 +3,7 @@ use std::time::Duration;
 
 mod models;
 mod traits;
+mod utils;
 use models::cpu::Cpu;
 use crate::traits::telemetry::Telemetry;
 
