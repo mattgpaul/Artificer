@@ -9,13 +9,12 @@ use crate::traits::telemetry::Telemetry;
 // ticks in ms
 const TICK: u64 = 1000;
 fn main() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new().expect("Failed to initialize the CPU");
 
     // Main loop
     loop {
         cpu.refresh();
-        let foo = cpu.get_core_usage();
-        println!("{}",foo[0]);
+        println!("{:?}", cpu);
         //sleep
         thread::sleep(Duration::from_millis(TICK));
     }
