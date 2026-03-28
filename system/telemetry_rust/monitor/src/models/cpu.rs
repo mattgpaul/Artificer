@@ -2,7 +2,6 @@ use std::{fs, io::Read};
 use std::path::PathBuf;
 use num_cpus;
 use super::cpu_core::CpuCoreTelemetry;
-use crate::models::cpu;
 use crate::traits::telemetry::{Telemetry};
 
 // Structure definitions
@@ -10,9 +9,10 @@ use crate::traits::telemetry::{Telemetry};
 pub struct Cpu {
     pub vendor_name: String,
     pub model_name: String,
-    tctl_path: PathBuf,
+    pub max_freq: f64,
     pub temp_deg_c: f64,
     pub cores: Vec<CpuCoreTelemetry>,
+    tctl_path: PathBuf,
 }
 
 impl Cpu {
@@ -28,11 +28,13 @@ impl Cpu {
         let mut cpu = Cpu {
                     vendor_name: "N/A".to_string(),
                     model_name: "N/A".to_string(),
-                    tctl_path,
+                    max_freq: 0.0,
                     temp_deg_c: 0.0,
                     cores,
+                    tctl_path,
         };
         cpu.get_cpu_vendor_info();
+        cpu.get_max_freq();
         cpu.get_cpu_temp();
         Some(cpu)
     }
@@ -57,6 +59,12 @@ impl Cpu {
                 self.model_name = parts[3..].join(" ");
             }
         }
+    }
+    // get max frequency of the cpu
+    fn get_max_freq(&mut self) {
+        const FREQPATH: &str = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq";
+        let freq = fs::read_to_string(FREQPATH).expect("Failed to read file");
+        self.max_freq = freq.trim().parse::<f64>().expect("Failed to parse float") / 1000.0;
     }
     // get k10temp path
     fn get_k10temp_path() -> Option<PathBuf> {
