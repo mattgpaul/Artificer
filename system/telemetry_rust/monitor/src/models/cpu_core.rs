@@ -6,16 +6,16 @@ use crate::traits::telemetry::Telemetry;
 pub struct CpuCoreTelemetry {
     pub core_num: usize,
     pub usage: u64,
-    pub user: u64,
-    pub nice: u64,
-    pub system: u64,
-    pub idle: u64,
-    pub iowait: u64,
-    pub irq: u64,
-    pub softirq: u64,
-    pub steal: u64,
-    pub guest: u64,
-    pub guest_nice: u64,
+    user: u64,
+    nice: u64,
+    system: u64,
+    idle: u64,
+    iowait: u64,
+    irq: u64,
+    softirq: u64,
+    steal: u64,
+    guest: u64,
+    guest_nice: u64,
 }
 
 impl CpuCoreTelemetry {
