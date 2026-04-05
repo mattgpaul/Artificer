@@ -7,9 +7,6 @@ pub struct Gpu {
     // static
     sys_path: PathBuf,
     hwmon_path: PathBuf,
-    edge_temp_path: PathBuf,
-    junction_temp_path: PathBuf,
-    memory_temp_path: PathBuf,
     pub vendor_name: String,
     pub device_name: String,
     pub max_clock_speed: u64,
@@ -64,8 +61,13 @@ impl Gpu {
         // set static variables during initialization
         gpu.set_device_paths();
         gpu.set_vendor_and_device();
+        gpu.set_max_clock();
+        gpu.set_max_fan_speed();
+        gpu.set_max_vram();
+        gpu.set_static_temps();
         gpu
     }
+    // set the primary path to read device telemetry from
     // set the primary path to read device telemetry from
     fn set_device_paths(&mut self) {
         /*
@@ -73,6 +75,11 @@ impl Gpu {
         as used on a linux system for AMD
         sets the paths for "sys_path" and "hwmon_path"
          */
+        let card_path = get_card_num_path();
+        let hwmon_path = get_hwmon_path();
+
+        self.sys_path = card_path.clone();
+        self.hwmon_path = hwmon_path;
     }
     // set gpu vendor and device names
     fn set_vendor_and_device(&mut self) {
@@ -83,15 +90,59 @@ impl Gpu {
         self.device_name = gpu_pci_maps::get_gpu_device(&vendor_id, &device_id);
     }
     // get gpu max clock speed
-    fn get_max_clock(&mut self) {
+    fn set_max_clock(&mut self) {
         // get the max gpu clock speed in MHz and set it to self.max_clock_speed
         //TODO: Need to figure out how to best parse this from the system
     }
+    // set max fan speed RPM
+    fn set_max_fan_speed(&mut self) {
+        /*
+        find and set the max fan speed of the gpu fan
+        may not be present, so should not panic on a failure to find
+         */
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("fan1_max")) {
+            self.max_fan_speed_rpm = value;
+        }
+    }
+    // set max vram
+    fn set_max_vram(&mut self) {
+        /*
+        set max vram using the device path
+         */
+        if let Some(value) = read_value_from_file(&self.sys_path.join("mem_info_vram_total")) {
+            self.max_vram = value / 1024 / 1024; // Convert from bytes to MB
+        }
+    }
     // get all critical and emergency gpu temps
-    fn get_static_temps(&mut self) {
+    fn set_static_temps(&mut self) {
         /*
         get all critical and emergency gpu temps and set them in the struct
          */
+        // Read critical temperatures
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp1_crit")) {
+            self.critical_edge_temp_c = value / 1000; // Convert from millidegrees to degrees
+        }
+
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp2_crit")) {
+            self.critical_junction_temp_c = value / 1000;
+        }
+
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp3_crit")) {
+            self.critical_memory_temp_c = value / 1000;
+        }
+
+        // Read emergency temperatures
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp1_emergency")) {
+            self.emergency_edge_temp_c = value / 1000;
+        }
+
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp2_emergency")) {
+            self.emergency_junction_temp_c = value / 1000;
+        }
+
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp3_emergency")) {
+            self.emergency_memory_temp_c = value / 1000;
+        }
     }
     // get all gpu temps
     fn get_dynamic_temps(&mut self) {
@@ -99,6 +150,20 @@ impl Gpu {
         get the edge temp, junction temp, and memory temp in deg C
         and set them to their corresponding fields in the struct
          */
+        // Read edge temperature
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp1_input")) {
+            self.edge_temp_c = value as f64 / 1000.0; // Convert from millidegrees to degrees
+        }
+
+        // Read junction temperature
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp2_input")) {
+            self.junction_temp_c = value as f64 / 1000.0;
+        }
+
+        // Read memory temperature
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("temp3_input")) {
+            self.memory_temp_c = value as f64 / 1000.0;
+        }
     }
     // get fan speeds
     fn get_fan_speed(&mut self) {
@@ -146,11 +211,15 @@ fn get_card_num_path() -> PathBuf {
         Err(_) => return PathBuf::from("/sys/class/drm/card0/device/"),
     };
 
-    // Find the first card directory
+    // Find the first standard card directory that has a device directory
+    // Standard cards are named card0, card1, etc. (not card2-DP-4)
     for entry in entries {
         if let Ok(entry) = entry {
             let path = entry.path();
-            if path.file_name().map_or(false, |name| name.to_string_lossy().starts_with("card")) {
+            if let Some(name) = path.file_name() {
+                let name_str = name.to_string_lossy();
+                // Only consider standard card names (no dashes)
+                if name_str.starts_with("card") && !name_str.contains('-') {
                 // Check if this card has a device directory
                 let device_path = path.join("device");
                 if device_path.exists() {
@@ -159,36 +228,16 @@ fn get_card_num_path() -> PathBuf {
             }
         }
     }
+    }
 
     // Fallback to card0 if no valid card found
     PathBuf::from("/sys/class/drm/card0/device/")
 }
+
 // get hwmon path
 fn get_hwmon_path() -> PathBuf {
-    /*
-    get the hwmon path from "get_card_num_path"
-    path is appended to card num path with ".../hwmon/hwmon{n}/" */
-    let card_path = get_card_num_path();
-    // Remove the "/device" part to get the card directory
-    let card_dir = card_path.parent().unwrap_or(&card_path);
-
-    // Look for hwmon directories in the card directory
-    let hwmon_entries = fs::read_dir(card_dir).ok();
-
-    if let Some(entries) = hwmon_entries {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.file_name().map_or(false, |name| name.to_string_lossy().starts_with("hwmon")) {
-                    return path;
-                }
-            }
-        }
+    //TODO: implement this
     }
-
-    // Fallback to a safe default if hwmon is not found
-    PathBuf::from("/sys/class/drm/card0/device/hwmon/hwmon0/")
-}
 // helper to get modalias contents
 fn get_modalias() -> Option<String> {
     // get modalias contents
@@ -231,4 +280,13 @@ fn get_vendor_and_device_codes() -> (u16, u16) {
         device_id = u16::from_str_radix(&device_hex, 16).expect("Failed to parse device ID");
     }
     (vendor_id, device_id)
+}
+// Helper function to read and parse numeric values from files
+fn read_value_from_file(path: &PathBuf) -> Option<u64> {
+    if let Ok(contents) = fs::read_to_string(path) {
+        if let Ok(value) = contents.trim().parse::<u64>() {
+            return Some(value);
+        }
+    }
+    None
 }
