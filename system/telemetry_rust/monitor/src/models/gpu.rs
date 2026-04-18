@@ -199,6 +199,12 @@ impl Gpu {
             self.usage = value as u64;
         }
     }
+    // get current vram usage
+    fn get_vram_usage(&mut self) {
+        if let Some(value) = read_value_from_file(&self.sys_path.join("mem_info_vram_used")) {
+            self.vram_usage = value / 1024 / 1024;
+        }
+    }
     // get frames per second
     fn get_fps(&mut self) {
         /*
@@ -226,6 +232,7 @@ impl Telemetry for Gpu {
         self.get_fps();
         self.get_power();
         self.get_usage();
+        self.get_vram_usage();
     }
 }
 /* PRIVATE HELPER FUNCTIONS */
