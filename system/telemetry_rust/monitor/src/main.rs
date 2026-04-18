@@ -11,7 +11,7 @@ use crate::traits::telemetry::Telemetry;
 const TICK: u64 = 1000;
 fn main() {
     let mut cpu = Cpu::new().expect("Failed to initialize the CPU");
-    let mut gpu = Gpu::new();
+    let gpu = Gpu::new();
     // Main loop
     loop {
         cpu.refresh();

@@ -234,10 +234,35 @@ fn get_card_num_path() -> PathBuf {
     PathBuf::from("/sys/class/drm/card0/device/")
 }
 
-// get hwmon path
 fn get_hwmon_path() -> PathBuf {
-    //TODO: implement this
-    }
+    let card_path = get_card_num_path();
+    
+    fs::read_dir(&card_path)
+        .unwrap()
+        .flatten()
+        .filter_map(|entry| {
+            let path = entry.path();
+            let name = path.file_name()?.to_str()?;
+            if name.starts_with("hwmon") {
+                // Check if this hwmon directory contains another hwmon subdirectory
+                if let Ok(sub_entries) = fs::read_dir(&path) {
+                    for sub_entry in sub_entries.flatten() {
+                        if let Some(sub_name) = sub_entry.path().file_name().and_then(|n| n.to_str()) {
+                            if sub_name.starts_with("hwmon") {
+                                return Some(sub_entry.path());
+                            }
+                        }
+                    }
+                }
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .next()
+        .expect("Failed to find hwmon path in device directory")
+}
+
 // helper to get modalias contents
 fn get_modalias() -> Option<String> {
     // get modalias contents
