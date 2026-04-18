@@ -1,6 +1,7 @@
 use std::{fs, io::Read};
 use std::path::PathBuf;
-use crate::{models::gpu, traits::pci_map::gpu_pci_maps};
+use crate::traits::telemetry::Telemetry;
+use crate::traits::pci_map::gpu_pci_maps;
 
 #[derive(Debug)]
 pub struct Gpu {
@@ -18,6 +19,7 @@ pub struct Gpu {
     pub emergency_edge_temp_c: u64,
     pub emergency_junction_temp_c: u64,
     pub emergency_memory_temp_c: u64,
+    pub max_power: u64,
     // dynamic
     pub edge_temp_c: f64,
     pub junction_temp_c: f64,
@@ -25,7 +27,7 @@ pub struct Gpu {
     pub fan_speed_rpm: u64,
     pub usage: u64,
     pub vram_usage: u64,
-    pub volts: u64,
+    pub power: u64,
     pub thermal_throttle: bool,
     pub fps: u64,
 }
@@ -47,6 +49,7 @@ impl Gpu {
                         emergency_edge_temp_c: 0,
                         emergency_junction_temp_c: 0,
                         emergency_memory_temp_c: 0,
+                        max_power: 0,
                         //dynamic
                         edge_temp_c: 0.0,
                         junction_temp_c: 0.0,
@@ -54,7 +57,7 @@ impl Gpu {
                         fan_speed_rpm: 0,
                         usage: 0,
                         vram_usage: 0,
-                        volts: 0,
+                        power: 0,
                         thermal_throttle: false,
                         fps: 0,
         };
@@ -65,6 +68,7 @@ impl Gpu {
         gpu.set_max_fan_speed();
         gpu.set_max_vram();
         gpu.set_static_temps();
+        gpu.set_max_power();
         gpu
     }
     // set the primary path to read device telemetry from
@@ -144,6 +148,13 @@ impl Gpu {
             self.emergency_memory_temp_c = value / 1000;
         }
     }
+    // get max power
+    fn set_max_power(&mut self) {
+        // set maximum power of the gpu
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("power1_cap_max")){
+            self.max_power = value as u64 / 1000000;
+        }
+    }
     // get all gpu temps
     fn get_dynamic_temps(&mut self) {
         /*
@@ -166,6 +177,7 @@ impl Gpu {
         }
     }
     // get fan speeds
+
     fn get_fan_speed(&mut self) {
         /*
         get the current and maximum fan speed RPM for the gpu
@@ -173,12 +185,19 @@ impl Gpu {
         if it cannot be found.
         values set to their corresponding fields in the struct
          */
+        // Read current fan speed
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("fan1_input")) {
+            self.fan_speed_rpm = value;
+        }
     }
     // get current gpu usage
     fn get_usage(&mut self) {
         /*
         get current gpu usage in %, and set it to the struct
          */
+        if let Some(value) = read_value_from_file(&self.sys_path.join("gpu_busy_percent")) {
+            self.usage = value as u64;
+        }
     }
     // get frames per second
     fn get_fps(&mut self) {
@@ -188,12 +207,26 @@ impl Gpu {
          */
     }
     // get gpu volts
-    fn get_volts(&mut self) {
+    fn get_power(&mut self) {
         /*
-        get gpu voltage output in V
+        get gpu power in Watts
          */
+        if let Some(value) = read_value_from_file(&self.hwmon_path.join("power1_input")) {
+            self.power = value as u64 / 1000000;
+        }
     }
 
+}
+/* TRAIT IMPLEMENTATIONS */
+impl Telemetry for Gpu {
+    fn refresh(&mut self) {
+        // refresh all dynamic values
+        self.get_dynamic_temps();
+        self.get_fan_speed();
+        self.get_fps();
+        self.get_power();
+        self.get_usage();
+    }
 }
 /* PRIVATE HELPER FUNCTIONS */
 // helper to determine which card number to use
