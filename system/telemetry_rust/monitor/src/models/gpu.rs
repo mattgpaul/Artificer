@@ -2,6 +2,7 @@ use std::{fs, io::Read};
 use std::path::PathBuf;
 use crate::traits::telemetry::Telemetry;
 use crate::traits::pci_map::gpu_pci_maps;
+use crate::traits::utils::read_value_from_file;
 
 #[derive(Debug)]
 pub struct Gpu {
@@ -345,13 +346,4 @@ fn get_vendor_and_device_codes() -> (u16, u16) {
         device_id = u16::from_str_radix(&device_hex, 16).expect("Failed to parse device ID");
     }
     (vendor_id, device_id)
-}
-// Helper function to read and parse numeric values from files
-fn read_value_from_file(path: &PathBuf) -> Option<u64> {
-    if let Ok(contents) = fs::read_to_string(path) {
-        if let Ok(value) = contents.trim().parse::<u64>() {
-            return Some(value);
-        }
-    }
-    None
 }

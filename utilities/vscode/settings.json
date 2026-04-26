@@ -18,5 +18,5 @@
     "window.menuBarVisibility": "toggle",
     "continue.enableNextEdit": false,
     "continue.enableTabAutocomplete": false,
-    "editor.lineNumbers": "relative"
+    // "editor.lineNumbers": "absolute"
 }
