@@ -1,15 +1,7 @@
 // Place your key bindings in this file to override the defaults
 [
     {
-        "key": "shift+alt+p",
-        "command": "workbench.action.showCommands"
-    },
-    {
-        "key": "ctrl+shift+p",
-        "command": "-workbench.action.showCommands"
-    },
-    {
-        "key": "alt+j",
+        "key": "alt+u",
         "command": "runCommands",
         "args": {
             "commands": [
@@ -20,7 +12,7 @@
         "when": "!panelVisible"
     },
     {
-        "key": "alt+j",
+        "key": "alt+u",
         "command": "runCommands",
         "args": {
             "commands": [
