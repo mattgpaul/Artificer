@@ -1,7 +1,7 @@
 // Place your key bindings in this file to override the defaults
 [
     {
-        "key": "alt+u",
+        "key": "alt+j",
         "command": "runCommands",
         "args": {
             "commands": [
@@ -12,7 +12,7 @@
         "when": "!panelVisible"
     },
     {
-        "key": "alt+u",
+        "key": "alt+j",
         "command": "runCommands",
         "args": {
             "commands": [
@@ -204,7 +204,7 @@
         "command": "continue.newSession",
     },
     {
-        "key": "alt+[",
+        "key": "alt+left",
         "command": "workbench.action.terminal.focusPrevious",
         "when": "terminalFocus && terminalHasBeenCreated && !terminalEditorFocus || terminalFocus && terminalProcessSupported && !terminalEditorFocus"
     },
@@ -214,7 +214,7 @@
         "when": "terminalFocus && terminalHasBeenCreated && !terminalEditorFocus || terminalFocus && terminalProcessSupported && !terminalEditorFocus"
     },
     {
-        "key": "alt+]",
+        "key": "alt+right",
         "command": "workbench.action.nextEditor"
     },
     {
@@ -222,7 +222,7 @@
         "command": "-workbench.action.nextEditor"
     },
     {
-        "key": "alt+[",
+        "key": "alt+left",
         "command": "workbench.action.previousEditor"
     },
     {
@@ -230,11 +230,11 @@
         "command": "-workbench.action.previousEditor"
     },
     {
-        "key": "shift+alt+]",
+        "key": "shift+alt+right",
         "command": "workbench.action.focusNextGroup"
     },
     {
-        "key": "shift+alt+[",
+        "key": "shift+alt+left",
         "command": "workbench.action.focusPreviousGroup"
     },
     {
