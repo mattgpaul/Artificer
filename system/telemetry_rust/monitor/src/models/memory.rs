@@ -1,7 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
 use crate::traits::telemetry::Telemetry;
-use crate::traits::utils::read_value_from_file;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -26,13 +24,13 @@ impl Memory {
     // set max memory
     fn set_max_memory(&mut self) {
         if let Some(max_memory) = parse_memory_value("MemTotal") {
-            self.max_memory = max_memory / 1024.0 /1024.0;
+            self.max_memory = max_memory / 1000000.0;
         }
     }
     // get allocated memory
     fn get_free_memory(&mut self) {
         if let Some(free_memory) = parse_memory_value("MemAvailable") {
-            self.free_memory = free_memory / 1024.0 /1024.0;
+            self.free_memory = free_memory / 1000000.0;
         }
     }
 }
