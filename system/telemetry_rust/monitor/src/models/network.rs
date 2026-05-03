@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::time::{SystemTime, Duration};
+use std::time::SystemTime;
 use crate::traits::utils::read_value_from_file;
 use crate::traits::telemetry::Telemetry;
 
