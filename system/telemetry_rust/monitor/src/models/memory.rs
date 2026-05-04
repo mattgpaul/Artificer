@@ -10,7 +10,7 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new() -> Self {
+    pub fn new() -> Option<Self> {
         let mut memory = Memory {
             max_memory: 0.0,
             free_memory: 0.0,
@@ -19,7 +19,7 @@ impl Memory {
         memory.set_max_memory();
         // get dynamic variables
         memory.get_free_memory();
-        memory
+        Some(memory)
     }
     // set max memory
     fn set_max_memory(&mut self) {
