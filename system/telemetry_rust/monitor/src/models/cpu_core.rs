@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::{Error, ErrorKind};
 
 use crate::traits::telemetry::Telemetry;
 
@@ -46,16 +47,16 @@ impl CpuCoreTelemetry {
             if line.starts_with(&format!("cpu{}", self.core_num)) {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 
-                self.user = parts[1].parse::<u64>().unwrap();
-                self.nice = parts[2].parse::<u64>().unwrap();
-                self.system = parts[3].parse::<u64>().unwrap();
-                self.idle = parts[4].parse::<u64>().unwrap();
-                self.iowait = parts[5].parse::<u64>().unwrap();
-                self.irq = parts[6].parse::<u64>().unwrap();
-                self.softirq = parts[7].parse::<u64>().unwrap();
-                self.steal = parts[8].parse::<u64>().unwrap();
-                self.guest = parts[9].parse::<u64>().unwrap();
-                self.guest_nice = parts[10].parse::<u64>().unwrap();
+                self.user = parts[1].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.nice = parts[2].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.system = parts[3].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.idle = parts[4].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.iowait = parts[5].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.irq = parts[6].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.softirq = parts[7].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.steal = parts[8].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.guest = parts[9].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
+                self.guest_nice = parts[10].parse::<u64>().map_err(|e| Error::new(ErrorKind::InvalidData,e))?;
             }
         }
         Ok(())
