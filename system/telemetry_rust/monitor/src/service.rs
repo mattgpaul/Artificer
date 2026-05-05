@@ -1,3 +1,5 @@
+use std::default::Default;
+
 use crate::models;
 use crate::traits::telemetry::Telemetry;
 use models::cpu::Cpu;
@@ -7,23 +9,14 @@ use models::network::Network;
 use models::storage::Storage;
 
 pub struct Service {
-    pub cpu: Cpu,
-    pub gpu: Gpu,
-    pub memory: Memory,
-    pub network: Network,
-    pub storage: Storage,
+    cpu: Cpu,
+    gpu: Gpu,
+    memory: Memory,
+    network: Network,
+    storage: Storage,
 }
 
 impl Service {
-    pub fn new() -> Self {
-        Service {
-            cpu: Cpu::new().expect("Could not initialize CPU"),
-            gpu: Gpu::new().expect("Failed to initialize GPU"),
-            memory: Memory::new().expect("Failed to initialize Memory"),
-            network: Network::new().expect("Failed to initialize Network"),
-            storage: Storage::new().expect("Failed to initialize Storage"),
-        }
-    }
     // to be run every tick
     pub fn tick(&mut self) {
         self.cpu.refresh();
@@ -31,5 +24,23 @@ impl Service {
         self.memory.refresh();
         self.network.refresh();
         self.storage.refresh();
+    }
+    
+    pub fn cpu(&self) -> &Cpu { &self.cpu }
+    pub fn gpu(&self) -> &Gpu { &self.gpu }
+    pub fn memory(&self) -> &Memory { &self.memory }
+    pub fn network(&self) -> &Network { &self.network }
+    pub fn storage(&self) -> &Storage { &self.storage }
+}
+
+impl Default for Service {
+    fn default() -> Self {
+        Service {
+            cpu: Cpu::new().expect("Could not initialize CPU"),
+            gpu: Gpu::new().expect("Failed to initialize GPU"),
+            memory: Memory::new().expect("Failed to initialize Memory"),
+            network: Network::new().expect("Failed to initialize Network"),
+            storage: Storage::new().expect("Failed to initialize Storage"),
+        }
     }
 }

@@ -272,4 +272,14 @@
         "key": "ctrl+k ctrl+pageup",
         "command": "-workbench.action.previousEditorInGroup"
     },
+    {
+        "key": "alt+n",
+        "command": "claude-vscode.newConversation",
+        "when": "config.claudeCode.enableNewConversationShortcut && activeWebviewPanelId == 'claudeVSCodePanel' || claude-vscode.sideBarActive && config.claudeCode.enableNewConversationShortcut && !editorFocus && !panelFocus"
+    },
+    {
+        "key": "ctrl+n",
+        "command": "-claude-vscode.newConversation",
+        "when": "config.claudeCode.enableNewConversationShortcut && activeWebviewPanelId == 'claudeVSCodePanel' || claude-vscode.sideBarActive && config.claudeCode.enableNewConversationShortcut && !editorFocus && !panelFocus"
+    },
 ]

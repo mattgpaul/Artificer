@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+selected=$(
+  find "$HOME" \
+    -maxdepth 4 \
+    -mindepth 1 \
+    -type d \
+    \( \
+      -name ".git"         -o \
+      -name "node_modules" -o \
+      -name ".cache"       -o \
+      -name ".npm"         -o \
+      -name ".cargo"       -o \
+      -name "__pycache__"  -o \
+      -name ".venv"        -o \
+      -name "venv"         \
+    \) -prune \
+    -o -type d -print \
+  2>/dev/null \
+  | fzf \
+      --prompt="  session: " \
+      --height=100% \
+      --layout=reverse \
+      --border=none \
+      --info=inline
+)
+
+[[ -z "$selected" ]] && exit 0
+
+session_name=$(basename "$selected" | tr '.' '_' | tr ' ' '_')
+
+if [[ -z "$TMUX" ]]; then
+  tmux new-session -A -s "$session_name" -c "$selected"
+else
+  if ! tmux has-session -t "=$session_name" 2>/dev/null; then
+    tmux new-session -d -s "$session_name" -c "$selected"
+  fi
+  tmux switch-client -t "=$session_name"
+fi

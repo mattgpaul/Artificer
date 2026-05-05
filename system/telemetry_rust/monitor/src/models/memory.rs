@@ -1,7 +1,7 @@
 use std::fs;
 use crate::traits::telemetry::Telemetry;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Memory {
     // static
     pub max_memory: f64,

@@ -2,7 +2,7 @@ use std::fs;
 use std::process::Command;
 use crate::traits::telemetry::Telemetry;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Storage {
     pub max_storage: u64,
     pub available_storage: u64,
@@ -78,8 +78,11 @@ fn df_available_bytes() -> Option<u64> {
         .args(["-B1", &device])
         .output()
         .ok()?;
+    if !output.status.success() {
+        eprintln!("Warning: df exited with status {}", output.status);
+        return None;
+    }
     let stdout = String::from_utf8(output.stdout).ok()?;
     let data_line = stdout.lines().nth(1)?;
-    let available = data_line.split_whitespace().nth(3)?;
-    available.parse().ok()
+    data_line.split_whitespace().nth(3)?.parse().ok()
 }
