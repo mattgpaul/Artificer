@@ -34,7 +34,7 @@ pub struct Gpu {
 }
 
 impl Gpu {
-    pub fn new() -> Self {
+    pub fn new() -> Option<Self> {
         let mut gpu = Gpu {
                         // static
                         sys_path: PathBuf::from("/sys/class/drm/"),
@@ -70,7 +70,7 @@ impl Gpu {
         gpu.set_max_vram();
         gpu.set_static_temps();
         gpu.set_max_power();
-        gpu
+        Some(gpu)
     }
     // set the primary path to read device telemetry from
     // set the primary path to read device telemetry from
@@ -91,8 +91,12 @@ impl Gpu {
         // get vendor and device codes
         let (vendor_id, device_id) = get_vendor_and_device_codes();
         // set vendor name from id
-        self.vendor_name = gpu_pci_maps::get_gpu_vendor(&vendor_id);
-        self.device_name = gpu_pci_maps::get_gpu_device(&vendor_id, &device_id);
+        if let Some(vendor_name) = gpu_pci_maps::get_gpu_vendor(vendor_id) {
+            self.vendor_name = vendor_name.to_string();
+        }
+        if let Some(device_name) = gpu_pci_maps::get_gpu_device(vendor_id, device_id) {
+            self.device_name = device_name.to_string();
+        }
     }
     // get gpu max clock speed
     fn set_max_clock(&mut self) {

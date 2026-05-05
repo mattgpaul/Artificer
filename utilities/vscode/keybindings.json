@@ -214,22 +214,6 @@
         "when": "terminalFocus && terminalHasBeenCreated && !terminalEditorFocus || terminalFocus && terminalProcessSupported && !terminalEditorFocus"
     },
     {
-        "key": "alt+right",
-        "command": "workbench.action.nextEditor"
-    },
-    {
-        "key": "ctrl+pagedown",
-        "command": "-workbench.action.nextEditor"
-    },
-    {
-        "key": "alt+left",
-        "command": "workbench.action.previousEditor"
-    },
-    {
-        "key": "ctrl+pageup",
-        "command": "-workbench.action.previousEditor"
-    },
-    {
         "key": "shift+alt+right",
         "command": "workbench.action.focusNextGroup"
     },
@@ -271,5 +255,21 @@
     {
         "key": "ctrl+i",
         "command": "-continue.focusEdit"
+    },
+    {
+        "key": "alt+right",
+        "command": "workbench.action.nextEditorInGroup"
+    },
+    {
+        "key": "ctrl+k ctrl+pagedown",
+        "command": "-workbench.action.nextEditorInGroup"
+    },
+    {
+        "key": "alt+left",
+        "command": "workbench.action.previousEditorInGroup"
+    },
+    {
+        "key": "ctrl+k ctrl+pageup",
+        "command": "-workbench.action.previousEditorInGroup"
     },
 ]
