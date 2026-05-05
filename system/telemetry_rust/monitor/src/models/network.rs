@@ -17,7 +17,7 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn new() -> Self {
+    pub fn new() -> Option<Self> {
         let mut network = Network {
             sys_path: PathBuf::from("/sys/class/net/eno1/"),
             time: SystemTime::now(),
@@ -30,7 +30,7 @@ impl Network {
         network.set_max_port_speed();
         network.get_downlink_bytes();
         network.get_uplink_bytes();
-        network
+        Some(network)
     }
     fn set_max_port_speed(&mut self) {
         if let Some(value) = read_value_from_file(&self.sys_path.join("speed")) {
