@@ -1,10 +1,10 @@
 use std::{fs, io::Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use crate::traits::telemetry::Telemetry;
 use crate::traits::pci_map::gpu_pci_maps;
 use crate::traits::utils::read_value_from_file;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Gpu {
     // static
     sys_path: PathBuf,
@@ -81,21 +81,21 @@ impl Gpu {
         sets the paths for "sys_path" and "hwmon_path"
          */
         let card_path = get_card_num_path();
-        let hwmon_path = get_hwmon_path();
-
         self.sys_path = card_path.clone();
-        self.hwmon_path = hwmon_path;
+
+        if let Some(hwmon_path) = get_hwmon_path(&card_path) {
+        self.hwmon_path = hwmon_path
     }
+}
     // set gpu vendor and device names
     fn set_vendor_and_device(&mut self) {
-        // get vendor and device codes
-        let (vendor_id, device_id) = get_vendor_and_device_codes();
-        // set vendor name from id
-        if let Some(vendor_name) = gpu_pci_maps::get_gpu_vendor(vendor_id) {
-            self.vendor_name = vendor_name.to_string();
-        }
-        if let Some(device_name) = gpu_pci_maps::get_gpu_device(vendor_id, device_id) {
-            self.device_name = device_name.to_string();
+        if let Some((vendor_id, device_id)) = get_vendor_and_device_codes() {
+            if let Some(vendor_name) = gpu_pci_maps::get_gpu_vendor(vendor_id) {
+                self.vendor_name = vendor_name.to_string();
+            }
+            if let Some(device_name) = gpu_pci_maps::get_gpu_device(vendor_id, device_id) {
+                self.device_name = device_name.to_string();
+            }
         }
     }
     // get gpu max clock speed
@@ -279,75 +279,49 @@ fn get_card_num_path() -> PathBuf {
     PathBuf::from("/sys/class/drm/card0/device/")
 }
 
-fn get_hwmon_path() -> PathBuf {
-    let card_path = get_card_num_path();
-    
-    fs::read_dir(&card_path)
-        .unwrap()
+fn get_hwmon_path(card_path: &Path) -> Option<PathBuf> {
+    fs::read_dir(card_path).ok()?
         .flatten()
-        .filter_map(|entry| {
+        .find_map(|entry| {
             let path = entry.path();
             let name = path.file_name()?.to_str()?;
-            if name.starts_with("hwmon") {
-                // Check if this hwmon directory contains another hwmon subdirectory
-                if let Ok(sub_entries) = fs::read_dir(&path) {
-                    for sub_entry in sub_entries.flatten() {
-                        if let Some(sub_name) = sub_entry.path().file_name().and_then(|n| n.to_str()) {
-                            if sub_name.starts_with("hwmon") {
-                                return Some(sub_entry.path());
-                            }
-                        }
+            if !name.starts_with("hwmon") { return None; }
+            // check for nested hwmon subdirectory
+            if let Ok(sub) = fs::read_dir(&path) {
+                for s in sub.flatten() {
+                    if s.path().file_name()?.to_str()?.starts_with("hwmon") {
+                        return Some(s.path());
                     }
                 }
-                Some(path)
-            } else {
-                None
             }
+            Some(path)
         })
-        .next()
-        .expect("Failed to find hwmon path in device directory")
 }
 
 // helper to get modalias contents
 fn get_modalias() -> Option<String> {
-    // get modalias contents
-    // use the existing helper to get the card path
     let card_path = get_card_num_path();
     let modalias_path = card_path.join("modalias");
-        // read the contents of modalias
-        let mut contents = String::new();
-    let result = fs::File::open(&modalias_path)
+    let mut contents = String::new();
+    fs::File::open(&modalias_path)
         .and_then(|mut f| f.read_to_string(&mut contents))
-        .ok();
-
-    if result.is_some() {
-        Some(contents)
-    } else {
-    None
-}
+        .ok()
+        .map(|_| contents)
 }
 // helper to return the vendor and device of the gpu
-fn get_vendor_and_device_codes() -> (u16, u16) {
-    // get modalias
-    let modalias = get_modalias().expect("Failed to get modalias");
-    let mut vendor_id: u16 = 0;
-    let mut device_id: u16 = 0;
-
-    // Split on ':' to get the main parts
+fn get_vendor_and_device_codes() -> Option<(u16, u16)> {
+    let modalias = get_modalias()?;
     let parts: Vec<&str> = modalias.split(':').collect();
-      // The second part contains the vendor and device information
-    let second_part = parts[1];
+    let second_part = parts.get(1)?;
 
-    // Extract vendor ID (starts with 'v' followed by 4 hex digits)
-    if let Some(vendor_start) = second_part.find('v') {
-        let vendor_hex = &second_part[vendor_start + 1.. vendor_start + 9];
-        vendor_id = u16::from_str_radix(&vendor_hex, 16).expect("Failed to parse vendor ID");
-    }
+    let vendor_id = second_part.find('v').and_then(|i| {
+        // modalias format: v0000XXXX - take the last 4 hex digits
+        u16::from_str_radix(&second_part[i + 5..i + 9], 16).ok()
+    })?;
 
-    // Extract device ID (starts with 'd' followed by 4 hex digits)
-    if let Some(device_start) = second_part.find('d') {
-        let device_hex = &second_part[device_start + 1.. device_start + 9];
-        device_id = u16::from_str_radix(&device_hex, 16).expect("Failed to parse device ID");
-    }
-    (vendor_id, device_id)
+    let device_id = second_part.find('d').and_then(|i| {
+        u16::from_str_radix(&second_part[i + 5..i + 9], 16).ok()
+    })?;
+
+    Some((vendor_id, device_id))
 }

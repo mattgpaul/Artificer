@@ -5,7 +5,7 @@ use super::cpu_core::CpuCoreTelemetry;
 use crate::traits::telemetry::{Telemetry};
 
 // Structure definitions
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Cpu {
     pub vendor_name: String,
     pub model_name: String,
@@ -41,30 +41,44 @@ impl Cpu {
     //get cpu data
     fn get_cpu_vendor_info(&mut self) {
         const CPUINFO: &str = "/proc/cpuinfo";
-        const VENDOR: &str = "vendor_id";
-        const MODEL: &str = "model name";
-        //read in the file
-        let cpuinfo = fs::read_to_string(CPUINFO).expect("Failed to read file");
-        // loop through the lines to find the vendor
-        for line in cpuinfo.lines() {
-            if line.starts_with(VENDOR) {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                self.vendor_name = parts[2].to_string();
+        let cpuinfo = match fs::read_to_string(CPUINFO) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Warning: could not read {CPUINFO}: {e}");
+                return;
             }
-        }
-        // repeat for the model
+        };
+        let mut found_vendor = false;
+        let mut found_model = false;
         for line in cpuinfo.lines() {
-            if line.starts_with(MODEL) {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                self.model_name = parts[3..].join(" ");
+            if !found_vendor && line.starts_with("vendor_id") {
+                if let Some(v) = line.split_whitespace().nth(2) {
+                    self.vendor_name = v.to_string();
+                    found_vendor = true;
+                }
+            } else if !found_model && line.starts_with("maodel name") {
+                self.model_name = line.split_whitespace()
+                    .skip(3)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                found_model = true;
+            }
+            if found_vendor && found_model {
+                break; // all cores identical
             }
         }
     }
     // get max frequency of the cpu
     fn get_max_freq(&mut self) {
         const FREQPATH: &str = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq";
-        let freq = fs::read_to_string(FREQPATH).expect("Failed to read file");
-        self.max_freq = freq.trim().parse::<f64>().expect("Failed to parse float") / 1000.0;
+        match fs::read_to_string(FREQPATH) {
+            Ok(freq) => {
+                if let Ok(val) = freq.trim().parse::<f64>() {
+                    self.max_freq = val / 1000.0;
+                }
+            }
+            Err(e) => eprintln!("Warning: could not read max freq: {e}"),
+        }
     }
     // get k10temp path
     fn get_k10temp_path() -> Option<PathBuf> {
@@ -113,18 +127,21 @@ impl Cpu {
     }
     // get cpu temp
     fn get_cpu_temp(&mut self) {
-        let temp = fs::read_to_string(&self.tctl_path)
-            .expect("Failed to read temperature file for cpu");
-            self.temp_deg_c = temp.trim().parse::<f64>().expect("Failed to parse float") / 1000.0;
+        if let Ok(temp) = fs::read_to_string(&self.tctl_path) {
+            if let Ok(val) = temp.trim().parse::<f64>() {
+                self.temp_deg_c = val / 1000.0;
+            }
+        }
     }
     // get core usage
 }
 
 impl Telemetry for Cpu {
     fn refresh(&mut self) {
-        // update the core telemetry 
-        for core in self.cores.iter_mut() {
-            core.refresh();
+        if let Ok(contents) = fs::read_to_string("/proc/stat") {
+            for core in self.cores.iter_mut() {
+                core.update_from_stat(&contents);
+            }
         }
         self.get_cpu_temp();
     }

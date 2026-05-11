@@ -9,7 +9,7 @@ use service::Service;
 // ticks in ms
 const TICK: u64 = 1000;
 fn main() {
-    let mut monitor = Service::new();
+    let mut monitor = Service::default();
     // Main loop
     loop {
         monitor.tick();
