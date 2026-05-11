@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use crate::traits::utils::read_value_from_file;
 use crate::traits::telemetry::Telemetry;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Network {
     sys_path: PathBuf,
     time: SystemTime,
@@ -41,13 +41,13 @@ impl Network {
     // get downlink bytes and add to the previous
     fn get_downlink_bytes(&mut self) {
         if let Some(value) = read_value_from_file(&self.sys_path.join("statistics/rx_bytes")) {
-            self.downlink_bytes += value
+            self.downlink_bytes = value;
         }
     }
     // get uplink bytes and add to the previous
     fn get_uplink_bytes(&mut self) {
         if let Some(value) = read_value_from_file(&self.sys_path.join("statistics/tx_bytes")) {
-            self.uplink_bytes += value
+            self.uplink_bytes = value;
         }
     }
 }
@@ -64,8 +64,8 @@ impl Telemetry for Network {
        self.get_uplink_bytes(); 
        self.time = SystemTime::now();
        // calculate deltas
-       let downlink_delta = self.downlink_bytes - t0_downlink;
-       let uplink_delta = self.uplink_bytes - t0_uplink;
+       let downlink_delta = self.downlink_bytes.saturating_sub(t0_downlink);
+       let uplink_delta = self.uplink_bytes.saturating_sub(t0_uplink);
        if let Ok(dt) = self.time.duration_since(t0_time) {
             self.downlink_bps = downlink_delta as f64 / dt.as_secs_f64();
             self.uplink_bps = uplink_delta as f64 / dt.as_secs_f64();

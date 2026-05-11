@@ -1,5 +1,4 @@
 pub mod gpu_pci_maps {
-    use std::collections::HashMap;
     pub fn get_gpu_vendor(hex_id: u16) -> Option<&'static str> {
         match hex_id {
             0x10DE => Some("NVIDIA"),

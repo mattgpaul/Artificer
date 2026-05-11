@@ -19,5 +19,6 @@
     "continue.enableNextEdit": false,
     "continue.enableTabAutocomplete": false,
     "vim.smartRelativeLine": true,
+    "claudeCode.preferredLocation": "panel",
     // "editor.lineNumbers": "absolute"
 }
