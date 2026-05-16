@@ -36,3 +36,7 @@ multiplier = 3
 key = "Return"
 mods = "Shift"
 chars = "\u001B\r"
+
+[terminal.shell]
+program = "/usr/bin/tmux"
+args    = ["new-session", "-A", "-s", "workspace"]
