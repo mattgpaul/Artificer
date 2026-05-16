@@ -12,7 +12,22 @@ selected=$(
       -name ".cargo"       -o \
       -name "__pycache__"  -o \
       -name ".venv"        -o \
-      -name "venv"         \
+      -name "venv"         -o \
+      -name "dist"         -o \
+      -name "build"        -o \
+      -name "target"       -o \
+      -name ".next"        -o \
+      -name "snap"         -o \
+      -name ".local"       -o \
+      -name ".mozilla"     -o \
+      -name ".var"         -o \
+      -name ".rustup"      -o \
+      -name ".vscode"      -o \
+      -name ".pyenv"       -o \
+      -name ".nvm"         -o \
+      -name ".gradle"      -o \
+      -name ".m2"          -o \
+      -name ".thunderbird" \
     \) -prune \
     -o -type d -print \
   2>/dev/null \

@@ -1,0 +1,33 @@
+general {
+    colors = true
+    interval = 5
+}
+
+order += "ethernet _first_"
+order += "disk /"
+order += "load"
+order += "memory"
+order += "tztime local"
+
+ethernet _first_ {
+    format_up = "NET: %ip"
+    format_down = "NET: down"
+}
+
+disk "/" {
+    format = "DISK: %avail"
+}
+
+load {
+    format = "CPU: %1min"
+}
+
+memory {
+    format = "RAM: %used / %available"
+    threshold_degraded = "2G"
+    format_degraded = "RAM LOW: %available"
+}
+
+tztime local {
+    format = "%Y-%m-%d %H:%M"
+}
