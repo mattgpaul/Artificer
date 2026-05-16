@@ -1,0 +1,27 @@
+[package]
+name = "blink_pac"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "blink_pac"
+test = false
+bench = false
+
+[dependencies]
+panic-halt = "1.0"
+
+[dependencies.avr-device]
+version = "0.8.1"
+features = ["atmega328p"]
+
+[profile.dev]
+panic = "abort"
+opt-level = "s"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true
+codegen-units = 1
+
