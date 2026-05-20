@@ -20,6 +20,7 @@ exec_always --no-startup-id xrandr \
     --output DisplayPort-1 --rotate normal --pos 1080x0 --primary \
     --output HDMI-A-0 --rotate left --pos 3000x0
 exec_always --no-startup-id feh --bg-fill ~/.config/i3/wallpaper.jpg 2>/dev/null || feh --bg-solid '#1a1a2e'
+exec --no-startup-id unclutter -idle 5
 
 # -- Volume --
 set $refresh_i3status killall -SIGUSR1 i3status
@@ -106,10 +107,10 @@ bindsym $mod+g workspace $ws_browser
 bindsym $mod+f workspace $ws_files
 bindsym $mod+s workspace $ws_discord
 
-bindsym $mod+Shift+t move container to workspace $ws_term
-bindsym $mod+Shift+g move container to workspace $ws_browser
-bindsym $mod+Shift+f move container to workspace $ws_files
-bindsym $mod+Shift+s move container to workspace $ws_discord
+bindsym $mod+Shift+t move container to workspace $ws_term; workspace $ws_term
+bindsym $mod+Shift+g move container to workspace $ws_browser; workspace $ws_browser
+bindsym $mod+Shift+f move container to workspace $ws_files; workspace $ws_files
+bindsym $mod+Shift+s move container to workspace $ws_discord; workspace $ws_discord
 
 # Numbered workspace keys
 bindsym $mod+1 workspace number $ws1
