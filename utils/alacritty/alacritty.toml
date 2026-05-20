@@ -37,6 +37,9 @@ key = "Return"
 mods = "Shift"
 chars = "\u001B\r"
 
+[terminal]
+osc52 = "CopyPaste"
+
 [terminal.shell]
 program = "/usr/bin/tmux"
 args    = ["new-session", "-A", "-s", "workspace"]
