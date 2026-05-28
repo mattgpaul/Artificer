@@ -44,7 +44,7 @@ output DP-2     bg /home/matthew/Downloads/gov_nasa_retro_deep_space.png fill
 output HDMI-A-1 bg /home/matthew/Downloads/solarsystem.jpg fill
 
 output DP-1    transform 270 pos 0    420
-output DP-2    transform 0   pos 1080 0
+output DP-2    transform 0   pos 1080 0   mode 1920x1080@165.004Hz
 output HDMI-A-1 transform 270 pos 3000 0
 
 ### Workspace assignments
@@ -85,6 +85,10 @@ exec firefox
 seat * hide_cursor 3000
 
 ### Input configuration
+input * {
+    repeat_delay 150
+    repeat_rate  30
+}
 #
 # Example configuration:
 #
