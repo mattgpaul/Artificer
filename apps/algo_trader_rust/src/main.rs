@@ -1,26 +1,15 @@
 mod data;
+mod scanner;
 
-use data::bar::{Bar, to_ticker};
-use data::UnixMs;
+use yahoo_finance_api as yahoo;
+use time::macros::datetime;
 
-fn main() {
-    env_logger::init();
-
-    log::info!("starting up");
-    log::debug!("interesting value");
-    log::warn!("heads up");
-    log::error!("oh no!");
-
-    let bar = Bar{
-        ticker: to_ticker(b"AAPL"),
-        timestamp: UnixMs(179000000),
-        open: 10.0,
-        high: 11.0,
-        low: 8.0,
-        close: 9.0, 
-        volume: 100000000,
-    };
-
-    println!("{bar:?}");
-
+#[tokio::main]
+async fn main() {
+    let provider = yahoo::YahooConnector::new().unwrap();
+    let start = datetime!(2020-1-1 0:00:00.00 UTC);
+    let end = datetime!(2020-1-31 23:59:59.99 UTC);
+    let resp = provider.get_quote_history("AAPL", start, end).await.unwrap();
+    let quotes = resp.quotes().unwrap();
+    println!("{quotes:#?}");
 }
