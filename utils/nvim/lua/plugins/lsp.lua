@@ -22,6 +22,8 @@ vim.lsp.config('rust_analyzer', {
 
 vim.lsp.enable({ 'pyright', 'rust_analyzer' })
 
+vim.diagnostic.config({ underline = false })
+
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
     local opts = { buffer = args.buf }

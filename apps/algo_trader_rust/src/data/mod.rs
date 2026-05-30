@@ -1,4 +1,5 @@
 pub mod bar;
+pub mod provider;
+pub mod providers;
+pub mod technical_analysis;
 
-#[derive(Debug, Copy, Clone)]
-pub struct UnixMs(pub u64);
