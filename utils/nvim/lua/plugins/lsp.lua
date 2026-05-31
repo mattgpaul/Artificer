@@ -22,7 +22,12 @@ vim.lsp.config('rust_analyzer', {
 
 vim.lsp.enable({ 'pyright', 'rust_analyzer' })
 
-vim.diagnostic.config({ underline = false })
+-- No inline diagnostics; view them on demand with <leader>e (open_float).
+vim.diagnostic.config({
+  underline = false,
+  virtual_text = false,
+  severity_sort = true,
+})
 
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
