@@ -1,5 +1,5 @@
 use super::bar::{Bar, TimeAggregation};
-use time::UtcDateTime;
+use time::OffsetDateTime;
 
 pub trait Historical {
     type Error;
@@ -8,7 +8,7 @@ pub trait Historical {
         &self,
         ticker: &str,
         aggregation: TimeAggregation,
-        from: UtcDateTime,
-        to: UtcDateTime,
+        from: OffsetDateTime,
+        to: OffsetDateTime,
     ) -> Result<Vec<Bar>, Self::Error>;
 }

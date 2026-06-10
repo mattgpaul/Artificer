@@ -14,6 +14,11 @@ return {
       },
 
       completion = {
+        menu = {
+          auto_show = function(ctx)
+            return vim.bo.filetype ~= 'markdown'
+          end,
+        },
         documentation = { auto_show = true },
       },
 
