@@ -37,6 +37,7 @@ M.config = {
         max_blocks  = 12,   -- distinct context blocks injected (after content-dedupe)
         max_members = 16,   -- public signatures listed when surfacing a dependency's API
         max_lines   = 160,  -- hard cap on total injected context lines
+        max_block_lines = 14, -- per-block body cap, so one verbose std doc can't eat the whole budget
         deadline_ms = 2000, -- max time we wait for LSP before sending without it
     },
     -- One-shot visual presets: <leader>k<key> in visual mode fires the canned
@@ -370,17 +371,33 @@ local function collect_seeds(bufnr, start_line, end_line, instruction, max_symbo
 end
 
 -- Render collected context blocks into the read-only string injected into the prompt,
--- enforcing the block/line budgets so even a large dependency stays bounded.
+-- enforcing the block/line budgets so even a large dependency stays bounded. Two rules keep
+-- the budget from being wasted: (1) api-surface blocks — the concise signature lists that
+-- are the whole point of an edit — are emitted first, before verbose external hover docs,
+-- so a giant std module essay can't truncate them out; (2) each block's body is capped at
+-- max_block_lines, so no single prose dump can swallow the line budget on its own.
 local function assemble_context(blocks, cfg)
     if vim.tbl_isempty(blocks) then return nil end
+
+    -- Stable partition: signature lists first, everything else after, original order within
+    -- each group. These are the cheapest, highest-value blocks, so they must survive truncation.
+    local ordered = {}
+    for _, b in ipairs(blocks) do if b.title:match('api surface$') then ordered[#ordered + 1] = b end end
+    for _, b in ipairs(blocks) do if not b.title:match('api surface$') then ordered[#ordered + 1] = b end end
+
     local out = {
         'Referenced definitions & dependency APIs (from LSP — context only, do NOT modify or reproduce these):',
     }
     local nlines, nblocks = 1, 0
-    for _, b in ipairs(blocks) do
+    for _, b in ipairs(ordered) do
         if nblocks >= cfg.max_blocks or nlines >= cfg.max_lines then break end
         local seg = { '--- ' .. b.title .. ' ---' }
-        for _, l in ipairs(vim.split(b.body, '\n', { plain = true })) do seg[#seg + 1] = l end
+        local body = vim.split(b.body, '\n', { plain = true })
+        if #body > cfg.max_block_lines then
+            body = vim.list_slice(body, 1, cfg.max_block_lines)
+            body[#body + 1] = '…'
+        end
+        for _, l in ipairs(body) do seg[#seg + 1] = l end
         if nlines + #seg > cfg.max_lines then
             seg = vim.list_slice(seg, 1, math.max(1, cfg.max_lines - nlines))
             seg[#seg + 1] = '… (truncated)'
@@ -393,12 +410,26 @@ local function assemble_context(blocks, cfg)
     return table.concat(out, '\n')
 end
 
--- Tier-2 for one intentional seed: resolve its definition, then read that file for the
--- dependency's public signatures. Calls finish() exactly once when done (success or not).
-local function request_member_surface(bufnr, sd, pos_params, max_members, add_block, finish)
+-- True when a definition URI lives inside the user's own workspace, as opposed to a
+-- registry/toolchain path (cargo registry, rustup, python site-packages). First-party
+-- types get their methods surfaced even when not named in the instruction, because the
+-- whole point of an edit is usually to call into your own code; pinning external deps to
+-- Tier-1 keeps std/library noise out of the prompt unless you intentionally name them.
+local function is_first_party(uri, root)
+    local p = vim.uri_to_fname(uri)
+    return p:sub(1, #root) == root
+        and not p:match('/registry/') and not p:match('/%.cargo/')
+        and not p:match('/%.rustup/') and not p:match('/site%-packages/')
+end
+
+-- Tier-2 for one seed: resolve its definition, then read that file for its callable
+-- signatures. The extraction is gated by `want(sd, uri)` — evaluated only after we know
+-- where the symbol lives — so the caller can admit first-party types without having paid
+-- for the resolve up front. Calls finish() exactly once when done (success or not).
+local function request_member_surface(bufnr, sd, pos_params, max_members, add_block, finish, want)
     vim.lsp.buf_request_all(bufnr, 'textDocument/definition', pos_params(sd.row, sd.col), function(dres)
         local uri = first_location_uri(dres)
-        if uri then
+        if uri and want(sd, uri) then
             local members = extract_member_signatures(uri, max_members)
             if members then add_block(sd.word .. ' — api surface', members) end
         end
@@ -407,15 +438,25 @@ local function request_member_surface(bufnr, sd, pos_params, max_members, add_bl
 end
 
 -- Gather LSP context asynchronously and hand the assembled string (or nil) to on_ready.
--- Tier 1 hovers every seed for its signature/type; Tier 2 expands the API surface of the
--- intentional seeds. on_ready fires once every request returns OR the deadline elapses,
--- whichever comes first, so a cold server or unindexed dependency can never hang the edit.
+-- Tier 1 hovers every seed for its signature/type; Tier 2 expands the API surface of any
+-- seed that is either named in the instruction/region (intentional) or resolves into the
+-- workspace (first-party) — so calling into your own types works without naming them.
+-- on_ready fires once every request returns OR the deadline elapses, whichever comes
+-- first, so a cold server or unindexed dependency can never hang the edit.
 local function gather_lsp_context(bufnr, start_line, end_line, instruction, on_ready)
     local cfg = M.config.lsp_context
     if not cfg.enabled
         or vim.api.nvim_buf_get_name(bufnr) == ''
         or vim.tbl_isempty(vim.lsp.get_clients({ bufnr = bufnr })) then
         return on_ready(nil)
+    end
+
+    -- Workspace root: the boundary between "your code" (Tier-2 by default) and external
+    -- deps (Tier-2 only when intentional). Falls back to cwd if no project marker is found.
+    local root = vim.fs.root(bufnr, { '.git', 'Cargo.toml', 'pyproject.toml', 'package.json' })
+        or vim.fn.getcwd()
+    local function want_members(sd, uri)
+        return sd.intentional or is_first_party(uri, root)
     end
 
     local seeds = collect_seeds(bufnr, start_line, end_line, instruction, cfg.max_symbols)
@@ -460,11 +501,11 @@ local function gather_lsp_context(bufnr, start_line, end_line, instruction, on_r
             add_block(sd.word, body)
             done_one()
         end)
-        -- Tier 2: dependency API surface, only for intentional seeds.
-        if sd.intentional then
-            pending = pending + 1
-            request_member_surface(bufnr, sd, pos_params, cfg.max_members, add_block, done_one)
-        end
+        -- Tier 2: API surface. We resolve every seed's definition and let want_members
+        -- decide (post-resolution) whether to expand it — first-party types always, plus
+        -- any intentional external dependency. The resolve is cheap and deadline-bounded.
+        pending = pending + 1
+        request_member_surface(bufnr, sd, pos_params, cfg.max_members, add_block, done_one, want_members)
     end
 
     done_one()                           -- release the issuing guard
