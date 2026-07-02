@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 {
 	#Hyperland
-	programs.hyprland.enable = true;
+	programs.niri.enable = true;
 	
 	#Login
 	services.displayManager.sddm.enable = true;
@@ -14,7 +14,7 @@
 		bat
 		btop
 		claude-code
-		fuzzel
+		rofi
 		fzf
 		headsetcontrol
 		neovim
