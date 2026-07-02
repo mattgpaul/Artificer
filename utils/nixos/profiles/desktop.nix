@@ -1,11 +1,17 @@
 { config, lib, pkgs, ... }:
 {
 	#Hyperland
-	programs.niri.enable = true;
+	programs.hyprland.enable = true;
+	programs.hyprland.withUWSM = false;
 	
 	#Login
 	services.displayManager.sddm.enable = true;
 	services.displayManager.sddm.wayland.enable = true;
+	services.displayManager.autoLogin = {
+		enable = true;
+		user = "matthew";
+	};
+	services.displayManager.defaultSession = "hyprland";
 
 	#Apps
 	programs.firefox.enable = true;
@@ -14,6 +20,7 @@
 		bat
 		btop
 		claude-code
+		kitty
 		rofi
 		fzf
 		headsetcontrol
