@@ -9,16 +9,6 @@
 	#Flakes
 	nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-	#Sound
-	security.rtkit.enable = true;
-	services.pipewire = {
-		enable = true;
-		alsa.enable = true;
-		alsa.support32Bit = true;
-		pulse.enable = true;
-		jack.enable = true;
-	};
-
 	#Env
 	environment.systemPackages = with pkgs; [
 		vim

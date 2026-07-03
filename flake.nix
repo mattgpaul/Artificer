@@ -8,8 +8,8 @@
 	outputs = { self, nixpkgs }: {
 		nixosConfigurations.sevro = nixpkgs.lib.nixosSystem {
 			modules = [
-				./common.nix
-				./hosts/sevro.nix
+				./utils/nixos/common.nix
+				./utils/nixos/hosts/sevro.nix
 			];
 		};
 	};
