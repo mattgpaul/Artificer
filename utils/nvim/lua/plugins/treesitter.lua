@@ -13,6 +13,7 @@ return
 			"json",
 			"yaml",
 			"markdown",
+			"nix",
 		},
 		highlight = {
 			enable = true,

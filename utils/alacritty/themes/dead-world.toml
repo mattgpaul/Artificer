@@ -1,0 +1,56 @@
+# Sun Eater "dead world" — ember on deep teal
+[colors.primary]
+background        = "#0e1614"
+foreground        = "#d8d2c8"
+dim_foreground    = "#9fb2aa"
+bright_foreground = "#f0ebe0"
+
+[colors.cursor]
+text   = "#0e1614"
+cursor = "#e0631f"
+
+[colors.vi_mode_cursor]
+text   = "#0e1614"
+cursor = "#9fb2aa"
+
+[colors.search.matches]
+foreground = "#0e1614"
+background = "#9fb2aa"
+
+[colors.search.focused_match]
+foreground = "#0e1614"
+background = "#e0631f"
+
+[colors.selection]
+text       = "#0e1614"
+background = "#e0631f"
+
+[colors.normal]
+black   = "#18231f"
+red     = "#b23a1e"
+green   = "#5e8f6e"
+yellow  = "#d4913c"
+blue    = "#5a7f8f"
+magenta = "#9e6b7a"
+cyan    = "#3c6b5e"
+white   = "#d8d2c8"
+
+[colors.bright]
+black   = "#3c4a44"
+red     = "#e0631f"
+green   = "#9fb2aa"
+yellow  = "#f0b45c"
+blue    = "#7a9ab0"
+magenta = "#c08a98"
+cyan    = "#5e9f8e"
+white   = "#f0ebe0"
+
+[colors.dim]
+black   = "#0e1614"
+red     = "#8a2e18"
+green   = "#4a6b56"
+yellow  = "#a8722f"
+blue    = "#46626e"
+magenta = "#7a5460"
+cyan    = "#2e5249"
+white   = "#9fb2aa"

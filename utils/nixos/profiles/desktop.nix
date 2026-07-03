@@ -26,7 +26,8 @@
 		headsetcontrol
 		neovim
 		waybar
-        hyprpaper
+		hyprpaper
+		obsidian
 	];
 
     fonts.packages = with pkgs; [

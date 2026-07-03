@@ -1,0 +1,100 @@
+configuration {
+    modi:                "drun,run";
+    show-icons:          true;
+    drun-display-format: "{name}";
+    display-drun:        "apps";
+    display-run:         "run";
+}
+
+* {
+    bg:      #0e1614;
+    bg-alt:  #18231f;
+    fg:      #d8d2c8;
+    mint:    #9fb2aa;
+    ember:   #e0631f;
+    teal:    #3c6b5e;
+    crimson: #b23a1e;
+
+    background-color: transparent;
+    text-color:       @fg;
+    font:             "JetBrainsMono Nerd Font 12";
+}
+
+window {
+    background-color: @bg;
+    border:           2px;
+    border-color:     @ember;
+    border-radius:    10px;
+    width:            600px;
+    padding:          0;
+}
+
+mainbox {
+    padding: 12px;
+    spacing: 10px;
+}
+
+inputbar {
+    background-color: @bg-alt;
+    padding:          10px 14px;
+    border-radius:    8px;
+    spacing:          10px;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    text-color: @ember;
+}
+
+entry {
+    background-color:  transparent;
+    text-color:        @fg;
+    placeholder:       "search";
+    placeholder-color: @teal;
+    cursor:            text;
+}
+
+listview {
+    lines:     8;
+    scrollbar: false;
+    spacing:   4px;
+}
+
+element {
+    background-color: transparent;
+    text-color:       @fg;
+    padding:          8px 12px;
+    border-radius:    8px;
+    spacing:          10px;
+}
+
+element normal.normal,
+element alternate.normal {
+    background-color: transparent;
+    text-color:       @fg;
+}
+
+element normal.active,
+element alternate.active {
+    background-color: transparent;
+    text-color:       @mint;
+}
+
+element selected.normal,
+element selected.active,
+element selected.urgent {
+    background-color: @ember;
+    text-color:       @bg;
+}
+
+element-icon {
+    background-color: transparent;
+    size:             20px;
+    vertical-align:   0.5;
+}
+
+element-text {
+    background-color: transparent;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}

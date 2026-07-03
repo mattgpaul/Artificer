@@ -18,7 +18,7 @@ vim.opt.scrolloff = 8
 vim.opt.updatetime = 50
 vim.opt.clipboard = "unnamedplus"
 
-vim.cmd("colorscheme matts-green")
+vim.cmd("colorscheme dead-world")
 
 require("config.lazy")
 require("keymaps")
