@@ -20,28 +20,49 @@ window#waybar {
     border-bottom: 2px solid @bg2;
 }
 
-/* left/center/right modules share a bit of horizontal padding */
+/* pill styling for grouped modules */
+#custom-launcher,
 #workspaces,
 #window,
 #clock,
 #cpu,
 #memory,
 #pulseaudio,
-#network,
-#battery {
+#network {
+    background: @bg2;
+    border-radius: 8px;
+    margin: 4px 2px;
     padding: 0 10px;
+}
+
+#custom-launcher {
+    color: @ember;
+    font-size: 16px;
+    padding: 0 14px;
+}
+
+#custom-launcher:hover {
+    color: @fg;
+}
+
+#workspaces {
+    padding: 0 4px;
 }
 
 #workspaces button {
     color: @mint;
-    padding: 0 6px;
+    padding: 0 8px;
     background: transparent;
-    border-bottom: 2px solid transparent;
+    border-radius: 6px;
 }
 
 #workspaces button.active {
-    color: @ember;
-    border-bottom: 2px solid @ember;
+    color: @bg;
+    background: @ember;
+}
+
+#workspaces button.empty {
+    color: @teal;
 }
 
 #workspaces button.urgent {
@@ -50,7 +71,7 @@ window#waybar {
 
 #workspaces button:hover {
     color: @fg;
-    background: @bg2;
+    background: @maroon;
 }
 
 #window {
@@ -62,27 +83,7 @@ window#waybar {
     font-weight: bold;
 }
 
-#cpu,
-#memory {
-    color: @teal;
-}
-
-#pulseaudio {
-    color: @fg;
-}
-
-#network {
-    color: @mint;
-}
-
-#battery {
-    color: @fg;
-}
-
-#battery.warning {
-    color: @ember;
-}
-
-#battery.critical {
-    color: @crimson;
-}
+#cpu     { color: @teal; }
+#memory  { color: @teal; }
+#pulseaudio { color: @fg; }
+#network { color: @mint; }

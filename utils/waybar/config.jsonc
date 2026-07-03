@@ -1,64 +1,60 @@
 {
     "layer": "top",
     "position": "top",
-    "height": 30,
+    "height": 32,
     "spacing": 4,
 
-    "modules-left": ["hyprland/workspaces", "hyprland/window"],
+    "modules-left": ["custom/launcher", "hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
-    "modules-right": ["cpu", "memory", "pulseaudio", "network", "battery"],
+    "modules-right": ["cpu", "memory", "pulseaudio", "network"],
+
+    "custom/launcher": {
+        "format": "",
+        "tooltip": false,
+        "on-click": "rofi -show drun"
+    },
 
     "hyprland/workspaces": {
         "format": "{id}",
         "on-click": "activate",
-        "sort-by-number": true
+        "sort-by-number": true,
+        "persistent-workspaces": { "*": 5 }
     },
 
     "hyprland/window": {
-        "format": "{title}",
-        "max-length": 60,
-        "separate-outputs": true
+        "format": "{class}",
+        "icon": true,
+        "icon-size": 16,
+        "max-length": 40,
+        "separate-outputs": true,
+        "rewrite": { "": "desktop" }
     },
 
     "clock": {
-        "format": "{:%a %d %b  %H:%M}",
+        "format": "  {:%a %d %b   %H:%M}",
         "tooltip-format": "<tt><small>{calendar}</small></tt>"
     },
 
     "cpu": {
-        "format": " {usage}%",
+        "format": "  {usage}%",
         "interval": 3
     },
 
     "memory": {
-        "format": " {percentage}%",
+        "format": "  {percentage}%",
         "interval": 5
     },
 
     "pulseaudio": {
-        "format": "{icon} {volume}%",
-        "format-muted": " muted",
-        "format-icons": {
-            "default": ["", "", ""]
-        },
+        "format": "  {volume}%",
+        "format-muted": "  muted",
         "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
     },
 
     "network": {
-        "format-wifi": " {essid}",
-        "format-ethernet": " wired",
-        "format-disconnected": " off",
+        "format-wifi": "  {essid}",
+        "format-ethernet": "  wired",
+        "format-disconnected": "  off",
         "tooltip-format": "{ifname} {ipaddr}"
-    },
-
-    "battery": {
-        "format": "{icon} {capacity}%",
-        "format-charging": " {capacity}%",
-        "format-plugged": " {capacity}%",
-        "format-icons": ["", "", "", "", ""],
-        "states": {
-            "warning": 30,
-            "critical": 15
-        }
     }
 }
