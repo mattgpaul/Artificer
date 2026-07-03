@@ -28,4 +28,8 @@
 		waybar
         hyprpaper
 	];
+
+    fonts.packages = with pkgs; [
+        nerd-fonts.jetbrains-mono
+    ];
 }	

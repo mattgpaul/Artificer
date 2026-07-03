@@ -1,0 +1,88 @@
+/* Sun Eater "dead world" palette */
+@define-color bg      #0e1614;
+@define-color bg2     #18231f;
+@define-color teal    #3c6b5e;
+@define-color maroon  #4a2a24;
+@define-color ember   #e0631f;
+@define-color crimson #b23a1e;
+@define-color fg      #d8d2c8;
+@define-color mint    #9fb2aa;
+
+* {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 13px;
+    min-height: 0;
+}
+
+window#waybar {
+    background: @bg;
+    color: @fg;
+    border-bottom: 2px solid @bg2;
+}
+
+/* left/center/right modules share a bit of horizontal padding */
+#workspaces,
+#window,
+#clock,
+#cpu,
+#memory,
+#pulseaudio,
+#network,
+#battery {
+    padding: 0 10px;
+}
+
+#workspaces button {
+    color: @mint;
+    padding: 0 6px;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+}
+
+#workspaces button.active {
+    color: @ember;
+    border-bottom: 2px solid @ember;
+}
+
+#workspaces button.urgent {
+    color: @crimson;
+}
+
+#workspaces button:hover {
+    color: @fg;
+    background: @bg2;
+}
+
+#window {
+    color: @mint;
+}
+
+#clock {
+    color: @fg;
+    font-weight: bold;
+}
+
+#cpu,
+#memory {
+    color: @teal;
+}
+
+#pulseaudio {
+    color: @fg;
+}
+
+#network {
+    color: @mint;
+}
+
+#battery {
+    color: @fg;
+}
+
+#battery.warning {
+    color: @ember;
+}
+
+#battery.critical {
+    color: @crimson;
+}
