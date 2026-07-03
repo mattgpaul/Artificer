@@ -26,5 +26,6 @@
 		headsetcontrol
 		neovim
 		waybar
+        hyprpaper
 	];
 }	
