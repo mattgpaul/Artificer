@@ -13,10 +13,17 @@
         programs.home-manager.enable = true;
         programs.bash = {
             enable = true;
+            initExtra = ''
+                PS1='\[\e]0;\u@\h: \w\a\]\n\[\e[38;5;46m\]\u\[\e[38;5;38m\]@\[\e[38;5;166m\]\H\[\e[0m\]:\w\$ '
+            '';
         };
         home.packages = with pkgs; [
-# packages here
+            (neovim.override { viAlias = true; vimAlias = true; })
+            bibata-cursors
+            ripgrep
         ];
+
+        home.sessionVariables.EDITOR = "nvim";
         
         home.file = let
             repo = "${config.home.homeDirectory}/Artificer/utils";

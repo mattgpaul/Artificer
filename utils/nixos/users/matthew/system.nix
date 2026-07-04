@@ -10,7 +10,6 @@
 		packages = with pkgs; [
 			claude-code
 				fzf
-				neovim
 				obsidian
 				jujutsu
 				tree 

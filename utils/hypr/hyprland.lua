@@ -58,6 +58,8 @@ local menu        = "rofi -show drun"
 hl.on("hyprland.start", function ()
   hl.exec_cmd("hyprpaper")
   hl.exec_cmd("waybar")
+  hl.exec_cmd("firefox")    -- routed to ws4 (silent) by window rule below
+  hl.exec_cmd("obsidian")   -- routed to ws5 (silent) by window rule below
 end)
 
 
@@ -67,8 +69,10 @@ end)
 
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Environment-variables/
 
-hl.env("XCURSOR_SIZE", "24")
-hl.env("HYPRCURSOR_SIZE", "24")
+hl.env("XCURSOR_THEME",    "Bibata-Modern-Classic")
+hl.env("XCURSOR_SIZE",     "24")
+hl.env("HYPRCURSOR_THEME", "Bibata-Modern-Classic")
+hl.env("HYPRCURSOR_SIZE",  "24")
 
 
 -----------------------
@@ -381,4 +385,25 @@ hl.window_rule({
 
     move  = "20 monitor_h-120",
     float = true,
+})
+
+-- Default workspace layout:
+--   1, 2 = unassigned
+--   3    = default/blank on login (just the wallpaper)
+--   4    = firefox
+--   5    = obsidian
+hl.workspace_rule({ workspace = 3, default = true })
+
+-- Route apps to their workspaces. "silent" = open there without stealing
+-- focus, so login lands on the blank ws3.
+hl.window_rule({
+    name  = "firefox-ws4",
+    match = { class = "firefox" },
+    workspace = "4 silent",
+})
+
+hl.window_rule({
+    name  = "obsidian-ws5",
+    match = { class = "obsidian" },
+    workspace = "5 silent",
 })
