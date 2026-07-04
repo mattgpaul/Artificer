@@ -29,15 +29,11 @@
 	environment.systemPackages = with pkgs; [
 		bat
 		btop
-		claude-code
 		kitty
 		rofi
-		fzf
 		headsetcontrol
-		neovim
 		waybar
 		hyprpaper
-		obsidian
 	];
 
     fonts.packages = with pkgs; [

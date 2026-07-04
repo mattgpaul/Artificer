@@ -1,16 +1,31 @@
 {
-	description = "Matthew's NixOS systems";
-	
-	inputs = {
-		nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-	};
+    description = "Matthew's NixOS systems";
 
-	outputs = { self, nixpkgs }: {
-		nixosConfigurations.sevro = nixpkgs.lib.nixosSystem {
-			modules = [
-				./utils/nixos/common.nix
-				./utils/nixos/hosts/sevro.nix
-			];
-		};
-	};
+    inputs = {
+        nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+        home-manager = {
+            url = "github:nix-community/home-manager";
+            inputs.nixpkgs.follows = "nixpkgs";
+        };
+    };
+
+    outputs = {
+        self, 
+        nixpkgs,
+        ...
+    }@inputs: 
+    let
+        mkHost = hostModule:
+        nixpkgs.lib.nixosSystem {
+            specialArgs = { inherit inputs; };
+            modules = [
+                ./utils/nixos/common.nix
+                    hostModule
+            ];
+        };
+    in {
+        nixosConfigurations = {
+            sevro = mkHost ./utils/nixos/hosts/sevro/sevro.nix;
+        };
+    };
 }

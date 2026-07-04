@@ -2,9 +2,13 @@
 
 {
 	imports = [
-		 ../hardware-configuration.nix 
-		../profiles/desktop.nix
-		../users/matthew.nix
+        #Hardware
+        ./hardware-configuration.nix
+        #Desktop
+		../../profiles/desktop.nix
+        #Users
+        ../../users/matthew/system.nix
+        ../../users/matthew/home.nix
 	];
 
 	networking.hostName = "sevro";
