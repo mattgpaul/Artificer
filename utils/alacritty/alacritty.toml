@@ -33,6 +33,7 @@ opacity      = 0.85
 history    = 10000
 multiplier = 3
 
+# keybind: Shift+Return|Send ESC+CR on shift-enter (e.g. multiline input in TUIs)
 [[keyboard.bindings]]
 key = "Return"
 mods = "Shift"
