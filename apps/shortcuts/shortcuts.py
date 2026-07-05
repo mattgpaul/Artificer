@@ -1,3 +1,4 @@
+import sys, termios, tty
 from pathlib import Path
 # manifest of dotfiles to go through
 root_dir = Path("~/Artificer/utils")
@@ -21,6 +22,15 @@ def parse_dotfile(file: Path, identifier: str) -> dict[str, str]:
                 result[binding] = description
     return result
 
+def wait_any_key() -> None:
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
 keymaps = {}
 for dotfile in manifest:
     full_path = root_dir / dotfile
@@ -34,3 +44,5 @@ for file, binds in keymaps.items():
     width = max((len(k) for k in binds), default=0)
     for binding, desc in binds.items():
         print(f"    {binding:<{width}}  {desc}")
+
+wait_any_key()

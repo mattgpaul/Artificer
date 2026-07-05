@@ -286,6 +286,9 @@ hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- keybin
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu)) -- keybind: SUPER+D|Open app launcher (rofi drun)
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- keybind: SUPER+P|Toggle pseudotile on active window
 
+-- Keybind cheatsheet: floating alacritty running the shortcuts script; any key dismisses it (handled in the script).
+hl.bind(mainMod .. " + SHIFT + slash", hl.dsp.exec_cmd("alacritty --class cheatsheet -e python3 ~/Artificer/apps/shortcuts/shortcuts.py")) -- keybind: SUPER+SHIFT+slash|Keybind cheatsheet (press any key to dismiss)
+
 -- Scrolling-layout window sizing
 hl.bind(mainMod .. " + F",         hl.dsp.layout("colresize 1.0"))    -- keybind: SUPER+F|Maximize focused window to full width
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen())        -- keybind: SUPER+SHIFT+F|True fullscreen
@@ -397,6 +400,16 @@ hl.window_rule({
 })
 
 -- No permanent workspaces; nothing is routed or opened at startup.
+
+-- Keybind cheatsheet (SUPER+SHIFT+slash): float it centered, sized to roughly
+-- half the screen. Matches the --class passed to alacritty in the bind above.
+hl.window_rule({
+    name  = "cheatsheet",
+    match = { class = "cheatsheet" },
+    float = true,
+    size  = "monitor_w*0.5 monitor_h*0.6",
+    move  = "monitor_w*0.25 monitor_h*0.2",
+})
 
 -- Obsidian scratchpad: whenever Obsidian opens it floats onto a dedicated
 -- special workspace, toggled in/out of view with SUPER+N.
