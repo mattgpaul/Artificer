@@ -46,23 +46,23 @@ M.config = {
     -- normal LSP-gather + inline-diff path; only the instruction is fixed.
     presets = {
         {
-            key = 'i', desc = 'implement selection', -- keybind: x <leader>ki|Claude preset: implement selection
+            key = 'i', desc = 'implement selection', -- keybind: <leader>ki|Claude preset: implement selection
             instruction = 'Implement the selected code using the surrounding context, the declared types/signatures, and the referenced definitions provided. Replace the selection with a complete, working implementation. Keep any existing signature unchanged unless it is an incomplete stub.',
         },
         {
-            key = 'd', desc = 'document selection', -- keybind: x <leader>kd|Claude preset: document selection
+            key = 'd', desc = 'document selection', -- keybind: <leader>kd|Claude preset: document selection
             instruction = 'Add idiomatic doc comments to the selected code. Do not change its logic, signatures, or behavior — only add documentation.',
         },
         {
-            key = 'r', desc = 'refactor / simplify', -- keybind: x <leader>kr|Claude preset: refactor / simplify
+            key = 'r', desc = 'refactor / simplify', -- keybind: <leader>kr|Claude preset: refactor / simplify
             instruction = 'Refactor the selected code to be cleaner and more idiomatic for its language while preserving its exact behavior and public signature.',
         },
         {
-            key = 'f', desc = 'fix / debug', -- keybind: x <leader>kf|Claude preset: fix / debug
+            key = 'f', desc = 'fix / debug', -- keybind: <leader>kf|Claude preset: fix / debug
             instruction = 'Find and fix any bugs in the selected code. Preserve its intent and signature; output only the corrected code.',
         },
         {
-            key = 'p', desc = 'improve performance', -- keybind: x <leader>kp|Claude preset: improve performance
+            key = 'p', desc = 'improve performance', -- keybind: <leader>kp|Claude preset: improve performance
             instruction = 'Improve the performance of the selected code: prefer stack allocation over heap, avoid unnecessary allocations/clones, and keep behavior and signatures unchanged.',
         },
     },
@@ -145,12 +145,12 @@ local function show_diff(bufnr, start_line, old_lines, new_lines)
         pcall(vim.keymap.del, 'n', '<leader>dr', { buffer = bufnr })
     end
 
-    vim.keymap.set('n', '<leader>da', function() -- keybind: n <leader>da|Claude: accept inline change (buffer-local during diff)
+    vim.keymap.set('n', '<leader>da', function() -- keybind: <leader>da|Claude: accept inline change (buffer-local during diff)
         finish()
         vim.notify('Claude change accepted', vim.log.levels.INFO)
     end, { buffer = bufnr, desc = 'Claude: accept change' })
 
-    vim.keymap.set('n', '<leader>dr', function() -- keybind: n <leader>dr|Claude: reject inline change (buffer-local during diff)
+    vim.keymap.set('n', '<leader>dr', function() -- keybind: <leader>dr|Claude: reject inline change (buffer-local during diff)
         vim.api.nvim_buf_set_lines(bufnr, start_line - 1, start_line - 1 + #new_lines, false, old_lines)
         finish()
         vim.notify('Claude change rejected', vim.log.levels.INFO)
@@ -734,9 +734,9 @@ local function open_prompt_window(start_line, end_line, on_submit, preset)
         return
     end
 
-    vim.keymap.set({ 'n', 'i' }, '<CR>', function() submit() end, { buffer = buf }) -- keybind: n,i <CR>|Claude prompt window: submit instruction
-    vim.keymap.set({ 'n', 'i' }, '<Esc>', close, { buffer = buf }) -- keybind: n,i <Esc>|Claude prompt window: close
-    vim.keymap.set('n', 'q', close, { buffer = buf }) -- keybind: n q|Claude prompt window: close
+    vim.keymap.set({ 'n', 'i' }, '<CR>', function() submit() end, { buffer = buf }) -- keybind: <CR>|Claude prompt window: submit instruction
+    vim.keymap.set({ 'n', 'i' }, '<Esc>', close, { buffer = buf }) -- keybind: <Esc>|Claude prompt window: close
+    vim.keymap.set('n', 'q', close, { buffer = buf }) -- keybind: q|Claude prompt window: close
 
     vim.cmd('startinsert')
 end
@@ -777,13 +777,13 @@ function M.setup()
 
     -- <leader>k is a chord prefix: <leader>kk opens the interactive prompt; the
     -- preset keys below fire a canned instruction with no prompt box.
-    vim.keymap.set('x', '<leader>kk', function() -- keybind: x <leader>kk|Claude: inline edit selection (prompt)
+    vim.keymap.set('x', '<leader>kk', function() -- keybind: <leader>kk|Claude: inline edit selection (prompt)
         -- Leave visual mode first so the '< '> marks are committed.
         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'nx', false)
         inline_edit(vim.fn.line("'<"), vim.fn.line("'>"), true)
     end, { desc = 'Claude: inline edit selection (prompt)' })
 
-    vim.keymap.set('n', '<leader>kk', function() -- keybind: n <leader>kk|Claude: inline edit current line (prompt)
+    vim.keymap.set('n', '<leader>kk', function() -- keybind: <leader>kk|Claude: inline edit current line (prompt)
         local l = vim.fn.line('.')
         inline_edit(l, l, false)
     end, { desc = 'Claude: inline edit line (prompt)' })

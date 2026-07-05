@@ -60,7 +60,7 @@ return {
 
   keys = {
     -- The one keybind: open/create today's daily note.
-    { '<leader>o', open_today, desc = 'Obsidian: today (daily note, split)' }, -- keybind: n <leader>o|Obsidian: open/create today's daily note (split)
+    { '<leader>o', open_today, desc = 'Obsidian: today (daily note, split)' }, -- keybind: <leader>o|Obsidian: open/create today's daily note (split)
   },
 
   opts = {
@@ -158,7 +158,7 @@ return {
         if vim.bo[args.buf].filetype ~= 'markdown' then
           return
         end
-        vim.keymap.set('n', 'gd', follow_or_create, { -- keybind: n gd|Obsidian markdown: follow link / create note, no prompt (overrides LSP gd)
+        vim.keymap.set('n', 'gd', follow_or_create, { -- keybind: gd|Obsidian markdown: follow link / create note, no prompt (overrides LSP gd)
           buffer = args.buf,
           desc = 'Obsidian: follow link / create note (no prompt)',
         })

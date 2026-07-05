@@ -58,8 +58,6 @@ local menu        = "rofi -show drun"
 hl.on("hyprland.start", function ()
   hl.exec_cmd("hyprpaper")
   hl.exec_cmd("waybar")
-  hl.exec_cmd("firefox")    -- routed to ws4 (silent) by window rule below
-  hl.exec_cmd("obsidian")   -- routed to ws5 (silent) by window rule below
 end)
 
 
@@ -302,6 +300,12 @@ hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" })) -- keybind: SU
 hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" })) -- keybind: SUPER+K|Focus window up
 hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" })) -- keybind: SUPER+J|Focus window down
 
+-- Move window with mainMod + SHIFT + hjkl (mirror of the focus binds above)
+hl.bind(mainMod .. " + SHIFT + H", hl.dsp.layout("consume_or_expel prev")) -- keybind: SUPER+SHIFT+H|Move window left (join column / split back out)
+hl.bind(mainMod .. " + SHIFT + L", hl.dsp.layout("consume_or_expel next")) -- keybind: SUPER+SHIFT+L|Move window right (join column / split back out)
+hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "up" }))    -- keybind: SUPER+SHIFT+K|Move window up
+hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))  -- keybind: SUPER+SHIFT+J|Move window down
+
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
 for i = 1, 10 do
@@ -314,6 +318,11 @@ end
 hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic")) -- keybind: SUPER+S|Toggle special workspace (magic scratchpad)
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" })) -- keybind: SUPER+SHIFT+S|Move active window to special workspace (magic)
 
+-- Obsidian scratchpad: start it on first use, then toggle it in/out of view.
+-- hyprctl dispatch takes a Lua expression in this config, hence the hl.dsp.* args.
+hl.bind(mainMod .. " + N",
+    hl.dsp.exec_cmd([[hyprctl clients | grep -q 'class: obsidian' || hyprctl dispatch 'hl.dsp.exec_cmd("obsidian")'; hyprctl dispatch 'hl.dsp.workspace.toggle_special("notes")']])) -- keybind: SUPER+N|Obsidian scratchpad (launch / toggle, floating)
+
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" })) -- keybind: SUPER+ScrollDown|Focus next workspace
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" })) -- keybind: SUPER+ScrollUp|Focus previous workspace
@@ -323,18 +332,18 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true }) -- 
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true }) -- keybind: SUPER+RMB|Drag to resize window
 
 -- Laptop multimedia keys for volume and LCD brightness
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true }) -- keybind: XF86AudioRaiseVolume|Raise output volume 5%
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true }) -- keybind: XF86AudioLowerVolume|Lower output volume 5%
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true }) -- keybind: XF86AudioMute|Toggle output mute
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true }) -- keybind: XF86AudioMicMute|Toggle microphone mute
-hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true }) -- keybind: XF86MonBrightnessUp|Raise screen brightness 5%
-hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true }) -- keybind: XF86MonBrightnessDown|Lower screen brightness 5%
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
 
 -- Requires playerctl
-hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true }) -- keybind: XF86AudioNext|Next track (playerctl)
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true }) -- keybind: XF86AudioPause|Play/pause (playerctl)
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true }) -- keybind: XF86AudioPlay|Play/pause (playerctl)
-hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true }) -- keybind: XF86AudioPrev|Previous track (playerctl)
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
 
 --------------------------------
@@ -387,23 +396,15 @@ hl.window_rule({
     float = true,
 })
 
--- Default workspace layout:
---   1, 2 = unassigned
---   3    = default/blank on login (just the wallpaper)
---   4    = firefox
---   5    = obsidian
-hl.workspace_rule({ workspace = 3, default = true })
+-- No permanent workspaces; nothing is routed or opened at startup.
 
--- Route apps to their workspaces. "silent" = open there without stealing
--- focus, so login lands on the blank ws3.
+-- Obsidian scratchpad: whenever Obsidian opens it floats onto a dedicated
+-- special workspace, toggled in/out of view with SUPER+N.
 hl.window_rule({
-    name  = "firefox-ws4",
-    match = { class = "firefox" },
-    workspace = "4 silent",
-})
-
-hl.window_rule({
-    name  = "obsidian-ws5",
+    name  = "obsidian-scratch",
     match = { class = "obsidian" },
-    workspace = "5 silent",
+    workspace = "special:notes silent",
+    float = true,
+    size  = "monitor_w*0.6 monitor_h*0.85",
+    move  = "monitor_w*0.2 monitor_h*0.075",
 })
