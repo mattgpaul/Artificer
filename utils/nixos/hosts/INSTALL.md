@@ -11,6 +11,25 @@ lsblk          # identify the target disk -> this is DISK, e.g. /dev/nvme0n1
 > **Partition suffix gotcha:** NVMe = `DISKp1`, `DISKp2`... (e.g. `/dev/nvme0n1p1`).
 > SATA/SSD = `DISK1`, `DISK2`... (e.g. `/dev/sda1`). Substitute accordingly below.
 
+## 0.5. Connect to WiFi (skip if on ethernet)
+
+NetworkManager is running on the graphical ISO. Use the TUI:
+```bash
+nmtui
+# Activate a connection -> pick your network -> enter password
+```
+
+On the **minimal ISO** (no NetworkManager), use wpa_supplicant directly:
+```bash
+ip link                                                  # find interface name, e.g. wlp13s0
+wpa_passphrase "YourSSID" "YourPassword" > /tmp/wifi.conf
+wpa_supplicant -B -i wlp13s0 -c /tmp/wifi.conf
+dhcpcd wlp13s0
+```
+
+> Credentials do **not** carry over to the installed system. You will need to connect again
+> in step 6 after first boot — use `nmtui` there too.
+
 ## 1. Partition (GPT: ESP + swap + root)
 ```bash
 parted /dev/DISK -- mklabel gpt
@@ -52,7 +71,8 @@ reboot
 
 ## 6. Boot into the new system -> apply the flake
 ```bash
-# log in, get on the network / tailnet, then:
+# log in, connect to WiFi if needed (see step 0.5 — same nmtui command applies here),
+# then:
 git clone <your-repo> Artificer
 cd Artificer
 
