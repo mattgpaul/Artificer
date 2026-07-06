@@ -26,6 +26,7 @@
     in {
         nixosConfigurations = {
             sevro = mkHost ./utils/nixos/hosts/sevro/sevro.nix;
+            cerebro = mkHost ./utils/nixos/hosts/cerebro/cerebro.nix;
         };
     };
 }

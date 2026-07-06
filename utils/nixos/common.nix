@@ -29,7 +29,11 @@
 		};
 	};
 
-	services.tailscale.enable = true;
+	services.tailscale = {
+        enable = true;
+        extraUpFlags = [ "--ssh" ];
+    };
+
 	services.udev.packages = with pkgs; [
 		game-devices-udev-rules
 	];

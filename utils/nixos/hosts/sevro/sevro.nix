@@ -7,6 +7,7 @@
         #Desktop
 		../../profiles/desktop.nix
         #Users
+        ../../users/admin/system.nix
         ../../users/matthew/system.nix
         ../../users/matthew/home.nix
 	];
@@ -22,6 +23,8 @@
 		"net.ipv4.ip_forward" = 1;
 		"net.ipv6.conf.all.forwarding" = 1;
 	};
+
+    servises.tailscale.extraUpFlags = [ "--advertise-exit-node" ];
 
 	#NVIDIA
 	#TODO: split into its own hardware module
