@@ -24,7 +24,7 @@
 		"net.ipv6.conf.all.forwarding" = 1;
 	};
 
-    servises.tailscale.extraUpFlags = [ "--advertise-exit-node" ];
+    services.tailscale.extraUpFlags = [ "--advertise-exit-node" ];
 
 	#NVIDIA
 	#TODO: split into its own hardware module
