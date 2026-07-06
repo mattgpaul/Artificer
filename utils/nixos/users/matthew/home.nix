@@ -27,15 +27,12 @@
 
         home.sessionVariables.EDITOR = "nvim";
         
-        home.file = let
-            repo = "${config.home.homeDirectory}/Artificer/utils";
-            link = config.lib.file.mkOutOfStoreSymlink;
-        in {
-            ".config/nvim".source = link "${repo}/nvim";
-            ".config/rofi".source = link "${repo}/rofi";
-            ".config/alacritty".source = link "${repo}/alacritty";
-            ".config/hypr".source = link "${repo}/hypr";
-            ".config/waybar".source = link "${repo}/waybar";
+        home.file = { 
+            ".config/nvim".source = ../../../nvim;
+            ".config/rofi".source = ../../../rofi;
+            ".config/alacritty".source = ../../../alacritty;
+            ".config/hypr".source = ../../../hypr;
+            ".config/waybar".source = ../../../waybar;
         };
 
         programs.fzf = {
