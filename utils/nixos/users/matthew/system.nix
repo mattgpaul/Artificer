@@ -23,6 +23,9 @@
             gst = "git status";
             gco = "git checkout";
             glg = "git log --oneline --graph --decorate";
+            nrs = "sudo nixos-rebuild switch";
+            nrt = "sudo nixos-rebuild test";
+            nrb = "sudo nixos-rebuild boot";
         };
     };
 
