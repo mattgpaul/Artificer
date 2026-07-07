@@ -3,7 +3,9 @@
 
     #CPU
     services.tlp.enable = true;
+    services.thermald.enable = true;
     services.printing.enable = true;
+    services.fwupd.enable = true;
 
     #Trackpad
     services.libinput.enable = true;
@@ -20,7 +22,7 @@
 
     #Lid
     services.logind.settings.Login = {
-        HandleLidSwitch = "poweroff";
+        HandleLidSwitch = "lock";
         HandleLidSwitchExternalPower = "lock";
         HandleLidSwitchDocked = "ignore";
     };
@@ -38,6 +40,8 @@
 	#Hyperland
 	programs.hyprland.enable = true;
 	programs.hyprland.withUWSM = false;
+	programs.hyprlock.enable = true;
+	services.hypridle.enable = true;
 	
 	#Login
 	services.displayManager.sddm.enable = true;
@@ -57,10 +61,19 @@
 		waybar
 		hyprpaper
         python313
+        google-chrome
+        slack
+        brightnessctl
+        grim
+        slurp
+        wl-clipboard
+        cliphist
 	];
 
     #Fonts
     fonts.packages = with pkgs; [
         nerd-fonts.jetbrains-mono
+        noto-fonts
+        noto-fonts-color-emoji
     ];
 }	

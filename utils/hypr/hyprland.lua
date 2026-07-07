@@ -58,6 +58,8 @@ local menu        = "rofi -show drun"
 hl.on("hyprland.start", function ()
   hl.exec_cmd("hyprpaper")
   hl.exec_cmd("waybar")
+  hl.exec_cmd("wl-paste --watch cliphist store")
+  hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE && systemctl --user start hypridle.service")
 end)
 
 
@@ -347,6 +349,13 @@ hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = tr
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+
+-- Screen lock (hyprlock), screenshots (grim + slurp), clipboard history (cliphist)
+hl.bind(mainMod .. " + X",         hl.dsp.exec_cmd("hyprlock"))                                                                                    -- keybind: SUPER+X|Lock screen (hyprlock)
+hl.bind("Print",                   hl.dsp.exec_cmd([[grim -g "$(slurp)" - | wl-copy]]))                                                            -- keybind: Print|Screenshot region to clipboard
+hl.bind("SHIFT + Print",           hl.dsp.exec_cmd("grim - | wl-copy"))                                                                            -- keybind: SHIFT+Print|Screenshot whole screen to clipboard
+hl.bind(mainMod .. " + Print",     hl.dsp.exec_cmd([[mkdir -p ~/Pictures/Screenshots && grim -g "$(slurp)" ~/Pictures/Screenshots/$(date +%Y%m%d_%H%M%S).png]])) -- keybind: SUPER+Print|Screenshot region to file (~/Pictures/Screenshots)
+hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd([[cliphist list | rofi -dmenu | cliphist decode | wl-copy]]))                                   -- keybind: SUPER+SHIFT+V|Clipboard history (cliphist via rofi)
 
 
 --------------------------------

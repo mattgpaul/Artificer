@@ -13,6 +13,7 @@
 	#Hyperland
 	programs.hyprland.enable = true;
 	programs.hyprland.withUWSM = false;
+	programs.hyprlock.enable = true;
 	
 	#Login
 	services.displayManager.sddm.enable = true;
@@ -35,6 +36,10 @@
 		waybar
 		hyprpaper
         python313
+        grim
+        slurp
+        wl-clipboard
+        cliphist
 	];
 
     fonts.packages = with pkgs; [

@@ -23,6 +23,7 @@
             pyright
             rust-analyzer
             ripgrep
+            mesa-demos
         ];
 
         home.sessionVariables.EDITOR = "nvim";
