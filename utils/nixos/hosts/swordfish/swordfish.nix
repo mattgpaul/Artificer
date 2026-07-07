@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 {
     imports = [
-        ./mock-hardware-configuration.nix
+        ./hardware-configuration.nix
         ../../profiles/work.nix
         ../../users/matthew/system.nix
         ../../users/matthew/home.nix
