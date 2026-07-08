@@ -22,11 +22,29 @@
 ------------------
 
 -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
+-- external monitor at home (1080p 165Hz) - catch-all, sits on top
 hl.monitor({
     output   = "",
     mode     = "1920x1080@165.00",
-    position = "auto",
+    position = "0x0",
     scale    = "auto",
+})
+
+-- work ultrawide (Samsung C34H89x) - overrides the wildcard above, sits on top
+hl.monitor({
+    output   = "desc:Samsung Electric Company C34H89x HCJTA03681",
+    mode     = "3440x1440@99.98",
+    position = "0x0",
+    scale    = "1",
+})
+
+-- laptop screen - centered below the work ultrawide ((3440-1920)/2 = 760)
+-- NOTE: 760 offset is specific to the ultrawide; revisit for the home setup
+hl.monitor({
+    output   = "eDP-1",
+    mode     = "preferred",
+    position = "760x1440",
+    scale    = "2",
 })
 
 
@@ -311,6 +329,12 @@ hl.bind(mainMod .. " + SHIFT + L", hl.dsp.layout("consume_or_expel next")) -- ke
 hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "up" }))    -- keybind: SUPER+SHIFT+K|Move window up
 hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }))  -- keybind: SUPER+SHIFT+J|Move window down
 
+-- Move the current workspace to the monitor in a direction (mirror of hjkl, with CTRL)
+hl.bind(mainMod .. " + CTRL + H", hl.dsp.workspace.move({ monitor = "l" })) -- keybind: SUPER+CTRL+H|Move workspace to monitor left
+hl.bind(mainMod .. " + CTRL + L", hl.dsp.workspace.move({ monitor = "r" })) -- keybind: SUPER+CTRL+L|Move workspace to monitor right
+hl.bind(mainMod .. " + CTRL + K", hl.dsp.workspace.move({ monitor = "u" })) -- keybind: SUPER+CTRL+K|Move workspace to monitor up
+hl.bind(mainMod .. " + CTRL + J", hl.dsp.workspace.move({ monitor = "d" })) -- keybind: SUPER+CTRL+J|Move workspace to monitor down
+
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
 for i = 1, 10 do
@@ -327,6 +351,9 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:mag
 -- hyprctl dispatch takes a Lua expression in this config, hence the hl.dsp.* args.
 hl.bind(mainMod .. " + N",
     hl.dsp.exec_cmd([[hyprctl clients | grep -q 'class: obsidian' || hyprctl dispatch 'hl.dsp.exec_cmd("obsidian")'; hyprctl dispatch 'hl.dsp.workspace.toggle_special("notes")']])) -- keybind: SUPER+N|Obsidian scratchpad (launch / toggle, floating)
+
+-- Yazi: spawn a new terminal running yazi.
+hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(terminal .. " -e yazi")) -- keybind: SUPER+Y|Open yazi in a new terminal
 
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" })) -- keybind: SUPER+ScrollDown|Focus next workspace
