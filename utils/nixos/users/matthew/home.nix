@@ -6,7 +6,28 @@
     home-manager.useUserPackages = true;
     home-manager.backupFileExtension = "backup";
 
-    home-manager.users.matthew = { config, pkgs, ... }: {
+    home-manager.users.matthew = { config, pkgs, osConfig, ... }:
+    let
+        waybarBase = builtins.fromJSON (builtins.readFile ../../../waybar/config.jsonc);
+        waybarConfig = if osConfig.networking.hostName == "swordfish"
+            then waybarBase // {
+                modules-right = [ "cpu" "memory" "pulseaudio" "battery" "network" ];
+                battery = {
+                    interval = 10;
+                    states = { good = 80; warning = 30; critical = 15; };
+                    format = "{icon}  {capacity}%";
+                    format-charging = "{icon}  {capacity}%";
+                    format-plugged = "{icon}  {capacity}%";
+                    format-full = "{icon}  {capacity}%";
+                    format-icons = {
+                        charging = [ "󰢜" "󰂆" "󰂇" "󰂈" "󰢝" "󰂉" "󰢞" "󰂊" "󰂋" "󰂅" ];
+                        default = [ "󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹" ];
+                    };
+                    tooltip-format = "{timeTo} ({power}W)";
+                };
+            }
+            else waybarBase;
+    in {
         home.username = "matthew";
         home.homeDirectory = "/home/matthew";
         home.stateVersion = "26.05";
@@ -24,6 +45,7 @@
             rust-analyzer
             ripgrep
             mesa-demos
+            yazi
         ];
 
         home.sessionVariables.EDITOR = "nvim";
@@ -31,9 +53,11 @@
         home.file = { 
             ".config/nvim".source = ../../../nvim;
             ".config/rofi".source = ../../../rofi;
+            ".config/yazi".source = ../../../yazi;
             ".config/alacritty".source = ../../../alacritty;
             ".config/hypr".source = ../../../hypr;
-            ".config/waybar".source = ../../../waybar;
+            ".config/waybar/style.css".source = ../../../waybar/style.css;
+            ".config/waybar/config.jsonc".text = builtins.toJSON waybarConfig;
         };
 
         programs.fzf = {

@@ -1,0 +1,161 @@
+# Sun Eater "dead world" — ember on deep teal
+# Palette mirrors alacritty/themes/dead-world.toml:
+#   bg #0e1614  bg2 #18231f  fg #d8d2c8  mint #9fb2aa
+#   ember #e0631f  teal #3c6b5e  crimson #b23a1e  maroon #4a2a24
+#   green #5e8f6e  yellow #d4913c  blue #5a7f8f  magenta #9e6b7a
+#   gray #3c4a44  lock/panel #24332e
+
+# -------------------------------------------------- files & panels
+[mgr]
+cwd = { fg = "#9fb2aa" }
+
+# hovered row: ink on ember
+hovered         = { fg = "#0e1614", bg = "#e0631f", bold = true }
+preview_hovered = { underline = true }
+
+find_keyword  = { fg = "#d4913c", italic = true, bold = true }
+find_position = { fg = "#c08a98", bg = "reset", italic = true }
+
+# selection / yank markers (thin left bar) + count bubbles
+marker_copied   = { fg = "#5e8f6e", bg = "#5e8f6e" }
+marker_cut      = { fg = "#b23a1e", bg = "#b23a1e" }
+marker_marked   = { fg = "#3c6b5e", bg = "#3c6b5e" }
+marker_selected = { fg = "#e0631f", bg = "#e0631f" }
+
+count_copied   = { fg = "#0e1614", bg = "#5e8f6e" }
+count_cut      = { fg = "#f0ebe0", bg = "#b23a1e" }
+count_selected = { fg = "#0e1614", bg = "#e0631f" }
+
+# tabs
+tab_active   = { fg = "#0e1614", bg = "#e0631f", bold = true }
+tab_inactive = { fg = "#9fb2aa", bg = "#18231f" }
+tab_width    = 1
+
+# panel borders
+border_symbol = "│"
+border_style  = { fg = "#3c6b5e" }
+
+# -------------------------------------------------- mode indicator (status left)
+[mode]
+normal_main = { fg = "#0e1614", bg = "#e0631f", bold = true }
+normal_alt  = { fg = "#e0631f", bg = "#18231f" }
+
+select_main = { fg = "#0e1614", bg = "#5e8f6e", bold = true }
+select_alt  = { fg = "#5e8f6e", bg = "#18231f" }
+
+unset_main  = { fg = "#0e1614", bg = "#9e6b7a", bold = true }
+unset_alt   = { fg = "#9e6b7a", bg = "#18231f" }
+
+# -------------------------------------------------- status bar
+[status]
+separator_open  = ""
+separator_close = ""
+separator_style = { fg = "#18231f", bg = "#18231f" }
+
+progress_label  = { fg = "#f0ebe0", bold = true }
+progress_normal = { fg = "#e0631f", bg = "#18231f" }
+progress_error  = { fg = "#b23a1e", bg = "#18231f" }
+
+perm_type = { fg = "#5e8f6e" }
+perm_read = { fg = "#d4913c" }
+perm_write = { fg = "#b23a1e" }
+perm_exec = { fg = "#3c6b5e" }
+perm_sep = { fg = "#3c4a44" }
+
+# -------------------------------------------------- which-key
+[which]
+mask            = { bg = "#18231f" }
+cand            = { fg = "#e0631f" }
+rest            = { fg = "#9fb2aa" }
+desc            = { fg = "#d8d2c8" }
+separator       = "  "
+separator_style = { fg = "#3c4a44" }
+
+# -------------------------------------------------- tasks
+[tasks]
+border  = { fg = "#3c6b5e" }
+title   = { fg = "#d8d2c8" }
+hovered = { fg = "#e0631f", underline = true }
+
+# -------------------------------------------------- input / confirm / picker
+[input]
+border   = { fg = "#e0631f" }
+title    = { fg = "#d8d2c8" }
+value    = { fg = "#d8d2c8" }
+selected = { reversed = true }
+
+[confirm]
+border     = { fg = "#e0631f" }
+title      = { fg = "#e0631f" }
+content    = { fg = "#d8d2c8" }
+list       = { fg = "#9fb2aa" }
+btn_yes    = { fg = "#0e1614", bg = "#e0631f", bold = true }
+btn_no     = { fg = "#9fb2aa" }
+btn_labels = [ "  [Y]es  ", "  (N)o  " ]
+
+[pick]
+border   = { fg = "#3c6b5e" }
+active   = { fg = "#e0631f", bold = true }
+inactive = { fg = "#9fb2aa" }
+
+# -------------------------------------------------- completion popup
+[cmp]
+border       = { fg = "#3c6b5e" }
+active       = { fg = "#0e1614", bg = "#e0631f", bold = true }
+inactive     = { fg = "#9fb2aa" }
+icon_file    = ""
+icon_folder  = ""
+icon_command = ""
+
+# -------------------------------------------------- spot / notifications
+[spot]
+border   = { fg = "#3c6b5e" }
+title    = { fg = "#e0631f" }
+tbl_col  = { fg = "#e0631f" }
+tbl_cell = { fg = "#0e1614", bg = "#e0631f" }
+
+[notify]
+title_info  = { fg = "#5e8f6e" }
+title_warn  = { fg = "#d4913c" }
+title_error = { fg = "#b23a1e" }
+icon_info   = ""
+icon_warn   = ""
+icon_error  = ""
+
+# -------------------------------------------------- help menu
+[help]
+on      = { fg = "#e0631f" }
+run     = { fg = "#9e6b7a" }
+hovered = { reversed = true, bold = true }
+footer  = { fg = "#0e1614", bg = "#9fb2aa" }
+
+# -------------------------------------------------- filetype coloring
+[filetype]
+rules = [
+    # directories & links
+    { url = "*/", fg = "#9fb2aa" },
+    { url = "*", is = "orphan", fg = "#b23a1e" },
+    { url = "*", is = "link",   fg = "#5e9f8e" },
+
+    # media
+    { mime = "image/*", fg = "#3c6b5e" },
+    { mime = "video/*", fg = "#e0631f" },
+    { mime = "audio/*", fg = "#e0631f" },
+
+    # archives
+    { mime = "application/zip",             fg = "#b23a1e" },
+    { mime = "application/gzip",            fg = "#b23a1e" },
+    { mime = "application/x-tar",           fg = "#b23a1e" },
+    { mime = "application/x-bzip2",         fg = "#b23a1e" },
+    { mime = "application/x-7z-compressed", fg = "#b23a1e" },
+    { mime = "application/x-rar",           fg = "#b23a1e" },
+    { mime = "application/xz",              fg = "#b23a1e" },
+
+    # docs / config
+    { mime = "application/pdf",     fg = "#9e6b7a" },
+    { mime = "application/json",    fg = "#d4913c" },
+    { mime = "text/*",              fg = "#d8d2c8" },
+
+    # fallback
+    { url = "*", fg = "#d8d2c8" },
+]

@@ -22,8 +22,8 @@
 
     #Lid
     services.logind.settings.Login = {
-        HandleLidSwitch = "lock";
-        HandleLidSwitchExternalPower = "lock";
+        HandleLidSwitch = "suspend";
+        HandleLidSwitchExternalPower = "suspend";
         HandleLidSwitchDocked = "ignore";
     };
     

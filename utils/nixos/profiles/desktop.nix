@@ -14,6 +14,7 @@
 	programs.hyprland.enable = true;
 	programs.hyprland.withUWSM = false;
 	programs.hyprlock.enable = true;
+	services.hypridle.enable = lib.mkForce false;
 	
 	#Login
 	services.displayManager.sddm.enable = true;
