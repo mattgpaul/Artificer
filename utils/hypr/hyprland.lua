@@ -352,9 +352,6 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:mag
 hl.bind(mainMod .. " + N",
     hl.dsp.exec_cmd([[hyprctl clients | grep -q 'class: obsidian' || hyprctl dispatch 'hl.dsp.exec_cmd("obsidian")'; hyprctl dispatch 'hl.dsp.workspace.toggle_special("notes")']])) -- keybind: SUPER+N|Obsidian scratchpad (launch / toggle, floating)
 
--- Yazi: spawn a new terminal running yazi.
-hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(terminal .. " -e yazi")) -- keybind: SUPER+Y|Open yazi in a new terminal
-
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" })) -- keybind: SUPER+ScrollDown|Focus next workspace
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" })) -- keybind: SUPER+ScrollUp|Focus previous workspace

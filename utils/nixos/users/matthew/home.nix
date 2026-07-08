@@ -45,7 +45,6 @@
             rust-analyzer
             ripgrep
             mesa-demos
-            yazi
         ];
 
         home.sessionVariables.EDITOR = "nvim";
