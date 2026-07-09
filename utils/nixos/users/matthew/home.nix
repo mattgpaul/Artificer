@@ -41,10 +41,12 @@
         home.packages = with pkgs; [
             (neovim.override { viAlias = true; vimAlias = true; })
             bibata-cursors
+            fd
             pyright
             rust-analyzer
             ripgrep
             mesa-demos
+            yazi
         ];
 
         home.sessionVariables.EDITOR = "nvim";
@@ -69,6 +71,7 @@
             bindings = {
                 "\\e[A" = "history-search-backward";
                 "\\e[B" = "history-search-forward";
+                "\\C-p" = "\"yazi\\n\"";
             };
             extraConfig = ''
                 set colored-stats on

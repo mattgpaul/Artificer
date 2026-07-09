@@ -347,11 +347,6 @@ end
 hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic")) -- keybind: SUPER+S|Toggle special workspace (magic scratchpad)
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" })) -- keybind: SUPER+SHIFT+S|Move active window to special workspace (magic)
 
--- Obsidian scratchpad: start it on first use, then toggle it in/out of view.
--- hyprctl dispatch takes a Lua expression in this config, hence the hl.dsp.* args.
-hl.bind(mainMod .. " + N",
-    hl.dsp.exec_cmd([[hyprctl clients | grep -q 'class: obsidian' || hyprctl dispatch 'hl.dsp.exec_cmd("obsidian")'; hyprctl dispatch 'hl.dsp.workspace.toggle_special("notes")']])) -- keybind: SUPER+N|Obsidian scratchpad (launch / toggle, floating)
-
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" })) -- keybind: SUPER+ScrollDown|Focus next workspace
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" })) -- keybind: SUPER+ScrollUp|Focus previous workspace
@@ -444,13 +439,3 @@ hl.window_rule({
     move  = "monitor_w*0.25 monitor_h*0.2",
 })
 
--- Obsidian scratchpad: whenever Obsidian opens it floats onto a dedicated
--- special workspace, toggled in/out of view with SUPER+N.
-hl.window_rule({
-    name  = "obsidian-scratch",
-    match = { class = "obsidian" },
-    workspace = "special:notes silent",
-    float = true,
-    size  = "monitor_w*0.6 monitor_h*0.85",
-    move  = "monitor_w*0.2 monitor_h*0.075",
-})
