@@ -22,30 +22,67 @@
 ------------------
 
 -- See https://wiki.hypr.land/Configuring/Basics/Monitors/
--- external monitor at home (1080p 165Hz) - catch-all, sits on top
+
+-- Catch-all fallback for any monitor without an explicit rule below (e.g. the
+-- desktop hosts sevro/cerebro, which declare no monitors of their own).
 hl.monitor({
     output   = "",
-    mode     = "1920x1080@165.00",
+    mode     = "preferred",
     position = "0x0",
     scale    = "auto",
 })
 
--- work ultrawide (Samsung C34H89x) - overrides the wildcard above, sits on top
-hl.monitor({
-    output   = "desc:Samsung Electric Company C34H89x HCJTA03681",
-    mode     = "3440x1440@99.98",
-    position = "0x0",
-    scale    = "1",
-})
+-- The multi-monitor layout below is specific to the work laptop (swordfish):
+-- an external screen on top with the laptop panel centered directly beneath it.
+-- The laptop panel (eDP-1) stays at a FIXED anchor in both locations and only
+-- the external's origin changes, so the panel is always centered under it:
+--
+--   eDP-1   : 3840x2400 @ scale 2 -> 1920x1200 logical, spans x 760..2680
+--   centre-x: 760 + 960 = 1720  (both externals are centered on this)
+--   both externals put their BOTTOM edge at y=1440 so the panel butts beneath.
+--
+-- On the desktop hosts eDP-1 doesn't exist and neither external is docked, so
+-- these rules stay inert; the catch-all above handles those machines instead.
+local function hostname()
+    -- pcall-guarded: if io isn't exposed in the Lua sandbox this returns ""
+    -- rather than erroring out and taking the whole session down with it.
+    local ok, name = pcall(function()
+        local f = io.open("/etc/hostname", "r")
+        if not f then return "" end
+        local n = f:read("l") or ""
+        f:close()
+        return n
+    end)
+    return ok and name or ""
+end
 
--- laptop screen - centered below the work ultrawide ((3440-1920)/2 = 760)
--- NOTE: 760 offset is specific to the ultrawide; revisit for the home setup
-hl.monitor({
-    output   = "eDP-1",
-    mode     = "preferred",
-    position = "760x1440",
-    scale    = "2",
-})
+if hostname() == "swordfish" then
+    -- laptop panel: fixed anchor, centered below whichever external is docked
+    hl.monitor({
+        output   = "eDP-1",
+        mode     = "preferred",
+        position = "760x1440",
+        scale    = "2",
+    })
+
+    -- WORK: Samsung C34H89x ultrawide (3440 wide) -> centered at x=0,
+    -- 1440 tall so its bottom edge lands at y=1440.
+    hl.monitor({
+        output   = "desc:Samsung Electric Company C34H89x HCJTA03681",
+        mode     = "3440x1440@99.98",
+        position = "0x0",
+        scale    = "1",
+    })
+
+    -- HOME: ASUS VG259QR (1920 wide) -> centered at x=760, 1080 tall so its
+    -- top edge sits at y=360 and its bottom edge lands at y=1440.
+    hl.monitor({
+        output   = "desc:ASUSTek COMPUTER INC VG259QR 0x01010101",
+        mode     = "1920x1080@144.00",
+        position = "760x360",
+        scale    = "1",
+    })
+end
 
 
 ---------------------
