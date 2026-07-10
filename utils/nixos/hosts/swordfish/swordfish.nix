@@ -9,6 +9,8 @@
 
     networking.hostName = "swordfish";
 
+    services.tailscale.extraUpFlags = lib.mkForce [ ];
+
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
     boot.resumeDevice = "/dev/disk/by-uuid/1381050d-4ca0-408f-9ad7-30fd1c4893c7";
