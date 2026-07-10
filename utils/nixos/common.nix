@@ -29,6 +29,7 @@
 	#SSH
 	services.openssh = {
 		enable = true;
+		openFirewall = false;
 		settings = {
 			PasswordAuthentication = false;
 			PermitRootLogin = "no";
@@ -44,5 +45,5 @@
 		game-devices-udev-rules
 	];
 	
-	networking.firewall.allowedTCPPorts = [ 22 ];
+	networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 22 ];
 }
