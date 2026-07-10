@@ -21,6 +21,9 @@ require("lazy").setup({
     -- import your plugins
     { import = "plugins" },
   },
+  -- Config lives in the read-only Nix store, so lazy can't write the lockfile
+  -- next to it. Keep the lockfile in nvim's writable state dir instead.
+  lockfile = vim.fn.stdpath("state") .. "/lazy-lock.json",
   -- Configure any other settings here. See the documentation for more details.
   -- colorscheme that will be used when installing plugins.
   install = { colorscheme = { "habamax" } },
