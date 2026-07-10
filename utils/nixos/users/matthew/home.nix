@@ -36,6 +36,7 @@
             enable = true;
             initExtra = ''
                 PS1='\[\e]0;\u@\h: \w\a\]\n\[\e[1m\]\[\e[38;5;46m\]\u\[\e[38;5;38m\]@\[\e[38;5;166m\]\H\[\e[39m\]:\[\e[38;5;39m\]\w\[\e[39m\]\$\[\e[0m\] '
+               [ -f "$HOME/.config/secrets/bash.env" ] && source "$HOME/.config/secrets/bash.env" 
             '';
         };
         home.packages = with pkgs; [
