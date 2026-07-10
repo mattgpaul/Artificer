@@ -46,10 +46,6 @@
 	#Login
 	services.displayManager.sddm.enable = true;
 	services.displayManager.sddm.wayland.enable = true;
-	services.displayManager.autoLogin = {
-		enable = true;
-		user = "matthew";
-	};
 	services.displayManager.defaultSession = "hyprland";
 	environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
