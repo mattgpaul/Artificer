@@ -14,11 +14,6 @@
     boot.loader.efi.canTouchEfiVariables = true;
     boot.initrd.kernelModules = [ "amdgpu" ];
 
-    boot.kernel.sysctl = {
-        "net.ipv4.ip_forward" = 1;
-        "net.ipv6.conf.all.forwarding" = 1;
-    };
-
 # may not need AMD drivers, documentation says they work out of the box
 # GPU acceleration just needs to be enabled apparently
     

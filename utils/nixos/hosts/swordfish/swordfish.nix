@@ -18,11 +18,6 @@
     boot.initrd.luks.devices."cryptroot".crypttabExtraOpts = [ "tpm2-device=auto" ];
 
 
-    boot.kernel.sysctl = {
-        "net.ipv4.ip_forward" = 1;
-        "net.ipv6.conf.all.forwarding" = 1;
-    };
-
     hardware.graphics = {
         enable = true;
         enable32Bit = true;
