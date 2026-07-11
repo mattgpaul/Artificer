@@ -214,3 +214,5 @@ worktrees/
 
 # Roo plugin
 *.roomodes
+# direnv cache
+.direnv/

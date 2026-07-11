@@ -39,16 +39,20 @@
                [ -f "$HOME/.config/secrets/bash.env" ] && source "$HOME/.config/secrets/bash.env" 
             '';
         };
-        home.packages = with pkgs; [
-            (neovim.override { viAlias = true; vimAlias = true; })
-            bibata-cursors
-            fd
-            pyright
-            rust-analyzer
-            ripgrep
-            mesa-demos
-            yazi
-        ];
+        programs.direnv = {
+            enable = true;
+            nix-direnv.enable = true;
+        };
+    home.packages = with pkgs; [
+        (neovim.override { viAlias = true; vimAlias = true; })
+        bibata-cursors
+        fd
+        pyright
+        rust-analyzer
+        ripgrep
+        mesa-demos
+        yazi
+    ];
 
         home.sessionVariables.EDITOR = "nvim";
         
@@ -60,6 +64,7 @@
             ".config/hypr".source = ../../../hypr;
             ".config/waybar/style.css".source = ../../../waybar/style.css;
             ".config/waybar/config.jsonc".text = builtins.toJSON waybarConfig;
+            ".config/opencode/opencode.json".source = ../../../opencode/opencode.json;
         };
 
         programs.fzf = {

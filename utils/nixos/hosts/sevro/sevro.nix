@@ -14,6 +14,12 @@
 
 	networking.hostName = "sevro";
 
+	#Rust toolchain
+	environment.systemPackages = with pkgs; [
+		rustc
+		cargo
+	];
+
 	#Boot
 	boot.loader.systemd-boot.enable = true;
 	boot.loader.efi.canTouchEfiVariables = true;

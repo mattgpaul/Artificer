@@ -9,7 +9,18 @@
 
     networking.hostName = "swordfish";
 
+    # Cache sudo credentials for 1 hour before re-prompting.
+    security.sudo.extraConfig = ''
+        Defaults timestamp_timeout=60
+    '';
+
     services.tailscale.extraUpFlags = lib.mkForce [ ];
+
+    #Rust toolchain
+    environment.systemPackages = with pkgs; [
+        rustc
+        cargo
+    ];
 
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
