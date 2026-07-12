@@ -1,0 +1,17 @@
+# Open a directory in a shell (in the same terminal window) instead of $EDITOR.
+# `block = true` hands the tty to the shell; exiting the shell returns to yazi.
+[opener]
+enter_shell = [
+	{ run = 'cd %s && exec "$SHELL"', block = true, for = "unix", desc = "Open shell here" },
+]
+
+# Make the shell the default action for directories. `edit`/`open`/`reveal` are kept
+# so they remain reachable via `O` (open --interactive). File rules are untouched.
+[open]
+prepend_rules = [
+	{ url = "*/", use = [ "enter_shell", "edit", "open", "reveal" ] },
+]
+
+[manager]
+show_hidden = true
+show_symlink = true
