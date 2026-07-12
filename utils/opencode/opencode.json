@@ -29,36 +29,13 @@
           "limit": {
             "context": 32768,
             "output": 16384
+          },
+          "compaction": {
+              "threshold": 0.80,
+              "logging": "error"
           }
         }
       }
     }
   },
-  "model": "llama-coder/qwen3-coder",
-  "agent": {
-    "review": {
-      "mode": "subagent",
-      "model": "llama-coder/qwen3-coder",
-      "temperature": 0.1,
-      "prompt": "You are a focused code reviewer. Report correctness bugs, edge cases, and simplifications. Be concise; do not modify files.",
-      "permission": {
-        "edit": "deny"
-      }
-    },
-    "docs": {
-      "mode": "subagent",
-      "model": "llama-local/gemma-3-27b",
-      "temperature": 0.3,
-      "prompt": "You write and update documentation and code comments. Match the surrounding style and keep prose clear and concise."
-    },
-    "ask": {
-      "mode": "primary",
-      "model": "llama-coder/qwen3-coder",
-      "temperature": 0.2,
-      "prompt": "You explain and explore the codebase. Answer questions and trace how things work. Do not modify files.",
-      "permission": {
-        "edit": "deny"
-      }
-    }
-  }
 }

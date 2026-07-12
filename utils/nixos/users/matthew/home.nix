@@ -36,7 +36,16 @@
             enable = true;
             initExtra = ''
                 PS1='\[\e]0;\u@\h: \w\a\]\n\[\e[1m\]\[\e[38;5;46m\]\u\[\e[38;5;38m\]@\[\e[38;5;166m\]\H\[\e[39m\]:\[\e[38;5;39m\]\w\[\e[39m\]\$\[\e[0m\] '
-               [ -f "$HOME/.config/secrets/bash.env" ] && source "$HOME/.config/secrets/bash.env" 
+               [ -f "$HOME/.config/secrets/bash.env" ] && source "$HOME/.config/secrets/bash.env"
+                # Reuse the parked yazi instead of nesting a new one: if we're already
+                # inside a shell that yazi spawned ($YAZI_LEVEL set), just exit back to it.
+                y() {
+                    if [ -n "$YAZI_LEVEL" ]; then
+                        exit
+                    else
+                        command yazi "$@"
+                    fi
+                }
             '';
         };
         programs.direnv = {
@@ -77,7 +86,7 @@
             bindings = {
                 "\\e[A" = "history-search-backward";
                 "\\e[B" = "history-search-forward";
-                "\\C-p" = "\"yazi\\n\"";
+                "\\C-p" = "\"y\\n\"";
             };
             extraConfig = ''
                 set colored-stats on

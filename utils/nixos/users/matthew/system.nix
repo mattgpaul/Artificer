@@ -20,8 +20,11 @@
         enable = true;
         shellAliases = {
             gst = "git status";
+            jst = "jj status";
             gco = "git checkout";
             glg = "git log --oneline --graph --decorate";
+            jjl = "jj log";
+            jjd = "jj describe";
             nrs = "sudo nixos-rebuild switch";
             nrt = "sudo nixos-rebuild test";
             nrb = "sudo nixos-rebuild boot";
