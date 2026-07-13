@@ -4,7 +4,7 @@
 	#General
 	nixpkgs.config.allowUnfree = true;
 	networking.networkmanager.enable = true;
-	time.timeZone = "UTC";
+	time.timeZone = "America/Denver";
 
 	#Flakes
 	nix.settings.experimental-features = [ "nix-command" "flakes" ];
