@@ -1,4 +1,5 @@
 use embedded_hal_async::delay::DelayNs;
+use futures::executor::block_on;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -106,4 +107,76 @@ fn morse_from(c: char) -> Option<&'static str> {
         ' ' => "/",
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, PartialEq)]
+    enum Event {
+        On,
+        Off,
+        Delay(u32),
+    }
+
+    struct FakePulse {
+        events: Vec<Event>,
+    }
+
+    struct FakeDelay {
+        durations: Vec<u32>,
+    }
+
+    impl Pulse for FakePulse {
+        fn on(&mut self) -> Result<(), PulseError>  {
+            self.events.push(Event::On);
+            Ok(())
+        }
+
+        fn off(&mut self) -> Result<(), PulseError>  {
+            self.events.push(Event::Off);
+            Ok(())
+        }
+    }
+
+    impl DelayNs for FakeDelay {
+        async fn delay_ns(&mut self, ns: u32) {
+            self.durations.push(ns / 1000 / 1000);
+        }
+    }
+    
+    #[test]
+    fn test_on_off_functions() {
+        let mut fake = FakePulse { events: Vec::new() };
+        fake.on().unwrap();
+        fake.off().unwrap();
+        assert_eq!(fake.events, vec![Event::On, Event::Off])
+    }
+
+    #[test]
+    fn test_blink() {
+        let mut fake = FakePulse { events: Vec::new() };
+        let mut fake_delay = FakeDelay { durations: Vec::new() };
+        block_on(fake.blink(&mut fake_delay, 300)).unwrap();
+
+        assert_eq!(fake.events, vec![Event::On, Event::Off]);
+        assert_eq!(fake_delay.durations, vec![300, 300]);
+    }
+
+    #[test]
+    fn morse_from_maps_a_known_letter() {
+        assert_eq!(morse_from('A'), Some(".-"));
+    }
+
+    #[test]
+    fn morse_from_handles_unsupported_char() {
+        assert_eq!(morse_from('@'), None);
+    }
+
+    #[test]
+    fn morse_from_handles_lowercase() {
+        assert_eq!(morse_from('a'), Some(".-"));
+    }
+    
 }

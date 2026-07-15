@@ -7,6 +7,10 @@ edition = "2024"
 embedded-hal = "1.0.0"
 embedded-hal-async = "1.0.0"
 defmt = { version = "0.3", optional = true }
+futures = "0.3"
+
+[dev-dependencies]
+futures = "0.3"
 
 [features]
 defmt = ["dep:defmt"]
