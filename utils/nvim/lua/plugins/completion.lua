@@ -9,10 +9,6 @@ return {
     opts = {
       keymap = {
         preset = 'super-tab',
-        -- Manually summon the menu (auto_show is off). These keys are
-        -- terminal-safe, unlike <C-Space> which most terminals swallow.
-        ['<C-n>'] = { 'show', 'select_next', 'fallback' },
-        ['<C-p>'] = { 'show', 'select_prev', 'fallback' },
       },
 
       appearance = {
@@ -20,9 +16,11 @@ return {
       },
 
       completion = {
-        -- Don't pop up suggestions automatically; summon with <C-space> or Tab.
-        menu = { auto_show = false },
-        documentation = { auto_show = true },
+        -- Auto-show the completion menu (method/attribute list), but keep it
+        -- lean: no auto-popping documentation window. Use K (LSP hover) to
+        -- read full docs on demand.
+        menu = { auto_show = true },
+        documentation = { auto_show = false },
       },
 
       sources = {
