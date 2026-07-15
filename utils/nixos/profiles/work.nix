@@ -65,7 +65,10 @@
         slurp
         wl-clipboard
         cliphist
+        gnumake
 	];
+
+    virtualisation.docker.enable = true;
 
     #Fonts
     fonts.packages = with pkgs; [

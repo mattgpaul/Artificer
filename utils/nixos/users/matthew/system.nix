@@ -2,7 +2,7 @@
 {
 	users.users.matthew = {
 		isNormalUser = true;
-		extraGroups = [ "wheel" "networkmanager" ];
+		extraGroups = [ "wheel" "networkmanager" "docker" ];
 		openssh.authorizedKeys.keys = [
 			"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKptSbcOhjFj+FWlW5g19AfNdphHkux6m9IYzwoC7I1c"
 				"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDOeqL/GalLrnoIrIFPl5GhYJSNgsrFr7h7+3TW5T9o0"
@@ -11,7 +11,6 @@
 			claude-code
 				fzf
 				obsidian
-				jujutsu
 				tree 
 		];
 	};
@@ -20,26 +19,12 @@
         enable = true;
         shellAliases = {
             gst = "git status";
-            jst = "jj status";
             gco = "git checkout";
             glg = "git log --oneline --graph --decorate";
-            jjl = "jj log";
-            jjd = "jj describe";
             nrs = "sudo nixos-rebuild switch";
             nrt = "sudo nixos-rebuild test";
             nrb = "sudo nixos-rebuild boot";
         };
     };
 
-    programs.git = {
-        enable = true;
-        config = {
-            user.name = "Matthew Paul";
-            user.email = "mattgpaul@gmail.com";
-            init.defaultBranch = "main";
-            push.autoSetupRemote = true;
-            pull.rebase = true;
-            core.editor = "nvim";
-        };
-    };
 }

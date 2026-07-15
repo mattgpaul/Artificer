@@ -9,7 +9,24 @@
     home-manager.users.matthew = { config, pkgs, osConfig, ... }:
     let
         waybarBase = builtins.fromJSON (builtins.readFile ../../../waybar/config.jsonc);
-        waybarConfig = waybarBase;
+        waybarConfig = if osConfig.networking.hostName == "swordfish"
+            then waybarBase // {
+                modules-right = [ "cpu" "memory" "pulseaudio" "battery" "network" ];
+                battery = {
+                    interval = 10;
+                    states = { good = 80; warning = 30; critical = 15; };
+                    format = "{icon}  {capacity}%";
+                    format-charging = "{icon}  {capacity}%";
+                    format-plugged = "{icon}  {capacity}%";
+                    format-full = "{icon}  {capacity}%";
+                    format-icons = {
+                        charging = [ "󰢜" "󰂆" "󰂇" "󰂈" "󰢝" "󰂉" "󰢞" "󰂊" "󰂋" "󰂅" ];
+                        default = [ "󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹" ];
+                    };
+                    tooltip-format = "{timeTo} ({power}W)";
+                };
+            }
+            else waybarBase;
     in {
         home.username = "matthew";
         home.homeDirectory = "/home/matthew";
@@ -17,11 +34,6 @@
         programs.home-manager.enable = true;
         programs.bash = {
             enable = true;
-            shellAliases = {
-                jst = "jj status";
-                jjl = "jj log";
-                jjd = "jj describe";
-            };
             initExtra = ''
                 PS1='\[\e]0;\u@\h: \w\a\]\n\[\e[1m\]\[\e[38;5;46m\]\u\[\e[38;5;38m\]@\[\e[38;5;166m\]\H\[\e[39m\]:\[\e[38;5;39m\]\w\[\e[39m\]\$\[\e[0m\] '
                [ -f "$HOME/.config/secrets/bash.env" ] && source "$HOME/.config/secrets/bash.env"
@@ -39,8 +51,8 @@
 
         programs.git = {
             enable = true;
-            user.name = "Matthew Paul";
-            user.email = "mattgpaul@gmail.com";
+            userName = "Matthew Paul";
+            userEmail = "matthew.paul@loftorbital.com";
             extraConfig = {
                 init.defaultBranch = "main";
                 push.autoSetupRemote = true;
@@ -63,7 +75,6 @@
         ripgrep
         mesa-demos
         yazi
-        jujutsu
     ];
 
         home.sessionVariables.EDITOR = "nvim";
@@ -76,7 +87,6 @@
             ".config/hypr".source = ../../../hypr;
             ".config/waybar/style.css".source = ../../../waybar/style.css;
             ".config/waybar/config.jsonc".text = builtins.toJSON waybarConfig;
-            ".config/opencode/opencode.json".source = ../../../opencode/opencode.json;
         };
 
         programs.fzf = {

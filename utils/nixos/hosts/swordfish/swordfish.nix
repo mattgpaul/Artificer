@@ -4,7 +4,7 @@
         ./hardware-configuration.nix
         ../../profiles/work.nix
         ../../users/matthew/system.nix
-        ../../users/matthew/home.nix
+        ../../users/matthew/work.nix
     ];
 
     networking.hostName = "swordfish";
@@ -15,6 +15,9 @@
     '';
 
     services.tailscale.extraUpFlags = lib.mkForce [ ];
+
+    #Docker
+    virtualisation.docker.enable = true;
 
     #Rust toolchain
     environment.systemPackages = with pkgs; [
