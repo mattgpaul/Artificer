@@ -7,18 +7,21 @@ return {
     ---@module 'blink.cmp'
     ---@type blink.cmp.Config
     opts = {
-      keymap = { preset = 'super-tab' },
+      keymap = {
+        preset = 'super-tab',
+        -- Manually summon the menu (auto_show is off). These keys are
+        -- terminal-safe, unlike <C-Space> which most terminals swallow.
+        ['<C-n>'] = { 'show', 'select_next', 'fallback' },
+        ['<C-p>'] = { 'show', 'select_prev', 'fallback' },
+      },
 
       appearance = {
         nerd_font_variant = 'mono',
       },
 
       completion = {
-        menu = {
-          auto_show = function(ctx)
-            return vim.bo.filetype ~= 'markdown'
-          end,
-        },
+        -- Don't pop up suggestions automatically; summon with <C-space> or Tab.
+        menu = { auto_show = false },
         documentation = { auto_show = true },
       },
 
