@@ -70,6 +70,7 @@
         (neovim.override { viAlias = true; vimAlias = true; })
         bibata-cursors
         fd
+        google-cloud-sdk
         pyright
         rust-analyzer
         ripgrep
