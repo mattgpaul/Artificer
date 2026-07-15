@@ -39,8 +39,8 @@
 
         programs.git = {
             enable = true;
-            user.name = "Matthew Paul";
-            user.email = "mattgpaul@gmail.com";
+            userName = "Matthew Paul";
+            userEmail = "mattgpaul@gmail.com";
             extraConfig = {
                 init.defaultBranch = "main";
                 push.autoSetupRemote = true;
@@ -77,6 +77,10 @@
             ".config/waybar/style.css".source = ../../../waybar/style.css;
             ".config/waybar/config.jsonc".text = builtins.toJSON waybarConfig;
             ".config/opencode/opencode.json".source = ../../../opencode/opencode.json;
+            # Docker/devcontainer bind-mounts expect ~/.gitconfig to exist; without it
+            # Docker recreates it as a root-owned dir and breaks git. Point it at the
+            # real (XDG) config that programs.git writes.
+            ".gitconfig".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.config/git/config";
         };
 
         programs.fzf = {

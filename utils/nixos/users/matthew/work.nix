@@ -88,6 +88,10 @@
             ".config/hypr".source = ../../../hypr;
             ".config/waybar/style.css".source = ../../../waybar/style.css;
             ".config/waybar/config.jsonc".text = builtins.toJSON waybarConfig;
+            # Docker/devcontainer bind-mounts (e.g. thermal-test-automation) expect
+            # ~/.gitconfig to exist; without it Docker recreates it as a root-owned
+            # dir and breaks git. Point it at the real (XDG) config that programs.git writes.
+            ".gitconfig".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.config/git/config";
         };
 
         programs.fzf = {
