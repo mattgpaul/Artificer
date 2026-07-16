@@ -76,6 +76,7 @@
         ripgrep
         mesa-demos
         yazi
+        bambu-studio
     ];
 
         home.sessionVariables.EDITOR = "nvim";
