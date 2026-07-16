@@ -1,5 +1,4 @@
 use embedded_hal_async::delay::DelayNs;
-use futures::executor::block_on;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -61,6 +60,7 @@ pub trait Pulse {
                 }
             }
         }
+        delay.delay_ms(baseline_dit_ms * 7).await;
         Ok(())
     }
 
@@ -112,6 +112,11 @@ fn morse_from(c: char) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate std;
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use futures::executor::block_on;
+
 
     #[derive(Debug, PartialEq)]
     enum Event {
@@ -121,47 +126,98 @@ mod tests {
     }
 
     struct FakePulse {
-        events: Vec<Event>,
+        events: Rc<RefCell<Vec<Event>>>,
     }
 
     struct FakeDelay {
-        durations: Vec<u32>,
+        events: Rc<RefCell<Vec<Event>>>,
     }
 
     impl Pulse for FakePulse {
         fn on(&mut self) -> Result<(), PulseError>  {
-            self.events.push(Event::On);
+            self.events.borrow_mut().push(Event::On);
             Ok(())
         }
 
         fn off(&mut self) -> Result<(), PulseError>  {
-            self.events.push(Event::Off);
+            self.events.borrow_mut().push(Event::Off);
             Ok(())
         }
     }
 
     impl DelayNs for FakeDelay {
         async fn delay_ns(&mut self, ns: u32) {
-            self.durations.push(ns / 1000 / 1000);
+            self.events.borrow_mut().push(Event::Delay(ns / 1000 / 1000));
         }
     }
     
     #[test]
     fn test_on_off_functions() {
-        let mut fake = FakePulse { events: Vec::new() };
+        let shared = Rc::new(RefCell::new(Vec::new()));
+        let mut fake = FakePulse { events: Rc::clone(&shared) };
         fake.on().unwrap();
         fake.off().unwrap();
-        assert_eq!(fake.events, vec![Event::On, Event::Off])
+        assert_eq!(*shared.borrow(), vec![Event::On, Event::Off])
     }
 
     #[test]
     fn test_blink() {
-        let mut fake = FakePulse { events: Vec::new() };
-        let mut fake_delay = FakeDelay { durations: Vec::new() };
+        let shared = Rc::new(RefCell::new(Vec::new()));
+        let mut fake = FakePulse { events: Rc::clone(&shared) };
+        let mut fake_delay = FakeDelay { events: Rc::clone(&shared) };
         block_on(fake.blink(&mut fake_delay, 300)).unwrap();
+        assert_eq!(*shared.borrow(), vec![
+            Event::On,
+            Event::Delay(300),
+            Event::Off,
+            Event::Delay(300),
+        ])
+    }
 
-        assert_eq!(fake.events, vec![Event::On, Event::Off]);
-        assert_eq!(fake_delay.durations, vec![300, 300]);
+    #[test]
+    fn test_morse_happy_path() {
+        let shared = Rc::new(RefCell::new(Vec::new()));
+        let mut fake = FakePulse { events: Rc::clone(&shared) };
+        let mut fake_delay = FakeDelay { events: Rc::clone(&shared) };
+        block_on(fake.send_morse(&mut fake_delay, "SOS", 100)).unwrap();
+        assert_eq!(*shared.borrow(), vec![
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(300),
+            Event::On,
+            Event::Delay(300),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(300),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(300),
+            Event::Off,
+            Event::Delay(300),
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(100),
+            Event::On,
+            Event::Delay(100),
+            Event::Off,
+            Event::Delay(700),
+        ])
     }
 
     #[test]

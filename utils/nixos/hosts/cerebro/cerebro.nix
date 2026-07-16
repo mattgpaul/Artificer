@@ -34,7 +34,7 @@ let
             --ctx-size 32768 \
             --cache-type-k q8_0 --cache-type-v q8_0 \
             --jinja \
-            --host 127.0.0.1 --port 8081 \
+            --host 127.0.0.1 --port 8080 \
             "$@"
     '';
 in
