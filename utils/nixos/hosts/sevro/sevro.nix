@@ -34,7 +34,7 @@
 
 	services.tailscale = {
 		useRoutingFeatures = "server";
-		extraUpFlags = [ "--advertise-exit-node" "--advertise-routes=10.0.0.0/24" ];
+		extraSetFlags = [ "--advertise-exit-node" "--advertise-routes=10.0.0.0/24" ];
 	};
 
 	# Protected LAN link to cerebro (2.5G Intel i226 card port).
