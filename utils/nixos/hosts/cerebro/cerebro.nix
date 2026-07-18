@@ -49,13 +49,21 @@ in
 
     networking.hostName = "cerebro";
 
-    # Uplink to the sevro gateway over the 2.5G direct link.
-    networking.networkmanager.unmanaged = [ "interface-name:eno1" ];
-    networking.interfaces.eno1.ipv4.addresses = [
-        { address = "10.0.0.2"; prefixLength = 24; }
-    ];
-    networking.defaultGateway = { address = "10.0.0.1"; interface = "eno1"; };
-    networking.nameservers = [ "1.1.1.1" "9.9.9.9" ];
+    # Uplink to the sevro gateway over the 2.5G direct link (static, NM-managed).
+    networking.networkmanager.ensureProfiles.profiles.sevro-uplink = {
+        connection = {
+            id = "sevro-uplink";
+            type = "ethernet";
+            interface-name = "eno1";
+            autoconnect = true;
+        };
+        ipv4 = {
+            method = "manual";
+            address1 = "10.0.0.2/24,10.0.0.1";
+            dns = "1.1.1.1;9.9.9.9;";
+        };
+        ipv6.method = "disabled";
+    };
 
     # Cache sudo credentials for 2 hours before re-prompting.
     security.sudo.extraConfig = ''
