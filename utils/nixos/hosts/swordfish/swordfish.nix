@@ -16,9 +16,6 @@
 
     services.tailscale.extraUpFlags = lib.mkForce [ ];
 
-    #Docker
-    virtualisation.docker.enable = true;
-
     #Rust toolchain
     environment.systemPackages = with pkgs; [
         rustc

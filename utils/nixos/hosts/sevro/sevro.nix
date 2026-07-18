@@ -18,6 +18,8 @@
 	environment.systemPackages = with pkgs; [
 		rustc
 		cargo
+		ethtool
+		pciutils
 	];
 
 	#Boot
@@ -30,7 +32,21 @@
 		"net.ipv6.conf.all.forwarding" = 1;
 	};
 
-    services.tailscale.extraUpFlags = [ "--advertise-exit-node" ];
+	services.tailscale = {
+		useRoutingFeatures = "server";
+		extraUpFlags = [ "--advertise-exit-node" "--advertise-routes=10.0.0.0/24" ];
+	};
+
+	# Protected LAN link to cerebro (2.5G Intel i226 card port).
+	networking.networkmanager.unmanaged = [ "interface-name:enp35s0" ];
+	networking.interfaces.enp35s0.ipv4.addresses = [
+		{ address = "10.0.0.1"; prefixLength = 24; }
+	];
+	networking.nat = {
+		enable = true;
+		externalInterface = "enp42s0";
+		internalInterfaces = [ "enp35s0" ];
+	};
 
 	#NVIDIA
 	#TODO: split into its own hardware module
