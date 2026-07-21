@@ -27,7 +27,10 @@
         "icon-size": 16,
         "max-length": 40,
         "separate-outputs": true,
-        "rewrite": { "": "desktop" }
+        "rewrite": {
+            "": "desktop",
+            "com.mitchellh.ghostty": "Ghostty"
+        }
     },
 
     "clock": {

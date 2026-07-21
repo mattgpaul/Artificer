@@ -28,6 +28,8 @@
             }
             else waybarBase;
     in {
+        imports = [ ./ghostty-home.nix ];
+
         home.username = "matthew";
         home.homeDirectory = "/home/matthew";
         home.stateVersion = "26.05";

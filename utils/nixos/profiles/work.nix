@@ -2,7 +2,16 @@
 {
 
     #CPU
-    services.tlp.enable = true;
+    services.tlp = {
+        enable = true;
+        settings = {
+            # Default balance_power pins cores at ~400MHz-1.6GHz with a lazy
+            # ramp, causing system-wide input lag. Use the HWP performance
+            # hint so the pstate ramps aggressively on interactive bursts.
+            CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+            CPU_ENERGY_PERF_POLICY_ON_BAT = "performance";
+        };
+    };
     services.thermald.enable = true;
     services.printing.enable = true;
     services.fwupd.enable = true;

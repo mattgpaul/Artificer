@@ -90,7 +90,9 @@ end
 ---------------------
 
 -- Set programs that you use
-local terminal    = "alacritty"
+-- GSK_RENDERER=ngl forces GTK4's new GL renderer; GTK's default (Vulkan) has
+-- noticeable input lag on this Intel iGPU. Scoped here so other GTK apps are unaffected.
+local terminal    = "env GSK_RENDERER=ngl ghostty"
 local fileManager = "dolphin"
 local menu        = "rofi -show drun"
 
@@ -343,8 +345,8 @@ hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- keybin
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu)) -- keybind: SUPER+D|Open app launcher (rofi drun)
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- keybind: SUPER+P|Toggle pseudotile on active window
 
--- Keybind cheatsheet: floating alacritty running the shortcuts script; any key dismisses it (handled in the script).
-hl.bind(mainMod .. " + SHIFT + slash", hl.dsp.exec_cmd("alacritty --class cheatsheet -e python3 ~/Artificer/apps/shortcuts/shortcuts.py")) -- keybind: SUPER+SHIFT+slash|Keybind cheatsheet (press any key to dismiss)
+-- Keybind cheatsheet: floating ghostty running the shortcuts script; any key dismisses it (handled in the script).
+hl.bind(mainMod .. " + SHIFT + slash", hl.dsp.exec_cmd("env GSK_RENDERER=ngl ghostty --class=cheatsheet -e python3 ~/Artificer/apps/shortcuts/shortcuts.py")) -- keybind: SUPER+SHIFT+slash|Keybind cheatsheet (press any key to dismiss)
 
 -- Scrolling-layout window sizing
 hl.bind(mainMod .. " + F",         hl.dsp.layout("colresize 1.0"))    -- keybind: SUPER+F|Maximize focused window to full width
@@ -467,7 +469,7 @@ hl.window_rule({
 -- No permanent workspaces; nothing is routed or opened at startup.
 
 -- Keybind cheatsheet (SUPER+SHIFT+slash): float it centered, sized to roughly
--- half the screen. Matches the --class passed to alacritty in the bind above.
+-- half the screen. Matches the --class passed to ghostty in the bind above.
 hl.window_rule({
     name  = "cheatsheet",
     match = { class = "cheatsheet" },

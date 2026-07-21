@@ -1,0 +1,32 @@
+# Sun Eater "dead world" — ember on deep teal
+# Ghostty port of utils/alacritty/themes/dead-world.toml
+# (Ghostty has a single 16-color palette; alacritty's separate "dim" set has no equivalent.)
+
+background = #0e1614
+foreground = #d8d2c8
+
+cursor-color = #e0631f
+cursor-text  = #0e1614
+
+selection-background = #e0631f
+selection-foreground = #0e1614
+
+# normal (0-7)
+palette = 0=#18231f
+palette = 1=#b23a1e
+palette = 2=#5e8f6e
+palette = 3=#d4913c
+palette = 4=#5a7f8f
+palette = 5=#9e6b7a
+palette = 6=#3c6b5e
+palette = 7=#d8d2c8
+
+# bright (8-15)
+palette = 8=#3c4a44
+palette = 9=#e0631f
+palette = 10=#9fb2aa
+palette = 11=#f0b45c
+palette = 12=#7a9ab0
+palette = 13=#c08a98
+palette = 14=#5e9f8e
+palette = 15=#f0ebe0
