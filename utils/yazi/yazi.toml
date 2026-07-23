@@ -5,11 +5,19 @@ enter_shell = [
 	{ run = 'cd %s && exec "$SHELL"', block = true, for = "unix", desc = "Open shell here" },
 ]
 
+# Open in the default browser. `orphan = true` detaches the process so it keeps
+# running after yazi exits and never blocks the tty.
+browser = [
+	{ run = 'xdg-open "$@"', orphan = true, for = "unix", desc = "Open in browser" },
+]
+
 # Make the shell the default action for directories. `edit`/`open`/`reveal` are kept
-# so they remain reachable via `O` (open --interactive). File rules are untouched.
+# so they remain reachable via `O` (open --interactive). Then send *.html to the
+# browser before the built-in `text/*` rule can hand it to $EDITOR.
 [open]
 prepend_rules = [
 	{ url = "*/", use = [ "enter_shell", "edit", "open", "reveal" ] },
+	{ url = "*.html", use = [ "browser", "edit" ] },
 ]
 
 [manager]
