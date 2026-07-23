@@ -21,7 +21,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Qwen3-Coder (local llama.cpp)",
       "options": {
-        "baseURL": "http://127.0.0.1:8081/v1"
+        "baseURL": "http://127.0.0.1:8080/v1"
       },
       "models": {
         "qwen3-coder": {
