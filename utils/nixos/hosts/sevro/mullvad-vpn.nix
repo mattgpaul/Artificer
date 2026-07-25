@@ -44,6 +44,15 @@ let
   mullvadDns = "10.64.0.1";
 
   wan = "enp42s0";   # ISP uplink — the ONLY interface the kill-switch guards
+
+  # --- Routing Tailscale's underlay THROUGH the Mullvad tunnel (see wg0.postUp) ---
+  ipCmd = "${pkgs.iproute2}/bin/ip";
+  # wg-quick auto-selects a routing table equal to its fwmark for the 0/0 route;
+  # on this single-tunnel gateway that is deterministically 0xca6c = 51820. Its
+  # default route is `dev wg0`, so sending traffic here == sending it via Mullvad.
+  wgTable = "51820";
+  tsFwmark = "0x80000/0xff0000";   # the fwmark Tailscale stamps on its own underlay
+  tsRulePrio = "5200";             # just ABOVE Tailscale's own rule (5210) so we win
 in
 {
   # Fail the build early if `selected` isn't a real server, instead of producing
@@ -66,7 +75,35 @@ in
       endpoint = "${server.ip}:${toString endpointPort}";
       persistentKeepalive = 25;   # keep the tunnel alive through the router's NAT
     }];
+
+    # Send Tailscale THROUGH Mullvad, not around it.
+    #
+    # Tailscale marks its own underlay packets ${tsFwmark} and installs its own
+    # ip-rule (priority 5210 -> table `main` -> the WAN) to egress them directly.
+    # With our sealed WAN that path is a DROP (lockout); punching a WAN hole for it
+    # would leak the real IP. Instead we add a HIGHER-priority rule (${tsRulePrio})
+    # that steers those marked packets into wg-quick's table (${wgTable}, default
+    # `dev wg0`). Net effect: Tailscale's control/DERP traffic exits from Mullvad's
+    # IP, never the ISP's. The rule is bound to the tunnel's lifecycle, so it is
+    # (re)created on every `wg0` up — including every boot — and torn down with it.
+    #
+    # Fail-safe: if this rule is ever absent, Tailscale falls back to its own WAN
+    # rule and is simply DROPPED by the kill-switch — it never leaks. Recover over
+    # the LAN break-glass (ssh 10.0.0.1 from cerebro). Idempotent on repeated up.
+    postUp = ''
+      ${ipCmd} rule del priority ${tsRulePrio} fwmark ${tsFwmark} table ${wgTable} 2>/dev/null || true
+      ${ipCmd} rule add priority ${tsRulePrio} fwmark ${tsFwmark} table ${wgTable}
+    '';
+    preDown = ''
+      ${ipCmd} rule del priority ${tsRulePrio} fwmark ${tsFwmark} table ${wgTable} 2>/dev/null || true
+    '';
   };
+
+  # On a cold boot, let the tunnel come up before tailscaled's first connect
+  # attempt, so Tailscale establishes cleanly through Mullvad instead of thrashing
+  # against the sealed WAN while wg0 is still being brought up. Soft ordering only:
+  # if wg0 fails, tailscaled still starts (and is harmlessly dropped until wg0 is up).
+  systemd.services.tailscaled.after = [ "wg-quick-wg0.service" ];
 
   environment.systemPackages = [ pkgs.wireguard-tools ];  # `wg show`, diagnostics
 

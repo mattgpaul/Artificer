@@ -44,6 +44,11 @@
 	networking.interfaces.enp35s0.ipv4.addresses = [
 		{ address = "10.0.0.1"; prefixLength = 24; }
 	];
+	# BREAK-GLASS: SSH on the wired LAN, independent of Tailscale, the Mullvad
+	# tunnel, and the internet. From cerebro (10.0.0.2) `ssh 10.0.0.1` always works,
+	# so if Tailscale/VPN fail to come up on a reboot we are never stranded. The
+	# kill-switch only guards WAN *egress*; this inbound LAN path is untouched.
+	networking.firewall.interfaces."enp35s0".allowedTCPPorts = [ 22 ];
 	# Masquerade the protected subnet OUT the WireGuard tunnel (wg0), not the WAN,
 	# so the LAN's traffic is sourced from sevro's Mullvad IP. See mullvad-vpn.nix.
 	networking.nat = {
