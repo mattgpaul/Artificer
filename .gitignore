@@ -216,3 +216,6 @@ worktrees/
 *.roomodes
 # direnv cache
 .direnv/
+
+# nixos-rebuild build output symlink
+result
