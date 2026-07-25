@@ -6,6 +6,8 @@
         ./hardware-configuration.nix
         #Desktop
 		../../profiles/desktop.nix
+        #Mullvad WireGuard egress + kill-switch
+        ./mullvad-vpn.nix
         #Users
         ../../users/admin/system.nix
         ../../users/matthew/system.nix
@@ -42,9 +44,11 @@
 	networking.interfaces.enp35s0.ipv4.addresses = [
 		{ address = "10.0.0.1"; prefixLength = 24; }
 	];
+	# Masquerade the protected subnet OUT the WireGuard tunnel (wg0), not the WAN,
+	# so the LAN's traffic is sourced from sevro's Mullvad IP. See mullvad-vpn.nix.
 	networking.nat = {
 		enable = true;
-		externalInterface = "enp42s0";
+		externalInterface = "wg0";
 		internalInterfaces = [ "enp35s0" ];
 	};
 
