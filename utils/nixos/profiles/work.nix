@@ -30,9 +30,12 @@
     powerManagement.enable = true;
 
     #Lid
+    # Hibernate on lid-close (not suspend): S3 suspend still drains the battery,
+    # which is what killed swordfish over a weekend. Docked stays "ignore" so an
+    # external-monitor setup keeps running with the lid shut.
     services.logind.settings.Login = {
-        HandleLidSwitch = "suspend";
-        HandleLidSwitchExternalPower = "suspend";
+        HandleLidSwitch = "hibernate";
+        HandleLidSwitchExternalPower = "hibernate";
         HandleLidSwitchDocked = "ignore";
     };
     

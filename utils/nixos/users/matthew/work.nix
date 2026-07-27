@@ -79,6 +79,7 @@
         mesa-demos
         yazi
         bambu-studio
+        glab
     ];
 
         home.sessionVariables.EDITOR = "nvim";
