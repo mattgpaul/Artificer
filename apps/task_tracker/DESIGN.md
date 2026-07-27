@@ -59,3 +59,4 @@ the TUI is secondary.
 
 ## Open Questions
 - [ ] Nix dev shell setup for the Rust crate (flake.nix + .envrc), and where tests live under `tests/system/task_tracker/` per repo convention.
+- [ ] **BLOCKED overloaded to encode dependency edges (raised by the `to-tasks` skill).** `to-tasks` decomposes a `SPEC.md` into tasks and files each non-frontier task as `BLOCKED` with a `Blocked by: <titles/IDs>` line in its Description — so BLOCKED now means both "externally stuck" (original design) *and* "waiting on a sibling task." Decide: (a) should inter-task dependencies be a first-class field, or is overloading BLOCKED + the `Blocked by:` Description line sufficient? (b) With no enforced state machine, moving a dependent BLOCKED → TODO once its blocker completes is manual — acceptable, or should the tool surface now-unblockable tasks? (c) Does the TUI need to visualize dependency ordering, or is the BLOCKED column enough?
