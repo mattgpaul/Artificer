@@ -46,10 +46,9 @@ Fill out every section below. Delete these comments once real content exists.
      - The seams settled on at the checkpoint (prefer existing, highest possible,
        fewest — ideally one).
      - Which modules are tested.
-     - Where the tests live, per the monorepo mirroring convention:
-         libs/**  → tests/infrastructure/**
-         apps/**  → tests/system/**
-       preserving the project's internal path.
+     - Where the tests live: centralized under the repo's tests/ tree, mirroring
+       the source path rather than sitting beside the code. Follow the repo's
+       current testing convention (see AGENTS.md) for the exact layout.
      - Prior art: similar existing tests to model these on. -->
 -
 

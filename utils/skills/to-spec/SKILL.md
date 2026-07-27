@@ -64,7 +64,7 @@ Fill out every section of `templates/SPEC.md`:
 - **Glossary** — carried verbatim from `DESIGN.md` so the spec and the issues it spawns share one vocabulary.
 - **User Stories** — a long, numbered list in the form `As an <actor>, I want a <feature>, so that <benefit>`, covering every aspect of the feature.
 - **Implementation Decisions** — modules built/modified and their interfaces, architectural decisions, schema changes, API contracts, specific interactions. Cite relevant ADRs by number.
-- **Testing Decisions** — what makes a good test, the seams you settled on, which modules are tested, where those tests live (per the `tests/` mirroring convention), and prior art.
+- **Testing Decisions** — what makes a good test, the seams you settled on, which modules are tested, where those tests live under the centralized `tests/` tree (per the repo's current convention in `AGENTS.md`), and prior art.
 - **Out of Scope** — what is explicitly excluded, including deferred Open Questions.
 - **Further Notes** — anything else worth recording.
 
@@ -72,9 +72,10 @@ Fill out every section of `templates/SPEC.md`:
 - DO synthesize only from `DESIGN.md`, its ADRs, and the codebase — nothing else.
 - DO carry the Glossary verbatim and speak in its terms throughout.
 - DO cite relevant ADRs by number instead of restating their reasoning.
-- DO make the Testing Decisions section point tests at the right place under
-  `tests/` — `libs/**` → `tests/infrastructure/**`, `apps/**` → `tests/system/**`,
-  preserving the project's internal path.
+- DO make the Testing Decisions section point tests at the right place: tests are
+  centralized under the repo's `tests/` tree, mirroring the source path rather
+  than sitting beside the code. Follow the repo's current testing convention
+  (see `AGENTS.md`) for the exact layout instead of assuming one.
 - DO stop at `SPEC.md`.
 - DON'T re-interview the user or re-open settled design — that is `/architect`'s job.
 - DON'T invent decisions the design never settled; surface the gap instead.

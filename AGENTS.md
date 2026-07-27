@@ -42,10 +42,9 @@ directory is *for*, then look inside for current projects.
   `nixosConfigurations` (the machine hosts under `utils/nixos/`). Don't look
   there for how to build an app.
 - **Tests are centralized under `tests/`, mirroring source.** They do *not* sit
-  next to the code. Tests for `libs/**` live under `tests/infrastructure/**`;
-  tests for `apps/**` live under `tests/system/**`, preserving each project's
-  internal path structure. When you touch code, look for its counterpart under
-  `tests/`, not beside it.
+  next to the code — tests for a project live under `tests/` at a path that
+  mirrors the project's own path, preserving its internal structure. When you
+  touch code, look for its counterpart under `tests/`, not beside it.
 - **ADRs live with the thing they decide.** Architecture Decision Records sit in
   an `adr/` folder inside the relevant project. Consult them before reworking a
   design — they explain the *why*.
@@ -57,8 +56,7 @@ directory is *for*, then look inside for current projects.
 
 - **"Where does an app build/run?"** → look inside that app's folder for
   `flake.nix` + `.envrc`; `cd` there and let direnv load, then use that shell.
-- **"Where are the tests for this?"** → mirror the path under `tests/`
-  (`libs/` → `tests/infrastructure/`, `apps/` → `tests/system/`).
+- **"Where are the tests for this?"** → mirror the project's path under `tests/`.
 - **"Why was this designed this way?"** → check the project's `adr/` folder.
 - **"What shared helper already exists?"** → scan `libs/` before writing a new one.
 - **"How is a machine configured?"** → `utils/nixos/hosts/<machine>/`.
