@@ -57,6 +57,29 @@ section, so get them right at the checkpoint:
 - **If a new seam is needed, propose it at the highest point** you reasonably can.
 - **Fewer seams across the codebase is better.** The ideal number is one.
 
+## Flow Diagram
+`SPEC.md` carries a **Flow Diagram**: a Mermaid `flowchart` that takes
+`DESIGN.md`'s high-level diagram and drives it down to implementation fidelity.
+It is still *for a human to read* — the goal is a picture an engineer can follow
+to see exactly how the system fits together, not a wall of unreadable nodes.
+- **Build directly on the design's diagram.** Preserve its overall shape and its
+  vocabulary so a reader can see the high-level flow refine into detail. Do not
+  redraw a different system — decompose the one already agreed.
+- **Much higher fidelity.** Where `DESIGN.md` shows a box, this shows what is
+  inside it: the concrete services, modules, and the interfaces/data flowing
+  between them — ideally down to each service or module. Use subgraphs to group a
+  design-level box's internals so the correspondence stays visible.
+- **Synthesis, not new design.** Every node and edge must trace back to a
+  Decision, an ADR, or the code you explored. If drawing it exposes a flow the
+  design never settled, that is a gap — surface it (per step 3), do not invent it.
+- **Grounded in the codebase.** Name real modules/services you found while
+  exploring, and reuse existing ones rather than drawing new boxes where suitable
+  ones already exist. Keep node labels in the Glossary's terms; avoid volatile
+  file paths (consistent with the no-file-paths rule below).
+- **Still human-readable.** If it grows too dense to follow, split it — one
+  diagram per subsystem — rather than cramming everything into one unreadable
+  graph.
+
 ## SPEC.md layout
 Fill out every section of `templates/SPEC.md`:
 - **Problem Statement** — the problem from the user's perspective (from the design's Overview / intent).
@@ -64,6 +87,7 @@ Fill out every section of `templates/SPEC.md`:
 - **Glossary** — carried verbatim from `DESIGN.md` so the spec and the issues it spawns share one vocabulary.
 - **User Stories** — a long, numbered list in the form `As an <actor>, I want a <feature>, so that <benefit>`, covering every aspect of the feature.
 - **Implementation Decisions** — modules built/modified and their interfaces, architectural decisions, schema changes, API contracts, specific interactions. Cite relevant ADRs by number.
+- **Flow Diagram** — a detailed, high-fidelity Mermaid flowchart that builds on `DESIGN.md`'s high-level one (see below).
 - **Testing Decisions** — what makes a good test, the seams you settled on, which modules are tested, where those tests live (with the project, per the repo's convention in `AGENTS.md` — for Rust, unit tests in-file and integration tests in the crate's own `tests/`; the repo-level `tests/` is reserved for cross-`apps/` end-to-end tests), and prior art.
 - **Out of Scope** — what is explicitly excluded, including deferred Open Questions.
 - **Further Notes** — anything else worth recording.

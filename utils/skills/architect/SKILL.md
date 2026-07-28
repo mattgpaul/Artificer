@@ -36,6 +36,7 @@ Use the bundled templates as the starting structure so output is consistent acro
 ## DESIGN.md layout
 Keep every session's output in this shape so it is consistent and resumable:
 - **Overview** — the intent, one paragraph
+- **Flow Diagram** — a high-level Mermaid flowchart of how the system flows (see *Closing the session*)
 - **Glossary** — agreed terms (frozen once set; change only when explicitly changed)
 - **Decisions** — what was settled, with the reasoning
 - **Open Questions** — unanswered / needs-research items, so a future session can resume
@@ -65,3 +66,25 @@ Some decisions matter more than others. An **ADR** (Architecture Decision Record
 - Hard to reverse — the cost of changing the decision later is meaningful
 - Surprising without context — a future reader will wonder "why did they do it this way?"
 - The result of a real trade-off — there were genuine alternatives and one was picked for specific reasons
+
+## Closing the session
+Once the design tree is walked and the **Decisions** are settled, produce a
+**Flow Diagram**: a Mermaid `flowchart` in `DESIGN.md` that maps out how the
+system flows at a **high level**. This diagram is *for the user to interpret* —
+its job is to let a human see the shape of the system at a glance, so keep it
+that way:
+- **High level, not exhaustive.** Show the major moving parts and how they
+  connect — the flow of data/control through the system — not every module,
+  function, or edge case. Aim for a picture that fits on one screen and can be
+  understood in a few seconds. The detailed, high-fidelity version is `/to-spec`'s
+  job, and it will build directly on this one.
+- **Human-discernable.** Label nodes and edges in the **Glossary's** vocabulary,
+  in plain terms a reader recognizes — not internal identifiers. A person who
+  reads only this diagram should come away understanding how the system works.
+- **Grounded in the Decisions.** The diagram is a synthesis of what was settled,
+  not new design. If drawing it surfaces a flow that was never decided, that is an
+  **Open Question** to raise with the user — do not invent the flow to complete
+  the picture.
+- **Confirm it with the user** before treating the session as done. The diagram is
+  a decision like any other; it clears the **Understanding Guardrail** only once
+  the user agrees it reflects the system they intend.

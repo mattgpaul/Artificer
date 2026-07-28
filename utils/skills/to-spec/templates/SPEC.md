@@ -40,6 +40,22 @@ Fill out every section below. Delete these comments once real content exists.
      to the decision-rich part and noted as coming from a prototype. -->
 -
 
+## Flow Diagram
+<!-- A DETAILED, high-fidelity Mermaid flowchart that builds on DESIGN.md's
+     high-level one: same overall shape and vocabulary, decomposed down to the
+     concrete services/modules and the interfaces/data flowing between them. Use
+     subgraphs to group a design-level box's internals so the correspondence
+     stays visible. Every node/edge must trace to a Decision, ADR, or code you
+     explored — no invented flow. Keep it human-readable; if it grows too dense,
+     split into one diagram per subsystem. Keep labels in the Glossary's terms;
+     no volatile file paths. -->
+```mermaid
+flowchart TD
+    subgraph Subsystem
+        A[Service] --> B[Module]
+    end
+```
+
 ## Testing Decisions
 <!-- - What makes a good test here: exercise external behavior, not implementation
        details.
