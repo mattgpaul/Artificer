@@ -1,0 +1,22 @@
+# Build artifacts
+target/
+
+# Test artifacts
+*.gcno
+*.gcda
+*.profraw
+*.profdata
+*.rcgu.o
+*.lib.*
+
+# Rust cache
+.cargo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store

@@ -46,9 +46,9 @@ Fill out every section below. Delete these comments once real content exists.
      - The seams settled on at the checkpoint (prefer existing, highest possible,
        fewest — ideally one).
      - Which modules are tested.
-     - Where the tests live: centralized under the repo's tests/ tree, mirroring
-       the source path rather than sitting beside the code. Follow the repo's
-       current testing convention (see AGENTS.md) for the exact layout.
+     - Where the tests live: with the project (see AGENTS.md) — for Rust, unit
+       tests in-file and integration tests in the crate's own tests/ dir; the
+       repo-level tests/ tree is only for cross-apps/ end-to-end tests.
      - Prior art: similar existing tests to model these on. -->
 -
 
