@@ -43,8 +43,9 @@ separate step). Keep those boundaries clean.
    new seam if the spec settled one.
 4. **Confirm the runtime builds first.** A project is only workable if its dev
    shell + buildable scaffold exist (`flake.nix` + `.envrc`; the crate compiles).
-   If they are missing, that is a prefactor task, not something to fake — surface
-   it and stop rather than scaffolding into a project that cannot build.
+   If they are missing, that is a prefactor task for `/devenv`, not something to
+   fake — surface it and stop rather than scaffolding into a project that cannot
+   build.
 5. **Move the task TODO → IN PROGRESS.** Do this through the `task-tracker` format
    (delegate all board mechanics — field order, record boundary, re-parse check —
    to that skill). Re-read the edit to confirm the board still parses.
