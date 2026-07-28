@@ -1,7 +1,8 @@
 # Nix dev shell + Rust crate scaffold
 ID: 1
-State: TODO
+State: COMPLETE
 Blocker: None
+Completed: 2026-07-27T20:52:00Z
 Description: Prefactor. Stand up the project's dev environment and buildable
 crate before any tool code lands. Add `flake.nix` + `.envrc` (`use flake`)
 copying the `apps/telemetry_tdd_qwen` precedent — flake-utils + `rustc`, `cargo`,
@@ -10,7 +11,7 @@ copying the `apps/telemetry_tdd_qwen` precedent — flake-utils + `rustc`, `carg
 
 # TRACKER.md parser to Task records
 ID: 2
-State: BLOCKED
+State: IN PROGRESS
 Blocker: 1
 Description: Pure parse of a single board's text into ordered Task records,
 honoring the record boundary and full field grammar. A new record begins ONLY
