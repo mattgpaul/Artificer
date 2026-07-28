@@ -37,6 +37,7 @@ Each task is a block, in this exact field order:
 # <Title>
 ID: <integer>
 State: <STATE>
+Blocker: <None | comma-separated refs>
 Completed: <ISO 8601 UTC>      # only on COMPLETE/ARCHIVED tasks
 Description: <detail, may be verbose / multi-line>
 ```
@@ -53,6 +54,23 @@ line. Non-terminal tasks — TODO / IN PROGRESS / BLOCKED — have neither line.
 - **ID:** integer unique within this file, assigned as `max(existing IDs) + 1`.
   Never reuse an ID, even one belonging to a CANCELLED/ARCHIVED task. Gaps are
   fine — the ID is just a stable pointer.
+- **Blocker:** a first-class, machine-parsed dependency field — the tool follows
+  it to find now-unblockable tasks, so keep the grammar exact. **Always present**,
+  on every task in every state. Value is `None`, or a comma-separated list of
+  references, e.g. `Blocker: 1, 5`. A reference is either:
+  - a **bare integer** = a ticket ID on *this* board (`Blocker: 5`), or
+  - a **cross-project ref** `<repo-relative project path>:<ticket-id>` when the
+    blocker lives on another project's board (`Blocker: apps/computer_dashboard:5`).
+    The colon is what distinguishes a cross-project ref from a bare internal ID.
+
+  A task is `BLOCKED` **iff** it has at least one *unsatisfied* blocker — a
+  referenced ticket that is not yet `COMPLETE`/`ARCHIVED` (a `CANCELLED` blocker
+  counts as unsatisfied, so it keeps the task blocked); and a task may only be
+  `BLOCKED` if its `Blocker:` names a real ticket. A blocker with no
+  ticket on any board (waiting on hardware, on a person, on a vendor) does NOT
+  make a task BLOCKED — leave it `TODO` (with the caveat in Description) or give
+  the blocker its own ticket and point at it. Place `Blocker:` on its own line
+  directly after `State:`.
 - **Completed: / Cancelled:** ISO 8601 UTC timestamp, e.g. `2026-07-26T14:03:00Z`.
   Set `Completed:` at the moment you move a task to COMPLETE and keep it when the
   sweep later moves it to ARCHIVED. Set `Cancelled:` at the moment you cancel a
@@ -66,8 +84,16 @@ line. Non-terminal tasks — TODO / IN PROGRESS / BLOCKED — have neither line.
 Valid states: `TODO` `IN PROGRESS` `BLOCKED` `COMPLETE` `CANCELLED` `ARCHIVED`.
 
 - Every new task starts at **TODO**.
-- Move to **IN PROGRESS** when actively working it; **BLOCKED** when it cannot
-  proceed (put the reason / blocker in the Description).
+- Move to **IN PROGRESS** when actively working it; **BLOCKED** when it is waiting
+  on another ticket — set `State: BLOCKED` and name the blocking ticket(s) in the
+  `Blocker:` field (never in prose). Do NOT prune the `Blocker:` list as blockers
+  finish — it is a permanent record of the edges. The TUI's launch unblock sweep
+  flips a `BLOCKED` task back to `TODO` on its own once every listed blocker is
+  `COMPLETE`/`ARCHIVED`, leaving the list intact (so a `TODO` task may legitimately
+  still carry a non-empty `Blocker:` list — `State` is what carries workability).
+  A blocker that is `CANCELLED` does NOT satisfy the dependency: the task stays
+  `BLOCKED` until a human/agent re-scopes it, cancels it, or clears that blocker by
+  hand.
 - Move to **COMPLETE** when the work satisfies what the task's own Description
   defines as done. There is no enforced state machine — judge transitions against
   the task's description. **Add a `Completed:` timestamp (ISO 8601 UTC) at this
@@ -90,9 +116,21 @@ Valid states: `TODO` `IN PROGRESS` `BLOCKED` `COMPLETE` `CANCELLED` `ARCHIVED`.
   `Completed:` timestamp. Mark work `COMPLETE` with its timestamp and let the
   sweep move it.
 
+## Unblock sweep
+- On the same launch pass, the TUI runs an unblock sweep. For each `BLOCKED` task
+  it resolves every reference in `Blocker:` (internal ID on this board, or a
+  cross-project `path:id` on another board) and flips the task `BLOCKED → TODO`
+  iff every referenced blocker is `COMPLETE`/`ARCHIVED`. A `CANCELLED` blocker
+  does not count as satisfied, so the task stays `BLOCKED`.
+- The sweep only ever changes `State`; it never edits the `Blocker:` list. Keep
+  the list accurate at creation and leave it — it is the permanent edge record and
+  the tool depends on it to compute workability.
+
 ## Do / Don't
 - DO edit `TRACKER.md` directly; DO keep the exact field order and record
   boundary.
+- DO give every task a `Blocker:` line (`None` when nothing blocks it); DO encode
+  dependencies there, never as `Blocked by:` prose in the Description.
 - DO set `CANCELLED` rather than deleting an abandoned task.
 - DO stamp `Completed:` / `Cancelled:` (ISO 8601 UTC) the moment a task turns
   terminal.
