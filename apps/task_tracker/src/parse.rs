@@ -52,9 +52,120 @@ pub struct Task {
 }
 
 /// Parse a single board's text into ordered task records (file order preserved).
+///
+/// The contract is well-formed board text. As a provisional policy a record
+/// whose fields don't parse (e.g. a non-integer `ID:`, an unknown `State:`) is
+/// skipped rather than panicking, so one bad block can't crash the viewer;
+/// surfacing malformed input properly belongs to the `load` seam (task ID 3).
 pub(crate) fn parse(text: &str) -> Vec<Task> {
-    let _ = text;
-    todo!("parse a single board's text into ordered Task records")
+    let lines: Vec<&str> = text.lines().collect();
+    // A record starts ONLY at a `# ` header immediately followed by `ID:` then
+    // `State:` — so a stray `# ` line inside a Description is not a boundary.
+    let starts: Vec<usize> = (0..lines.len())
+        .filter(|&i| is_record_start(&lines, i))
+        .collect();
+    starts
+        .iter()
+        .enumerate()
+        .filter_map(|(n, &start)| {
+            let end = starts.get(n + 1).copied().unwrap_or(lines.len());
+            parse_record(&lines[start..end])
+        })
+        .collect()
+}
+
+fn is_record_start(lines: &[&str], i: usize) -> bool {
+    lines.get(i).is_some_and(|l| l.starts_with("# "))
+        && lines.get(i + 1).is_some_and(|l| l.starts_with("ID:"))
+        && lines.get(i + 2).is_some_and(|l| l.starts_with("State:"))
+}
+
+/// Parse one record's slice: header, ID, State, Blocker, an optional terminal
+/// slot, then the Description running to the end of the slice. `None` if a
+/// required field is malformed.
+fn parse_record(rec: &[&str]) -> Option<Task> {
+    let title = rec.first()?.strip_prefix("# ")?.trim().to_string();
+    let id = rec.get(1)?.strip_prefix("ID:")?.trim().parse().ok()?;
+    let state = parse_state(rec.get(2)?.strip_prefix("State:")?.trim())?;
+    let blocker = parse_blocker(rec.get(3)?.strip_prefix("Blocker:")?.trim())?;
+
+    // The terminal slot is optional; when absent, `rest` starts at the Description.
+    let mut rest = rec.get(4..).unwrap_or(&[]);
+    let terminal = take_terminal(&mut rest);
+
+    Some(Task {
+        title,
+        id,
+        state,
+        blocker,
+        terminal,
+        description: parse_description(rest),
+    })
+}
+
+/// Take an optional terminal line (`Completed:`/`Cancelled:`) off the front of
+/// `rest`, advancing it past the line when one is present.
+fn take_terminal(rest: &mut &[&str]) -> Option<Terminal> {
+    let line = rest.first()?;
+    let terminal = if let Some(ts) = line.strip_prefix("Completed:") {
+        Terminal::Completed(ts.trim().to_string())
+    } else {
+        Terminal::Cancelled(line.strip_prefix("Cancelled:")?.trim().to_string())
+    };
+    *rest = &rest[1..];
+    Some(terminal)
+}
+
+fn parse_state(s: &str) -> Option<State> {
+    Some(match s {
+        "TODO" => State::Todo,
+        "IN PROGRESS" => State::InProgress,
+        "BLOCKED" => State::Blocked,
+        "COMPLETE" => State::Complete,
+        "CANCELLED" => State::Cancelled,
+        "ARCHIVED" => State::Archived,
+        _ => return None,
+    })
+}
+
+/// `None` for `Blocker: None`; otherwise each comma-separated ref. The colon
+/// discriminates a cross-project `path:id` from a bare internal ID. Returns
+/// `None` if any ref's integer part is malformed.
+fn parse_blocker(s: &str) -> Option<Vec<BlockerRef>> {
+    if s == "None" {
+        return Some(Vec::new());
+    }
+    s.split(',')
+        .map(|r| {
+            let r = r.trim();
+            match r.split_once(':') {
+                Some((path, id)) => Some(BlockerRef::Cross {
+                    path: path.trim().to_string(),
+                    id: id.trim().parse().ok()?,
+                }),
+                None => Some(BlockerRef::Internal(r.parse().ok()?)),
+            }
+        })
+        .collect()
+}
+
+/// Reassemble the Description from its `Description:` line onward. The first
+/// line's prefix is stripped; subsequent lines (blank lines included) are kept
+/// verbatim, and trailing whitespace before the next record is trimmed away.
+fn parse_description(rest: &[&str]) -> String {
+    let Some((first, tail)) = rest.split_first() else {
+        return String::new();
+    };
+    let first = first
+        .strip_prefix("Description:")
+        .unwrap_or(first)
+        .trim_start();
+    let mut out = String::from(first);
+    for line in tail {
+        out.push('\n');
+        out.push_str(line);
+    }
+    out.trim_end().to_string()
 }
 
 #[cfg(test)]
@@ -70,7 +181,12 @@ mod tests {
     // Parse a board expected to hold exactly one task, and return it.
     fn parse_one(board: &str) -> Task {
         let tasks = parse(board);
-        assert_eq!(tasks.len(), 1, "expected exactly one task, got {}", tasks.len());
+        assert_eq!(
+            tasks.len(),
+            1,
+            "expected exactly one task, got {}",
+            tasks.len()
+        );
         tasks.into_iter().next().unwrap()
     }
 
@@ -160,7 +276,10 @@ Description: other
         let task = parse_one(&board_with_blocker("apps/foo:5"));
         assert_eq!(
             task.blocker,
-            vec![BlockerRef::Cross { path: "apps/foo".to_string(), id: 5 }],
+            vec![BlockerRef::Cross {
+                path: "apps/foo".to_string(),
+                id: 5
+            }],
         );
     }
 
@@ -171,7 +290,10 @@ Description: other
             task.blocker,
             vec![
                 BlockerRef::Internal(3),
-                BlockerRef::Cross { path: "apps/foo".to_string(), id: 5 },
+                BlockerRef::Cross {
+                    path: "apps/foo".to_string(),
+                    id: 5
+                },
                 BlockerRef::Internal(7),
             ],
         );
