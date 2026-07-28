@@ -184,6 +184,50 @@ honest without judging whether work is finished.
   under `utils/skills/`. The tool relies on the same contract but does not own the
   write path (agents write boards by hand).
 
+## Flow Diagram
+Builds on `DESIGN.md`'s high-level diagram, driven to implementation fidelity:
+the same write → discover → parse → sweep → view → TUI shape, decomposed to the
+concrete modules and the settled `load(repo_root)` seam. Traces to the
+Implementation Decisions above, ADR-001 (Rust + ratatui), and ADR-002 (the
+unblock sweep as the one enforced transition).
+```mermaid
+flowchart TD
+    subgraph Write["Write path (out of crate)"]
+        Skill[task-tracker skill + template] --> Boards[(Per-project TRACKER.md)]
+        Agents[Agents & Matthew] -->|write by hand| Boards
+    end
+
+    Launch([task_tracker launch]) --> Load["load(repo_root) — public seam"]
+
+    subgraph Crate["task_tracker crate"]
+        Load --> Discover["Discovery: walk repo from root<br/>skip .git / .jj / node_modules / Nix results"]
+        Discover -->|each TRACKER.md path| Parse["parse module<br/>record-boundary parser →<br/>Task {ID, State, BlockerRef, Terminal, Description}"]
+        Parse --> Model["Consolidated view<br/>projects (repo-relative path) → tasks bucketed by State"]
+
+        subgraph SweepPass["Launch-time sweep pass (the only writes)"]
+            Archive["Archive sweep (write #1)<br/>COMPLETE → ARCHIVED<br/>iff Completed: in an ended sprint"]
+            Unblock["Unblock sweep (write #2)<br/>BLOCKED → TODO<br/>iff every Blocker: is COMPLETE/ARCHIVED<br/>(CANCELLED blocker stays BLOCKED)"]
+        end
+
+        Model --> Archive
+        Archive --> Unblock
+        Unblock -->|"resolve internal ID / cross-project path:id"| Model
+    end
+
+    Archive -->|rewrite State only| Boards
+    Unblock -->|rewrite State, never the Blocker list| Boards
+    Boards -.->|re-read on next launch| Discover
+
+    subgraph UI["TUI (ratatui)"]
+        Left["Left panel: project list"]
+        Board["Board: TODO / IN PROGRESS / BLOCKED / COMPLETE<br/>cards show Title, ID, truncated Description"]
+        Left -->|select project| Board
+    end
+
+    Model --> UI
+    UI -->|hjkl navigation| Architect([Matthew])
+```
+
 ## Testing Decisions
 - **What makes a good test here:** exercise the tool's observable external
   behavior — given real `TRACKER.md` files on disk, does the consolidated view

@@ -3,6 +3,22 @@
 ## Overview
 Production Rust replacement for the two telemetry MVPs (`apps/telemetry` = Python collectors + Prom/Grafana/JS; `apps/telemetry_rust` = Rust collector with no export). Same host metrics collected today. Reusable code → `libs/`.
 
+## Flow Diagram
+High-level shape: each box runs a Node that Collector pulls; Collector streams the
+combined state over SSE to the Dashboard TUI. Missing/down boxes degrade, never crash.
+```mermaid
+flowchart LR
+    subgraph Fleet[Monitored boxes]
+        N1[Telemetry Node]
+        N2[Telemetry Node]
+    end
+    N1 -->|HTTP + JSON pull| Collector
+    N2 -->|HTTP + JSON pull| Collector
+    Collector -->|SSE snapshot stream| Dashboard[Dashboard TUI]
+    Dashboard -->|live meters & detail graphs| Matthew[Matthew watches the fleet]
+    Collector -. down/stale Node → live/stale/unknown .-> Dashboard
+```
+
 ## Glossary
 | Term | Meaning |
 |------|---------|

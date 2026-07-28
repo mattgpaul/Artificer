@@ -182,6 +182,55 @@ current/max is noted "to implement."
   (uncommitted) fill-in: shared bearer token for LAN, token-over-TLS for WAN;
   mTLS considered overkill.
 
+## Flow Diagram
+Builds on `DESIGN.md`'s high-level Node → Collector → Dashboard shape, driven to
+module fidelity: the shared lib's two collection paths, the Node's sample-loop /
+shared-cell / HTTP split, the Collector's TTL cache and SSE fan-out, and the
+Dashboard's SSE client. Traces to the Implementation Decisions above and ADR 0001
+(pull topology), ADR 0002 (Ratatui TUI over SSE), ADR 0003 (Linux-first seam).
+```mermaid
+flowchart LR
+    subgraph Lib["libs/computer_telemetry (pure, sync)"]
+        Sysinfo["sysinfo baseline<br/>CPU%, mem, disk, net, processes"]
+        Sysfs["#cfg(linux) sysfs/procfs enrichment<br/>AMD GPU, per-core %, carrier, temps<br/>(injectable base path + autodetect)"]
+        Traits["metric-family traits + data model<br/>Snapshot, missing = Option, schema_version"]
+        Sysinfo --> Traits
+        Sysfs --> Traits
+    end
+
+    subgraph Node["Node binary (per box)"]
+        Loop["tokio sample loop<br/>every collection_interval"]
+        Cell["shared cell (watch/ArcSwap)<br/>latest Snapshot"]
+        NAxum["axum: GET /snapshot, GET /healthz"]
+        Loop -->|writes| Cell
+        NAxum -->|cheap read| Cell
+    end
+
+    subgraph Collector["Collector binary (one box)"]
+        Pull["reqwest pull loop<br/>every pull_interval"]
+        Cache["bounded TTL cache<br/>latest snapshot per Node<br/>→ live / stale / unknown"]
+        CAxum["axum: GET /stream (SSE),<br/>/snapshot, /nodes, /healthz"]
+        Bcast["tokio broadcast fan-out"]
+        Pull --> Cache
+        Cache --> Bcast
+        Bcast --> CAxum
+    end
+
+    subgraph Dash["Dashboard binary (client)"]
+        SSEClient["reqwest-eventsource SSE client"]
+        Render["ratatui + crossterm<br/>Chart / Sparkline / Gauge"]
+        SSEClient --> Render
+    end
+
+    Traits -. imported by path .-> Node
+    Traits -. imported by path .-> Collector
+    Traits -. imported by path .-> Dash
+    Loop -->|collects via traits| Traits
+    NAxum -->|full snapshot JSON, missing = null| Pull
+    CAxum -->|full combined snapshot per event| SSEClient
+    Render -->|live meters & graphs| Matthew([Matthew])
+```
+
 ## Testing Decisions
 A good test here exercises **observable external behavior and real parsing**, not
 internal wiring, and drives graceful degradation (missing / stale / unreachable)

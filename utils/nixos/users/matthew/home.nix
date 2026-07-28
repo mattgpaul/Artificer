@@ -94,6 +94,10 @@
         yazi
         jujutsu
         mdcat
+        # mmdc, for md-render.nvim's inline mermaid rendering. The nixpkgs build
+        # bundles a working Chromium, so it runs on NixOS -- unlike md-render's
+        # npx fallback, whose prebuilt puppeteer Chromium can't link here.
+        mermaid-cli
     ];
 
         home.sessionVariables.EDITOR = "nvim";

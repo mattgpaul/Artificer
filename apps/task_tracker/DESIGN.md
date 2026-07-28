@@ -13,6 +13,23 @@ A local-only task/issue tracker for the Artificer monorepo. Each project owns a
 architect can see all open work at a glance. Agent functionality is the priority;
 the TUI is secondary.
 
+## Flow Diagram
+High-level shape of the system: agents write boards by hand; the tool discovers,
+parses, sweeps, and renders them for the architect.
+```mermaid
+flowchart TD
+    Agents[Agents & Matthew] -->|write by hand via task-tracker skill| Boards[Per-project TRACKER.md boards]
+    Launch([Launch task_tracker]) --> Discover[Discover boards<br/>walk the repo]
+    Boards --> Discover
+    Discover --> Parse[Parse tasks]
+    Parse --> Sweeps{Launch-time sweeps}
+    Sweeps -->|Archive sweep: COMPLETE → ARCHIVED| Boards
+    Sweeps -->|Unblock sweep: BLOCKED → TODO| Boards
+    Sweeps --> View[Consolidated view]
+    View --> TUI[Jira-style TUI]
+    TUI -->|hjkl navigation| Architect[Matthew sees all open work at a glance]
+```
+
 ## Glossary
 | Term | Meaning |
 |------|---------|
