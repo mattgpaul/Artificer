@@ -117,7 +117,7 @@ temperature (sysfs), per-core usage %, overall usage % — portable bits via
 behind the injectable base path, both agreeing on the shared model. Fixture-tree
 test (seam 1): point the base path at a checked-in `/sys` + `/proc` fixture
 captured from a real box and assert real parsing (this establishes the fixture
-layout under `tests/` mirroring `libs/computer_telemetry`). Dashboard: CPU panel
+layout in `libs/computer_telemetry`'s own crate `tests/`). Dashboard: CPU panel
 with overall/per-core gauges and load sparkline. Flows through Node/Collector
 unchanged.
 

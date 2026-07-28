@@ -24,7 +24,7 @@ directory is *for*, then look inside for current projects.
 | `apps/`   | Deployable applications — the things that actually run. |
 | `libs/`   | Shared libraries consumed by `apps/`. Check here before writing a new helper. |
 | `utils/`  | Dev environment & system config — NixOS hosts, editor/WM dotfiles, agent skills. |
-| `tests/`  | Centralized tests that mirror the source tree (see Testing below). |
+| `tests/`  | Cross-`apps/` end-to-end tests only. A single project's tests live *with* that project (see Testing below). |
 | `docs/`   | Cross-cutting documentation. |
 | `flake.nix` | Root flake — defines **NixOS host configs only**, not dev shells. |
 
@@ -41,10 +41,15 @@ directory is *for*, then look inside for current projects.
 - **Root flake ≠ dev shells.** The root `flake.nix` builds
   `nixosConfigurations` (the machine hosts under `utils/nixos/`). Don't look
   there for how to build an app.
-- **Tests are centralized under `tests/`, mirroring source.** They do *not* sit
-  next to the code — tests for a project live under `tests/` at a path that
-  mirrors the project's own path, preserving its internal structure. When you
-  touch code, look for its counterpart under `tests/`, not beside it.
+- **Tests live with the thing they test, at the runtime's native seam.** A
+  project's tests sit *with* that project, not in a separate mirrored tree. For
+  Rust: unit tests in-file (`#[cfg(test)] mod tests`), integration tests in the
+  crate's own `tests/` directory (sibling to `src/`, compiled against the public
+  API). The repo-level `tests/` tree is reserved for **cross-`apps/` end-to-end**
+  tests that span more than one project — never a single project's tests. When you
+  touch code, look for its tests beside it (in the file, or the crate's `tests/`),
+  not under the repo-level `tests/`. Writing the failing tests first is the
+  `/tdd` skill's job (`utils/skills/tdd/`).
 - **ADRs live with the thing they decide.** Architecture Decision Records sit in
   an `adr/` folder inside the relevant project. Consult them before reworking a
   design — they explain the *why*.
@@ -56,7 +61,9 @@ directory is *for*, then look inside for current projects.
 
 - **"Where does an app build/run?"** → look inside that app's folder for
   `flake.nix` + `.envrc`; `cd` there and let direnv load, then use that shell.
-- **"Where are the tests for this?"** → mirror the project's path under `tests/`.
+- **"Where are the tests for this?"** → with the thing: for Rust, unit tests
+  in-file and integration tests in the crate's own `tests/`. The repo-level
+  `tests/` is only for cross-`apps/` end-to-end tests.
 - **"Why was this designed this way?"** → check the project's `adr/` folder.
 - **"What shared helper already exists?"** → scan `libs/` before writing a new one.
 - **"How is a machine configured?"** → `utils/nixos/hosts/<machine>/`.
@@ -67,5 +74,5 @@ directory is *for*, then look inside for current projects.
 When mapping unfamiliar territory (this mirrors the `/architect` workflow in
 `utils/skills/architect/`), walk top-down: this file → the relevant top-level
 directory → the project's `flake.nix`/`.envrc` for its toolchain → its `adr/` for
-intent → the mirrored `tests/` path for expected behavior. Confirm the dev shell
-before running anything.
+intent → the project's own tests (in-file unit tests and the crate's `tests/`) for
+expected behavior. Confirm the dev shell before running anything.

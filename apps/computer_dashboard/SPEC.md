@@ -207,12 +207,14 @@ area, with the fake-Node → SSE test as the single most end-to-end seam.
    `live`/`stale`/`unknown` states. This is the end-to-end graceful-degradation
    test.
 
-**Location.** Tests are centralized under the repo's `tests/` tree, mirroring the
-source path rather than sitting beside the code (per AGENTS.md). Lib collector +
-autodetection tests and their fixture trees mirror `libs/computer_telemetry`; Node
-and Collector wiring and the fake-Node → SSE integration test mirror
-`apps/computer_dashboard/{node,collector}`. `tests/` is currently empty, so this
-establishes the layout for the project.
+**Location.** Tests live *with* the crate they exercise (per AGENTS.md), at Rust's
+native seam: unit tests in-file (`#[cfg(test)] mod tests`), integration tests in
+that crate's own `tests/` directory against its public API. Lib collector +
+autodetection tests and their `/sys`+`/proc` fixture trees live in
+`libs/computer_telemetry`; Node and Collector wiring, and the fake-Node → SSE
+integration test, live in `apps/computer_dashboard/{node,collector}`'s own crates.
+The repo-level `tests/` tree is reserved for cross-`apps/` end-to-end tests and is
+not used here. The failing (red) tests are written first via `/tdd`.
 
 **Prior art.** None in `tests/` yet. `apps/telemetry_rust/monitor/src` (existing
 models + a `Telemetry` refresh trait) is reference material for model/trait shapes
