@@ -11,8 +11,9 @@ copying the `apps/telemetry_tdd_qwen` precedent — flake-utils + `rustc`, `carg
 
 # TRACKER.md parser to Task records
 ID: 2
-State: IN PROGRESS
+State: COMPLETE
 Blocker: 1
+Completed: 2026-07-27T21:15:00Z
 Description: Pure parse of a single board's text into ordered Task records,
 honoring the record boundary and full field grammar. A new record begins ONLY
 where a `# ` header is immediately followed by an `ID:` line and a `State:` line;
