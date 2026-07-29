@@ -3,4 +3,7 @@
 # Add a Python project by listing it here; it then joins the shared lock and,
 # once `uv lock` has run, is buildable via the root flake (uv2nix).
 [tool.uv.workspace]
-members = ["apps/shortcuts"]
+members = [
+    "apps/shortcuts",
+    "utils/artificer",
+]
