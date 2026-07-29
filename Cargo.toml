@@ -1,0 +1,12 @@
+# Rust workspace root (virtual manifest — no [package] here).
+# One workspace => one root Cargo.lock shared by every member below.
+# Add a crate by listing its path here; the root flake discovers it
+# automatically and exposes it as packages.<crate-name>.
+[workspace]
+resolver = "3"
+members = [
+    "apps/algo_trader_rust",
+    "apps/task_tracker",
+    "apps/telemetry_tdd_qwen",
+    "libs/microlib",
+]

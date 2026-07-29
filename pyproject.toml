@@ -1,0 +1,6 @@
+# uv workspace root (virtual root — no [project] here).
+# One workspace => one root uv.lock shared by every member below.
+# Add a Python project by listing it here; it then joins the shared lock and,
+# once `uv lock` has run, is buildable via the root flake (uv2nix).
+[tool.uv.workspace]
+members = ["apps/shortcuts"]
