@@ -4,8 +4,14 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
+    "artificer",
     "shortcuts",
 ]
+
+[[package]]
+name = "artificer"
+version = "0.1.0"
+source = { editable = "utils/artificer" }
 
 [[package]]
 name = "shortcuts"

@@ -97,12 +97,16 @@
                     in
                         builtins.listToAttrs (map mkCrate workspace.workspace.members));
 
-            # ---- Python: build the uv workspace via uv2nix ----
-            # Dormant until the root uv.lock exists (run `uv lock` once). Produces
-            # a single virtualenv for the whole workspace; split into per-member
-            # envs (using pythonSet.<member> / member deps) as the repo grows.
+            # ---- Python: one package per uv workspace member ----
+            # Mirrors the Rust block: reads members straight out of the root
+            # pyproject.toml, then each member's own pyproject.toml for its
+            # project name, and builds a per-member virtualenv exposing that
+            # member's console scripts. Adding a project means listing it in the
+            # root pyproject.toml, never editing this file. Dormant until the
+            # root uv.lock exists (run `uv lock` once).
             pythonPackages =
-                lib.optionalAttrs (builtins.pathExists ./uv.lock)
+                lib.optionalAttrs
+                    (builtins.pathExists ./pyproject.toml && builtins.pathExists ./uv.lock)
                     (let
                         workspace = inputs.uv2nix.lib.workspace.loadWorkspace {
                             workspaceRoot = ./.;
@@ -115,10 +119,22 @@
                                 inputs.pyproject-build-systems.overlays.default
                                 overlay
                             ]);
-                    in {
-                        python-env =
-                            pythonSet.mkVirtualEnv "artificer-env" workspace.deps.default;
-                    });
+                        members =
+                            (builtins.fromTOML
+                                (builtins.readFile ./pyproject.toml)).tool.uv.workspace.members;
+                        projName = member:
+                            (builtins.fromTOML
+                                (builtins.readFile (./. + "/${member}/pyproject.toml"))).project.name;
+                        mkPyApp = member:
+                            let
+                                name = projName member;
+                                env = pythonSet.mkVirtualEnv "${name}-env" { ${name} = [ ]; };
+                            in
+                            lib.nameValuePair name (env // {
+                                meta = (env.meta or {}) // { mainProgram = name; };
+                            });
+                    in
+                        builtins.listToAttrs (map mkPyApp members));
         in
         {
             # Shared, reusable dev shells. Projects select one from their .envrc:
