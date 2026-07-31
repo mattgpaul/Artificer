@@ -13,6 +13,7 @@
 				fzf
 				obsidian
 				tree 
+                jq
 		];
 	};
 
